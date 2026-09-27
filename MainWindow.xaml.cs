@@ -825,10 +825,6 @@ namespace Avalanche
             CloseAiChat();
         }
 
-        private Border? AiChatOverlay => FindName("AiChatOverlay") as Border;
-        private TextBox? AiChatInput => FindName("AiChatInput") as TextBox;
-        private ScrollViewer? AiChatScrollViewer => FindName("AiChatScrollViewer") as ScrollViewer;
-
         private void ToggleAiChat()
         {
             if (AiChatOverlay is null) return;
