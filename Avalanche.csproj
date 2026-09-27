@@ -155,7 +155,7 @@
 
   <!-- GPL3 source bundle: produces <AppName>-<Version>-src.zip in the publish folder every time you Publish. -->
   <Target Name="BundleSource" AfterTargets="Publish" Condition="'$(AvalanchePayloadBuild)' != 'true'">
-    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build\bundle-source.ps1" -ProjectDir "$(ProjectDir.TrimEnd('\'))" -Version "$(Version)" -AppName "$(AssemblyName)" -PublishDir "$(PublishDir.TrimEnd('\'))"" IgnoreExitCode="true" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File '$(ProjectDir)build\bundle-source.ps1' -ProjectDir '$(ProjectDir.TrimEnd('\'))' -Version '$(Version)' -AppName '$(AssemblyName)' -PublishDir '$(PublishDir.TrimEnd('\'))'" IgnoreExitCode="true" />
   </Target>
 
 </Project>
