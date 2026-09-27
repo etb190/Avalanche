@@ -1397,10 +1397,10 @@
                         <!-- Soft drop shadow: a blurred, offset copy behind the crisp wordmark -->
                         <StackPanel Orientation="Horizontal" Margin="1,1,0,0" Opacity="{DynamicResource WordmarkShadowOpacity}">
                             <StackPanel.Effect><BlurEffect Radius="2"/></StackPanel.Effect>
-                            <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" Foreground="#D8000000"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontWeight="Bold" FontSize="21.45" Foreground="#D8000000"/></TextBlock>
+                            <TextBlock Text="Avalanche" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" FontWeight="Bold" Foreground="#D8000000"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock><Run Text="Killer" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" Foreground="{DynamicResource TextBrush}"/><Run Text="PDF" FontFamily="{DynamicResource WordmarkFontPdf}" FontWeight="Bold" FontSize="21.45" Foreground="{DynamicResource AccentLogo}"/></TextBlock>
+                            <TextBlock Text="Avalanche" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" FontWeight="Bold" Foreground="{DynamicResource AccentLogo}"/>
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -2747,22 +2747,6 @@
                     <Border IsHitTestVisible="False" BorderBrush="{DynamicResource FooterBevelLightBrush}" BorderThickness="{DynamicResource FooterCellDarkThickness}"/>
                 </Grid>
                 <!-- Portable install action sits immediately left of the document controls. -->
-                <Grid x:Name="PortableBadge" Grid.Column="1" Panel.ZIndex="3"
-                      HorizontalAlignment="Right" VerticalAlignment="Center"
-                      Margin="6,0,8,0" Visibility="Collapsed">
-                    <Button x:Name="InstallBtn" Content="{DynamicResource Str_Portable}"
-                            Click="Install_Click" Style="{StaticResource OutlineButton}"
-                            ToolTip="{DynamicResource Str_Portable_InstallTip}"
-                            FontFamily="{DynamicResource UiFont}" FontSize="10"
-                            Padding="8,1"
-                            VerticalAlignment="Center">
-                        <!-- The footer action is deliberately a plain rectangle even in themes
-                             whose larger dialog controls use rounded corners. -->
-                        <Button.Resources>
-                            <CornerRadius x:Key="ControlCornerRadius">0</CornerRadius>
-                        </Button.Resources>
-                    </Button>
-                </Grid>
                 <Grid x:Name="FooterDocumentControls" Grid.Column="2"
                       HorizontalAlignment="Right" Margin="{DynamicResource FooterCellMargin}">
                     <Border IsHitTestVisible="False" BorderBrush="{DynamicResource FooterBevelDarkBrush}"

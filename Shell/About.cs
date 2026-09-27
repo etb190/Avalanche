@@ -108,25 +108,19 @@ namespace Avalanche
             BuildAboutTagline();
         }
 
-        /// <summary>"Killer" in the text color, "PDF" in the brand green, the pair clickable.</summary>
+        /// <summary>"Avalanche" in the brand accent color, clickable.</summary>
         private void BuildAboutWordmark()
         {
             AboutLogoBlock.Inlines.Clear();
             var hl = new Hyperlink { TextDecorations = null };
-            hl.Inlines.Add(new Run("Killer")
+            hl.Inlines.Add(new Run("Avalanche")
             {
                 FontFamily = UiKit.WordmarkFont,
                 FontSize   = 21,
-                FontWeight = FontWeights.Normal,
-                Foreground = Res("TextBrush")
-            });
-            hl.Inlines.Add(new Run("PDF")
-            {
-                FontFamily = UiKit.WordmarkFontPdf,
-                FontSize   = 27.3,
+                FontWeight = FontWeights.Bold,
                 Foreground = Res("AccentLogo")
             });
-            hl.Click += (_, _) => AboutController.OpenUrl("https://killerpdf.net");
+            hl.Click += (_, _) => AboutController.OpenUrl("https://avalanche.net");
             AboutLogoBlock.Inlines.Add(hl);
 
             // The shadow copy mirrors the real runs exactly (sizes, weights, fonts), so the blur
@@ -136,17 +130,11 @@ namespace Avalanche
             var shadowBrush = new System.Windows.Media.SolidColorBrush(
                 System.Windows.Media.Color.FromArgb(0xB0, 0, 0, 0));
             shadowBrush.Freeze();
-            AboutLogoShadowBlock.Inlines.Add(new Run("Killer")
+            AboutLogoShadowBlock.Inlines.Add(new Run("Avalanche")
             {
                 FontFamily = UiKit.WordmarkFont,
                 FontSize   = 21,
-                FontWeight = FontWeights.Normal,
-                Foreground = shadowBrush
-            });
-            AboutLogoShadowBlock.Inlines.Add(new Run("PDF")
-            {
-                FontFamily = UiKit.WordmarkFontPdf,
-                FontSize   = 27.3,
+                FontWeight = FontWeights.Bold,
                 Foreground = shadowBrush
             });
         }

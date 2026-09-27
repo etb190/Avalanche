@@ -286,7 +286,6 @@ namespace Avalanche
         private readonly Button _saveAsBtnRef = null!;
         private readonly Button _closeFileBtnRef = null!;
         private readonly ComboBox _zoomBox = null!;
-        private readonly Grid _portableBadge = null!;
         private readonly TextBox _pageJumpBox = null!;
         private readonly TextBlock _pageTotalLabel = null!;
         /// <summary>The sidebar list and the total above it, so the two cannot be set apart.</summary>
@@ -354,8 +353,6 @@ namespace Avalanche
                 if (_zoomBox.Template?.FindName("PART_EditableTextBox", _zoomBox) is TextBox etb)
                     etb.SelectionBrush = System.Windows.Media.Brushes.Transparent;
             };
-            _portableBadge = (Grid)FindName("PortableBadge")!;
-            _portableBadge.SizeChanged += (_, _) => ScheduleFadeRefresh();
             _pageJumpBox = (TextBox)FindName("PageJumpBox")!;
             _pageTotalLabel = (TextBlock)FindName("PageTotalLabel")!;
             _sidebarPages = new Controls.SidebarPageBinding(PageList, _pageTotalLabel);
@@ -516,9 +513,6 @@ namespace Avalanche
                     }
                     RestorePaneB();
                 }
-
-                if (App.IsPortable())
-                    _portableBadge.Visibility = Visibility.Visible;
 
                 // Start with the sidebar collapsed when no PDF is open (nothing to show); a document
                 // opened above will have expanded it via FinishOpenFile.
