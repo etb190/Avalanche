@@ -1588,7 +1588,7 @@ public sealed class PdfEngineIntegrationTests
             {
                 Title = "Updated title",
                 Author = "Steve",
-                Subject = "The KillerPDF.Engine",
+                Subject = "The Avalanche.Engine",
                 Keywords = "PDF 2.0, PDF/A",
                 Creator = "Avalanche",
                 Producer = "Original producer",

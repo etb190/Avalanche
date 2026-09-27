@@ -6,9 +6,9 @@
 <link rel="preload" href="killerfont.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="darkreader-lock">
-<title>KillerPDF - Technical</title>
-<link rel="canonical" href="https://killerpdf.net/technical.html">
-<meta name="description" content="A deep technical explanation of how KillerPDF renders, zooms, and stays robust.">
+<title>Avalanche - Technical</title>
+<link rel="canonical" href="https://avalanche.net/technical.html">
+<meta name="description" content="A deep technical explanation of how Avalanche renders, zooms, and stays robust.">
 <link rel="icon" type="image/x-icon" href="kp-icon.ico">
 <script defer src="https://koya.thekiller.net/script.js" data-website-id="4036b11d-f6c0-4254-b448-933d3e38b0cb"></script>
 <link rel="stylesheet" href="kp.css?v=24">
@@ -51,11 +51,11 @@
 </defs></svg>
 
 <div class="topbar">
-<a href="index.html" class="tb-home" title="KillerPDF">
-<img class="tb-icon" src="kp-icon.png" alt="KillerPDF" width="44" height="44">
-<img class="wm-logo tb-wm" src="brand/killerpdf-logo-dark-green.svg" alt="KillerPDF">
+<a href="index.html" class="tb-home" title="Avalanche">
+<img class="tb-icon" src="kp-icon.png" alt="Avalanche" width="44" height="44">
+<img class="wm-logo tb-wm" src="brand/avalanche-logo-dark-green.svg" alt="Avalanche">
 </a>
-<a class="tb-dl" href="https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h3l-4 5-4-5h3V4zM5 18h14v2H5z"/></svg><span data-i18n="nav_dl">Download</span></a>
+<a class="tb-dl" href="https://github.com/SteveTheKiller/Avalanche/releases/latest/download/Avalanche.exe"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h3l-4 5-4-5h3V4zM5 18h14v2H5z"/></svg><span data-i18n="nav_dl">Download</span></a>
 <a class="tb-mcp-link" href="mcp.html" aria-label="KillerMCP"><img src="mcp.png" alt="" aria-hidden="true"><span class="tb-mcp-wordmark"><span>Killer</span><span class="tb-mcp-accent">MCP</span></span></a>
 <span class="tb-spacer"></span>
 <nav class="tb-nav">
@@ -164,19 +164,19 @@
 
 <section class="page-hero">
 <span class="page-title" data-i18n="pt_1">The Tech of</span>
-<img class="wm-logo" src="brand/killerpdf-logo-dark-green.svg" alt="KillerPDF">
-<p data-i18n="pt_2">A plain-English look at how KillerPDF works under the hood, with the deeper detail kept for the nerds who want it.</p>
+<img class="wm-logo" src="brand/avalanche-logo-dark-green.svg" alt="Avalanche">
+<p data-i18n="pt_2">A plain-English look at how Avalanche works under the hood, with the deeper detail kept for the nerds who want it.</p>
 </section>
 
 <div class="tech-sec" id="stack">
 <h2 data-i18n="pt_16">Tech stack</h2>
-<p data-i18n="pt_217">KillerPDF is a native Windows application built on modern .NET. There is no Electron and no browser engine. The installed edition uses the .NET 10 Desktop Runtime; the portable edition carries its own runtime. Each major subsystem has a deliberately narrow job:</p>
+<p data-i18n="pt_217">Avalanche is a native Windows application built on modern .NET. There is no Electron and no browser engine. The installed edition uses the .NET 10 Desktop Runtime; the portable edition carries its own runtime. Each major subsystem has a deliberately narrow job:</p>
 <table class="spec-table"><tr><th data-i18n="pt_18">Component</th><th data-i18n="pt_19">Library</th></tr>
 <tr><td>UI</td><td data-i18n="tech_ui_stack">WPF on .NET 10 for Windows, x64, with custom window chrome</td></tr>
 <tr><td data-i18n="pt_22">Rendering</td><td data-i18n="pt_23">PDFium via Docnet.Core 2.6 - every page bitmap and thumbnail</td></tr>
 <tr><td data-i18n="pt_24">Text</td><td data-i18n="pt_25">PdfPig 0.1.15 - search, selection, font sniffing</td></tr>
-<tr><td data-i18n="tech_document_engine">Document engine</td><td data-i18n="tech_document_stack"><a href="./engine/index.html">The KillerPDF.Engine</a>: parsing, authoring, preservation, page operations, forms, annotations, encryption, signatures, PDF 2.0, PDF/A and PDF/UA</td></tr>
-<tr><td data-i18n="tech_signing">Signing</td><td data-i18n="tech_signing_stack">The KillerPDF.Engine: byte-preserving detached CMS signatures, certification permissions, field locks and verification</td></tr>
+<tr><td data-i18n="tech_document_engine">Document engine</td><td data-i18n="tech_document_stack"><a href="./engine/index.html">The Avalanche.Engine</a>: parsing, authoring, preservation, page operations, forms, annotations, encryption, signatures, PDF 2.0, PDF/A and PDF/UA</td></tr>
+<tr><td data-i18n="tech_signing">Signing</td><td data-i18n="tech_signing_stack">The Avalanche.Engine: byte-preserving detached CMS signatures, certification permissions, field locks and verification</td></tr>
 <tr><td data-i18n="pt_30">OCR</td><td data-i18n="pt_31">Tesseract 5.2 - native libs embedded, language packs on demand</td></tr>
 <tr><td data-i18n="pt_32">Packaging</td><td data-i18n="pt_33">A compact framework-dependent installer and a self-contained portable launcher, each carrying a compressed, SHA-256-verified payload</td></tr>
 </table>
@@ -185,43 +185,43 @@
 <div class="tech-sec" id="install">
 <h2 data-i18n="pt_34">Install, folders &amp; data</h2>
 <h3 data-i18n="release_185_heading">In 1.8.5</h3>
-<p data-i18n="release_185_updates">KillerPDF checks GitHub for newer stable versions at startup by default and asks before installing an update. Always check on startup in the confirmation dialog shares the About setting and saves your choice even if you decline the update. There is no separate background service.</p>
+<p data-i18n="release_185_updates">Avalanche checks GitHub for newer stable versions at startup by default and asks before installing an update. Always check on startup in the confirmation dialog shares the About setting and saves your choice even if you decline the update. There is no separate background service.</p>
 <p data-i18n="release_185_shortcuts">At the bottom of the shortcut list, you can turn off all application keyboard shortcuts. Ctrl+Shift+K always works to turn them on or off, even when the others are disabled.</p>
 <p data-i18n="release_185_rotation">Ctrl+R rotates selected pages 90° clockwise. Ctrl+Shift+R rotates them 90° counterclockwise.</p>
-<p data-i18n="pt_35">KillerPDF ships in two forms. The compact installer is the standard download and supports per-user or all-users installation. The larger portable edition contains its own runtime and runs from anywhere without installation.</p>
+<p data-i18n="pt_35">Avalanche ships in two forms. The compact installer is the standard download and supports per-user or all-users installation. The larger portable edition contains its own runtime and runs from anywhere without installation.</p>
 <h3 id="what-the-installer-does" data-i18n="pt_36">What the installer does</h3>
-<p data-i18n="pt_37">The installer verifies and extracts the framework-dependent application to <code>%LOCALAPPDATA%\Programs\KillerPDF\</code>, or to <code>%ProgramFiles%\KillerPDF\</code> after an elevation prompt for all users. Installed shortcuts launch <code>KillerPDF.App.exe</code> directly. The portable edition verifies and extracts its self-contained payload for the current run. Installed copies register the PDF handler and <code>killerpdf:</code> protocol at the matching scope and create an Add/Remove Programs entry.</p>
+<p data-i18n="pt_37">The installer verifies and extracts the framework-dependent application to <code>%LOCALAPPDATA%\Programs\Avalanche\</code>, or to <code>%ProgramFiles%\Avalanche\</code> after an elevation prompt for all users. Installed shortcuts launch <code>Avalanche.App.exe</code> directly. The portable edition verifies and extracts its self-contained payload for the current run. Installed copies register the PDF handler and <code>avalanche:</code> protocol at the matching scope and create an Add/Remove Programs entry.</p>
 <h3 id="where-things-live" data-i18n="pt_38">Where things live</h3>
 <table class="spec-table"><tr><th data-i18n="pt_39">Location</th><th data-i18n="pt_40">Holds</th></tr>
-<tr><td><code>%LOCALAPPDATA%\Programs\KillerPDF\</code></td><td data-i18n="pt_41">the installed application payload, including KillerPDF.App.exe and its native and managed dependencies</td></tr>
-<tr><td><code>%LOCALAPPDATA%\KillerPDF\Temp\</code></td><td data-i18n="pt_42">session working files - decrypted copies, repaired files, rotation snapshots</td></tr>
-<tr><td><code>%LOCALAPPDATA%\KillerPDF\tessdata\</code></td><td data-i18n="pt_43">OCR language data (see below)</td></tr>
-<tr><td><code>%LOCALAPPDATA%\KillerPDF\ocr\&lt;version&gt;\x64\</code></td><td data-i18n="pt_44">OCR native engine libraries</td></tr>
-<tr><td><code>%LOCALAPPDATA%\KillerPDF\Logs\</code></td><td data-i18n="pt_45">crash logs</td></tr>
-<tr><td><code>HKCU\Software\KillerPDF\Settings</code></td><td data-i18n="pt_46">your settings - in the registry, not a file</td></tr>
+<tr><td><code>%LOCALAPPDATA%\Programs\Avalanche\</code></td><td data-i18n="pt_41">the installed application payload, including Avalanche.App.exe and its native and managed dependencies</td></tr>
+<tr><td><code>%LOCALAPPDATA%\Avalanche\Temp\</code></td><td data-i18n="pt_42">session working files - decrypted copies, repaired files, rotation snapshots</td></tr>
+<tr><td><code>%LOCALAPPDATA%\Avalanche\tessdata\</code></td><td data-i18n="pt_43">OCR language data (see below)</td></tr>
+<tr><td><code>%LOCALAPPDATA%\Avalanche\ocr\&lt;version&gt;\x64\</code></td><td data-i18n="pt_44">OCR native engine libraries</td></tr>
+<tr><td><code>%LOCALAPPDATA%\Avalanche\Logs\</code></td><td data-i18n="pt_45">crash logs</td></tr>
+<tr><td><code>HKCU\Software\Avalanche\Settings</code></td><td data-i18n="pt_46">your settings - in the registry, not a file</td></tr>
 </table>
 <p data-i18n="pt_47">Everything sits under <code>%LOCALAPPDATA%</code> on purpose: it is per-user (no admin), user-private, and not indexed by Windows Search - so temporary copies of your documents never surface in search or another account.</p>
 <h3 id="where-ocr-files-go" data-i18n="pt_48">Where OCR files go</h3>
-<p data-i18n="pt_49">OCR is bundled in the exe but unpacks on first use. The Tesseract <b>native libraries</b> extract to a per-version cache at <code>%LOCALAPPDATA%\KillerPDF\ocr\&lt;version&gt;\x64\</code> (version-stamped, so an update gets fresh binaries). The <b>language data</b> lives in <code>%LOCALAPPDATA%\KillerPDF\tessdata\</code>: English ships inside the exe and is written there the first time you OCR, and any extra languages you pick are downloaded into that same folder. It is version-independent, so downloaded languages survive app updates. Both are read from these locations on every OCR run.</p>
+<p data-i18n="pt_49">OCR is bundled in the exe but unpacks on first use. The Tesseract <b>native libraries</b> extract to a per-version cache at <code>%LOCALAPPDATA%\Avalanche\ocr\&lt;version&gt;\x64\</code> (version-stamped, so an update gets fresh binaries). The <b>language data</b> lives in <code>%LOCALAPPDATA%\Avalanche\tessdata\</code>: English ships inside the exe and is written there the first time you OCR, and any extra languages you pick are downloaded into that same folder. It is version-independent, so downloaded languages survive app updates. Both are read from these locations on every OCR run.</p>
 <h3 id="temp-files" data-i18n="pt_50">Temp files</h3>
-<p data-i18n="pt_51">Working files are written as <code>killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf</code> and tracked for the session. They are deleted when you close the app; anything a crash leaves behind is swept on the next launch (both the current Temp folder and the legacy <code>%TEMP%</code> location). Files still open in another instance are skipped and cleared later.</p>
+<p data-i18n="pt_51">Working files are written as <code>avalanche_&lt;tag&gt;_&lt;guid&gt;.pdf</code> and tracked for the session. They are deleted when you close the app; anything a crash leaves behind is swept on the next launch (both the current Temp folder and the legacy <code>%TEMP%</code> location). Files still open in another instance are skipped and cleared later.</p>
 <h3 id="clear-all-data" data-i18n="pt_52">Clear all data</h3>
-<p data-i18n="pt_53">The <b>Clear all Data</b> link in the About window wipes everything KillerPDF has stored: the registry settings, the downloaded OCR languages and native cache, and the temp folder. It is best-effort - anything locked by the running session (a loaded native DLL, say) is skipped and clears on the next restart. Your actual PDFs are never touched.</p>
+<p data-i18n="pt_53">The <b>Clear all Data</b> link in the About window wipes everything Avalanche has stored: the registry settings, the downloaded OCR languages and native cache, and the temp folder. It is best-effort - anything locked by the running session (a loaded native DLL, say) is skipped and clears on the next restart. Your actual PDFs are never touched.</p>
 </div>
 
 <div class="tech-sec" id="arch">
 <h2 data-i18n="pt_54">Architecture</h2>
-<p data-i18n="pt_218"><b>MainWindow</b> is a composed application shell rather than one giant code-behind. Its partials under <code>Shell/</code> own the shared toolbar, sidebar, dialogs and application workflows, while each document pane is a reusable <b>PdfViewer</b> with independent tabs, view state, render surfaces, thumbnails and interaction state. Two viewer instances create split pane without opening a second window. Thin host adapters connect the shell and viewers; reusable application policy lives under <code>Services/</code>; focused controllers live under <code>Features/</code>; and all PDF structure and serialization crosses the independent <a href="./engine/index.html">KillerPDF.Engine boundary</a>.</p>
+<p data-i18n="pt_218"><b>MainWindow</b> is a composed application shell rather than one giant code-behind. Its partials under <code>Shell/</code> own the shared toolbar, sidebar, dialogs and application workflows, while each document pane is a reusable <b>PdfViewer</b> with independent tabs, view state, render surfaces, thumbnails and interaction state. Two viewer instances create split pane without opening a second window. Thin host adapters connect the shell and viewers; reusable application policy lives under <code>Services/</code>; focused controllers live under <code>Features/</code>; and all PDF structure and serialization crosses the independent <a href="./engine/index.html">Avalanche.Engine boundary</a>.</p>
 <h3 id="source-size" data-i18n="pt_219">Source size</h3>
-<p data-i18n="pt_220">As measured from the current 1.8.2 development tree, KillerPDF contains <b>418 C# files and 139,519 physical source lines</b>. Production code accounts for 314 files and 100,609 lines: 155 application files (49,711 lines), 151 engine-library files (47,792 lines), two corpus-runner files (2,200 lines), and six packaging files (906 lines). The remaining 104 files and 38,910 lines are application and engine tests. Generated build output is excluded.</p>
+<p data-i18n="pt_220">As measured from the current 1.8.2 development tree, Avalanche contains <b>418 C# files and 139,519 physical source lines</b>. Production code accounts for 314 files and 100,609 lines: 155 application files (49,711 lines), 151 engine-library files (47,792 lines), two corpus-runner files (2,200 lines), and six packaging files (906 lines). The remaining 104 files and 38,910 lines are application and engine tests. Generated build output is excluded.</p>
 <h3 id="two-render-pipelines" data-i18n="pt_56">Two render pipelines</h3>
-<p data-i18n="pt_57">KillerPDF has a primary-page renderer (<b>RenderPage</b>) and a multi-page streaming renderer used by Continuous, Grid and Two-Page layouts. Single view uses the primary tile; multi-page layouts create per-page tiles and replace their bitmaps progressively as work completes. RenderPage is deliberately switched off during Continuous so a primary-page repaint cannot clear the live multi-page overlay map.</p>
+<p data-i18n="pt_57">Avalanche has a primary-page renderer (<b>RenderPage</b>) and a multi-page streaming renderer used by Continuous, Grid and Two-Page layouts. Single view uses the primary tile; multi-page layouts create per-page tiles and replace their bitmaps progressively as work completes. RenderPage is deliberately switched off during Continuous so a primary-page repaint cannot clear the live multi-page overlay map.</p>
 <h3 id="per-tab-sessions-an-lru-cache" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</h3>
 <p data-i18n="pt_59_172">Each open document is a <b>DocumentSession</b> that remembers its own zoom, fit and view mode, grid columns, current tool, page, and scroll position, along with its per-document data (annotations, page sizes, rotations, form values, and undo history). Switching tabs simply points the app back at that session. Each session also keeps a cache of already-drawn page images, so flipping back to a recent tab is instant and skips the renderer entirely. To keep memory bounded, only the three most recently used tabs retain caches; each tab has an approximately 160 MB budget, keeps at least six useful pages where possible, and has a hard cap of 48 cached entries.</p>
 <h3 id="canvas-overlay-maps" data-i18n="pt_60">Canvas &amp; overlay maps</h3>
-<p data-i18n="pt_61">When KillerPDF displays a page, it stacks two things on top of each other: the page itself, drawn as a flat image, and a clear sheet sitting directly over it. That clear sheet is called an <b>overlay</b>, and it is where everything you add to a page (highlights, text boxes, drawn ink, signatures) is painted. The image underneath is never altered; your marks live on the overlay above it. A page's image-and-overlay pair is referred to as a <b>tile</b>.</p>
-<p data-i18n="pt_62">The wrinkle is that KillerPDF has four ways of showing pages: one at a time, a continuous scroll through the whole document, a grid of pages, and two pages side by side. Each of those lays pages out differently, so each page you can see needs its own overlay in its own place. There is no single fixed sheet to draw on. Instead KillerPDF keeps a <b>lookup table</b> that takes a page number and hands back that page's current overlay. In the code this table is named <code>_pages</code>, and it is the one place the app trusts: every time it repaints a page's annotations, it asks this table which overlay to use and draws there.</p>
-<p data-i18n="pt_63">A second table, <code>_continuousCanvases</code>, tracks the overlays for whichever multi-page layout happens to be on screen (the continuous scroll, the grid, or the two-page view). When KillerPDF builds a new overlay it registers it in <i>both</i> tables at once, through a helper named <code>WirePageOverlay</code>, so the two can never disagree about where a page lives.</p>
+<p data-i18n="pt_61">When Avalanche displays a page, it stacks two things on top of each other: the page itself, drawn as a flat image, and a clear sheet sitting directly over it. That clear sheet is called an <b>overlay</b>, and it is where everything you add to a page (highlights, text boxes, drawn ink, signatures) is painted. The image underneath is never altered; your marks live on the overlay above it. A page's image-and-overlay pair is referred to as a <b>tile</b>.</p>
+<p data-i18n="pt_62">The wrinkle is that Avalanche has four ways of showing pages: one at a time, a continuous scroll through the whole document, a grid of pages, and two pages side by side. Each of those lays pages out differently, so each page you can see needs its own overlay in its own place. There is no single fixed sheet to draw on. Instead Avalanche keeps a <b>lookup table</b> that takes a page number and hands back that page's current overlay. In the code this table is named <code>_pages</code>, and it is the one place the app trusts: every time it repaints a page's annotations, it asks this table which overlay to use and draws there.</p>
+<p data-i18n="pt_63">A second table, <code>_continuousCanvases</code>, tracks the overlays for whichever multi-page layout happens to be on screen (the continuous scroll, the grid, or the two-page view). When Avalanche builds a new overlay it registers it in <i>both</i> tables at once, through a helper named <code>WirePageOverlay</code>, so the two can never disagree about where a page lives.</p>
 <p data-i18n="pt_64">One rule keeps the whole thing from breaking. The single-page style of layout is rebuilt by a routine that begins by throwing away the multi-page overlays. If that routine were allowed to run while the continuous scroll was showing, it would empty the lookup table, and every page would fall back to pointing at the hidden single-page tile. Your annotations would then be painted off-screen, out of sight, until you switched view modes. To prevent that, the routine is blocked from doing anything at all while the continuous scroll is active.</p>
 <figure class="diagram">
 <svg viewBox="0 0 740 412" xmlns="http://www.w3.org/2000/svg">
@@ -266,7 +266,7 @@
 
 <div class="tech-sec" id="coords">
 <h2 data-i18n="pt_66">The coordinate space</h2>
-<p data-i18n="pt_67">KillerPDF keeps <i>where</i> a mark sits separate from <i>how large</i> it is drawn. The position is stored in a fixed internal measurement that never changes as you zoom, while the number of pixels actually drawn grows as you zoom in. Holding those two ideas apart is what lets an annotation stay locked to the same spot on the page while the page is always drawn sharply at whatever magnification you are using.</p>
+<p data-i18n="pt_67">Avalanche keeps <i>where</i> a mark sits separate from <i>how large</i> it is drawn. The position is stored in a fixed internal measurement that never changes as you zoom, while the number of pixels actually drawn grows as you zoom in. Holding those two ideas apart is what lets an annotation stay locked to the same spot on the page while the page is always drawn sharply at whatever magnification you are using.</p>
 <h3 id="render-dim-space" data-i18n="pt_68">1. A fixed internal size ("render-dim")</h3>
 <p data-i18n="pt_69">Every page is first scaled to a standard internal size: the longer of its two sides is set to exactly 2048 units, and the shorter side is scaled to keep the page's proportions. These units are counted on their own and have nothing to do with screen pixels, so they do not change when you zoom or switch view modes. Annotation positions are recorded in this fixed measurement, which is why a mark stays in exactly the same place on the page no matter how far you zoom or which layout you view. The code calls this <b>render-dim</b> space, and the two resulting numbers, the page's width and height in these units, are written <code>rdW</code> and <code>rdH</code> below. One <b>point</b>, the unit the PDF itself uses, is 1/72 of an inch.</p>
 <div class="codeblock">maxDim = max(pageWidthPt, pageHeightPt)<br>rdW = round(2048 &times; pageWidthPt  / maxDim)<br>rdH = round(2048 &times; pageHeightPt / maxDim)   <span class="cm">// longest side -&gt; 2048</span></div>
@@ -274,7 +274,7 @@
 <p data-i18n="pt_71">The page image (the <b>bitmap</b>, meaning the grid of pixels the page is rendered into) is drawn at a resolution that follows two things: your display's pixel density and your current zoom. Magnify a page three times and it is redrawn from three times as many pixels rather than stretched, so text and lines stay sharp instead of turning blocky. A ceiling of 6144 pixels on the longest side limits how much memory a single page can take. This affects only sharpness; the stored positions from step 1 are untouched, which is the entire reason the two are kept apart.</p>
 <div class="codeblock">scaledMax = min( 6144,  int( 2048 &times; max(dpiScaleX, dpiScaleY) &times; max(1.0, zoom) ) )<br><span class="cm">// dpiScale = display pixel density (1.0 at 96 DPI, 1.5 at 150%); zoom = current magnification</span></div>
 <h3 id="the-coordinate-y-flip" data-i18n="pt_72">3. The coordinate Y-flip</h3>
-<p data-i18n="pt_73">The final step is that the PDF format and the screen disagree about where a page begins. A PDF measures positions from the <b>bottom-left</b> corner and counts upward, while the screen, and KillerPDF's drawing surface, measures from the <b>top-left</b> corner and counts downward. So every mark has to be turned top-to-bottom as it is drawn, and scaled from the PDF's own points into render-dim units at the same time. In the formula below, <code>pdfW</code> and <code>pdfH</code> are the page's width and height in PDF points; <code>renderW</code> and <code>renderH</code> are the same page in render-dim units (the <code>rdW</code> and <code>rdH</code> from step 1); <code>sx</code> and <code>sy</code> are the scale factors between the two; <code>left</code> and <code>top</code> are the mark's position read from the PDF; and the result, <code>canvasX</code> and <code>canvasY</code>, is where the mark is placed on the drawing surface.</p>
+<p data-i18n="pt_73">The final step is that the PDF format and the screen disagree about where a page begins. A PDF measures positions from the <b>bottom-left</b> corner and counts upward, while the screen, and Avalanche's drawing surface, measures from the <b>top-left</b> corner and counts downward. So every mark has to be turned top-to-bottom as it is drawn, and scaled from the PDF's own points into render-dim units at the same time. In the formula below, <code>pdfW</code> and <code>pdfH</code> are the page's width and height in PDF points; <code>renderW</code> and <code>renderH</code> are the same page in render-dim units (the <code>rdW</code> and <code>rdH</code> from step 1); <code>sx</code> and <code>sy</code> are the scale factors between the two; <code>left</code> and <code>top</code> are the mark's position read from the PDF; and the result, <code>canvasX</code> and <code>canvasY</code>, is where the mark is placed on the drawing surface.</p>
 <div class="codeblock">sx = renderW / pdfW      sy = renderH / pdfH<br>canvasX = left &times; sx<br>canvasY = renderH - top &times; sy   <span class="cm">// flip the vertical axis</span></div>
 <figure class="diagram">
 <svg viewBox="0 0 740 300" xmlns="http://www.w3.org/2000/svg">
@@ -338,7 +338,7 @@
 
 <div class="tech-sec" id="coverpair">
 <h2 data-i18n="pt_96">Editing existing text</h2>
-<p data-i18n="pt_97">Double-click a line of real PDF text and KillerPDF reads the words underneath, then drops <b>two linked annotations</b> as a single undo: an opaque <b>Cover</b> that blocks the original, and an editable <b>Text</b> box on top. A shared <code>PairId</code> locks them together.</p>
+<p data-i18n="pt_97">Double-click a line of real PDF text and Avalanche reads the words underneath, then drops <b>two linked annotations</b> as a single undo: an opaque <b>Cover</b> that blocks the original, and an editable <b>Text</b> box on top. A shared <code>PairId</code> locks them together.</p>
 <figure class="diagram">
 <svg viewBox="0 0 860 300" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -375,14 +375,14 @@
 
 <div class="tech-sec" id="saving">
 <h2 data-i18n="pt_104">Saving &amp; the temp-reload dance</h2>
-<p data-i18n="pt_105">Saving never changes the document you are looking at. KillerPDF writes a clean copy with no annotations, then permanently bakes in <b>stamps first, then annotations</b>, and reopens that fresh copy. Starting from a clean base every time means it can never accidentally bake the same thing in twice.</p>
+<p data-i18n="pt_105">Saving never changes the document you are looking at. Avalanche writes a clean copy with no annotations, then permanently bakes in <b>stamps first, then annotations</b>, and reopens that fresh copy. Starting from a clean base every time means it can never accidentally bake the same thing in twice.</p>
 <h3 id="why-structural-edits-reload" data-i18n="pt_106">Why structural edits reload</h3>
 <p data-i18n="pt_107">Rotation, page operations and decryption route through <b>SaveTempAndReload</b>. It zeroes every page's <code>/Rotate</code> entry before writing, because Docnet (PDFium) sizes the page bitmap from the <i>unrotated</i> MediaBox - leave the rotation in and the rendered content clips. The file is written flat, reopened in Modify mode, and the rotations are re-applied in memory so the page still reads right.</p>
 </div>
 
 <div class="tech-sec" id="robust">
 <h2 data-i18n="pt_108">Robustness</h2>
-<p data-i18n="pt_109">KillerPDF is built to open the PDFs other viewers choke on. It tries a normal open first, then catches each kind of failure and routes it to a specific recovery. Two rules hold throughout: heavy recovery work runs off the UI thread behind the busy overlay, and a repair never edits your file - it always produces a copy.</p>
+<p data-i18n="pt_109">Avalanche is built to open the PDFs other viewers choke on. It tries a normal open first, then catches each kind of failure and routes it to a specific recovery. Two rules hold throughout: heavy recovery work runs off the UI thread behind the busy overlay, and a repair never edits your file - it always produces a copy.</p>
 <h3 id="the-open-fallback-ladder" data-i18n="pt_110">The open fallback ladder</h3>
 <p data-i18n="pt_111">The open path is a chain of typed exception handlers, each rung catching one class of failure:</p>
 <table class="spec-table"><tr><th data-i18n="pt_112">Failure</th><th data-i18n="pt_113">Recovery</th></tr>
@@ -393,9 +393,9 @@
 <tr><td data-i18n="pt_122">Anything unclassified</td><td data-i18n="pt_123">Offer a PDFium repair, which recovers most damaged files</td></tr>
 </table>
 <h3 id="encryption-is-stripped-at-open" data-i18n="pt_221">Encryption and permissions</h3>
-<p data-i18n="pt_222">The KillerPDF.Engine authenticates Standard Security revisions 2 through 6, including RC4, AES-128, AES-256 and crypt filters. It distinguishes user and owner authentication, exposes the document's operation permissions, and enforces those permissions at the high-level editing APIs. Authenticated documents can be updated incrementally or rewritten while preserving encryption; decryption is an explicit workflow rather than a prerequisite for every edit.</p>
+<p data-i18n="pt_222">The Avalanche.Engine authenticates Standard Security revisions 2 through 6, including RC4, AES-128, AES-256 and crypt filters. It distinguishes user and owner authentication, exposes the document's operation permissions, and enforces those permissions at the high-level editing APIs. Authenticated documents can be updated incrementally or rewritten while preserving encryption; decryption is an explicit workflow rather than a prerequisite for every edit.</p>
 <h3 id="network-and-partial-reads" data-i18n="pt_126">Network and partial reads</h3>
-<p data-i18n="pt_127">UNC shares and the WSL <code>\\wsl$</code> 9P filesystem sometimes hand back partial reads, which the parser sees as a truncated file. Before opening anything on a network path, KillerPDF copies it to a local temp with a single read-to-EOF, then opens the complete copy - while keeping your original path for display and Save.</p>
+<p data-i18n="pt_127">UNC shares and the WSL <code>\\wsl$</code> 9P filesystem sometimes hand back partial reads, which the parser sees as a truncated file. Before opening anything on a network path, Avalanche copies it to a local temp with a single read-to-EOF, then opens the complete copy - while keeping your original path for display and Save.</p>
 <h3 id="repair-works-on-a-copy" data-i18n="pt_128">Repair works on a copy</h3>
 <p data-i18n="pt_129">When recovery falls through to a repair, the file is piped through PDFium, which has aggressive error recovery and rewrites a correct cross-reference table into a brand-new file. The original on disk is never touched. Repaired copies can lose bookmarks, forms and other interactive features, and the dialog says so before proceeding.</p>
 </div>
@@ -404,7 +404,7 @@
 <h2 data-i18n="pt_conf_1">Standards conformance</h2>
 <p data-i18n="pt_conf_7">A PDF editor has one obligation above all others: saving your file must not damage it. Starting with 1.6.4, that claim is tested rather than assumed. Every release is validated against <a href="https://verapdf.org/" target="_blank" rel="noopener">veraPDF</a>, the industry reference validator for PDF/A and PDF/UA, across a 2,907-file public conformance corpus (the veraPDF test corpus, the Isartor PDF/A-1b suite, and the TWG test files). These are deliberately hostile files, most built to violate exactly one clause of a standard, so any structural damage a save introduces shows up immediately as a newly failed rule.</p>
 <h3 id="how-the-test-works" data-i18n="pt_conf_2">How the test works</h3>
-<p data-i18n="pt_conf_8">Every corpus file is validated pristine, resaved through KillerPDF's normal open/save pipeline (headlessly, via <code>--batch-resave</code>), and validated again. A comparison script then flags any file that fails a rule after the resave that it did not fail before. The bar for release is zero regressions. A second pass runs <code>qpdf --check</code> on every original/resave pair and flags any file whose structural health worsened.</p>
+<p data-i18n="pt_conf_8">Every corpus file is validated pristine, resaved through Avalanche's normal open/save pipeline (headlessly, via <code>--batch-resave</code>), and validated again. A comparison script then flags any file that fails a rule after the resave that it did not fail before. The bar for release is zero regressions. A second pass runs <code>qpdf --check</code> on every original/resave pair and flags any file whose structural health worsened.</p>
 <h3 id="the-numbers" data-i18n="pt_223">The 1.8 validation gates</h3>
 <table class="spec-table"><tr><th data-i18n="pt_conf_9">Outcome</th><th data-i18n="pt_conf_10">Files</th></tr>
 <tr><td data-i18n="pt_conf_11">Corpus total</td><td>47,024</td></tr>
@@ -417,14 +417,14 @@
 <tr><td data-i18n="pt_235">Independent validators</td><td>qpdf, veraPDF and OpenSSL</td></tr>
 </table>
 <h3 id="patching-the-write-engine" data-i18n="pt_236">Owning the document engine</h3>
-<p data-i18n="pt_237">KillerPDF 1.8 replaces its legacy PdfSharpCore document pipeline with The KillerPDF.Engine, built in this repository from PDF syntax upward. Validation is performed at parser, object-graph, writer, application-integration and public-corpus levels. The engine can preserve existing bytes through incremental revisions or produce deterministic full rewrites, and it fails closed when required structure cannot be interpreted safely.</p>
+<p data-i18n="pt_237">Avalanche 1.8 replaces its legacy PdfSharpCore document pipeline with The Avalanche.Engine, built in this repository from PDF syntax upward. Validation is performed at parser, object-graph, writer, application-integration and public-corpus levels. The engine can preserve existing bytes through incremental revisions or produce deterministic full rewrites, and it fails closed when required structure cannot be interpreted safely.</p>
 <ul>
 <li data-i18n="pt_238">PDF 2.0 headers, cross-reference streams, object streams and incremental revisions are native concepts.</li>
 <li data-i18n="pt_239">PDF/A-4, PDF/A-4e, PDF/A-4f and PDF/UA-2 authoring safeguards are coordinated across metadata, fonts, structure, forms, annotations and associated files.</li>
 <li data-i18n="pt_240">Full rewrites are deterministic; incremental edits preserve the original byte prefix.</li>
 <li data-i18n="pt_241">Bounded parsing, graph validation and explicit implementation limits reject ambiguous or unsafe input before writing.</li>
 </ul>
-<p data-i18n="pt_242">The complete reusable-library architecture, capability map, validation model and developer quick start are in the <a href="./engine/index.html">KillerPDF.Engine developer guide</a>.</p>
+<p data-i18n="pt_242">The complete reusable-library architecture, capability map, validation model and developer quick start are in the <a href="./engine/index.html">Avalanche.Engine developer guide</a>.</p>
 </div>
 
 <div class="tech-sec" id="i18n">
@@ -446,7 +446,7 @@
 <tr><td data-i18n="pt_149">Signature reservation</td><td data-i18n="pt_150">16,384 bytes, SHA-256, whole chain</td></tr>
 <tr><td data-i18n="tech_languages_themes">Languages / themes</td><td data-i18n="tech_languages_themes_value">16 locales / 13 themes + accent variants</td></tr>
 </table>
-<p style="margin-top:14px" data-i18n="pt_153_172">A full 50-page technical brochure (the same facts, with the interactive forms and theme gallery) ships in the repo as <a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/KillerPDF.pdf" target="_blank" rel="noopener"><code style="color:inherit">KillerPDF.pdf</code></a> - open it in KillerPDF itself.</p>
+<p style="margin-top:14px" data-i18n="pt_153_172">A full 50-page technical brochure (the same facts, with the interactive forms and theme gallery) ships in the repo as <a href="https://github.com/SteveTheKiller/Avalanche/blob/main/Avalanche.pdf" target="_blank" rel="noopener"><code style="color:inherit">Avalanche.pdf</code></a> - open it in Avalanche itself.</p>
 </div>
 
 <div class="tech-sec" id="glossary">
@@ -454,33 +454,33 @@
 <p data-i18n="pt_155">Plain-language definitions of the terms and libraries used on this page, in alphabetical order.</p>
 <table class="spec-table"><tr><th data-i18n="pt_156">Term</th><th data-i18n="pt_157">What it means</th></tr>
 <tr><td data-i18n="pt_158">Annotation</td><td data-i18n="pt_159">Anything you add on top of a PDF: a highlight, text box, drawn line, signature, or image. It sits on the overlay, separate from the original page, and only becomes part of the file when you save (see Flatten).</td></tr>
-<tr><td data-i18n="pt_160">Bitmap</td><td data-i18n="pt_161">A grid of colored pixels. To display a page, KillerPDF draws (rasterizes) it into a bitmap at a resolution chosen from your zoom and screen density.</td></tr>
-<tr><td data-i18n="pt_162">CMS signature</td><td data-i18n="pt_163">Cryptographic Message Syntax, the standard format for a digital signature embedded in a PDF. KillerPDF signs using SHA-256 over the whole file.</td></tr>
+<tr><td data-i18n="pt_160">Bitmap</td><td data-i18n="pt_161">A grid of colored pixels. To display a page, Avalanche draws (rasterizes) it into a bitmap at a resolution chosen from your zoom and screen density.</td></tr>
+<tr><td data-i18n="pt_162">CMS signature</td><td data-i18n="pt_163">Cryptographic Message Syntax, the standard format for a digital signature embedded in a PDF. Avalanche signs using SHA-256 over the whole file.</td></tr>
 <tr><td>Costura (Costura.Fody)</td><td data-i18n="tech_costura_desc">A build-time bundler retained for ordinary development builds. Release packaging produces explicit framework-dependent and self-contained payloads for the installer and portable launcher.</td></tr>
-<tr><td data-i18n="pt_166">Cover / cover-pair</td><td data-i18n="pt_167">A Cover is an opaque box that hides the original words on a page. To edit existing PDF text, KillerPDF lays a Cover over the old text and a Text box on top holding your replacement; the two are locked together as a cover-pair.</td></tr>
-<tr><td data-i18n="pt_168">Cross-reference table (xref)</td><td data-i18n="pt_169">The index near the end of a PDF that records where every internal object is stored. If it is damaged, many readers fail to open the file, so KillerPDF has recovery paths that rebuild it.</td></tr>
-<tr><td data-i18n="pt_170">Device-independent pixel (DIP)</td><td data-i18n="pt_171">The unit KillerPDF's drawing surface uses. One DIP is a fixed physical size regardless of how dense the screen is, so layouts look the same across monitors.</td></tr>
-<tr><td data-i18n="pt_172">Docnet (Docnet.Core)</td><td data-i18n="pt_173">The library that lets KillerPDF call PDFium from .NET to turn pages into bitmaps.</td></tr>
+<tr><td data-i18n="pt_166">Cover / cover-pair</td><td data-i18n="pt_167">A Cover is an opaque box that hides the original words on a page. To edit existing PDF text, Avalanche lays a Cover over the old text and a Text box on top holding your replacement; the two are locked together as a cover-pair.</td></tr>
+<tr><td data-i18n="pt_168">Cross-reference table (xref)</td><td data-i18n="pt_169">The index near the end of a PDF that records where every internal object is stored. If it is damaged, many readers fail to open the file, so Avalanche has recovery paths that rebuild it.</td></tr>
+<tr><td data-i18n="pt_170">Device-independent pixel (DIP)</td><td data-i18n="pt_171">The unit Avalanche's drawing surface uses. One DIP is a fixed physical size regardless of how dense the screen is, so layouts look the same across monitors.</td></tr>
+<tr><td data-i18n="pt_172">Docnet (Docnet.Core)</td><td data-i18n="pt_173">The library that lets Avalanche call PDFium from .NET to turn pages into bitmaps.</td></tr>
 <tr><td data-i18n="pt_174">DPI (dots per inch)</td><td data-i18n="pt_175">How many pixels a screen packs into an inch, i.e. its density. Windows reports it as a scale: 1.0 at 96 DPI (100%), 1.5 at 150%. Higher DPI means more pixels are drawn for the same physical size.</td></tr>
 <tr><td data-i18n="pt_176">Flatten (flattening)</td><td data-i18n="pt_177">Burning annotations permanently into the page when you save, so they become part of the PDF's own content instead of separate, editable marks.</td></tr>
 <tr><td data-i18n="pt_178">Form field</td><td data-i18n="pt_179">An interactive field built into a PDF, such as a text box, checkbox, or dropdown, that a person fills in.</td></tr>
 <tr><td data-i18n="pt_180">Ink</td><td data-i18n="pt_181">A freehand drawn stroke. The Line tool is stored as ink as well.</td></tr>
 <tr><td data-i18n="pt_182">Linearized PDF</td><td data-i18n="pt_183">A PDF arranged so a viewer can start showing the first page before the whole file has loaded (sometimes called "fast web view"). These files often keep their structure in object streams.</td></tr>
-<tr><td data-i18n="pt_184">LRU cache (least recently used)</td><td data-i18n="pt_185_172">A memory-saving rule that keeps the most recently used items and drops the oldest. KillerPDF retains drawn-page caches for only the three most recent tabs, with an approximately 160 MB per-tab budget and 48-entry hard cap.</td></tr>
-<tr><td>.NET 10</td><td data-i18n="tech_runtime_desc">The modern .NET runtime used by both the Windows application and The KillerPDF.Engine. The installer detects or installs the Desktop Runtime; the portable package carries it.</td></tr>
-<tr><td data-i18n="pt_188">Object stream</td><td data-i18n="pt_189">A compressed container inside modern PDFs (version 1.5 and later) that bundles many of the file's internal objects together. Some libraries cannot read them, which is why KillerPDF falls back to PDFium for certain jobs.</td></tr>
-<tr><td data-i18n="pt_190">OCR (optical character recognition)</td><td data-i18n="pt_191">Reading the actual text out of a scanned image so it can be searched, selected, or copied. KillerPDF uses Tesseract.</td></tr>
+<tr><td data-i18n="pt_184">LRU cache (least recently used)</td><td data-i18n="pt_185_172">A memory-saving rule that keeps the most recently used items and drops the oldest. Avalanche retains drawn-page caches for only the three most recent tabs, with an approximately 160 MB per-tab budget and 48-entry hard cap.</td></tr>
+<tr><td>.NET 10</td><td data-i18n="tech_runtime_desc">The modern .NET runtime used by both the Windows application and The Avalanche.Engine. The installer detects or installs the Desktop Runtime; the portable package carries it.</td></tr>
+<tr><td data-i18n="pt_188">Object stream</td><td data-i18n="pt_189">A compressed container inside modern PDFs (version 1.5 and later) that bundles many of the file's internal objects together. Some libraries cannot read them, which is why Avalanche falls back to PDFium for certain jobs.</td></tr>
+<tr><td data-i18n="pt_190">OCR (optical character recognition)</td><td data-i18n="pt_191">Reading the actual text out of a scanned image so it can be searched, selected, or copied. Avalanche uses Tesseract.</td></tr>
 <tr><td data-i18n="pt_192">Overlay</td><td data-i18n="pt_193">The transparent sheet drawn directly on top of a page image, where your annotations are painted. The page image underneath is never changed.</td></tr>
-<tr><td data-i18n="pt_194">PDFium</td><td data-i18n="pt_195">Google's PDF engine (the same one inside Chrome). KillerPDF uses it to render pages to images and to read structures other libraries cannot.</td></tr>
-<tr><td data-i18n="pt_196">PdfPig</td><td data-i18n="pt_197">A .NET library KillerPDF uses to read text from a PDF: search, selection, and detecting each letter's font and size.</td></tr>
-<tr><td>The KillerPDF.Engine</td><td data-i18n="tech_engine_glossary">KillerPDF's independent, UI-free .NET document library for reading, validating, authoring, editing, signing, encrypting and writing PDF files.</td></tr>
+<tr><td data-i18n="pt_194">PDFium</td><td data-i18n="pt_195">Google's PDF engine (the same one inside Chrome). Avalanche uses it to render pages to images and to read structures other libraries cannot.</td></tr>
+<tr><td data-i18n="pt_196">PdfPig</td><td data-i18n="pt_197">A .NET library Avalanche uses to read text from a PDF: search, selection, and detecting each letter's font and size.</td></tr>
+<tr><td>The Avalanche.Engine</td><td data-i18n="tech_engine_glossary">Avalanche's independent, UI-free .NET document library for reading, validating, authoring, editing, signing, encrypting and writing PDF files.</td></tr>
 <tr><td data-i18n="pt_200">Point</td><td data-i18n="pt_201">The PDF's own unit of length. One point is 1/72 of an inch.</td></tr>
 <tr><td data-i18n="pt_202">Rasterize</td><td data-i18n="pt_203">To convert a page's text and shapes into a grid of pixels (a bitmap) for display.</td></tr>
-<tr><td data-i18n="pt_204">Render-dim space</td><td data-i18n="pt_205">KillerPDF's fixed internal coordinate system for a page, sized so the longer side is 2048 units and unrelated to zoom or screen pixels. Annotation positions are stored here so they never drift as you zoom or change view mode.</td></tr>
+<tr><td data-i18n="pt_204">Render-dim space</td><td data-i18n="pt_205">Avalanche's fixed internal coordinate system for a page, sized so the longer side is 2048 units and unrelated to zoom or screen pixels. Annotation positions are stored here so they never drift as you zoom or change view mode.</td></tr>
 <tr><td data-i18n="pt_206">Temp-reload</td><td data-i18n="pt_207">Saving the current state to a temporary copy and reopening it, used for operations like rotation and repair, so your original file is never edited in place.</td></tr>
-<tr><td data-i18n="pt_208">Tesseract</td><td data-i18n="pt_209">The open-source OCR engine embedded in KillerPDF.</td></tr>
+<tr><td data-i18n="pt_208">Tesseract</td><td data-i18n="pt_209">The open-source OCR engine embedded in Avalanche.</td></tr>
 <tr><td data-i18n="pt_210">Tile</td><td data-i18n="pt_211">A single page's image-and-overlay pair as it is laid out on screen.</td></tr>
-<tr><td data-i18n="pt_212">WPF (Windows Presentation Foundation)</td><td data-i18n="pt_213">The native Windows framework KillerPDF's interface is built with. No browser engine is involved.</td></tr>
+<tr><td data-i18n="pt_212">WPF (Windows Presentation Foundation)</td><td data-i18n="pt_213">The native Windows framework Avalanche's interface is built with. No browser engine is involved.</td></tr>
 <tr><td data-i18n="pt_214">Y-flip</td><td data-i18n="pt_215">Turning a mark upside-down when drawing it, because a PDF measures upward from the bottom-left corner while the screen measures downward from the top-left.</td></tr>
 </table>
 </div>
@@ -490,7 +490,7 @@
 </div>
 </div>
 <footer class="statusbar">
-<span class="left"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener" data-i18n="pt_216">Source on GitHub</a> &middot; GPLv3 &middot; <span data-i18n="ph_201">Part of</span> <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
+<span class="left"><a href="https://github.com/SteveTheKiller/Avalanche" target="_blank" rel="noopener" data-i18n="pt_216">Source on GitHub</a> &middot; GPLv3 &middot; <span data-i18n="ph_201">Part of</span> <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
 <span class="right"><span id="verEgg" title="Click">v1.8.71</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
 </footer>
 <div class="egg-toast" id="eggToast"></div>

@@ -15,7 +15,7 @@ namespace Avalanche.Features
     // Headless CLI render benchmark
     // ============================================================
     //
-    // KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--log <file.csv>] [--quiet]
+    // Avalanche.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--log <file.csv>] [--quiet]
     //
     // Renders the first N pages of one PDF (or every *.pdf under a folder tree)
     // through the same page-render path the viewer, print, flatten, and image
@@ -74,7 +74,7 @@ namespace Avalanche.Features
 
             if (badUsage || string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(output))
             {
-                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--log <file.csv>] [--quiet]");
+                con.WriteLine("Usage: Avalanche.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--log <file.csv>] [--quiet]");
                 exitCode = 2;
                 return true;
             }

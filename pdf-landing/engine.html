@@ -6,9 +6,9 @@
 <link rel="preload" href="killerfont.woff2" as="font" type="font/woff2" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="darkreader-lock">
-<title>The KillerPDF.Engine | PDF 2.0 library and developer guide</title>
-<link rel="canonical" href="https://killerpdf.net/engine.html">
-<meta name="description" content="The KillerPDF.Engine is an independent .NET library for reading, authoring, editing, validating, signing, encrypting and writing PDF 2.0 files.">
+<title>The Avalanche.Engine | PDF 2.0 library and developer guide</title>
+<link rel="canonical" href="https://avalanche.net/engine.html">
+<meta name="description" content="The Avalanche.Engine is an independent .NET library for reading, authoring, editing, validating, signing, encrypting and writing PDF 2.0 files.">
 <link rel="icon" type="image/x-icon" href="kp-icon.ico">
 <script defer src="https://koya.thekiller.net/script.js" data-website-id="4036b11d-f6c0-4254-b448-933d3e38b0cb"></script>
 <link rel="stylesheet" href="kp.css?v=24">
@@ -25,8 +25,8 @@
 </head>
 <body>
 <div class="topbar">
-<a href="index.html" class="tb-home" title="KillerPDF home"><img class="tb-icon" src="kp-icon.png" alt="KillerPDF" width="44" height="44"><img class="wm-logo tb-wm" src="brand/killerpdf-logo-dark-green.svg" alt="KillerPDF"></a>
-<a class="tb-dl" href="https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h3l-4 5-4-5h3V4zM5 18h14v2H5z"/></svg><span>Download</span></a>
+<a href="index.html" class="tb-home" title="Avalanche home"><img class="tb-icon" src="kp-icon.png" alt="Avalanche" width="44" height="44"><img class="wm-logo tb-wm" src="brand/avalanche-logo-dark-green.svg" alt="Avalanche"></a>
+<a class="tb-dl" href="https://github.com/SteveTheKiller/Avalanche/releases/latest/download/Avalanche.exe"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h3l-4 5-4-5h3V4zM5 18h14v2H5z"/></svg><span>Download</span></a>
 <a class="tb-mcp-link" href="mcp.html" aria-label="KillerMCP"><img src="mcp.png" alt="" aria-hidden="true"><span class="tb-mcp-wordmark"><span>Killer</span><span class="tb-mcp-accent">MCP</span></span></a>
 <span class="tb-spacer"></span>
 <nav class="tb-nav"><a href="help.html">Help</a><a href="technical.html">Technical</a><a href="engine.html" class="on">Engine</a><a href="corpus.html">Corpus</a><a href="about.html">About</a></nav>
@@ -98,8 +98,8 @@
 <main class="content"><div class="content-scroll"><div class="content-inner">
 <section class="page-hero" id="overview">
 <div class="eyebrow">Independent .NET document library</div>
-<div class="engine-brand"><img class="engine-mark" src="killerpdf-engine-icon.png" alt=""><div class="engine-title"><span>The</span><img class="wm-logo" src="brand/killerpdf-logo-dark-green.svg" alt="KillerPDF"><span class="suffix">.Engine</span></div></div>
-<p>The KillerPDF.Engine reads, validates, authors, structurally edits, signs, encrypts and writes PDF files. It was built from scratch as KillerPDF's PDF 2.0 foundation, with a public API intended for other applications as well as the KillerPDF desktop editor.</p>
+<div class="engine-brand"><img class="engine-mark" src="avalanche-engine-icon.png" alt=""><div class="engine-title"><span>The</span><img class="wm-logo" src="brand/avalanche-logo-dark-green.svg" alt="Avalanche"><span class="suffix">.Engine</span></div></div>
+<p>The Avalanche.Engine reads, validates, authors, structurally edits, signs, encrypts and writes PDF files. It was built from scratch as Avalanche's PDF 2.0 foundation, with a public API intended for other applications as well as the Avalanche desktop editor.</p>
 </section>
 
 <div class="metric-grid" id="project-scale">
@@ -111,13 +111,13 @@
 
 <section class="engine-sec" id="boundary">
 <h2>A real library boundary</h2>
-<p class="lede">The engine is not a renamed collection of desktop helpers. It is a UI-free .NET 10 library with no dependency on WPF, KillerPDF application code, PDFium, PdfPig, PdfSharpCore or PDFsharp.</p>
+<p class="lede">The engine is not a renamed collection of desktop helpers. It is a UI-free .NET 10 library with no dependency on WPF, Avalanche application code, PDFium, PdfPig, PdfSharpCore or PDFsharp.</p>
 <div class="boundary" id="boundary-map">
-<div><strong>KillerPDF desktop application</strong><ul><li>WPF interface and workflows</li><li>PDFium page rendering</li><li>PdfPig text extraction</li><li>OCR, printing and desktop integration</li></ul></div>
+<div><strong>Avalanche desktop application</strong><ul><li>WPF interface and workflows</li><li>PDFium page rendering</li><li>PdfPig text extraction</li><li>OCR, printing and desktop integration</li></ul></div>
 <div class="arrow">&#8594;</div>
-<div><strong>The KillerPDF.Engine</strong><ul><li>PDF syntax and object graphs</li><li>Authoring and structural editing</li><li>Forms, annotations and navigation</li><li>Encryption, signatures and standards</li></ul></div>
+<div><strong>The Avalanche.Engine</strong><ul><li>PDF syntax and object graphs</li><li>Authoring and structural editing</li><li>Forms, annotations and navigation</li><li>Encryption, signatures and standards</li></ul></div>
 </div>
-<p id="boundary-policy">The monorepo keeps the application, library, tests and corpus gates in one reviewable change while the project reference enforces the reusable boundary. The formal display name is <b>The KillerPDF.Engine</b>; the assembly, package identifier and namespaces use <code>KillerPdf.Engine</code>.</p>
+<p id="boundary-policy">The monorepo keeps the application, library, tests and corpus gates in one reviewable change while the project reference enforces the reusable boundary. The formal display name is <b>The Avalanche.Engine</b>; the assembly, package identifier and namespaces use <code>avalanche.Engine</code>.</p>
 </section>
 
 <section class="engine-sec" id="capabilities">
@@ -150,13 +150,13 @@
 
 <section class="engine-sec" id="quickstart">
 <h2>Developer quick start</h2>
-<div class="nuget-install"><a href="https://www.nuget.org/packages/KillerPdf.Engine" target="_blank" rel="noopener">KillerPdf.Engine on NuGet.org</a></div>
-<div class="code-block">dotnet add package KillerPdf.Engine</div>
-<p>The engine targets .NET 10. Reference the project directly from a checkout of the KillerPDF repository:</p>
-<div class="code-block"><span class="tok-punct">&lt;</span><span class="tok-xml">ProjectReference</span> <span class="tok-attr">Include</span><span class="tok-punct">=</span><span class="tok-string">"path\to\KillerPDF\engine\KillerPdf.Engine\KillerPdf.Engine.csproj"</span> <span class="tok-punct">/&gt;</span></div>
+<div class="nuget-install"><a href="https://www.nuget.org/packages/avalanche.Engine" target="_blank" rel="noopener">avalanche.Engine on NuGet.org</a></div>
+<div class="code-block">dotnet add package avalanche.Engine</div>
+<p>The engine targets .NET 10. Reference the project directly from a checkout of the Avalanche repository:</p>
+<div class="code-block"><span class="tok-punct">&lt;</span><span class="tok-xml">ProjectReference</span> <span class="tok-attr">Include</span><span class="tok-punct">=</span><span class="tok-string">"path\to\Avalanche\engine\avalanche.Engine\avalanche.Engine.csproj"</span> <span class="tok-punct">/&gt;</span></div>
 
 <h3 id="author">Author a PDF 2.0 document</h3>
-<div class="code-block"><span class="tok-keyword">using</span> KillerPdf.Engine.Authoring;
+<div class="code-block"><span class="tok-keyword">using</span> avalanche.Engine.Authoring;
 
 <span class="tok-keyword">byte</span>[] pdf = <span class="tok-keyword">new</span> <span class="tok-type">PdfDocumentBuilder</span>()
     .<span class="tok-method">SetMetadata</span>(<span class="tok-keyword">new</span> <span class="tok-type">PdfDocumentMetadata</span>
@@ -171,9 +171,9 @@
 <span class="tok-type">File</span>.<span class="tok-method">WriteAllBytes</span>(<span class="tok-string">"hello.pdf"</span>, pdf);</div>
 
 <h3 id="inspect">Inspect and deterministically rewrite</h3>
-<div class="code-block"><span class="tok-keyword">using</span> KillerPdf.Engine.Diagnostics;
-<span class="tok-keyword">using</span> KillerPdf.Engine.Documents;
-<span class="tok-keyword">using</span> KillerPdf.Engine.Writing;
+<div class="code-block"><span class="tok-keyword">using</span> avalanche.Engine.Diagnostics;
+<span class="tok-keyword">using</span> avalanche.Engine.Documents;
+<span class="tok-keyword">using</span> avalanche.Engine.Writing;
 
 <span class="tok-keyword">byte</span>[] source = <span class="tok-type">File</span>.<span class="tok-method">ReadAllBytes</span>(<span class="tok-string">"input.pdf"</span>);
 <span class="tok-type">PdfInspectionReport</span> report = <span class="tok-type">PdfDocumentInspector</span>.<span class="tok-method">Inspect</span>(source);
@@ -186,8 +186,8 @@
 <span class="tok-type">File</span>.<span class="tok-method">WriteAllBytes</span>(<span class="tok-string">"output.pdf"</span>, rewritten);</div>
 
 <h3 id="edit">Edit an existing document incrementally</h3>
-<div class="code-block"><span class="tok-keyword">using</span> KillerPdf.Engine.Documents;
-<span class="tok-keyword">using</span> KillerPdf.Engine.Editing;
+<div class="code-block"><span class="tok-keyword">using</span> avalanche.Engine.Documents;
+<span class="tok-keyword">using</span> avalanche.Engine.Editing;
 
 <span class="tok-type">PdfDocument</span> document = <span class="tok-type">PdfDocument</span>.<span class="tok-method">Open</span>(<span class="tok-type">File</span>.<span class="tok-method">ReadAllBytes</span>(<span class="tok-string">"input.pdf"</span>));
 
@@ -227,25 +227,25 @@
 
 <section class="engine-sec" id="limits">
 <h2>Scope and explicit limits</h2>
-<p id="not-a-renderer">The KillerPDF.Engine is a document engine, not a renderer or desktop framework. It does not draw pages to the screen, provide UI controls, perform OCR or extract page text. KillerPDF currently uses PDFium for rendering, PdfPig for text extraction and Tesseract for OCR.</p>
+<p id="not-a-renderer">The Avalanche.Engine is a document engine, not a renderer or desktop framework. It does not draw pages to the screen, provide UI controls, perform OCR or extract page text. Avalanche currently uses PDFium for rendering, PdfPig for text extraction and Tesseract for OCR.</p>
 <p id="fail-closed">Some operations intentionally refuse incomplete global structures. Examples include unsafe partial imports from tagged documents, ambiguous shared object graphs, unsupported XFA merges, missing credentials and edits forbidden by authenticated user permissions. A refusal is safer than producing a file that opens but has silently damaged navigation, forms, accessibility or signatures.</p>
 </section>
 
 <section class="engine-sec" id="source">
 <h2>Source, documentation and license</h2>
 <ul class="source-links" id="source-links">
-<li><a class="nuget-package" href="https://www.nuget.org/packages/KillerPdf.Engine" target="_blank" rel="noopener">KillerPdf.Engine on NuGet.org</a></li>
-<li><a href="https://github.com/SteveTheKiller/KillerPDF/tree/main/engine" target="_blank" rel="noopener">Engine source and README</a></li>
-<li><a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md" target="_blank" rel="noopener">Engine changelog</a></li>
-<li><a href="https://github.com/SteveTheKiller/KillerPDF/tree/main/engine/docs/architecture" target="_blank" rel="noopener">Architecture decision records</a></li>
-<li><a href="technical.html">KillerPDF desktop technical guide</a></li>
+<li><a class="nuget-package" href="https://www.nuget.org/packages/avalanche.Engine" target="_blank" rel="noopener">avalanche.Engine on NuGet.org</a></li>
+<li><a href="https://github.com/SteveTheKiller/Avalanche/tree/main/engine" target="_blank" rel="noopener">Engine source and README</a></li>
+<li><a href="https://github.com/SteveTheKiller/Avalanche/blob/main/engine/CHANGELOG.md" target="_blank" rel="noopener">Engine changelog</a></li>
+<li><a href="https://github.com/SteveTheKiller/Avalanche/tree/main/engine/docs/architecture" target="_blank" rel="noopener">Architecture decision records</a></li>
+<li><a href="technical.html">Avalanche desktop technical guide</a></li>
 </ul>
-<p id="license">The KillerPDF.Engine is licensed under GPLv3 as part of the KillerPDF repository.</p>
+<p id="license">The Avalanche.Engine is licensed under GPLv3 as part of the Avalanche repository.</p>
 </section>
 </div></div></main>
 </div>
 
-<footer class="statusbar"><span class="left"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener">Source on GitHub</a> &middot; GPLv3 &middot; Part of <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span><span class="right"><span id="verEgg">v1.8.71</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span></footer>
+<footer class="statusbar"><span class="left"><a href="https://github.com/SteveTheKiller/Avalanche" target="_blank" rel="noopener">Source on GitHub</a> &middot; GPLv3 &middot; Part of <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span><span class="right"><span id="verEgg">v1.8.71</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span></footer>
 <script src="kp-i18n.js?v=13"></script>
 <script src="engine-i18n.js?v=2"></script>
 <script src="kp.js?v=15"></script>

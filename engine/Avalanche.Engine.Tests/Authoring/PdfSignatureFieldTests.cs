@@ -77,7 +77,7 @@ public sealed class PdfSignatureFieldTests
                         "https://timestamp.example.test/rfc3161", Required: true),
                     DocumentLockIntent = PdfSignatureDocumentLockIntent.Lock,
                     RequireDocumentLockIntent = true,
-                    AppearanceName = "KillerPDF Approval",
+                    AppearanceName = "Avalanche Approval",
                     RequireAppearance = true
                 })
             .Build());
@@ -98,7 +98,7 @@ public sealed class PdfSignatureFieldTests
         Assert.Equal(1, Assert.IsType<PdfInteger>(timestamp[Name("Ff")]).Value);
         Assert.Equal("true",
             Assert.IsType<PdfName>(seed[Name("LockDocument")]).ValueAsLatin1());
-        Assert.Equal("KillerPDF Approval",
+        Assert.Equal("Avalanche Approval",
             DecodeUnicode(Assert.IsType<PdfString>(seed[Name("AppearanceFilter")])));
     }
 
@@ -124,7 +124,7 @@ public sealed class PdfSignatureFieldTests
                             new PdfCertificateDistinguishedName(
                                 new Dictionary<string, string>
                                 {
-                                    ["cn"] = "KillerPDF Signer",
+                                    ["cn"] = "Avalanche Signer",
                                     ["2.5.4.10"] = "Killer Tools"
                                 })
                         ],
@@ -166,7 +166,7 @@ public sealed class PdfSignatureFieldTests
                 Assert.IsType<PdfArray>(certificate[Name("OID")]))).Bytes.Span));
         PdfDictionary subjectDn = Assert.IsType<PdfDictionary>(Assert.Single(
             Assert.IsType<PdfArray>(certificate[Name("SubjectDN")])));
-        Assert.Equal("KillerPDF Signer",
+        Assert.Equal("Avalanche Signer",
             DecodeUnicode(Assert.IsType<PdfString>(subjectDn[Name("cn")])));
         Assert.Equal("Killer Tools",
             DecodeUnicode(Assert.IsType<PdfString>(subjectDn[Name("2.5.4.10")])));
@@ -480,7 +480,7 @@ public sealed class PdfSignatureFieldTests
     private static byte[] CreateTestCertificate()
     {
         using RSA key = RSA.Create(2048);
-        var request = new CertificateRequest("CN=KillerPDF Test Issuer", key,
+        var request = new CertificateRequest("CN=Avalanche Test Issuer", key,
             HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509BasicConstraintsExtension(
             certificateAuthority: true, hasPathLengthConstraint: false, pathLengthConstraint: 0,

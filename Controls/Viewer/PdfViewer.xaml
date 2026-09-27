@@ -1,7 +1,7 @@
-<UserControl x:Class="KillerPDF.Controls.PdfViewer"
+<UserControl x:Class="Avalanche.Controls.PdfViewer"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:KillerPDF.Controls">
+             xmlns:local="clr-namespace:Avalanche.Controls">
     <!-- One document view: this pane's tab strip and its card.
 
          The card's MARGIN lives on this control, not on the borders below - ApplySidebarSide sets

@@ -303,7 +303,7 @@ public sealed class PdfPushButtonTests
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
             .AddUriPushButton(0, "website", 20, 30, 140, 28,
-                "Open KillerPDF", "https://killerpdf.com/docs",
+                "Open Avalanche", "https://killerpdf.com/docs",
                 fieldMetadata: new PdfFormFieldMetadata
                 {
                     Tooltip = "Open the documentation",
@@ -321,13 +321,13 @@ public sealed class PdfPushButtonTests
         Assert.Equal((1 << 16) | 5, Assert.IsType<PdfInteger>(field[Name("Ff")]).Value);
         Assert.Equal("URI", Assert.IsType<PdfName>(action[Name("S")]).ValueAsLatin1());
         Assert.Equal("https://killerpdf.com/docs", DecodeUnicode(Assert.IsType<PdfString>(action[Name("URI")])));
-        Assert.Equal("Open KillerPDF", DecodeUnicode(Assert.IsType<PdfString>(characteristics[Name("CA")])));
+        Assert.Equal("Open Avalanche", DecodeUnicode(Assert.IsType<PdfString>(characteristics[Name("CA")])));
         Assert.Equal("Open the documentation", DecodeUnicode(Assert.IsType<PdfString>(field[Name("TU")])));
         PdfDictionary normalAppearances = Assert.IsType<PdfDictionary>(
             Assert.IsType<PdfDictionary>(field[Name("AP")])[Name("N")]);
         PdfStream appearance = Assert.IsType<PdfStream>(document.Resolve(
             Assert.IsType<PdfIndirectReference>(normalAppearances[Name("Normal")])));
-        Assert.Contains("(Open KillerPDF) Tj", Encoding.ASCII.GetString(appearance.EncodedData.Span));
+        Assert.Contains("(Open Avalanche) Tj", Encoding.ASCII.GetString(appearance.EncodedData.Span));
     }
 
     [Theory]

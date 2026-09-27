@@ -8,7 +8,7 @@ using System.Windows.Media.Effects;
 namespace Avalanche
 {
     // Chrome for modal dialog windows: Configure (borderless window setup), Frame (the rounded card +
-    // title bar + grain), and BuildTitleBar (the KillerPDF wordmark + red close button).
+    // title bar + grain), and BuildTitleBar (the Avalanche wordmark + red close button).
     internal static class DialogChrome
     {
         // Keep generated dialog captions on the same close mark as the main window.
@@ -35,7 +35,7 @@ namespace Avalanche
         // Builds the title bar.
         //   win       - the window being chromed (used for DragMove on the whole bar)
         //   owner      - supplies the themed brushes + the ChromeCloseButton style (pass the window's owner)
-        //   fullTitle  - the complete title, e.g. "KillerPDF - Transform"; the "Avalanche" part becomes the
+        //   fullTitle  - the complete title, e.g. "Avalanche - Transform"; the "Avalanche" part becomes the
         //                wordmark and the remainder (" - Transform") is rendered in the courier title font
         //   onClose    - invoked when the red close button is clicked (e.g. set a result then Close())
         public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose)

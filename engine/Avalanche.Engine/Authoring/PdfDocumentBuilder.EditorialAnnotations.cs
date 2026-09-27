@@ -66,7 +66,7 @@ public sealed partial class PdfDocumentBuilder
         CaretAnnotationDefinition value = allocated.Definition;
         var entries = EditorialAnnotationEntries(
             "Caret", value.PageIndex, value.X, value.Y, value.Width, value.Height,
-            pages, $"KillerPDF-Caret-{sequence}", value.Color, value.Opacity,
+            pages, $"Avalanche-Caret-{sequence}", value.Color, value.Opacity,
             value.Contents, allocated.AppearanceNumber, value.Metadata);
         if (value.Symbol == PdfCaretSymbol.Paragraph) entries.Add(("Sy", Name("P")));
         objects.Add(new PdfIndirectObject(
@@ -101,7 +101,7 @@ public sealed partial class PdfDocumentBuilder
                 Number(quad.LowerRight.X), Number(quad.LowerRight.Y)]);
         var entries = EditorialAnnotationEntries(
             "Redact", value.PageIndex, minX, minY, maxX - minX, maxY - minY,
-            pages, $"KillerPDF-Redact-{sequence}", value.MarkColor, value.Opacity,
+            pages, $"Avalanche-Redact-{sequence}", value.MarkColor, value.Opacity,
             value.Contents, allocated.AppearanceNumber, value.Metadata);
         entries.Add(("QuadPoints", new PdfArray(quadPoints)));
         entries.Add(("IC", ColorArray(value.FillColor)));

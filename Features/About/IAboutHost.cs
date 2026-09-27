@@ -6,7 +6,7 @@ namespace Avalanche.Features
     /// Every member is a value or a plain string, never a control, so the controller holds no
     /// reference to a TextBlock or a Button and can be driven by a stub in a test.
     ///
-    /// KillerPDF differs from Killendar's version in one way worth knowing: several of the About
+    /// Avalanche differs from Killendar's version in one way worth knowing: several of the About
     /// card's lines are built as INLINES rather than set as text - the wordmark is two differently
     /// styled runs, and the tagline, version and alias each carry a hyperlink. Constructing those
     /// is UI work, so it stays in the shell and the controller hands over only the strings and the

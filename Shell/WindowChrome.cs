@@ -395,7 +395,7 @@ namespace Avalanche
         private void Install_Click(object sender, RoutedEventArgs e)
         {
             Process.Start(new ProcessStartInfo(
-                "https://github.com/SteveTheKiller/KillerPDF/releases/latest")
+                "https://github.com/SteveTheKiller/Avalanche/releases/latest")
                 { UseShellExecute = true });
         }
 

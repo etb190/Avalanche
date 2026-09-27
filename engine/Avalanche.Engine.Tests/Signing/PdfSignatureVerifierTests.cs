@@ -18,7 +18,7 @@ public sealed class PdfSignatureVerifierTests
     {
         using RSA key = RSA.Create(2048);
         var request = new CertificateRequest(
-            "CN=KillerPDF Encrypted Signing Test", key, HashAlgorithmName.SHA256,
+            "CN=Avalanche Encrypted Signing Test", key, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         using X509Certificate2 certificate = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
@@ -56,7 +56,7 @@ public sealed class PdfSignatureVerifierTests
     {
         using RSA key = RSA.Create(2048);
         var request = new CertificateRequest(
-            "CN=KillerPDF Verification Test", key, HashAlgorithmName.SHA256,
+            "CN=Avalanche Verification Test", key, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(
             X509KeyUsageFlags.DigitalSignature, true));
@@ -99,7 +99,7 @@ public sealed class PdfSignatureVerifierTests
     {
         using RSA key = RSA.Create(2048);
         var request = new CertificateRequest(
-            "CN=Untrusted KillerPDF Test", key, HashAlgorithmName.SHA256,
+            "CN=Untrusted Avalanche Test", key, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         using X509Certificate2 certificate = request.CreateSelfSigned(
             DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));

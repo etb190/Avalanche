@@ -27,7 +27,7 @@ public sealed class PdfAnnotationAuthoringTests
         Assert.Equal("Text", Assert.IsType<PdfName>(annotation[Name("Subtype")]).ValueAsLatin1());
         Assert.Equal("Review résumé", DecodeUnicode(Assert.IsType<PdfString>(annotation[Name("Contents")])));
         Assert.True(Assert.IsType<PdfBoolean>(annotation[Name("Open")]).Value);
-        Assert.Equal("KillerPDF-Note-1",
+        Assert.Equal("Avalanche-Note-1",
             Encoding.Latin1.GetString(Assert.IsType<PdfString>(annotation[Name("NM")]).Bytes.Span));
         Assert.Equal("Zoë", DecodeUnicode(Assert.IsType<PdfString>(annotation[Name("T")])));
         Assert.Equal("Copy review",

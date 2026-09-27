@@ -138,7 +138,7 @@ public sealed class PdfLinkAnnotationTests
             .EnablePdfUa2Conformance()
             .AddBlankPage()
             .AddUriLink(0, 10, 10, 80, 20, "https://killerpdf.net",
-                contents: "Open KillerPDF")
+                contents: "Open Avalanche")
             .AddStructureContainer(PdfStructureType.Document)
             .Build());
         PdfDictionary catalog = ResolveDictionary(document, document.Trailer[Name("Root")]);

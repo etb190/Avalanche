@@ -612,7 +612,7 @@ public sealed class PdfIncrementalAnnotationEditorTests
         (PdfIndirectReference Reference, PdfDictionary Page) = Pages(source)[0];
         var setup = new PdfIncrementalUpdateBuilder(source);
         PdfIndirectReference existing = setup.ReserveObject();
-        string collidingName = $"KillerPDF-Note-{existing.ObjectNumber + 1}";
+        string collidingName = $"Avalanche-Note-{existing.ObjectNumber + 1}";
         setup.SetObject(existing, new PdfDictionary([
             new(Name("Type"), Name("Annot")),
             new(Name("Subtype"), Name("Text")),

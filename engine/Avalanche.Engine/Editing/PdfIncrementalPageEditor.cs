@@ -3254,7 +3254,7 @@ public sealed class PdfIncrementalPageEditor
             destinationFonts.AddRange(AppearanceFonts(destinationDocument, destinationNormal));
         // A field can temporarily switch back to a standard Latin font, leaving a wider Unicode
         // subset from an earlier revision outside its current /AP graph. Search every current xref
-        // object for KillerPDF Type0 fonts so that earlier superset remains reusable (#256).
+        // object for Avalanche Type0 fonts so that earlier superset remains reusable (#256).
         destinationFonts.AddRange(ReusableAppearanceFonts().Where(candidate =>
             destinationFonts.All(current => !current.Reference.Equals(candidate.Reference))));
         var seededDestinations = new HashSet<(int ObjectNumber, int Generation)>();
@@ -3355,7 +3355,7 @@ public sealed class PdfIncrementalPageEditor
         if (!font.Dictionary.TryGetValue(EncodingName, out PdfObject? value)
             || ResolveValue(font.Document, value) is not PdfStream stream) return false;
         return Encoding.ASCII.GetString(PdfStreamDecoder.Decode(stream))
-            .Contains("/CMapName /KillerPDF-Identity", StringComparison.Ordinal);
+            .Contains("/CMapName /Avalanche-Identity", StringComparison.Ordinal);
     }
 
     private static bool CMapCovers(

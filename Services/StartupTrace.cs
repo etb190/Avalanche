@@ -36,7 +36,7 @@ namespace Avalanche.Services
                     {
                         _headerWritten = true;
                         var process = Process.GetCurrentProcess();
-                        sb.Append("# KillerPDF startup trace | pid=")
+                        sb.Append("# Avalanche startup trace | pid=")
                           .Append(process.Id)
                           .Append(" | processStartUtc=")
                           .Append(process.StartTime.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture))

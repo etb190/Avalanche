@@ -46,10 +46,10 @@ public sealed class PdfDocumentInformationTests
             {
                 Title = "Technical overview",
                 Author = "Steve",
-                Subject = "The KillerPDF.Engine",
+                Subject = "The Avalanche.Engine",
                 Keywords = "PDF 2.0, PDF/A",
                 Creator = "Tests",
-                Producer = "The KillerPDF.Engine",
+                Producer = "The Avalanche.Engine",
                 Language = "en-US",
                 CreationDate = new DateTimeOffset(2026, 8, 24, 10, 11, 12, TimeSpan.FromHours(-7)),
                 ModificationDate = new DateTimeOffset(2026, 8, 24, 11, 12, 13, TimeSpan.Zero),
@@ -63,10 +63,10 @@ public sealed class PdfDocumentInformationTests
 
         Assert.Equal("Technical overview", info.Title);
         Assert.Equal("Steve", info.Author);
-        Assert.Equal("The KillerPDF.Engine", info.Subject);
+        Assert.Equal("The Avalanche.Engine", info.Subject);
         Assert.Equal("PDF 2.0, PDF/A", info.Keywords);
         Assert.Equal("Tests", info.Creator);
-        Assert.Equal("The KillerPDF.Engine", info.Producer);
+        Assert.Equal("The Avalanche.Engine", info.Producer);
         Assert.Equal("en-US", info.Language);
         Assert.Equal(new DateTimeOffset(2026, 8, 24, 10, 11, 12, TimeSpan.FromHours(-7)), info.CreationDate);
         Assert.Equal(new DateTimeOffset(2026, 8, 24, 11, 12, 13, TimeSpan.Zero), info.ModificationDate);

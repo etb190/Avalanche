@@ -2333,7 +2333,7 @@ public sealed partial class PdfDocumentBuilder
                     optionalContentNumbers[group], 0))];
             var defaultConfiguration = new List<(string Name, PdfObject Value)>
             {
-                ("Name", UnicodeString("KillerPDF Layers")),
+                ("Name", UnicodeString("Avalanche Layers")),
                 ("BaseState", Name("ON")),
                 ("Order", new PdfArray(groupReferences))
             };
@@ -2879,7 +2879,7 @@ public sealed partial class PdfDocumentBuilder
                         Number(link.X + link.Width), Number(link.Y + link.Height)])),
                     ("P", new PdfIndirectReference(allocatedPage.PageNumber, 0)),
                     ("F", new PdfInteger((int)(link.Metadata?.Flags ?? PdfAnnotationFlags.Print))),
-                    ("NM", Latin1String($"KillerPDF-Link-{index + 1}")),
+                    ("NM", Latin1String($"Avalanche-Link-{index + 1}")),
                     ("Border", new PdfArray([
                         Number(link.Appearance.HorizontalCornerRadius),
                         Number(link.Appearance.VerticalCornerRadius),
@@ -3064,7 +3064,7 @@ public sealed partial class PdfDocumentBuilder
                 Number(value.X + value.Size), Number(value.Y + value.Size)])),
             ("P", new PdfIndirectReference(pages[value.PageIndex].PageNumber, 0)),
             ("F", new PdfInteger((int)(value.Metadata?.Flags ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-FileAttachment-{sequence}")),
+            ("NM", Latin1String($"Avalanche-FileAttachment-{sequence}")),
             ("Name", Name(value.Icon.ToString())),
             ("C", ColorArray(value.Color)),
             ("FS", new PdfIndirectReference(fileSpecificationNumbers[value.FileName], 0)),
@@ -4416,7 +4416,7 @@ public sealed partial class PdfDocumentBuilder
                 ("F", new PdfInteger((int)(note.Metadata?.Flags ?? PdfAnnotationFlags.Print))),
                 ("Contents", UnicodeString(note.Contents)),
                 ("NM", note.Name is null
-                    ? Latin1String($"KillerPDF-Note-{sequence}")
+                    ? Latin1String($"Avalanche-Note-{sequence}")
                     : UnicodeString(note.Name)),
                 ("Name", Name(PdfTextNoteIconNames.Name(note.Icon))),
                 ("Open", new PdfBoolean(note.Open)),
@@ -4498,7 +4498,7 @@ public sealed partial class PdfDocumentBuilder
             ("QuadPoints", new PdfArray(quadPoints)),
             ("P", new PdfIndirectReference(pages[highlight.PageIndex].PageNumber, 0)),
             ("F", new PdfInteger((int)(highlight.Metadata?.Flags ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-{highlight.Type}-{sequence}")),
+            ("NM", Latin1String($"Avalanche-{highlight.Type}-{sequence}")),
             ("C", ColorArray(highlight.Color)),
             ("CA", new PdfReal(highlight.Opacity)),
             ("AP", Dictionary(("N", new PdfIndirectReference(allocated.AppearanceNumber, 0))))

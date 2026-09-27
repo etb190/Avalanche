@@ -1055,7 +1055,7 @@ public sealed class PdfDetachedSignatureWriterTests
     {
         using RSA rootKey = RSA.Create(2048);
         var rootRequest = new CertificateRequest(
-            "CN=KillerPDF Test Root", rootKey, HashAlgorithmName.SHA256,
+            "CN=Avalanche Test Root", rootKey, HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         rootRequest.CertificateExtensions.Add(
             new X509BasicConstraintsExtension(true, false, 0, true));

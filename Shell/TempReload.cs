@@ -97,7 +97,7 @@ namespace Avalanche
             }
 
             // Structural operations can finalize the freshly serialized working file through
-            // KillerPDF.Engine before PdfSharpCore reopens it. The callback owns atomic replacement
+            // Avalanche.Engine before PdfSharpCore reopens it. The callback owns atomic replacement
             // of tempPath and runs only after the base save or repair path has completed.
             finalizeSavedFile?.Invoke(tempPath);
 

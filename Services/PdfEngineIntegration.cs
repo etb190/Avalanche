@@ -15,7 +15,7 @@ using DrawingImage = System.Drawing.Image;
 
 namespace Avalanche.Services;
 
-/// <summary>Bridges completed application state into The KillerPDF.Engine during migration.</summary>
+/// <summary>Bridges completed application state into The Avalanche.Engine during migration.</summary>
 internal static class PdfEngineIntegration
 {
     internal sealed record FormEdits(

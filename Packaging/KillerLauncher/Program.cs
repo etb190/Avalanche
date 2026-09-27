@@ -16,7 +16,7 @@ namespace KillerLauncher
     internal static class Program
     {
         private const string ProductName = "Avalanche";
-        private const string InnerExeName = "KillerPDF.App.exe";
+        private const string InnerExeName = "Avalanche.App.exe";
         private const string PayloadResourceName = "KillerLauncher.payload.zip";
         private const string ManifestName = "payload.manifest";
         private const string PortableMarkerName = ".killerpdf-portable";
@@ -38,7 +38,7 @@ namespace KillerLauncher
 #if INSTALLER_PACKAGE
                 if (args.Any(a => string.Equals(a, "/install-user", StringComparison.OrdinalIgnoreCase)))
                 {
-                    // KillerPDF 1.7.x uses /install-user for its F12 update handoff. Keep that
+                    // Avalanche 1.7.x uses /install-user for its F12 update handoff. Keep that
                     // automatic path when the runtime is ready, but show the prerequisite-aware
                     // wizard on machines that cannot launch the new app yet.
                     if (!HasDesktopRuntime10())
@@ -142,7 +142,7 @@ namespace KillerLauncher
             string? testRoot = Environment.GetEnvironmentVariable(TestInstallRootEnvironmentVariable);
             if (string.IsNullOrWhiteSpace(testRoot) && !machine &&
                 (File.Exists(Path.Combine(MachineInstallDirectory, InnerExeName)) ||
-                 File.Exists(Path.Combine(MachineInstallDirectory, "KillerPDF.exe"))))
+                 File.Exists(Path.Combine(MachineInstallDirectory, "Avalanche.exe"))))
                 throw new InvalidOperationException(
                     LauncherStrings.Get("AlreadyMachine"));
 

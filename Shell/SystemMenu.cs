@@ -19,9 +19,9 @@ using System.Windows.Media.Animation;
 // WM_SYSCOMMAND the native menu would have sent, so behavior is identical - including Move and
 // Size, which hand off to Windows' own modal drag loops.
 //
-// KillerPDF adaptations: HTCAPTION already lives in Shell/WindowChrome.cs (not redeclared
+// Avalanche adaptations: HTCAPTION already lives in Shell/WindowChrome.cs (not redeclared
 // here), the menu comes from MakeThemedMenu() so its TextOptions match the app's other
-// code-built menus, and the kit's Anim.FadeIn is inlined (KillerPDF carries no Anim class).
+// code-built menus, and the kit's Anim.FadeIn is inlined (Avalanche carries no Anim class).
 // ============================================================
 namespace Avalanche
 {
@@ -90,7 +90,7 @@ namespace Avalanche
                 };
             }
 
-            // KillerPDF keeps its implicit ContextMenu/MenuItem styles in MainWindow.xaml's
+            // Avalanche keeps its implicit ContextMenu/MenuItem styles in MainWindow.xaml's
             // WINDOW resources (not App.xaml), and an Absolute-placement menu has no inheritance
             // context to find them through - it rendered stock white. PlacementTarget supplies
             // that context; with PlacementMode.Absolute it does not affect position.

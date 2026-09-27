@@ -1,7 +1,7 @@
-<Application x:Class="KillerPDF.App"
-             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:KillerPDF">
+<Application x:Class="Avalanche.App"
+              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+              xmlns:local="clr-namespace:Avalanche">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -91,7 +91,7 @@
 
             <!-- ============================================================================
                  PRODUCT-SPECIFIC DESIGN TOKENS. Shared trademark palette tokens come from KillerUI;
-                 these local resources cover KillerPDF-only tools and dialogs.
+                 these local resources cover Avalanche-only tools and dialogs.
                  Theme COLORS live in Themes/*.xaml; these are the theme-independent type,
                  shape, and elevation primitives. Code-built UI reads the same keys through
                  UiKit (UiKit.cs), so XAML and code can never drift apart.
@@ -99,11 +99,11 @@
 
             <!-- Type families -->
             <FontFamily x:Key="UiFont">Segoe UI, Microsoft JhengHei UI, Nirmala UI</FontFamily>
-            <!-- The full embedded Typewriter a602 face used by the KillerPDF wordmark. Keep the
+            <!-- The full embedded Typewriter a602 face used by the Avalanche wordmark. Keep the
                  internal family name in sync with the font's name table; an approximate name makes
                  WPF silently substitute the system font. -->
-            <!-- Assembly-relative: release payloads run as KillerPDF.App.exe while legacy and
-                 IDE builds run as KillerPDF.exe. Hard-coding either assembly name makes the
+            <!-- Assembly-relative: release payloads run as Avalanche.App.exe while legacy and
+                 IDE builds run as Avalanche.exe. Hard-coding either assembly name makes the
                  embedded typewriter face silently fall back in the other build. -->
             <FontFamily x:Key="WordmarkFont">./Fonts/#Typewriter - a602 (dead postman 2004)</FontFamily>
             <FontFamily x:Key="WordmarkFontPdf">./Fonts/#Typewriter - a602 (dead postman 2004)</FontFamily>
@@ -158,7 +158,7 @@
                  ran 139 / 157 / 174 / 188 against an unshadowed 220, so it was still at ~85% of
                  its travel when the window edge cut it off. Blur 16 (the family value) completes
                  the falloff inside 8px. If the gutter is ever widened, the blur can grow with it.
-                 Opacity stays at 0.78 rather than the family 0.6: KillerPDF's card is usually
+                 Opacity stays at 0.78 rather than the family 0.6: Avalanche's card is usually
                  filled edge to edge by a WHITE page, so the boundary is a near-full-range value
                  jump and the family opacity is swallowed by it - the right gutter needs more
                  depth, and a lower opacity left a hard edge on the gradient. (2026-07-31) -->

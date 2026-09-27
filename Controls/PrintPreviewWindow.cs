@@ -17,7 +17,7 @@ using Avalanche.Services;
 namespace Avalanche
 {
     /// <summary>
-    /// KillerPDF's own print dialog with a working preview. WPF's built-in PrintDialog
+    /// Avalanche's own print dialog with a working preview. WPF's built-in PrintDialog
     /// reports "This app doesn't support print preview", so we render the rasterized
     /// pages ourselves, expose printer / orientation / copies / page-range settings,
     /// and drive the spooler via a non-UI PrintDialog when the user clicks Print.
@@ -589,7 +589,7 @@ namespace Avalanche
             };
             panel.Children.Add(margins);
 
-            // Pages per sheet (N-up): KillerPDF composes the sheet itself.
+            // Pages per sheet (N-up): Avalanche composes the sheet itself.
             panel.Children.Add(Label(S("Str_Print_PagesPerSheet")));
             var nup = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
             ApplyComboStyle(nup);

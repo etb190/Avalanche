@@ -7,7 +7,7 @@ using Xunit;
 namespace Avalanche.Tests;
 
 // The rule this file exists to enforce: OCR LANGUAGES TRACK INTERFACE LANGUAGES.
-// If KillerPDF's UI is offered in a language, OCR is offered in it too. There is no such thing as
+// If Avalanche's UI is offered in a language, OCR is offered in it too. There is no such thing as
 // an interface language whose text the app cannot read.
 //
 // Nothing enforced it before, so it drifted: the UI shipped hu-HU while the catalog stayed at
@@ -18,7 +18,7 @@ namespace Avalanche.Tests;
 // the build until its model is registered. release.ps1 runs the suite, so it cannot ship broken.
 public sealed class OcrCatalogTests
 {
-    // The test binary sits under KillerPDF.Tests\bin\<cfg>; the repo root is the ancestor that
+    // The test binary sits under Avalanche.Tests\bin\<cfg>; the repo root is the ancestor that
     // holds Strings\. Walking up beats a pile of ..\..\.. that breaks whenever the layout moves.
     private static string StringsDir()
     {

@@ -19,7 +19,7 @@ namespace Avalanche
     public partial class MainWindow
     {
         // KbLayer, the binding table and its types live in Services/ShortcutTable.cs, which is free
-        // of WPF so KillerPDF.Tests can link it.
+        // of WPF so Avalanche.Tests can link it.
         private KbLayer _kbLayer = KbLayer.Base;
         private bool _kbBuilt;
         private TextBlock? _kbDetail;

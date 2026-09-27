@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Traditional Chinese (zh-TW) strings
+         Avalanche  -  Traditional Chinese (zh-TW) strings
          Stub file - translations to be provided by leox243 (PR #61).
          All keys fall back to English until filled in.
          ================================================================ -->
@@ -48,7 +48,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">收合側邊欄 (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">展開側邊欄 (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">鍵盤快速鍵 (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">關於 KillerPDF (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">關於 Avalanche (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">版本</sys:String>
@@ -122,7 +122,7 @@
     <!-- ── Status bar ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">就緒</sys:String>
     <sys:String x:Key="Str_Portable">可攜版</sys:String>
-    <sys:String x:Key="Str_InstallBtn">安裝 KillerPDF</sys:String>
+    <sys:String x:Key="Str_InstallBtn">安裝 Avalanche</sys:String>
 
     <!-- ── Status messages (format strings - use string.Format) ─────── -->
     <sys:String x:Key="Str_Opened">已開啟 {0} - {1} 頁</sys:String>
@@ -156,37 +156,37 @@
 現在儲存會覆寫該檔案，那些變更將會遺失。若要保留，請先儲存另一個窗格。</sys:String>
     <sys:String x:Key="Str_St_SplitOn">分割檢視已開啟 - 按 F10 關閉</sys:String>
     <sys:String x:Key="Str_St_SplitOff">分割檢視已關閉</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">安裝 KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">要將 KillerPDF 安裝到這台電腦嗎？
+    <sys:String x:Key="Str_Dlg_InstallTitle">安裝 Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">要將 Avalanche 安裝到這台電腦嗎？
 
-KillerPDF 將被複製到您的程式資料夾，並新增開始功能表項目。此 EXE 副本會保留在原處，您可以隨時透過新增或移除程式來解除安裝。</sys:String>
+Avalanche 將被複製到您的程式資料夾，並新增開始功能表項目。此 EXE 副本會保留在原處，您可以隨時透過新增或移除程式來解除安裝。</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">安裝</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">更新</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">更新現有的 KillerPDF 安裝？
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">更新現有的 Avalanche 安裝？
 
 這會將已安裝的複本替換為更快的多檔案版本。之後您可以保留或刪除此可攜檔案。</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">更新現有的 KillerPDF 全使用者安裝？
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">更新現有的 Avalanche 全使用者安裝？
 
-這會將 Program Files 中的複本替換為更快的多檔案版本。舊的單一使用者複本將被移除，使 KillerPDF 只出現一次。之後您可以保留或刪除此可攜檔案。</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF 已為此電腦上的所有使用者安裝。請更新該安裝，或先解除安裝，再選擇單一使用者安裝。
+這會將 Program Files 中的複本替換為更快的多檔案版本。舊的單一使用者複本將被移除，使 Avalanche 只出現一次。之後您可以保留或刪除此可攜檔案。</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche 已為此電腦上的所有使用者安裝。請更新該安裝，或先解除安裝，再選擇單一使用者安裝。
 
-KillerPDF 不會建立兩個已安裝的複本。</sys:String>
+Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">新增桌面捷徑</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">為這台電腦上的所有使用者安裝（需要系統管理員）</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">安裝未完成 - KillerPDF 仍以可攜方式執行。</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">要將 KillerPDF 設為預設 PDF 檢視器嗎？
+    <sys:String x:Key="Str_Status_InstallFailed">安裝未完成 - Avalanche 仍以可攜方式執行。</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">要將 Avalanche 設為預設 PDF 檢視器嗎？
 
 將開啟 Windows 設定 - 預設應用程式。</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">您有未儲存的變更。要在不儲存的情況下關閉此檔案嗎？</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">您有未儲存的變更。要在不儲存的情況下關閉 KillerPDF 嗎？</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">您有未儲存的變更。要在不儲存的情況下關閉 Avalanche 嗎？</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">此文件有 {0} 個頁面的尺寸超出 Adobe Reader 支援的範圍（每邊 3 到 14400 點），Adobe 會將這些頁面顯示為空白。
 
 要將它們縮放至支援的尺寸嗎？頁面的外觀和比例保持不變。</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">無法開啟 PDF：
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">您有 {0} 個開啟的文件。結束應用程式時是否讓 KillerPDF 全部關閉？</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">您有 1 個開啟的文件。結束應用程式時是否讓 KillerPDF 將其關閉？</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">您有 {0} 個開啟的文件。結束應用程式時是否讓 Avalanche 全部關閉？</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">您有 1 個開啟的文件。結束應用程式時是否讓 Avalanche 將其關閉？</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">記住我的選擇</sys:String>
 
 
@@ -310,7 +310,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Pos_TopLeft">左上</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - 列印</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - 列印</sys:String>
     <sys:String x:Key="Str_Print_Printer">印表機</sys:String>
     <sys:String x:Key="Str_Print_Orientation">方向</sys:String>
     <sys:String x:Key="Str_Print_Portrait">直向</sys:String>
@@ -361,7 +361,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Drop_Separate">分別開啟</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">找不到可開啟的 PDF 或圖片。</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">這將開啟 {0} 個獨立分頁。要繼續嗎？</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">此資料夾或壓縮檔包含 {0} 個檔案。KillerPDF 只會開啟前 {1} 個。要繼續嗎？</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">此資料夾或壓縮檔包含 {0} 個檔案。Avalanche 只會開啟前 {1} 個。要繼續嗎？</sys:String>
     <sys:String x:Key="Str_Status_Merged">已合併 {0} 個檔案 - 尚未儲存</sys:String>
     <sys:String x:Key="Str_Drop_Merging">正在合併檔案...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">已取消合併</sys:String>
@@ -521,14 +521,14 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">全螢幕</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">按 F11 或 Esc 離開全螢幕</sys:String>
     <!-- Quit prompt -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">結束 KillerPDF？</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">結束 Avalanche？</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">關閉我開啟的分頁</sys:String>
     <sys:String x:Key="Str_Btn_Quit">結束</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">取消</sys:String>
 
 
     <!-- Status-bar + dialog strings (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">已清除所有 KillerPDF 資料</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">已清除所有 Avalanche 資料</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">已取消 OCR 區域</sys:String>
     <sys:String x:Key="Str_St_Erased">已擦除</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">已取消群組</sys:String>
@@ -575,7 +575,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_St_PastedText">已貼上文字-拖曳以重新定位，按 Delete 移除</sys:String>
     <sys:String x:Key="Str_St_ClipEmpty">剪貼簿中沒有可貼上的內容</sys:String>
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">請先儲存變更再進行更新。</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF 已解除安裝。</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche 已解除安裝。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">請選取要擷取的頁面。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">請選取要刪除的頁面。</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">沒有可用的印表機。</sys:String>
@@ -901,7 +901,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">可搜尋 PDF 已儲存：&#10;{0}&#10;&#10;已處理 {1} 頁，辨識 {2} 個字詞。</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">「{0}」已成功修復。&#10;&#10;書籤、表單和其他互動功能可能已遺失。請使用另存新檔將修復後的檔案寫入新位置。</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">「{0}」已透過 PDFium 點陣化修復。&#10;&#10;修復副本中的文字無法選取。請使用另存新檔將其寫入新位置。</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」的結構已損壞，無法加入。&#10;&#10;要讓 KillerPDF 嘗試修復嗎？將建立修復副本 - 原始檔案不會被變更。&#10;&#10;注意：修復後的檔案可能缺少書籤、表單和其他互動功能。</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」的結構已損壞，無法加入。&#10;&#10;要讓 Avalanche 嘗試修復嗎？將建立修復副本 - 原始檔案不會被變更。&#10;&#10;注意：修復後的檔案可能缺少書籤、表單和其他互動功能。</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">現在將下載語言模型（{0}）以便執行 OCR。&#10;&#10;您可以隨時在 OCR 選單中新增更多語言或切換到更高品質的模型。</sys:String>
     <sys:String x:Key="Str_Bar_More">更多設定</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">使線條保持在最近的軸上（水平或垂直）</sys:String>
@@ -915,14 +915,14 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_TT_SaveOptions">儲存選項</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR 選項</sys:String>
     <sys:String x:Key="Str_RecentHeading">最近</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - 鍵盤快速鍵</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - 鍵盤快速鍵</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">有可用更新: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">要下載並安裝 KillerPDF {0} 嗎?&#10;&#10;應用程式將關閉並自動重新開啟。</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">要下載並安裝 Avalanche {0} 嗎?&#10;&#10;應用程式將關閉並自動重新開啟。</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">正在下載...</sys:String>
     <sys:String x:Key="Str_ClearAllData">清除所有資料</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">這會刪除所有已儲存的設定、已下載的 OCR 語言包和暫存檔案。&#10;&#10;您的 PDF 檔案不受影響。要繼續嗎?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">設定、語言包和暫存檔案已清除。&#10;&#10;請重新啟動 KillerPDF，以完成清除本次工作階段中仍在使用的檔案。</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - 未預期的錯誤</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">設定、語言包和暫存檔案已清除。&#10;&#10;請重新啟動 Avalanche，以完成清除本次工作階段中仍在使用的檔案。</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - 未預期的錯誤</sys:String>
     <sys:String x:Key="Str_Crash_Log">記錄: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">複製報告</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">開啟記錄</sys:String>
@@ -981,17 +981,17 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF比較詳情</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF無法開啟瀏覽器PDF。</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">那個瀏覽器命令不是KillerPDF所知道的。</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche無法開啟瀏覽器PDF。</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">那個瀏覽器命令不是Avalanche所知道的。</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">交接不包含PDF地址。</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">無法讀取交接單中的PDF地址。</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF僅透過https開啟瀏覽器切換。</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche僅透過https開啟瀏覽器切換。</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">無法使用瀏覽器交接。</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">PDF檔大於256 MB的瀏覽器切換限制。</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">下載的檔案不是PDF。</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF無法下載PDF。</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche無法下載PDF。</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">PDF下載逾時。</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF無法儲存或讀取下載的PDF。</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche無法儲存或讀取下載的PDF。</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">拖曳以建立可填寫文字欄位</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">已取消建立可填寫文字欄位</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">無法建立可填寫文字欄位</sys:String>
@@ -1026,7 +1026,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">鍵盤快速鍵已啟用</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">鍵盤快速鍵已停用。按 Ctrl+Shift+K 即可啟用。</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">啟動時檢查更新</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} 已推出。要立即下載並安裝嗎？&#10;&#10;應用程式將關閉並自動重新開啟。</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Avalanche {0} 已推出。要立即下載並安裝嗎？&#10;&#10;應用程式將關閉並自動重新開啟。</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">啟動時一律檢查更新</sys:String>
     <sys:String x:Key="Str_PasswordProtected">「{0}」受密碼保護。</sys:String>
     <sys:String x:Key="Str_About_Aka">別名</sys:String>

@@ -252,7 +252,7 @@ namespace Avalanche
 
         private static string? ExtractZipToTemp(string zipPath)
         {
-            string dir = Path.Combine(Path.GetTempPath(), "KillerPDF-zip-" + Guid.NewGuid().ToString("N")[..8]);
+            string dir = Path.Combine(Path.GetTempPath(), "Avalanche-zip-" + Guid.NewGuid().ToString("N")[..8]);
             try { Directory.CreateDirectory(dir); ZipFile.ExtractToDirectory(zipPath, dir); return dir; }
             catch { try { Directory.Delete(dir, true); } catch { } return null; }
         }

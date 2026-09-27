@@ -146,7 +146,7 @@ namespace Avalanche
                 // we can't classify the damage, but the PDFium-based repair often recovers it anyway, so
                 // offer the repair rather than just failing outright.
                 var result = KillerDialog.Show(this,
-                    "This PDF couldn't be opened - its structure may be damaged.\n\nWould you like KillerPDF to attempt a repair? A repaired copy will be created - the original file will not be changed.\n\nNote: repaired files may be missing bookmarks, forms, and other interactive features.",
+                    "This PDF couldn't be opened - its structure may be damaged.\n\nWould you like Avalanche to attempt a repair? A repaired copy will be created - the original file will not be changed.\n\nNote: repaired files may be missing bookmarks, forms, and other interactive features.",
                     "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (result == MessageBoxResult.Yes)
                     TryRepairAndOpen(srcPath);   // sets _asyncOpenPending and finalizes the tab itself
@@ -237,7 +237,7 @@ namespace Avalanche
                 bool raster = false;
 
                 // Strategy 0 (#103): lossless PDFium re-save. PDFium's tolerant parser recovers
-                // broken xref tables (including the dangling /Outlines entry older KillerPDF
+                // broken xref tables (including the dangling /Outlines entry older Avalanche
                 // builds wrote) and rewrites a clean file preserving EVERYTHING - forms,
                 // bookmarks, text. The import-copy below drops the document-level AcroForm,
                 // which is what used to turn a repaired fillable form into a flat one.
@@ -849,8 +849,8 @@ namespace Avalanche
         // Adobe Reader only displays pages whose sides are 3-14400 points; anything outside
         // that range shows "The dimensions of this page are out-of-range" and renders blank.
         // Such pages usually come from images with broken DPI metadata turned into a PDF (by
-        // KillerPDF 1.6.1 and earlier, or by other tools). PDFium renders any size, so the
-        // file looks normal in KillerPDF and only fails in Adobe.
+        // Avalanche 1.6.1 and earlier, or by other tools). PDFium renders any size, so the
+        // file looks normal in Avalanche and only fails in Adobe.
         // Min/MaxAdobePageDim live in Services/PdfImport.cs (shared with the image importer).
 
         // Called at the top of every user-facing save. If any page is outside Adobe's supported
@@ -1394,7 +1394,7 @@ namespace Avalanche
 
             // Open the preview window immediately. Pages rasterize on a background thread and
             // stream in via SetRenderedPage, so the window appears at once and the app stays
-            // responsive on large files. WPF's OS PrintDialog can't show a preview, so KillerPDF
+            // responsive on large files. WPF's OS PrintDialog can't show a preview, so Avalanche
             // renders it and drives printing itself.
             string  renderPath = printPath;
             string? cleanup    = tempFlattened;

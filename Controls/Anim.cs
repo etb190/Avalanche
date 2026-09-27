@@ -14,7 +14,7 @@ using System.Windows.Media.Animation;
 // THIS IS THE CANONICAL COPY (consolidated 2026-08-08). Every app carries a byte-identical
 // copy of this file - only the namespace line differs - so a diff against this file IS the
 // drift check. It replaced five copies that had each grown a different subset: the kit shipped
-// no fade-out at all, so KillerNotes invented FadeOutAndClose and KillerPDF invented
+// no fade-out at all, so KillerNotes invented FadeOutAndClose and Avalanche invented
 // FadeOut(element, done) independently, while KillerScan, KillerShell and Killendar closed
 // every dialog with no fade. When something here needs to change, change it HERE first, then
 // re-copy into every app.
@@ -34,7 +34,7 @@ using System.Windows.Media.Animation;
 //   - FadeOut(element, done): fades a named element and runs a callback. For a dialog that must
 //     hold its DialogResult until after the fade: assigning DialogResult is itself a close
 //     request, and WPF resets DialogResult to null whenever a close is canceled, so such a
-//     dialog records the result, fades, and assigns it in the callback (see KillerPDF's
+//     dialog records the result, fades, and assigns it in the callback (see Avalanche's
 //     FileDialog.OnClosing).
 // ============================================================
 namespace Avalanche.Controls

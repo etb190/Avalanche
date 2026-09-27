@@ -263,7 +263,7 @@ public sealed partial class PdfDocumentBuilder
             $"{NameToken(fontResource)} {FormatNumber(value.FontSize)} Tf {ColorOperands(value.TextColor)} rg";
         var entries = CommonAnnotationEntries(
             "FreeText", value.PageIndex, bounds.X, bounds.Y, bounds.Width, bounds.Height,
-            pages, $"KillerPDF-FreeText-{sequence}", value.BorderColor, value.Opacity,
+            pages, $"Avalanche-FreeText-{sequence}", value.BorderColor, value.Opacity,
             value.Contents, allocated.AppearanceNumber, value.Metadata);
         entries.Add(("DA", Latin1String(defaultAppearance)));
         entries.Add(("Q", new PdfInteger((int)value.Alignment)));
@@ -362,7 +362,7 @@ public sealed partial class PdfDocumentBuilder
                 Number(stamp.X + stamp.Width), Number(stamp.Y + stamp.Height)])),
             ("P", new PdfIndirectReference(pages[stamp.PageIndex].PageNumber, 0)),
             ("F", new PdfInteger((int)(stamp.Metadata?.Flags ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-Image-{sequence}")),
+            ("NM", Latin1String($"Avalanche-Image-{sequence}")),
             ("Name", Name(PdfStampIconNames.Name(stamp.Icon))),
             ("AP", Dictionary(("N", new PdfIndirectReference(allocated.AppearanceNumber, 0))))
         };
@@ -389,7 +389,7 @@ public sealed partial class PdfDocumentBuilder
         Bounds bounds = PointBounds([line.Start, line.End], padding);
         var entries = CommonAnnotationEntries("Line", line.PageIndex,
             bounds.X, bounds.Y, bounds.Width, bounds.Height, pages,
-            $"KillerPDF-Line-{sequence}", line.Color, line.Opacity,
+            $"Avalanche-Line-{sequence}", line.Color, line.Opacity,
             line.Contents, allocated.AppearanceNumber, line.Metadata);
         entries.Add(("L", new PdfArray([
             Number(line.Start.X), Number(line.Start.Y), Number(line.End.X), Number(line.End.Y)])));
@@ -429,7 +429,7 @@ public sealed partial class PdfDocumentBuilder
         string subtype = shape.Type.ToString();
         var entries = CommonAnnotationEntries(subtype, shape.PageIndex,
             shape.X, shape.Y, shape.Width, shape.Height, pages,
-            $"KillerPDF-{subtype}-{sequence}", shape.StrokeColor, shape.Opacity,
+            $"Avalanche-{subtype}-{sequence}", shape.StrokeColor, shape.Opacity,
             shape.Contents, allocated.AppearanceNumber, shape.Metadata);
         entries.Add(("BS", BorderStyle(shape.LineWidth, shape.DashPattern)));
         if (shape.FillColor.HasValue) entries.Add(("IC", ColorArray(shape.FillColor.Value)));
@@ -453,7 +453,7 @@ public sealed partial class PdfDocumentBuilder
         Bounds bounds = PointBounds(allPoints, ink.LineWidth / 2);
         var entries = CommonAnnotationEntries("Ink", ink.PageIndex,
             bounds.X, bounds.Y, bounds.Width, bounds.Height, pages,
-            $"KillerPDF-Ink-{sequence}", ink.Color, ink.Opacity,
+            $"Avalanche-Ink-{sequence}", ink.Color, ink.Opacity,
             ink.Contents, allocated.AppearanceNumber, ink.Metadata);
         entries.Add(("InkList", new PdfArray(ink.Strokes.Select(stroke =>
             (PdfObject)new PdfArray(stroke.SelectMany(point => new PdfObject[]
@@ -489,7 +489,7 @@ public sealed partial class PdfDocumentBuilder
         string subtype = vertex.Closed ? "Polygon" : "PolyLine";
         var entries = CommonAnnotationEntries(subtype, vertex.PageIndex,
             bounds.X, bounds.Y, bounds.Width, bounds.Height, pages,
-            $"KillerPDF-{subtype}-{sequence}", vertex.Color, vertex.Opacity,
+            $"Avalanche-{subtype}-{sequence}", vertex.Color, vertex.Opacity,
             vertex.Contents, allocated.AppearanceNumber, vertex.Metadata);
         entries.Add(("Vertices", new PdfArray(vertex.Vertices.SelectMany(point =>
             new PdfObject[] { Number(point.X), Number(point.Y) }))));

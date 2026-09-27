@@ -13,8 +13,8 @@ namespace Avalanche.Services
     /// </summary>
     internal static partial class OcrNativeBootstrap
     {
-        private const string NativePrefix = "KillerPDF.OcrNative.";
-        private const string TessDataPrefix = "KillerPDF.OcrTessData.";
+        private const string NativePrefix = "Avalanche.OcrNative.";
+        private const string TessDataPrefix = "Avalanche.OcrTessData.";
         private const string LeptonicaFileName = "leptonica-1.82.0.dll";
         private const string TesseractFileName = "tesseract50.dll";
         private const uint LoadLibrarySearchDllLoadDir = 0x00000100;

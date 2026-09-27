@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Bengali (bn) strings
+         Avalanche  -  Bengali (bn) strings
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -46,7 +46,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">সাইডবার সংকুচিত করুন (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">সাইডবার প্রসারিত করুন (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">কীবোর্ড শর্টকাট (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">KillerPDF সম্পর্কে (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">Avalanche সম্পর্কে (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">সংস্করণ</sys:String>
@@ -120,7 +120,7 @@
     <!-- ── Status bar ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">প্রস্তুত</sys:String>
     <sys:String x:Key="Str_Portable">পোর্টেবল</sys:String>
-    <sys:String x:Key="Str_InstallBtn">KillerPDF ইনস্টল করুন</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Avalanche ইনস্টল করুন</sys:String>
 
     <!-- ── Status messages (format strings - use string.Format) ─────── -->
     <sys:String x:Key="Str_Opened">{0} খোলা হয়েছে - {1} পৃষ্ঠা</sys:String>
@@ -154,37 +154,37 @@
 এখন সংরক্ষণ করলে ফাইলটি ওভাররাইট হবে এবং সেই পরিবর্তনগুলি হারিয়ে যাবে। রাখতে চাইলে আগে অন্য প্যানটি সংরক্ষণ করুন।</sys:String>
     <sys:String x:Key="Str_St_SplitOn">স্প্লিট প্যান চালু - বন্ধ করতে F10</sys:String>
     <sys:String x:Key="Str_St_SplitOff">স্প্লিট প্যান বন্ধ</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF ইনস্টল করুন</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">এই কম্পিউটারে KillerPDF ইনস্টল করবেন?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Avalanche ইনস্টল করুন</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">এই কম্পিউটারে Avalanche ইনস্টল করবেন?
 
-KillerPDF আপনার প্রোগ্রাম ফোল্ডারে কপি করা হবে এবং একটি স্টার্ট মেনু এন্ট্রি যোগ করা হবে। EXE-র এই কপিটি যেখানে আছে সেখানেই থাকবে, এবং যেকোনো সময় Add/Remove Programs-এর মাধ্যমে আনইনস্টল করা যাবে।</sys:String>
+Avalanche আপনার প্রোগ্রাম ফোল্ডারে কপি করা হবে এবং একটি স্টার্ট মেনু এন্ট্রি যোগ করা হবে। EXE-র এই কপিটি যেখানে আছে সেখানেই থাকবে, এবং যেকোনো সময় Add/Remove Programs-এর মাধ্যমে আনইনস্টল করা যাবে।</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">ইনস্টল করুন</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">আপডেট</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">বিদ্যমান KillerPDF ইনস্টলেশন আপডেট করবেন?
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">বিদ্যমান Avalanche ইনস্টলেশন আপডেট করবেন?
 
 এটি ইনস্টল করা কপিটিকে দ্রুততর মাল্টি-ফাইল সংস্করণ দিয়ে প্রতিস্থাপন করে। এরপর এই পোর্টেবল ফাইলটি রাখতে বা মুছতে পারেন।</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">সব ব্যবহারকারীর জন্য বিদ্যমান KillerPDF ইনস্টলেশন আপডেট করবেন?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">সব ব্যবহারকারীর জন্য বিদ্যমান Avalanche ইনস্টলেশন আপডেট করবেন?
 
-এটি Program Files-এর কপিটিকে দ্রুততর মাল্টি-ফাইল সংস্করণ দিয়ে প্রতিস্থাপন করে। পুরোনো প্রতি-ব্যবহারকারী কপি সরিয়ে ফেলা হয়, যাতে KillerPDF শুধু একবারই দেখা যায়। এরপর এই পোর্টেবল ফাইলটি রাখতে বা মুছতে পারেন।</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF ইতিমধ্যে এই কম্পিউটারের সবার জন্য ইনস্টল করা আছে। প্রতি-ব্যবহারকারী ইনস্টল বেছে নেওয়ার আগে সেই ইনস্টলেশন আপডেট করুন, অথবা আনইনস্টল করুন।
+এটি Program Files-এর কপিটিকে দ্রুততর মাল্টি-ফাইল সংস্করণ দিয়ে প্রতিস্থাপন করে। পুরোনো প্রতি-ব্যবহারকারী কপি সরিয়ে ফেলা হয়, যাতে Avalanche শুধু একবারই দেখা যায়। এরপর এই পোর্টেবল ফাইলটি রাখতে বা মুছতে পারেন।</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche ইতিমধ্যে এই কম্পিউটারের সবার জন্য ইনস্টল করা আছে। প্রতি-ব্যবহারকারী ইনস্টল বেছে নেওয়ার আগে সেই ইনস্টলেশন আপডেট করুন, অথবা আনইনস্টল করুন।
 
-KillerPDF দুটি ইনস্টল করা কপি তৈরি করবে না।</sys:String>
+Avalanche দুটি ইনস্টল করা কপি তৈরি করবে না।</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">ডেস্কটপ শর্টকাট যোগ করুন</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">এই কম্পিউটারের সব ব্যবহারকারীর জন্য ইনস্টল করুন (অ্যাডমিন লাগবে)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">ইনস্টল সম্পূর্ণ হয়নি - KillerPDF এখনও পোর্টেবল হিসেবে চলছে।</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">KillerPDF-কে আপনার ডিফল্ট PDF ভিউয়ার হিসেবে সেট করতে চান?
+    <sys:String x:Key="Str_Status_InstallFailed">ইনস্টল সম্পূর্ণ হয়নি - Avalanche এখনও পোর্টেবল হিসেবে চলছে।</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Avalanche-কে আপনার ডিফল্ট PDF ভিউয়ার হিসেবে সেট করতে চান?
 
 Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে।</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">আপনার অসংরক্ষিত পরিবর্তন রয়েছে। সংরক্ষণ না করে এই ফাইলটি বন্ধ করবেন?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">আপনার অসংরক্ষিত পরিবর্তন রয়েছে। সংরক্ষণ না করে KillerPDF বন্ধ করবেন?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">আপনার অসংরক্ষিত পরিবর্তন রয়েছে। সংরক্ষণ না করে Avalanche বন্ধ করবেন?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">এই ডকুমেন্টে {0}টি পৃষ্ঠার আকার Adobe Reader-এর সমর্থিত সীমার (প্রতি পাশে 3 থেকে 14,400 পয়েন্ট) বাইরে - Adobe এই পৃষ্ঠাগুলিকে ফাঁকা দেখায়।
 
 এগুলিকে সমর্থিত আকারে স্কেল করবেন? পৃষ্ঠার চেহারা ও অনুপাত একই থাকবে।</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">PDF খুলতে ব্যর্থ হয়েছে:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">আপনার {0}টি নথি খোলা আছে। অ্যাপ বন্ধ করার সময় KillerPDF কি সেগুলি সব বন্ধ করে দেবে?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">আপনার 1টি নথি খোলা আছে। অ্যাপ বন্ধ করার সময় KillerPDF কি সেটি বন্ধ করে দেবে?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">আপনার {0}টি নথি খোলা আছে। অ্যাপ বন্ধ করার সময় Avalanche কি সেগুলি সব বন্ধ করে দেবে?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">আপনার 1টি নথি খোলা আছে। অ্যাপ বন্ধ করার সময় Avalanche কি সেটি বন্ধ করে দেবে?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">আমার পছন্দ মনে রাখুন</sys:String>
 
 
@@ -308,7 +308,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Pos_TopLeft">উপরে বামে</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - মুদ্রণ</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - মুদ্রণ</sys:String>
     <sys:String x:Key="Str_Print_Printer">প্রিন্টার</sys:String>
     <sys:String x:Key="Str_Print_Orientation">অভিমুখ</sys:String>
     <sys:String x:Key="Str_Print_Portrait">পোর্ট্রেট</sys:String>
@@ -359,7 +359,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Drop_Separate">আলাদাভাবে খুলুন</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">খোলার জন্য কোনো PDF বা ছবি পাওয়া যায়নি।</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">এটি {0}টি আলাদা ট্যাব খুলবে। চালিয়ে যাবেন?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">এই ফোল্ডার বা আর্কাইভে {0}টি ফাইল আছে। KillerPDF শুধু প্রথম {1}টি খুলবে। চালিয়ে যাবেন?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">এই ফোল্ডার বা আর্কাইভে {0}টি ফাইল আছে। Avalanche শুধু প্রথম {1}টি খুলবে। চালিয়ে যাবেন?</sys:String>
     <sys:String x:Key="Str_Status_Merged">{0}টি ফাইল একত্র করা হয়েছে - এখনও সংরক্ষণ করা হয়নি</sys:String>
     <sys:String x:Key="Str_Drop_Merging">ফাইল একত্র করা হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">একত্রীকরণ বাতিল করা হয়েছে</sys:String>
@@ -519,14 +519,14 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_KS_FullScreen">পূর্ণ স্ক্রিন</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">পূর্ণ স্ক্রিন থেকে বের হতে F11 বা Esc চাপুন</sys:String>
     <!-- Quit prompt -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF থেকে বেরোবেন?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Avalanche থেকে বেরোবেন?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">আমার খোলা ট্যাব বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_Btn_Quit">বেরোন</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">বাতিল</sys:String>
 
 
     <!-- Status-bar + dialog strings (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">সমস্ত KillerPDF ডেটা মুছে ফেলা হয়েছে</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">সমস্ত Avalanche ডেটা মুছে ফেলা হয়েছে</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">OCR অঞ্চল বাতিল করা হয়েছে</sys:String>
     <sys:String x:Key="Str_St_Erased">মুছে ফেলা হয়েছে</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">গ্রুপ বাতিল করা হয়েছে</sys:String>
@@ -573,7 +573,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_St_PastedText">টেক্সট পেস্ট করা হয়েছে - পুনরায় স্থাপন করতে টেনে আনুন, সরাতে Delete</sys:String>
     <sys:String x:Key="Str_St_ClipEmpty">পেস্ট করার মতো ক্লিপবোর্ডে কিছু নেই</sys:String>
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">আপডেট করার আগে অনুগ্রহ করে আপনার পরিবর্তনগুলি সংরক্ষণ করুন।</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF আনইনস্টল করা হয়েছে।</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche আনইনস্টল করা হয়েছে।</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">নিষ্কাশন করার জন্য পৃষ্ঠা নির্বাচন করুন।</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">মুছে ফেলার জন্য পৃষ্ঠা নির্বাচন করুন।</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">কোনো প্রিন্টার উপলব্ধ নেই।</sys:String>
@@ -899,7 +899,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">অনুসন্ধানযোগ্য PDF সংরক্ষিত:&#10;{0}&#10;&#10;{1} পাতা প্রক্রিয়া হয়েছে, {2}টি শব্দ শনাক্ত।</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">"{0}" সফলভাবে মেরামত হয়েছে।&#10;&#10;বুকমার্ক, ফর্ম ও অন্যান্য ইন্টারঅ্যাক্টিভ বৈশিষ্ট্য হারিয়ে যেতে পারে। মেরামত করা ফাইলটি নতুন জায়গায় লিখতে Save As ব্যবহার করুন।</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">"{0}" PDFium দিয়ে রাস্টারাইজ করে মেরামত হয়েছে।&#10;&#10;মেরামত করা কপিতে টেক্সট নির্বাচন করা যায় না। নতুন জায়গায় লিখতে Save As ব্যবহার করুন।</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}"-এর কাঠামো ক্ষতিগ্রস্ত, তাই যোগ করা যায়নি।&#10;&#10;KillerPDF কি মেরামতের চেষ্টা করবে? একটি মেরামত করা কপি তৈরি হবে - মূল ফাইল বদলাবে না।&#10;&#10;দ্রষ্টব্য: মেরামত করা ফাইলে বুকমার্ক, ফর্ম ও অন্যান্য ইন্টারঅ্যাক্টিভ বৈশিষ্ট্য নাও থাকতে পারে।</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}"-এর কাঠামো ক্ষতিগ্রস্ত, তাই যোগ করা যায়নি।&#10;&#10;Avalanche কি মেরামতের চেষ্টা করবে? একটি মেরামত করা কপি তৈরি হবে - মূল ফাইল বদলাবে না।&#10;&#10;দ্রষ্টব্য: মেরামত করা ফাইলে বুকমার্ক, ফর্ম ও অন্যান্য ইন্টারঅ্যাক্টিভ বৈশিষ্ট্য নাও থাকতে পারে।</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR চালানোর জন্য এখন একটি ভাষার মডেল ({0}) ডাউনলোড হবে।&#10;&#10;OCR মেনু থেকে যেকোনো সময় আরও ভাষা যোগ করতে বা উচ্চমানের মডেলে যেতে পারবেন।</sys:String>
     <sys:String x:Key="Str_Bar_More">আরও সেটিংস</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">লাইনটিকে নিকটতম অক্ষে রাখে (অনুভূমিক বা উল্লম্ব)</sys:String>
@@ -913,14 +913,14 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_SaveOptions">সংরক্ষণের বিকল্প</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR বিকল্প</sys:String>
     <sys:String x:Key="Str_RecentHeading">সাম্প্রতিক</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - কীবোর্ড শর্টকাট</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - কীবোর্ড শর্টকাট</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">আপডেট উপলব্ধ: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} ডাউনলোড করে ইনস্টল করবেন?&#10;&#10;অ্যাপটি বন্ধ হয়ে স্বয়ংক্রিয়ভাবে আবার খুলবে।</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Avalanche {0} ডাউনলোড করে ইনস্টল করবেন?&#10;&#10;অ্যাপটি বন্ধ হয়ে স্বয়ংক্রিয়ভাবে আবার খুলবে।</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">ডাউনলোড হচ্ছে...</sys:String>
     <sys:String x:Key="Str_ClearAllData">সব ডেটা মুছুন</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">এটি সংরক্ষিত সব সেটিংস, ডাউনলোড করা OCR ভাষা প্যাক এবং অস্থায়ী ফাইল মুছে ফেলবে।&#10;&#10;আপনার PDF ফাইলগুলি প্রভাবিত হবে না। চালিয়ে যাবেন?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">সেটিংস, ভাষা প্যাক এবং অস্থায়ী ফাইল মুছে ফেলা হয়েছে।&#10;&#10;এই সেশনে এখনও ব্যবহৃত ফাইলগুলি মোছা সম্পূর্ণ করতে KillerPDF পুনরায় চালু করুন।</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - অপ্রত্যাশিত ত্রুটি</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">সেটিংস, ভাষা প্যাক এবং অস্থায়ী ফাইল মুছে ফেলা হয়েছে।&#10;&#10;এই সেশনে এখনও ব্যবহৃত ফাইলগুলি মোছা সম্পূর্ণ করতে Avalanche পুনরায় চালু করুন।</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - অপ্রত্যাশিত ত্রুটি</sys:String>
     <sys:String x:Key="Str_Crash_Log">লগ: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">রিপোর্ট কপি করুন</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">লগ খুলুন</sys:String>
@@ -979,17 +979,17 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Compare_DetailsTitle">পিডিএফের তুলনামূলক বিবরণ</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF ব্রাউজার পিডিএফ খুলতে পারেনি ।</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche ব্রাউজার পিডিএফ খুলতে পারেনি ।</sys:String>
     <sys:String x:Key="Str_Handoff_UnknownCommand">সেই ব্রাউজার কমান্ডটি একজন কিলারপিডিএফ জানে না ।</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">হ্যান্ডঅফটিতে কোনও পিডিএফ ঠিকানা অন্তর্ভুক্ত করা হয়নি ।</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">হ্যান্ডঅফের পিডিএফ ঠিকানাটি পড়া যায়নি ।</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF শুধুমাত্র HTTPS এর মাধ্যমে ব্রাউজার হ্যান্ডঅফগুলি খোলে ।</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche শুধুমাত্র HTTPS এর মাধ্যমে ব্রাউজার হ্যান্ডঅফগুলি খোলে ।</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">ব্রাউজার হ্যান্ডঅফ ব্যবহার করা যায়নি ।</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">পিডিএফ 256 এমবি ব্রাউজার হ্যান্ডঅফ সীমার চেয়ে বড় ।</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">ডাউনলোড করা ফাইলটি পিডিএফ নয় ।</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF পিডিএফ ডাউনলোড করতে পারেনি ।</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche পিডিএফ ডাউনলোড করতে পারেনি ।</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">পিডিএফ ডাউনলোডের সময় শেষ হয়েছে ।</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF ডাউনলোড করা পিডিএফ সংরক্ষণ বা পড়তে পারেনি ।</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche ডাউনলোড করা পিডিএফ সংরক্ষণ বা পড়তে পারেনি ।</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">পূরণযোগ্য পাঠ্য ক্ষেত্র তৈরি করতে টানুন</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">পূরণযোগ্য পাঠ্য ক্ষেত্র তৈরি বাতিল হয়েছে</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">পূরণযোগ্য পাঠ্য ক্ষেত্র তৈরি করা যায়নি</sys:String>
@@ -1024,7 +1024,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_KS_EnabledStatus">কীবোর্ড শর্টকাট চালু আছে</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">কীবোর্ড শর্টকাট বন্ধ আছে। চালু করতে Ctrl+Shift+K চাপুন।</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">অ্যাপ চালু হলে আপডেট পরীক্ষা করুন</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} উপলব্ধ। এখনই এটি ডাউনলোড করে ইনস্টল করবেন?&#10;&#10;অ্যাপটি বন্ধ হয়ে স্বয়ংক্রিয়ভাবে আবার খুলবে।</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Avalanche {0} উপলব্ধ। এখনই এটি ডাউনলোড করে ইনস্টল করবেন?&#10;&#10;অ্যাপটি বন্ধ হয়ে স্বয়ংক্রিয়ভাবে আবার খুলবে।</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">অ্যাপ চালু হলে সর্বদা আপডেট পরীক্ষা করুন</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” পাসওয়ার্ড দিয়ে সুরক্ষিত।</sys:String>
     <sys:String x:Key="Str_About_Aka">অন্য নাম</sys:String>

@@ -8,7 +8,7 @@ namespace Avalanche
     // TOP-LEVEL, not nested in MainWindow. The code that pushes undo entries - Annotations.cs and
     // TextEditing.cs - lives in Avalanche.Controls, where a type nested in MainWindow only spells
     // as MainWindow.UndoEntry; that would mean qualifying roughly 30 call sites for no gain. As
-    // top-level types in KillerPDF they resolve unqualified from the child namespace too.
+    // top-level types in Avalanche they resolve unqualified from the child namespace too.
     //
     // This also retires the CS0052 chain that made them internal in the first place: DocumentSession
     // had to be internal for the render cache, its UndoStack field is Stack<UndoEntry>, and a field

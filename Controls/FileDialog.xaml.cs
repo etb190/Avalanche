@@ -1286,7 +1286,7 @@ namespace Avalanche.Controls
 
                 if (OverwritePrompt && File.Exists(full))
                 {
-                    // Killendar asks this through its own ConfirmDialog. KillerPDF already has a
+                    // Killendar asks this through its own ConfirmDialog. Avalanche already has a
                     // themed confirm (KillerDialog) that every other prompt in the app uses, so
                     // this goes through that instead of importing a second one - two dialogs that
                     // ask the same kind of question is exactly how a UI starts to look stitched

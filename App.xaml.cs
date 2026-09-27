@@ -27,14 +27,14 @@ namespace Avalanche
         // ============================================================
 
         private static readonly string AppName   = "Avalanche";
-        // The public portable file is KillerPDF-Portable.exe. Once installed, shortcuts launch the
+        // The public portable file is Avalanche-Portable.exe. Once installed, shortcuts launch the
         // loose-file application directly so installed startup never pays launcher/extraction cost.
-        private static readonly string ExeName   = "KillerPDF.App.exe";
+        private static readonly string ExeName   = "Avalanche.App.exe";
         private static readonly string InstallDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Programs", AppName);
         private static readonly string InstallExe = Path.Combine(InstallDir, ExeName);
-        private static readonly string LegacyUserInstallExe = Path.Combine(InstallDir, "KillerPDF.exe");
+        private static readonly string LegacyUserInstallExe = Path.Combine(InstallDir, "Avalanche.exe");
         private static readonly string FileIconPath = Path.Combine(InstallDir, "pdf-file.ico");
 
         private static readonly string StartMenuDir = Path.Combine(
@@ -49,7 +49,7 @@ namespace Avalanche
         private static readonly string MachineInstallDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), AppName);
         private static readonly string MachineInstallExe = Path.Combine(MachineInstallDir, ExeName);
-        private static readonly string LegacyMachineInstallExe = Path.Combine(MachineInstallDir, "KillerPDF.exe");
+        private static readonly string LegacyMachineInstallExe = Path.Combine(MachineInstallDir, "Avalanche.exe");
         private static readonly string MachineFileIconPath = Path.Combine(MachineInstallDir, "pdf-file.ico");
         private static readonly string MachineStartMenuDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), AppName);
@@ -149,7 +149,7 @@ namespace Avalanche
             }
 
             // Developer-only visual check for the crash dialog. It runs before single-instance
-            // forwarding so the preview can open beside a normal KillerPDF session.
+            // forwarding so the preview can open beside a normal Avalanche session.
             if (e.Args.Any(a => string.Equals(
                     a, "--crash-dialog-preview", StringComparison.OrdinalIgnoreCase)))
             {
@@ -157,7 +157,7 @@ namespace Avalanche
                 ThemeManager.Initialize();
                 LocaleManager.Initialize();
                 EnsureCrashPreviewGrain();
-                string previewLog = Path.Combine(Path.GetTempPath(), "KillerPDF-crash-preview.log");
+                string previewLog = Path.Combine(Path.GetTempPath(), "Avalanche-crash-preview.log");
                 var previewException = new NotSupportedException(
                     "Adding form widgets requires one top-level Document structure element.");
                 try
@@ -227,8 +227,8 @@ namespace Avalanche
         // Single-instance IPC (mutex + named pipe)
         // ============================================================
 
-        private const string MutexName = @"Local\KillerPDF.SingleInstance";
-        private const string PipeName  = "KillerPDF.OpenPipe";
+        private const string MutexName = @"Local\Avalanche.SingleInstance";
+        private const string PipeName  = "Avalanche.OpenPipe";
         private const string UninstallCloseCommand = "::AVALANCHE_CLOSE_FOR_UNINSTALL::";
         private Mutex? _instanceMutex;
 
@@ -237,7 +237,7 @@ namespace Avalanche
             var t = new System.Threading.Thread(RunPipeServer)
             {
                 IsBackground = true,
-                Name = "KillerPDF-IPC",
+                Name = "Avalanche-IPC",
             };
             t.Start();
         }
@@ -271,7 +271,7 @@ namespace Avalanche
                 if (string.Equals(path, UninstallCloseCommand, StringComparison.Ordinal))
                 {
                     // Add or Remove Programs owns the foreground when it starts uninstall. Bring
-                    // KillerPDF forward before closing so its quit or unsaved-work prompt cannot
+                    // Avalanche forward before closing so its quit or unsaved-work prompt cannot
                     // open invisibly behind Settings.
                     mw.RestoreAndActivate();
                     mw.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle,
@@ -336,7 +336,7 @@ namespace Avalanche
         }
 
         // Explorer launches the secondary process with foreground permission. Pass that permission
-        // to the already-running KillerPDF process before asking it to activate its window.
+        // to the already-running Avalanche process before asking it to activate its window.
         private static void GrantPrimaryForegroundPermission()
         {
             try
@@ -502,7 +502,7 @@ namespace Avalanche
                 as System.Windows.Media.Effects.Effect;
             var quitNormal = new SolidColorBrush(Color.FromRgb(0x5a, 0x10, 0x10));
             var quitHover = new SolidColorBrush(Color.FromRgb(0xc4, 0x2b, 0x1c));
-            string title = CrashText("Str_Crash_Title", "KillerPDF - Unexpected Error");
+            string title = CrashText("Str_Crash_Title", "Avalanche - Unexpected Error");
             var win = new Window
             {
                 Title = title,
@@ -692,7 +692,7 @@ namespace Avalanche
                         $"```\n{stack}\n```\n\n" +
                         $"_Log folder: `{CrashReporter.LogDir}`_");
                     Process.Start(new ProcessStartInfo(
-                        $"https://github.com/SteveTheKiller/KillerPDF/issues/new?title={title}&body={body}")
+                        $"https://github.com/SteveTheKiller/Avalanche/issues/new?title={title}&body={body}")
                         { UseShellExecute = true });
                 }
                 catch { }
@@ -797,7 +797,7 @@ namespace Avalanche
         private static string BuildFullCrashReport(Exception ex)
         {
             var sb  = new StringBuilder();
-            sb.AppendLine($"KillerPDF v{AppVersion.Display}");
+            sb.AppendLine($"Avalanche v{AppVersion.Display}");
             sb.AppendLine($"Time : {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
             sb.AppendLine($"OS   : {Environment.OSVersion}");
             sb.AppendLine();
@@ -824,11 +824,11 @@ namespace Avalanche
             catch { return false; }
         }
 
-        /// <summary>True when KillerPDF is already installed machine-wide.</summary>
+        /// <summary>True when Avalanche is already installed machine-wide.</summary>
         internal static bool MachineInstallExists() => ExistingRegisteredExecutable(Registry.LocalMachine) != null
             || File.Exists(MachineInstallExe) || File.Exists(LegacyMachineInstallExe);
 
-        /// <summary>True when KillerPDF is already installed for the current user.</summary>
+        /// <summary>True when Avalanche is already installed for the current user.</summary>
         internal static bool UserInstallExists() => ExistingRegisteredExecutable(Registry.CurrentUser) != null
             || File.Exists(InstallExe) || File.Exists(LegacyUserInstallExe);
 
@@ -868,8 +868,8 @@ namespace Avalanche
             if (!runningMachine && !runningUser) return;
 
             string message = runningMachine
-                ? "KillerPDF found two installed copies on this computer.\n\nYou are currently running the all-users installation. An older per-user copy is also present, usually because it was in use during an earlier update.\n\nRemove the unused per-user copy now? Your settings and PDF files will not be removed."
-                : "KillerPDF found two installed copies on this computer.\n\nYou are currently running the per-user installation. An all-users copy is also present.\n\nRemove the unused all-users copy now? Windows will ask for administrator permission. Your settings and PDF files will not be removed.";
+                ? "Avalanche found two installed copies on this computer.\n\nYou are currently running the all-users installation. An older per-user copy is also present, usually because it was in use during an earlier update.\n\nRemove the unused per-user copy now? Your settings and PDF files will not be removed."
+                : "Avalanche found two installed copies on this computer.\n\nYou are currently running the per-user installation. An all-users copy is also present.\n\nRemove the unused all-users copy now? Windows will ask for administrator permission. Your settings and PDF files will not be removed.";
             if (KillerDialog.Show(Current.MainWindow, message,
                 $"{AppName} duplicate installation", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
@@ -898,14 +898,14 @@ namespace Avalanche
             Services.ProtocolRegistrar.Unregister(Registry.LocalMachine);
             try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\Avalanche"); } catch { }
             try { Registry.LocalMachine.DeleteSubKeyTree(
-                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
+                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Avalanche"); } catch { }
             string directory = Path.GetDirectoryName(registeredExe ?? MachineInstallExe) ?? MachineInstallDir;
             try { if (Directory.Exists(directory)) Directory.Delete(directory, true); } catch { }
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
         }
 
         /// <summary>
-        /// Installs KillerPDF, offers to set it as the default PDF handler, then relaunches from
+        /// Installs Avalanche, offers to set it as the default PDF handler, then relaunches from
         /// the installed location. Returns false if the install did not happen, so the caller can
         /// put the portable badge back rather than leaving the user with a half-finished state.
         ///
@@ -921,8 +921,8 @@ namespace Avalanche
             {
                 KillerDialog.Show(Current.MainWindow,
                     Current.TryFindResource("Str_Dlg_OneInstallOnly") as string ??
-                        "KillerPDF is already installed for everyone on this computer. Update that installation, or uninstall it before choosing a per-user install. KillerPDF will not create two installed copies.",
-                    Current.TryFindResource("Str_Dlg_InstallTitle") as string ?? "Install KillerPDF",
+                        "Avalanche is already installed for everyone on this computer. Update that installation, or uninstall it before choosing a per-user install. Avalanche will not create two installed copies.",
+                    Current.TryFindResource("Str_Dlg_InstallTitle") as string ?? "Install Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return false;
             }
@@ -958,7 +958,7 @@ namespace Avalanche
                 // directly, the same way Uninstall() does.
                 var res = KillerDialog.Show(null,
                     Current.TryFindResource("Str_Dlg_SetDefaultPdfMsg") as string
-                        ?? "Would you like to set KillerPDF as your default PDF viewer?",
+                        ?? "Would you like to set Avalanche as your default PDF viewer?",
                     AppName, MessageBoxButton.YesNo);
                 if (res == MessageBoxResult.Yes)
                     Process.Start(new ProcessStartInfo("ms-settings:defaultapps")
@@ -1045,7 +1045,7 @@ namespace Avalanche
             UnregisterFileHandler(Registry.CurrentUser);
             Services.ProtocolRegistrar.Unregister(Registry.CurrentUser);
             try { Registry.CurrentUser.DeleteSubKeyTree(
-                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF",
+                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Avalanche",
                 throwOnMissingSubKey: false); }
             catch { }
         }
@@ -1058,7 +1058,7 @@ namespace Avalanche
         /// Machine-wide install. Runs elevated with no UI by definition, so the exit code is the
         /// only signal a deployment tool - or RunElevatedSilentInstall - gets back.
         ///
-        /// File associations are registered in HKLM so every account sees KillerPDF in Open With
+        /// File associations are registered in HKLM so every account sees Avalanche in Open With
         /// and Default apps. Windows still leaves the actual default choice to each user.
         /// </summary>
         private static void DoSilentInstall()
@@ -1114,7 +1114,7 @@ namespace Avalanche
 
         /// <summary>
         /// Creates a tracked temp path of the form killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf
-        /// under %LOCALAPPDATA%\KillerPDF\Temp\.
+        /// under %LOCALAPPDATA%\Avalanche\Temp\.
         /// All registered paths are deleted when CleanupSessionTemps() is called.
         /// </summary>
         internal static string MakeTempFile(string tag)
@@ -1204,7 +1204,7 @@ namespace Avalanche
         }
 
         /// <summary>
-        /// Wipes all persisted KillerPDF state: settings (registry), downloaded OCR language packs, the
+        /// Wipes all persisted Avalanche state: settings (registry), downloaded OCR language packs, the
         /// native OCR cache, and temp files. Best-effort - files locked this session (e.g. loaded native
         /// DLLs) are skipped and clear on the next restart. The user's actual PDFs are never touched.
         /// </summary>
@@ -1296,7 +1296,7 @@ namespace Avalanche
             using var key = Registry.CurrentUser.OpenSubKey(
                 @"Software\Microsoft\Windows\Shell\Associations\FileAssociations\.pdf\UserChoice");
             return key?.GetValue("ProgId") is string progId &&
-                   progId.Equals("KillerPDF.pdf", StringComparison.OrdinalIgnoreCase);
+                   progId.Equals("Avalanche.pdf", StringComparison.OrdinalIgnoreCase);
         }
 
         // ============================================================
@@ -1710,7 +1710,7 @@ namespace Avalanche
             };
             var cardContent = new StackPanel();
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Version") as string ?? string.Empty, $"v{version}", fgDim, accent,
-                onClick: () => OpenUrl($"https://github.com/SteveTheKiller/KillerPDF/releases/tag/v{version}")));
+                onClick: () => OpenUrl($"https://github.com/SteveTheKiller/Avalanche/releases/tag/v{version}")));
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Publisher") as string ?? string.Empty, sigInfo, fgDim, fg));
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Thumbprint") as string ?? string.Empty, thumbInfo, fgDim, fg, mono, wrap: true));
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_ExeSha") as string ?? string.Empty, sha256, fgDim, fg, mono, wrap: true));
@@ -1728,7 +1728,7 @@ namespace Avalanche
             okBtn.Margin = new Thickness(0, 12, 0, 0);
             okBtn.Click += (_, __) => dlg!.Close();
 
-            // KillerPDF logo - clickable link to product site
+            // Avalanche logo - clickable link to product site
             var logo = new TextBlock { FontSize = 22, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) };
             var logoHl = new Hyperlink(new Run("Avalanche"))
             {
@@ -1800,7 +1800,7 @@ namespace Avalanche
             {
                 KillerDialog.Show(Current.MainWindow,
                     "Installation refused: the running EXE does not carry a valid Authenticode " +
-                    "signature.\n\nOnly signed builds of KillerPDF can be installed.",
+                    "signature.\n\nOnly signed builds of Avalanche can be installed.",
                     AppName, MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1841,7 +1841,7 @@ namespace Avalanche
                 {
                     KillerDialog.Show(Current.MainWindow,
                         "Couldn't write the installed copy at:\n" + InstallExe +
-                        "\n\nClose any open KillerPDF window (and check Task Manager for KillerPDF.exe), " +
+                        "\n\nClose any open Avalanche window (and check Task Manager for Avalanche.exe), " +
                         "then run the installer again.",
                         AppName, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -1876,7 +1876,7 @@ namespace Avalanche
         }
 
         /// <summary>
-        /// Register KillerPDF under either HKCU for a per-user install or HKLM for a machine-wide
+        /// Register Avalanche under either HKCU for a per-user install or HKLM for a machine-wide
         /// install. This advertises the handler without changing any user's chosen PDF default.
         /// </summary>
         private static void RegisterFileHandler(RegistryKey root, string exePath, string iconPath)
@@ -1887,20 +1887,20 @@ namespace Avalanche
                 : $"{exePath},0";
 
             // ProgID definition
-            using (var k = root.CreateSubKey(@"Software\Classes\KillerPDF.pdf"))
+            using (var k = root.CreateSubKey(@"Software\Classes\Avalanche.pdf"))
                 k.SetValue("", "PDF Document");
 
             using (var k = root.CreateSubKey(
-                @"Software\Classes\KillerPDF.pdf\DefaultIcon"))
+                @"Software\Classes\Avalanche.pdf\DefaultIcon"))
                 k.SetValue("", iconRef);
 
             using (var k = root.CreateSubKey(
-                @"Software\Classes\KillerPDF.pdf\shell\open\command"))
+                @"Software\Classes\Avalanche.pdf\shell\open\command"))
                 k.SetValue("", $"\"{exePath}\" \"%1\"");
 
             // Existing Open with choices can retain the launcher name after an upgrade.
             // Both application identities must launch the installed payload, not setup.
-            foreach (string application in new[] { "KillerPDF.App.exe", "KillerPDF.exe" })
+            foreach (string application in new[] { "Avalanche.App.exe", "Avalanche.exe" })
             {
                 string applicationKey = @"Software\Classes\Applications\" + application;
                 using (var k = root.CreateSubKey(applicationKey))
@@ -1911,10 +1911,10 @@ namespace Avalanche
                     k.SetValue(".pdf", "");
             }
 
-            // Associate .pdf extension - adds KillerPDF to the "Open with" list
+            // Associate .pdf extension - adds Avalanche to the "Open with" list
             using (var k = root.CreateSubKey(
                 @"Software\Classes\.pdf\OpenWithProgids"))
-                k.SetValue("KillerPDF.pdf", Array.Empty<byte>(), RegistryValueKind.None);
+                k.SetValue("Avalanche.pdf", Array.Empty<byte>(), RegistryValueKind.None);
 
             // RegisteredApplications capability (used by Default Programs UI)
             using (var k = root.CreateSubKey(
@@ -1925,7 +1925,7 @@ namespace Avalanche
             }
             using (var k = root.CreateSubKey(
                 @"Software\Avalanche\Capabilities\FileAssociations"))
-                k.SetValue(".pdf", "KillerPDF.pdf");
+                k.SetValue(".pdf", "Avalanche.pdf");
 
             // #183: without this the killerpdf:// handler never appears in Windows Settings >
             // Default apps > Choose defaults by link type. Maps the scheme to its ProgID
@@ -1943,14 +1943,14 @@ namespace Avalanche
 
         private static void UnregisterFileHandler(RegistryKey root)
         {
-            try { root.DeleteSubKeyTree(@"Software\Classes\KillerPDF.pdf", false); } catch { }
-            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.App.exe", false); } catch { }
-            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.exe", false); } catch { }
+            try { root.DeleteSubKeyTree(@"Software\Classes\Avalanche.pdf", false); } catch { }
+            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\Avalanche.App.exe", false); } catch { }
+            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\Avalanche.exe", false); } catch { }
             try { root.DeleteSubKeyTree(@"Software\Avalanche\Capabilities", false); } catch { }
             try
             {
                 using var k = root.OpenSubKey(@"Software\Classes\.pdf\OpenWithProgids", writable: true);
-                k?.DeleteValue("KillerPDF.pdf", throwOnMissingValue: false);
+                k?.DeleteValue("Avalanche.pdf", throwOnMissingValue: false);
             }
             catch { }
             try
@@ -2042,7 +2042,7 @@ namespace Avalanche
             }
 
             using (var key = registryRoot.CreateSubKey(
-                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"))
+                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Avalanche"))
             {
                 key.SetValue("DisplayName", AppName);
                 key.SetValue("DisplayVersion", AppVersion.Display);
@@ -2085,7 +2085,7 @@ namespace Avalanche
             {
                 var res = KillerDialog.Show(
                     null,
-                    "Uninstall KillerPDF from this computer?",
+                    "Uninstall Avalanche from this computer?",
                     $"{AppName} Uninstall",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question,
@@ -2097,7 +2097,7 @@ namespace Avalanche
             {
                 if (!silent)
                     KillerDialog.Show(null,
-                        "KillerPDF is still running. Close it, then try uninstalling again.",
+                        "Avalanche is still running. Close it, then try uninstalling again.",
                         $"{AppName} Uninstall", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -2111,7 +2111,7 @@ namespace Avalanche
             try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Avalanche"); } catch { }
             Services.ProtocolRegistrar.Unregister();
             try { Registry.CurrentUser.DeleteSubKeyTree(
-                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
+                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Avalanche"); } catch { }
             UnregisterFileHandler(Registry.CurrentUser);
 
             // Machine-wide half. Only reachable when Add/Remove Programs launched the Program Files
@@ -2125,7 +2125,7 @@ namespace Avalanche
                 Services.ProtocolRegistrar.Unregister(Registry.LocalMachine);   // #183
                 try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\Avalanche"); } catch { }
                 try { Registry.LocalMachine.DeleteSubKeyTree(
-                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\Avalanche"); } catch { }
             }
 
             // Self-delete: deferred via cmd batch so the EXE can exit first
@@ -2144,7 +2144,7 @@ namespace Avalanche
             if (!silent)
             {
                 KillerDialog.Show(null,
-                    Application.Current.TryFindResource("Str_Dlg_Uninstalled") as string ?? "KillerPDF has been uninstalled.", AppName,
+                    Application.Current.TryFindResource("Str_Dlg_Uninstalled") as string ?? "Avalanche has been uninstalled.", AppName,
                     MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }

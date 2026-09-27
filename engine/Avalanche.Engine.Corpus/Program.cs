@@ -74,7 +74,7 @@ if (args.Length == 2 && args[0] == "--pdfua-link-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF accessible link smoke test",
+            Title = "Avalanche accessible link smoke test",
             Language = "en-US"
         })
         .EnablePdfUa2Conformance()
@@ -83,7 +83,7 @@ if (args.Length == 2 && args[0] == "--pdfua-link-smoke")
         .SetOpenAction(0, PdfDestination.At(top: 720))
         .AddBookmark("Accessible review", 0)
         .AddUriLink(0, 72, 700, 180, 24, "https://killerpdf.net",
-            contents: "Open the KillerPDF website")
+            contents: "Open the Avalanche website")
         .AddTextNote(0, 72, 650, "Review the accessible link")
         .AddHighlight(0, 72, 610, 180, 18, "Highlighted accessible text")
         .AddLineAnnotation(0, new PdfPoint(72, 570), new PdfPoint(250, 570),
@@ -163,7 +163,7 @@ if (args.Length == 2 && args[0] == "--pdfua-form-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF accessible form smoke test",
+            Title = "Avalanche accessible form smoke test",
             Language = "en-US"
         })
         .EnablePdfUa2Conformance()
@@ -191,7 +191,7 @@ if (args.Length == 2 && args[0] == "--pdfua-incremental-form-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF accessible incremental form smoke test",
+            Title = "Avalanche accessible incremental form smoke test",
             Language = "en-US"
         })
         .EnablePdfUa2Conformance()
@@ -236,10 +236,10 @@ if (args.Length == 3 && args[0] == "--unicode-smoke")
         .BeginText()
         .SetFont(font, 24)
         .MoveText(72, 720)
-        .ShowUnicodeText("KillerPDF café Ω")
+        .ShowUnicodeText("Avalanche café Ω")
         .EndText();
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF Unicode smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche Unicode smoke test", Language = "en-US" })
         .AddPage(612, 792, content).Build();
     string destination = Path.GetFullPath(args[2]);
     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -271,7 +271,7 @@ if (args.Length == 4 && args[0] == "--text-state-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF positioned text smoke test",
+            Title = "Avalanche positioned text smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -304,7 +304,7 @@ if (args.Length == 3 && args[0] == "--image-smoke")
     double height = width * image.Height / image.Width;
     var content = new PdfContentStreamBuilder().DrawImage(image, 72, 720 - height, width, height);
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF image smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche image smoke test", Language = "en-US" })
         .AddPage(612, 792, content).Build();
     string destination = Path.GetFullPath(args[2]);
     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -319,7 +319,7 @@ if (args.Length == 3 && args[0] == "--output-intent-smoke")
     var content = new PdfContentStreamBuilder()
         .SetFillRgb(0.9, 0.2, 0.4).Rectangle(72, 600, 240, 100).Fill();
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF output intent smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche output intent smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddPage(612, 792, content)
@@ -344,7 +344,7 @@ if (args.Length == 3 && args[0] == "--presentation-effects-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF presentation effects smoke test",
+            Title = "Avalanche presentation effects smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -386,7 +386,7 @@ if (args.Length == 3 && args[0] == "--cmyk-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF CMYK authoring smoke test",
+            Title = "Avalanche CMYK authoring smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "CMYK press profile")
@@ -410,13 +410,13 @@ if (args.Length == 3 && args[0] == "--pdfa4f-attachment-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF PDF/A-4f attachment smoke test",
+            Title = "Avalanche PDF/A-4f attachment smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4fConformance()
         .AddBlankPage()
-        .AddAttachment("evidence.txt", "KillerPDF PDF/A-4f attachment"u8.ToArray(),
+        .AddAttachment("evidence.txt", "Avalanche PDF/A-4f attachment"u8.ToArray(),
             "text/plain", "PDF/A-4f validation payload", PdfAssociatedFileRelationship.Data,
             DateTimeOffset.UtcNow)
         .AddFileAttachmentAnnotation(0, 72, 680, 28, "evidence.txt",
@@ -440,7 +440,7 @@ if (args.Length == 3 && args[0] == "--pdfa4e-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF PDF/A-4e engineering smoke test",
+            Title = "Avalanche PDF/A-4e engineering smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -448,7 +448,7 @@ if (args.Length == 3 && args[0] == "--pdfa4e-smoke")
         .AddPage(612, 792, new PdfContentStreamBuilder()
             .SetStrokeRgb(0.2, 0.4, 0.8).SetLineWidth(2)
             .Rectangle(72, 500, 468, 200).Stroke())
-        .AddAttachment("engineering-data.txt", "KillerPDF engineering data"u8.ToArray(),
+        .AddAttachment("engineering-data.txt", "Avalanche engineering data"u8.ToArray(),
             "text/plain", "Engineering validation payload",
             PdfAssociatedFileRelationship.Data, DateTimeOffset.UtcNow)
         .Build();
@@ -486,7 +486,7 @@ if (args.Length == 2 && args[0] == "--tagged-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF tagged document smoke test",
+            Title = "Avalanche tagged document smoke test",
             Language = "en-US"
         })
         .EnablePdfUa2Conformance()
@@ -513,7 +513,7 @@ if (args.Length == 2 && args[0] == "--tagged-import-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF imported tagged document smoke test",
+            Title = "Avalanche imported tagged document smoke test",
             Language = "en-US"
         })
         .EnablePdfUa2Conformance()
@@ -542,7 +542,7 @@ if (args.Length == 2 && args[0] == "--tagged-subset-import-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF selected tagged page smoke test",
+            Title = "Avalanche selected tagged page smoke test",
             Language = "en-US"
         })
         .EnablePdfUa2Conformance()
@@ -629,7 +629,7 @@ if (args.Length == 3 && args[0] == "--layers-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF optional-content layer smoke test",
+            Title = "Avalanche optional-content layer smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -690,7 +690,7 @@ if (args.Length == 4 && args[0] == "--signature-smoke")
         string verifiedPath = Path.Combine(scratch, "verified.bin");
         RunOpenSsl("req", "-x509", "-newkey", "rsa:2048",
             "-keyout", keyPath, "-out", certificatePath,
-            "-days", "1", "-nodes", "-subj", "/CN=KillerPDF Signature Smoke");
+            "-days", "1", "-nodes", "-subj", "/CN=Avalanche Signature Smoke");
         using X509Certificate2 signerCertificate =
             X509CertificateLoader.LoadCertificateFromFile(certificatePath);
         byte[] signerCertificateDer = signerCertificate.RawData;
@@ -698,7 +698,7 @@ if (args.Length == 4 && args[0] == "--signature-smoke")
         byte[] source = new PdfDocumentBuilder()
             .SetMetadata(new PdfDocumentMetadata
             {
-                Title = "KillerPDF detached CMS signature smoke test",
+                Title = "Avalanche detached CMS signature smoke test",
                 Language = "en-US"
             })
             .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -733,7 +733,7 @@ if (args.Length == 4 && args[0] == "--signature-smoke")
             }, new PdfSignatureOptions
             {
                 FieldName = "ReleaseApproval",
-                SignerName = "KillerPDF Signature Smoke",
+                SignerName = "Avalanche Signature Smoke",
                 Reason = "Engine validation",
                 SigningTime = DateTimeOffset.UtcNow,
                 SignerCertificate = signerCertificateDer,
@@ -765,7 +765,7 @@ if (args.Length == 4 && args[0] == "--signature-smoke")
             || !PdfSignatureReader.GetSignedContent(signedDocument, inspectedSignature)
                 .AsSpan().SequenceEqual(File.ReadAllBytes(contentPath)))
             throw new InvalidOperationException(
-                "The signed PDF did not pass KillerPDF signature inspection.");
+                "The signed PDF did not pass Avalanche signature inspection.");
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         File.WriteAllBytes(destination, pdf);
         Console.WriteLine($"Wrote {pdf.Length:N0} byte CMS-signed PDF to {destination}");
@@ -876,7 +876,7 @@ if (args.Length == 4 && args[0] == "--encrypted-authoring-smoke")
 {
     string destination = Path.GetFullPath(args[1]);
     byte[] encrypted = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "Encrypted KillerPDF smoke test" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Encrypted Avalanche smoke test" })
         .SetPasswordEncryption(new PdfPasswordEncryptionOptions
         {
             UserPassword = args[2],
@@ -884,7 +884,7 @@ if (args.Length == 4 && args[0] == "--encrypted-authoring-smoke")
         })
         .AddPage(612, 792, new PdfContentStreamBuilder()
             .BeginText().SetFont(PdfStandardFont.Helvetica, 18)
-            .MoveText(72, 720).ShowLatin1Text("Encrypted by KillerPDF").EndText())
+            .MoveText(72, 720).ShowLatin1Text("Encrypted by Avalanche").EndText())
         .Build();
     Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
     File.WriteAllBytes(destination, encrypted);
@@ -1008,7 +1008,7 @@ if (args.Length == 3 && args[0] == "--transparency-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF transparency and blend-mode smoke test",
+            Title = "Avalanche transparency and blend-mode smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -1079,7 +1079,7 @@ if (args.Length == 3 && args[0] == "--gradient-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF gradient shading smoke test",
+            Title = "Avalanche gradient shading smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -1125,7 +1125,7 @@ if (args.Length == 3 && args[0] == "--form-xobject-smoke")
     byte[] source = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF reusable form smoke test",
+            Title = "Avalanche reusable form smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -1165,7 +1165,7 @@ if (args.Length == 3 && args[0] == "--tiling-pattern-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF tiling pattern smoke test",
+            Title = "Avalanche tiling pattern smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -1193,7 +1193,7 @@ if (args.Length == 2 && args[0] == "--form-smoke")
     PdfImage rolloverButtonIcon = PdfImage.FromRgb(1, 1, new byte[] { 70, 170, 110 });
     PdfImage downButtonIcon = PdfImage.FromRgb(1, 1, new byte[] { 220, 120, 50 });
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF form smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche form smoke test", Language = "en-US" })
         .AddBlankPage()
         .AddNamedDestination("FormTop", 0, PdfDestination.At(top: 760))
         .AddTextField(0, "customer.name", 72, 680, 240, 28, "Steve the Killer", 12,
@@ -1260,7 +1260,7 @@ if (args.Length == 2 && args[0] == "--form-smoke")
                     "https://timestamp.example.test/rfc3161", Required: true),
                 DocumentLockIntent = PdfSignatureDocumentLockIntent.Lock,
                 RequireDocumentLockIntent = true,
-                AppearanceName = "KillerPDF Approval",
+                AppearanceName = "Avalanche Approval",
                 RequireAppearance = true,
                 Certificate = new PdfSignatureCertificateSeed
                 {
@@ -1299,8 +1299,8 @@ if (args.Length == 2 && args[0] == "--form-smoke")
                 }
             })
         .AddUriPushButton(0, "customer.documentation", 300, 550, 180, 28,
-            "Open KillerPDF docs", "https://killerpdf.com",
-            fieldMetadata: new PdfFormFieldMetadata { Tooltip = "Open KillerPDF documentation" },
+            "Open Avalanche docs", "https://killerpdf.com",
+            fieldMetadata: new PdfFormFieldMetadata { Tooltip = "Open Avalanche documentation" },
             appearanceStyle: new PdfFormFieldAppearanceStyle
             {
                 BackgroundColor = new PdfRgbColor(0.86, 0.93, 1),
@@ -1339,11 +1339,11 @@ if (args.Length == 4 && args[0] == "--pdfa-form-smoke")
     PdfIccProfile profile = PdfIccProfile.Load(File.ReadAllBytes(args[2]));
     string destination = Path.GetFullPath(args[3]);
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF PDF/A form smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche PDF/A form smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddBlankPage()
-        .AddTextField(0, "customer.name", 72, 680, 240, 28, "KillerPDF café Ω", 12,
+        .AddTextField(0, "customer.name", 72, 680, 240, 28, "Avalanche café Ω", 12,
             options: new PdfTextFieldOptions { Alignment = PdfTextFieldAlignment.Right }, embeddedFont: font,
             fieldMetadata: new PdfFormFieldMetadata
             {
@@ -1445,7 +1445,7 @@ if (args.Length == 4 && args[0] == "--pdfa-form-smoke")
                     "https://timestamp.example.test/rfc3161", Required: true),
                 DocumentLockIntent = PdfSignatureDocumentLockIntent.Lock,
                 RequireDocumentLockIntent = true,
-                AppearanceName = "KillerPDF Archival Approval",
+                AppearanceName = "Avalanche Archival Approval",
                 RequireAppearance = true,
                 Certificate = new PdfSignatureCertificateSeed
                 {
@@ -1490,7 +1490,7 @@ if (args.Length == 4 && args[0] == "--pdfa-cff-smoke")
     byte[] pdf = new PdfDocumentBuilder()
         .SetMetadata(new PdfDocumentMetadata
         {
-            Title = "KillerPDF CFF OpenType smoke test",
+            Title = "Avalanche CFF OpenType smoke test",
             Language = "en-US"
         })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
@@ -1512,7 +1512,7 @@ if (args.Length == 3 && args[0] == "--pdfa-annotation-smoke")
         .Rectangle(72, 620, 360, 72)
         .Fill();
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF PDF/A annotation smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche PDF/A annotation smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddPage(612, 792, content)
@@ -1575,11 +1575,11 @@ if (args.Length == 4 && args[0] == "--pdfa-visual-annotation-smoke")
     });
     string destination = Path.GetFullPath(args[3]);
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF PDF/A visual annotation smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche PDF/A visual annotation smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddBlankPage()
-        .AddFreeText(0, 72, 660, 250, 70, "KillerPDF café Ω\nMultiline free text", font, 14,
+        .AddFreeText(0, 72, 660, 250, 70, "Avalanche café Ω\nMultiline free text", font, 14,
             textColor: new PdfRgbColor(0.1, 0.1, 0.1), fillColor: new PdfRgbColor(1, 1, 0.8),
             opacity: 0.9, alignment: PdfTextAlignment.Center, dashPattern: [6, 3],
             intent: PdfFreeTextIntent.Callout,
@@ -1747,7 +1747,7 @@ if (args.Length == 4 && args[0] == "--pdfa-page-smoke")
     string sourcePath = Path.GetFullPath(args[2]);
     string destination = Path.GetFullPath(args[3]);
     byte[] source = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF PDF/A page operations smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche PDF/A page operations smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddPage(600, 400, new PdfContentStreamBuilder()
@@ -1780,7 +1780,7 @@ if (args.Length == 4 && args[0] == "--pdfa-import-smoke")
 {
     PdfIccProfile profile = PdfIccProfile.Load(File.ReadAllBytes(args[1]));
     byte[] importSource = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF page import source", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche page import source", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddPage(400, 600, new PdfContentStreamBuilder()
@@ -1796,7 +1796,7 @@ if (args.Length == 4 && args[0] == "--pdfa-import-smoke")
         .AddCheckBox(1, "import.approved", 520, 330, 18, 18, isChecked: true)
         .Build();
     byte[] target = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF PDF/A page import smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche PDF/A page import smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddPage(300, 300, new PdfContentStreamBuilder()
@@ -1825,7 +1825,7 @@ if (args.Length == 4 && args[0] == "--pdfa-import-smoke")
 if (args.Length == 2 && args[0] == "--document-import-smoke")
 {
     byte[] source = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF complete import source", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche complete import source", Language = "en-US" })
         .AddBlankPage(400, 600)
         .AddBlankPage(600, 400)
         .AddBookmark("Imported appendix", 1)
@@ -1875,7 +1875,7 @@ if (args.Length == 3 && args[0] == "--pdfa-navigation-smoke")
 {
     PdfIccProfile profile = PdfIccProfile.Load(File.ReadAllBytes(args[1]));
     byte[] pdf = new PdfDocumentBuilder()
-        .SetMetadata(new PdfDocumentMetadata { Title = "KillerPDF PDF/A navigation smoke test", Language = "en-US" })
+        .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche PDF/A navigation smoke test", Language = "en-US" })
         .SetOutputIntent(profile, "sRGB IEC61966-2.1")
         .EnablePdfA4Conformance()
         .AddBlankPage().AddBlankPage().AddBlankPage()
@@ -2128,7 +2128,7 @@ foreach (string file in files)
             PdfDocument source = PdfDocument.Open(sourceBytes);
             var update = new PdfIncrementalUpdateBuilder(source);
             PdfIndirectReference marker = update.AddObject(new PdfString(
-                "KillerPDF incremental corpus marker"u8, PdfStringForm.Literal));
+                "Avalanche incremental corpus marker"u8, PdfStringForm.Literal));
             bool supportsStreams = source.Header.Version.CompareTo(new PdfVersion(1, 5)) >= 0;
             byte[] updated = update.Build(supportsStreams
                 ? new PdfIncrementalUpdateWriteOptions
@@ -2142,7 +2142,7 @@ foreach (string file in files)
             PdfDocument reopened = PdfDocument.Open(updated);
             PdfString value = reopened.Resolve(marker) as PdfString
                 ?? throw new InvalidDataException("The incremental corpus marker did not resolve.");
-            if (!value.Bytes.Span.SequenceEqual("KillerPDF incremental corpus marker"u8))
+            if (!value.Bytes.Span.SequenceEqual("Avalanche incremental corpus marker"u8))
                 throw new InvalidDataException("The incremental corpus marker changed.");
             if (!updated.AsSpan(0, sourceBytes.Length).SequenceEqual(sourceBytes))
                 throw new InvalidDataException("The incremental update changed source bytes.");

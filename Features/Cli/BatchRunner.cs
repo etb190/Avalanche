@@ -14,18 +14,18 @@ namespace Avalanche.Features
     // Headless CLI batch mode
     // ============================================================
     //
-    // KillerPDF.exe --batch-resave <input.pdf|inputDir> <output.pdf|outputDir> [--log <file.csv>] [--quiet]
+    // Avalanche.exe --batch-resave <input.pdf|inputDir> <output.pdf|outputDir> [--log <file.csv>] [--quiet]
     //
     // Resaves one PDF (or every *.pdf under a folder tree, mirroring the
     // relative structure into the output folder) through the same pipeline a
-    // Resaves through The KillerPDF.Engine's deterministic full-document writer. No window,
+    // Resaves through The Avalanche.Engine's deterministic full-document writer. No window,
     // no dialogs, no repair fallbacks, no encryption stripping. Files that
     // cannot go through the plain engine pipeline are reported as SKIP with a
     // reason instead of silently faking a result.
     //
     // Built for the veraPDF validation harness (validation/): baseline the
     // corpus, --batch-resave it, validate the output tree, then diff with
-    // validation/Compare-VeraPDF.ps1. The claim being tested is "a KillerPDF
+    // validation/Compare-VeraPDF.ps1. The claim being tested is "a Avalanche
     // save does not degrade standards conformance".
     //
     // Exit codes: 0 = every file OK or SKIP, 1 = at least one FAIL
@@ -34,7 +34,7 @@ namespace Avalanche.Features
     // Invoked from App.OnStartup BEFORE the single-instance mutex, so a batch
     // run works even while a GUI instance is open and never forwards to it.
     //
-    // KillerPDF builds as a GUI-subsystem exe, so it has no console of its
+    // Avalanche builds as a GUI-subsystem exe, so it has no console of its
     // own; AttachConsole(-1) latches onto the parent terminal when launched
     // from one. Output interleaves with the prompt (standard GUI-app quirk) -
     // the authoritative record is the --log CSV and the exit code.
@@ -85,7 +85,7 @@ namespace Avalanche.Features
 
             if (badUsage || string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(output))
             {
-                con.WriteLine("Usage: KillerPDF.exe --batch-resave <input.pdf|inputDir> <output.pdf|outputDir> [--log <file.csv>] [--quiet]");
+                con.WriteLine("Usage: Avalanche.exe --batch-resave <input.pdf|inputDir> <output.pdf|outputDir> [--log <file.csv>] [--quiet]");
                 exitCode = 2;
                 return true;
             }

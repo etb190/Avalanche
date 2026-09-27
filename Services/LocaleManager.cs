@@ -107,8 +107,8 @@ namespace Avalanche.Services
             {
                 if (TryApplyExternal()) { EnsureWatcher(); return; }
                 if (!_externalLoadedOnce)
-                    MessageBox.Show($"Could not load the translation file:\n{ExternalFile}\n\nCheck the path and the file's XML, then start KillerPDF again.",
-                                    "KillerPDF --lang-file", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show($"Could not load the translation file:\n{ExternalFile}\n\nCheck the path and the file's XML, then start Avalanche again.",
+                                    "Avalanche --lang-file", MessageBoxButton.OK, MessageBoxImage.Warning);
                 // Fall through to the normal locale so the app still comes up usable.
             }
 

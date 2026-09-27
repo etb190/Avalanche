@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Polish (pl-PL) strings
+         Avalanche  -  Polish (pl-PL) strings
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -48,7 +48,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Zwiń pasek boczny (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Rozwiń pasek boczny (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Skróty klawiaturowe (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">O KillerPDF (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">O Avalanche (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">WERSJA</sys:String>
@@ -137,7 +137,7 @@
     <!-- ── Status bar ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">Gotowy</sys:String>
     <sys:String x:Key="Str_Portable">PORTABLE</sys:String>
-    <sys:String x:Key="Str_InstallBtn">Zainstaluj KillerPDF...</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Zainstaluj Avalanche...</sys:String>
 
     <!-- ── Status messages (format strings - use string.Format) ─────── -->
     <sys:String x:Key="Str_Opened">Otwarto {0} - {1} stronę(y)</sys:String>
@@ -209,37 +209,37 @@
 Zapisanie teraz nadpisuje plik, a zmiany zostaną utracone. Jeśli chcesz je zachować, zachowaj najpierw drugie okienko.</sys:String>
     <sys:String x:Key="Str_St_SplitOn">Włączono podział panelu - F10, aby zamknąć</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Wyłączono podział panelu</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">Zainstaluj KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Zainstalować program KillerPDF na tym komputerze?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Zainstaluj Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Zainstalować program Avalanche na tym komputerze?
 
-KillerPDF zostanie skopiowany do twojego folderu programów i dodana zostanie pozycja menu Start. Tę kopię pliku exe pozostawia się tam, gdzie jest i można ją w dowolnym momencie odinstalować używając Dodaj/Usuń programy.</sys:String>
+Avalanche zostanie skopiowany do twojego folderu programów i dodana zostanie pozycja menu Start. Tę kopię pliku exe pozostawia się tam, gdzie jest i można ją w dowolnym momencie odinstalować używając Dodaj/Usuń programy.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Zainstaluj</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Aktualizuj</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Zaktualizować istniejącą instalację KillerPDF?
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Zaktualizować istniejącą instalację Avalanche?
 
 Zainstalowana kopia zostanie zastąpiona szybszą wersją wieloplikową. Ten plik przenośny możesz potem zachować lub usunąć.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Zaktualizować istniejącą instalację KillerPDF dla wszystkich użytkowników?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Zaktualizować istniejącą instalację Avalanche dla wszystkich użytkowników?
 
-Kopia w Program Files zostanie zastąpiona szybszą wersją wieloplikową. Starsza kopia dla pojedynczego użytkownika zostanie usunięta, aby KillerPDF występował tylko raz. Ten plik przenośny możesz potem zachować lub usunąć.</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF jest już zainstalowany dla wszystkich użytkowników tego komputera. Zaktualizuj tę instalację albo ją odinstaluj, zanim wybierzesz instalację dla pojedynczego użytkownika.
+Kopia w Program Files zostanie zastąpiona szybszą wersją wieloplikową. Starsza kopia dla pojedynczego użytkownika zostanie usunięta, aby Avalanche występował tylko raz. Ten plik przenośny możesz potem zachować lub usunąć.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche jest już zainstalowany dla wszystkich użytkowników tego komputera. Zaktualizuj tę instalację albo ją odinstaluj, zanim wybierzesz instalację dla pojedynczego użytkownika.
 
-KillerPDF nie utworzy dwóch zainstalowanych kopii.</sys:String>
+Avalanche nie utworzy dwóch zainstalowanych kopii.</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Dodaj skrót na pulpicie</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Zainstaluj dla wszystkich użytkowników tego komputera (wymaga administratora)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">Instalacja nie została zakończona - KillerPDF jest już uruchomiony portable.</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Czy chcesz ustawić KillerPDF jako domyślną przeglądarkę PDF?
+    <sys:String x:Key="Str_Status_InstallFailed">Instalacja nie została zakończona - Avalanche jest już uruchomiony portable.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Czy chcesz ustawić Avalanche jako domyślną przeglądarkę PDF?
 
 Otwiera Ustawienia Windows - Aplikacje domyślne.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Masz niezapisane zmiany. Zamknąć ten plik bez zapisywania?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">Masz niezapisane zmiany. Zamknąć KillerPDF bez zapisywania?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Masz niezapisane zmiany. Zamknąć Avalanche bez zapisywania?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Ten dokument zawiera {0} stron o rozmiarze przekraczającym rozmiar obsługiwany przez Adobe Reader (od 3 do 14 400 punktów na stronę) - Adobe wyświetla je jako puste strony.
 
 Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i proporcje.</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">Nie udało się otworzyć PDF:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">Masz {0} otwartych dokumentów. Czy chcesz, aby KillerPDF zamknął je wszystkie po zamknięciu aplikacji?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Masz 1 otwarty dokument. Czy chcesz, aby KillerPDF zamknął go po zamknięciu aplikacji?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">Masz {0} otwartych dokumentów. Czy chcesz, aby Avalanche zamknął je wszystkie po zamknięciu aplikacji?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Masz 1 otwarty dokument. Czy chcesz, aby Avalanche zamknął go po zamknięciu aplikacji?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">Zapamiętaj mój wybór</sys:String>
 
 
@@ -367,7 +367,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Pos_TopLeft">Góra lewa</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Drukuj</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - Drukuj</sys:String>
     <sys:String x:Key="Str_Print_Printer">Drukarka</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientacja</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Pionowo</sys:String>
@@ -419,7 +419,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Drop_Separate">Otwórz osobno</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Nie znaleziono plików PDF ani obrazów do otwarcia.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Spowoduje to otwarcie {0} oddzielnych kart. Kontynuować?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">Ten folder lub archiwum zawiera {0} plików. KillerPDF otworzy tylko pierwszy plik {1}. Kontynuuować?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Ten folder lub archiwum zawiera {0} plików. Avalanche otworzy tylko pierwszy plik {1}. Kontynuuować?</sys:String>
     <sys:String x:Key="Str_Status_Merged">Połączono {0} plików - jeszcze nie zapisano</sys:String>
     <sys:String x:Key="Str_Drop_Merging">Łączenie plików...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">Łączenie anulowane</sys:String>
@@ -569,14 +569,14 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_KS_FullScreen">Pełny ekran</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Naciśnij F11 lub Esc do wyjścia z trybu pełnoekranowego</sys:String>
     <!-- Quit prompt (family standard) -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">Opuścić KillerPDF?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Opuścić Avalanche?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Zamknij moje otwarte karty</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Wyjdź</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Anuluj</sys:String>
 
 
     <!-- Status-bar messages (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">Wszystkie dane KillerPDF wyczyszczono</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">Wszystkie dane Avalanche wyczyszczono</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">Obszar OCR anulowano</sys:String>
     <sys:String x:Key="Str_St_Erased">Wymazano</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Rozgrupowane</sys:String>
@@ -625,7 +625,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 
     <!-- Dialog / message-box strings (extracted from code) -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Proszę zapisać zmiany przed aktualizacją.</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF został odinstalowany.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche został odinstalowany.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">Wybierz strony do wyodrębnienia.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">Wybierz strony do usunięcia.</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">Brak dostępnej drukarki.</sys:String>
@@ -907,7 +907,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Zapisano przeszukiwalny PDF:&#10;{0}&#10;&#10;Przetworzono stron: {1}, rozpoznano słów: {2}.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">„{0}" naprawiono pomyślnie.&#10;&#10;Zakładki, formularze i inne funkcje interaktywne mogły zostać utracone. Użyj Zapisz jako, aby zapisać naprawiony plik w nowej lokalizacji.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">„{0}" naprawiono przez rasteryzację w PDFium.&#10;&#10;Tekst w naprawionej kopii nie jest zaznaczalny. Użyj Zapisz jako, aby zapisać ją w nowej lokalizacji.</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}" ma uszkodzoną strukturę i nie można go dodać.&#10;&#10;Czy KillerPDF ma spróbować naprawy? Zostanie utworzona naprawiona kopia - oryginalny plik nie zostanie zmieniony.&#10;&#10;Uwaga: naprawionym plikom mogą brakować zakładki, formularze i inne funkcje interaktywne.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}" ma uszkodzoną strukturę i nie można go dodać.&#10;&#10;Czy Avalanche ma spróbować naprawy? Zostanie utworzona naprawiona kopia - oryginalny plik nie zostanie zmieniony.&#10;&#10;Uwaga: naprawionym plikom mogą brakować zakładki, formularze i inne funkcje interaktywne.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Model języka ({0}) zostanie teraz pobrany, aby OCR mógł działać.&#10;&#10;W każdej chwili możesz dodać więcej języków lub przełączyć się na modele wyższej jakości w menu OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Więcej ustawień</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Utrzymuje linię na najbliższej osi (poziomej lub pionowej)</sys:String>
@@ -921,14 +921,14 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_SaveOptions">Opcje zapisu</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">Opcje OCR</sys:String>
     <sys:String x:Key="Str_RecentHeading">OSTATNIE</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Skróty klawiaturowe</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - Skróty klawiaturowe</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">Dostępna aktualizacja: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Pobrać i zainstalować KillerPDF {0}?&#10;&#10;Aplikacja zamknie się i otworzy ponownie automatycznie.</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Pobrać i zainstalować Avalanche {0}?&#10;&#10;Aplikacja zamknie się i otworzy ponownie automatycznie.</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">Pobieranie...</sys:String>
     <sys:String x:Key="Str_ClearAllData">Wyczyść wszystkie dane</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Spowoduje to usunięcie wszystkich zapisanych ustawień, pobranych pakietów językowych OCR i plików tymczasowych.&#10;&#10;Twoje pliki PDF pozostaną nienaruszone. Kontynuować?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Ustawienia, pakiety językowe i pliki tymczasowe zostały wyczyszczone.&#10;&#10;Uruchom ponownie KillerPDF, aby dokończyć usuwanie plików nadal używanych w tej sesji.</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - Nieoczekiwany błąd</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Ustawienia, pakiety językowe i pliki tymczasowe zostały wyczyszczone.&#10;&#10;Uruchom ponownie Avalanche, aby dokończyć usuwanie plików nadal używanych w tej sesji.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - Nieoczekiwany błąd</sys:String>
     <sys:String x:Key="Str_Crash_Log">Dziennik: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">Kopiuj raport</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">Otwórz dzienniki</sys:String>
@@ -987,17 +987,17 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Compare_DetailsTitle">Szczegóły porównania PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF nie mógł otworzyć pliku PDF przeglądarki.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">To polecenie przeglądarki nie jest znane KillerPDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche nie mógł otworzyć pliku PDF przeglądarki.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">To polecenie przeglądarki nie jest znane Avalanche.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Przekazanie nie zawierało adresu PDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">Nie można odczytać adresu PDF w przekazaniu.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF otwiera tylko przejścia przeglądarki na https.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche otwiera tylko przejścia przeglądarki na https.</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">Nie można użyć przełączenia przeglądarki.</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">Plik PDF jest większy niż limit przekazywania przeglądarki wynoszący 256 MB.</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">Pobrany plik nie jest plikiem PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF nie mógł pobrać pliku PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche nie mógł pobrać pliku PDF.</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">Upłynął limit czasu pobierania pliku PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF nie mógł zapisać ani odczytać pobranego pliku PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche nie mógł zapisać ani odczytać pobranego pliku PDF.</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">Przeciągnij, aby utworzyć wypełnialne pole tekstowe</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">Tworzenie pola tekstowego anulowane</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">Nie można utworzyć wypełnialnego pola tekstowego</sys:String>
@@ -1032,7 +1032,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_KS_EnabledStatus">Skróty klawiaturowe włączone</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Skróty klawiaturowe wyłączone. Naciśnij Ctrl+Shift+K, aby je włączyć.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Sprawdzaj aktualizacje przy uruchamianiu</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Dostępny jest KillerPDF {0}. Czy chcesz go teraz pobrać i zainstalować?&#10;&#10;Aplikacja zamknie się i otworzy ponownie automatycznie.</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Dostępny jest Avalanche {0}. Czy chcesz go teraz pobrać i zainstalować?&#10;&#10;Aplikacja zamknie się i otworzy ponownie automatycznie.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Zawsze sprawdzaj aktualizacje przy uruchamianiu</sys:String>
     <sys:String x:Key="Str_PasswordProtected">Plik „{0}” jest chroniony hasłem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Znany także jako</sys:String>

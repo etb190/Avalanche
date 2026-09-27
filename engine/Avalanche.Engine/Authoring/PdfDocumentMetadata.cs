@@ -16,7 +16,7 @@ public sealed record PdfDocumentMetadata
     /// <summary>Gets the application that created the original document content.</summary>
     public string? Creator { get; init; }
     /// <summary>Gets the application that produced the PDF.</summary>
-    public string? Producer { get; init; } = "The KillerPDF.Engine";
+    public string? Producer { get; init; } = "The Avalanche.Engine";
     /// <summary>Gets the document's primary natural language.</summary>
     public string? Language { get; init; }
     /// <summary>Gets the document creation date.</summary>

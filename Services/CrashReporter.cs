@@ -7,7 +7,7 @@ using System.Text;
 namespace Avalanche
 {
     /// <summary>
-    /// Writes structured crash logs to %LOCALAPPDATA%\KillerPDF\Logs\ and maintains
+    /// Writes structured crash logs to %LOCALAPPDATA%\Avalanche\Logs\ and maintains
     /// a rolling buffer of recent status-bar messages for post-mortem context.
     /// </summary>
     internal static class CrashReporter
@@ -53,7 +53,7 @@ namespace Avalanche
             try { Directory.CreateDirectory(LogDir); } catch { /* best-effort */ }
 
             var sb  = new StringBuilder();
-            sb.AppendLine($"KillerPDF v{AppVersion.Display} crash report");
+            sb.AppendLine($"Avalanche v{AppVersion.Display} crash report");
             sb.AppendLine($"Time    : {DateTime.Now:yyyy-MM-dd HH:mm:ss zzz}");
             sb.AppendLine($"OS      : {Environment.OSVersion}");
             sb.AppendLine($"CLR     : {Environment.Version}");

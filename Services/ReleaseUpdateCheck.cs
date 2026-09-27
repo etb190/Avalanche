@@ -14,8 +14,8 @@ internal static partial class ReleaseUpdateCheck
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get,
-                "https://api.github.com/repos/SteveTheKiller/KillerPDF/releases/latest");
-            request.Headers.UserAgent.ParseAdd("KillerPDF-UpdateCheck");
+                "https://api.github.com/repos/SteveTheKiller/Avalanche/releases/latest");
+            request.Headers.UserAgent.ParseAdd("Avalanche-UpdateCheck");
             using var response = await http.SendAsync(request).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             return ParseNewerRelease(await response.Content.ReadAsStringAsync().ConfigureAwait(false), current);

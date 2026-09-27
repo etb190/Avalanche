@@ -40,12 +40,12 @@ public sealed class ProtocolRegistrarStaleTests : IDisposable
 
     private string LivingExecutable()
     {
-        string path = Path.Combine(_directory, "KillerPDF.App.exe");
+        string path = Path.Combine(_directory, "Avalanche.App.exe");
         File.WriteAllBytes(path, []);
         return path;
     }
 
-    private string DeletedExecutable() => Path.Combine(_directory, "gone", "KillerPDF.App.exe");
+    private string DeletedExecutable() => Path.Combine(_directory, "gone", "Avalanche.App.exe");
 
     private bool RegistrationExists()
     {
@@ -89,7 +89,7 @@ public sealed class ProtocolRegistrarStaleTests : IDisposable
     {
         // The command is written as "<appPath>" "%1"; a path with a space is the case that
         // makes the quotes load-bearing.
-        string executable = Path.Combine(_directory, "Program Files", "KillerPDF.App.exe");
+        string executable = Path.Combine(_directory, "Program Files", "Avalanche.App.exe");
 
         ProtocolRegistrar.Register(_root, executable);
 
@@ -108,7 +108,7 @@ public sealed class ProtocolRegistrarStaleTests : IDisposable
         using RegistryKey user = _root.CreateSubKey("User")!;
         using RegistryKey machine = _root.CreateSubKey("Machine")!;
         ProtocolRegistrar.Register(machine, LivingExecutable());
-        string portable = Path.Combine(_directory, "portable", "KillerPDF.exe");
+        string portable = Path.Combine(_directory, "portable", "Avalanche.exe");
 
         Assert.False(ProtocolRegistrar.ShouldRefreshPerUser(user, machine, portable));
     }
@@ -119,7 +119,7 @@ public sealed class ProtocolRegistrarStaleTests : IDisposable
         using RegistryKey user = _root.CreateSubKey("User")!;
         using RegistryKey machine = _root.CreateSubKey("Machine")!;
         ProtocolRegistrar.Register(user, LivingExecutable());
-        string portable = Path.Combine(_directory, "portable", "KillerPDF.exe");
+        string portable = Path.Combine(_directory, "portable", "Avalanche.exe");
 
         Assert.False(ProtocolRegistrar.ShouldRefreshPerUser(user, machine, portable));
     }

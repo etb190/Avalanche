@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Czech (cs-CZ) strings
+         Avalanche  -  Czech (cs-CZ) strings
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -48,7 +48,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Sbalit postranní panel (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Rozbalit postranní panel (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Klávesové zkratky (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">O aplikaci KillerPDF (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">O aplikaci Avalanche (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERZE</sys:String>
@@ -137,7 +137,7 @@
     <!-- ── Status bar ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">Připraveno</sys:String>
     <sys:String x:Key="Str_Portable">PORTABLE</sys:String>
-    <sys:String x:Key="Str_InstallBtn">Nainstalovat KillerPDF</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Nainstalovat Avalanche</sys:String>
 
     <!-- ── Status messages (format strings - use string.Format) ─────── -->
     <sys:String x:Key="Str_Opened">Otevřeno {0} - stránek: {1}</sys:String>
@@ -209,37 +209,37 @@
 Uložením se soubor přepíše a tyto změny budou ztraceny. Pokud si je chcete ponechat, uložte nejprve druhý panel.</sys:String>
     <sys:String x:Key="Str_St_SplitOn">Rozdělené zobrazení zapnuto - F10 zavře</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Rozdělené zobrazení vypnuto</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">Nainstalovat KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Nainstalovat KillerPDF do tohoto počítače?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Nainstalovat Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Nainstalovat Avalanche do tohoto počítače?
 
-KillerPDF se zkopíruje do vaší složky programů a v nabídce Start se vytvoří zástupce. Tato kopie souboru EXE zůstane tam, kde je, a odinstalovat ji můžete kdykoli přes Přidat/odebrat programy.</sys:String>
+Avalanche se zkopíruje do vaší složky programů a v nabídce Start se vytvoří zástupce. Tato kopie souboru EXE zůstane tam, kde je, a odinstalovat ji můžete kdykoli přes Přidat/odebrat programy.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Nainstalovat</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Aktualizovat</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Aktualizovat stávající instalaci KillerPDF?
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Aktualizovat stávající instalaci Avalanche?
 
 Nainstalovaná kopie bude nahrazena rychlejší vícesouborovou verzí. Tento přenosný soubor si poté můžete ponechat nebo smazat.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Aktualizovat stávající instalaci KillerPDF pro všechny uživatele?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Aktualizovat stávající instalaci Avalanche pro všechny uživatele?
 
-Kopie v Program Files bude nahrazena rychlejší vícesouborovou verzí. Případná starší kopie pro jednoho uživatele bude odstraněna, takže se KillerPDF zobrazí jen jednou. Tento přenosný soubor si poté můžete ponechat nebo smazat.</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF je na tomto počítači již nainstalován pro všechny uživatele. Aktualizujte tuto instalaci, nebo ji odinstalujte, než zvolíte instalaci pro jednoho uživatele.
+Kopie v Program Files bude nahrazena rychlejší vícesouborovou verzí. Případná starší kopie pro jednoho uživatele bude odstraněna, takže se Avalanche zobrazí jen jednou. Tento přenosný soubor si poté můžete ponechat nebo smazat.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche je na tomto počítači již nainstalován pro všechny uživatele. Aktualizujte tuto instalaci, nebo ji odinstalujte, než zvolíte instalaci pro jednoho uživatele.
 
-KillerPDF nevytvoří dvě nainstalované kopie.</sys:String>
+Avalanche nevytvoří dvě nainstalované kopie.</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Přidat zástupce na plochu</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Nainstalovat pro všechny uživatele tohoto počítače (vyžaduje správce)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">Instalace nebyla dokončena - KillerPDF stále běží přenosně.</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Chcete nastavit KillerPDF jako výchozí prohlížeč PDF?
+    <sys:String x:Key="Str_Status_InstallFailed">Instalace nebyla dokončena - Avalanche stále běží přenosně.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Chcete nastavit Avalanche jako výchozí prohlížeč PDF?
 
 Otevře Nastavení Windows - Výchozí aplikace.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Máte neuložené změny. Zavřít tento soubor bez uložení?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">Máte neuložené změny. Zavřít KillerPDF bez uložení?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Máte neuložené změny. Zavřít Avalanche bez uložení?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Tento dokument obsahuje stránky (počet: {0}) s rozměry mimo rozsah podporovaný aplikací Adobe Reader (3 až 14 400 bodů na stranu) - Adobe je zobrazuje jako prázdné.
 
 Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporce.</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">Nepodařilo se otevřít PDF:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">Máte otevřené dokumenty (počet: {0}). Chcete, aby je KillerPDF při ukončení aplikace všechny zavřel?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Máte otevřený 1 dokument. Chcete, aby jej KillerPDF při ukončení aplikace zavřel?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">Máte otevřené dokumenty (počet: {0}). Chcete, aby je Avalanche při ukončení aplikace všechny zavřel?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Máte otevřený 1 dokument. Chcete, aby jej Avalanche při ukončení aplikace zavřel?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">Zapamatovat mou volbu</sys:String>
 
 
@@ -375,7 +375,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Pos_TopLeft">Vlevo nahoře</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Tisk</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - Tisk</sys:String>
     <sys:String x:Key="Str_Print_Printer">Tiskárna</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientace</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Na výšku</sys:String>
@@ -427,7 +427,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Drop_Separate">Otevřít samostatně</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Nebyly nalezeny žádné PDF ani obrázky k otevření.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Otevřou se samostatné karty (počet: {0}). Pokračovat?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">Tato složka nebo archiv obsahuje soubory (počet: {0}). KillerPDF otevře jen prvních {1}. Pokračovat?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Tato složka nebo archiv obsahuje soubory (počet: {0}). Avalanche otevře jen prvních {1}. Pokračovat?</sys:String>
     <sys:String x:Key="Str_Status_Merged">Sloučeno souborů: {0} - zatím neuloženo</sys:String>
     <sys:String x:Key="Str_Drop_Merging">Slučuji soubory...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">Slučování zrušeno</sys:String>
@@ -576,14 +576,14 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_KS_FullScreen">Celá obrazovka</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Celou obrazovku ukončíte stisknutím F11 nebo Esc</sys:String>
     <!-- Quit prompt (family standard) -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">Ukončit KillerPDF?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Ukončit Avalanche?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Zavřít mé otevřené karty</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Ukončit</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Zrušit</sys:String>
 
 
     <!-- Status-bar messages (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">Všechna data KillerPDF vymazána</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">Všechna data Avalanche vymazána</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">Oblast OCR zrušena</sys:String>
     <sys:String x:Key="Str_St_Erased">Vymazáno</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Skupina zrušena</sys:String>
@@ -632,7 +632,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 
     <!-- Dialog / message-box strings (extracted from code) -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Před aktualizací prosím uložte změny.</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF byl odinstalován.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche byl odinstalován.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">Vyberte stránky k extrakci.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">Vyberte stránky ke smazání.</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">Není k dispozici žádná tiskárna.</sys:String>
@@ -904,7 +904,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Prohledávatelné PDF uloženo:&#10;{0}&#10;&#10;{1} stránek zpracováno, {2} slov rozpoznáno.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">„{0}" byl úspěšně opraven.&#10;&#10;Záložky, formuláře a další interaktivní funkce mohly být ztraceny. Použijte Uložit jako a zapište opravený soubor na nové místo.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">„{0}" byl opraven rastrováním přes PDFium.&#10;&#10;Text v opravené kopii nelze vybírat. Použijte Uložit jako a zapište ji na nové místo.</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}" má poškozenou strukturu a nepodařilo se jej přidat.&#10;&#10;Má se KillerPDF pokusit o opravu? Vytvoří se opravená kopie - původní soubor se nezmění.&#10;&#10;Poznámka: opraveným souborům mohou chybět záložky, formuláře a další interaktivní funkce.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">„{0}" má poškozenou strukturu a nepodařilo se jej přidat.&#10;&#10;Má se Avalanche pokusit o opravu? Vytvoří se opravená kopie - původní soubor se nezmění.&#10;&#10;Poznámka: opraveným souborům mohou chybět záložky, formuláře a další interaktivní funkce.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Nyní se stáhne jazykový model ({0}), aby OCR mohlo běžet.&#10;&#10;Další jazyky nebo modely vyšší kvality můžete kdykoli přidat v nabídce OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Další možnosti</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Udrží čáru na nejbližší ose (vodorovné nebo svislé)</sys:String>
@@ -918,14 +918,14 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_TT_SaveOptions">Možnosti ukládání</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">Možnosti OCR</sys:String>
     <sys:String x:Key="Str_RecentHeading">NEDÁVNÉ</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Klávesové zkratky</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - Klávesové zkratky</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">K dispozici je aktualizace: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Stáhnout a nainstalovat KillerPDF {0}?&#10;&#10;Aplikace se zavře a automaticky znovu otevře.</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Stáhnout a nainstalovat Avalanche {0}?&#10;&#10;Aplikace se zavře a automaticky znovu otevře.</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">Stahování...</sys:String>
     <sys:String x:Key="Str_ClearAllData">Vymazat všechna data</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Tímto se smažou všechna uložená nastavení, stažené jazykové balíčky OCR a dočasné soubory.&#10;&#10;Vašich souborů PDF se to netýká. Pokračovat?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Nastavení, jazykové balíčky a dočasné soubory byly vymazány.&#10;&#10;Restartujte KillerPDF, aby se dokončilo mazání souborů, které se v této relaci stále používají.</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - Neočekávaná chyba</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Nastavení, jazykové balíčky a dočasné soubory byly vymazány.&#10;&#10;Restartujte Avalanche, aby se dokončilo mazání souborů, které se v této relaci stále používají.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - Neočekávaná chyba</sys:String>
     <sys:String x:Key="Str_Crash_Log">Protokol: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">Kopírovat hlášení</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">Otevřít protokoly</sys:String>
@@ -984,17 +984,17 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Compare_DetailsTitle">Podrobnosti o porovnání PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF nemohl otevřít PDF prohlížeče.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">Tento příkaz prohlížeče KillerPDF nezná.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche nemohl otevřít PDF prohlížeče.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Tento příkaz prohlížeče Avalanche nezná.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Předání nezahrnovalo adresu PDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">Adresu PDF v předávce se nepodařilo přečíst.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF otevírá pouze předání prohlížeče přes https.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche otevírá pouze předání prohlížeče přes https.</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">Předání prohlížeče nebylo možné použít.</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">PDF je větší než 256 MB limit pro předání v prohlížeči.</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">Stažený soubor není PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF nemohl stáhnout PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche nemohl stáhnout PDF.</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">Časový limit stahování PDF vypršel.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF nemohl uložit nebo přečíst stažené PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche nemohl uložit nebo přečíst stažené PDF.</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">Tažením vytvořte vyplnitelné textové pole</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">Vytváření textového pole zrušeno</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">Vyplnitelné textové pole se nepodařilo vytvořit</sys:String>
@@ -1029,7 +1029,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_KS_EnabledStatus">Klávesové zkratky jsou zapnuté</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Klávesové zkratky jsou vypnuté. Zapnete je stisknutím Ctrl+Shift+K.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Kontrolovat aktualizace při spuštění</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Je k dispozici KillerPDF {0}. Chcete jej nyní stáhnout a nainstalovat?&#10;&#10;Aplikace se zavře a automaticky znovu otevře.</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Je k dispozici Avalanche {0}. Chcete jej nyní stáhnout a nainstalovat?&#10;&#10;Aplikace se zavře a automaticky znovu otevře.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Vždy kontrolovat aktualizace při spuštění</sys:String>
     <sys:String x:Key="Str_PasswordProtected">Soubor „{0}“ je chráněn heslem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Také známý jako</sys:String>

@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Kazakh (kk-KZ) strings
+         Avalanche  -  Kazakh (kk-KZ) strings
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -47,7 +47,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Бүйірлік панельді жиыру (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Бүйірлік панельді жаю (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Пернелер тіркесімі (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">KillerPDF туралы (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">Avalanche туралы (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">НҰСҚА</sys:String>
@@ -136,7 +136,7 @@
     <!-- ── Status bar ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">Дайын</sys:String>
     <sys:String x:Key="Str_Portable">ТАСЫМАЛДЫ</sys:String>
-    <sys:String x:Key="Str_InstallBtn">KillerPDF орнату</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Avalanche орнату</sys:String>
 
     <!-- ── Status messages (format strings - use string.Format) ─────── -->
     <sys:String x:Key="Str_Opened">{0} ашылды - {1} бет</sys:String>
@@ -208,37 +208,37 @@
 Қазір сақтасаңыз, файл үстінен жазылады және сол өзгерістер жоғалады. Оларды қалдырғыңыз келсе, алдымен екінші панельді сақтаңыз.</sys:String>
     <sys:String x:Key="Str_St_SplitOn">Бөлінген панель қосулы - жабу үшін F10</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Бөлінген панель өшірулі</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF орнату</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">KillerPDF-ті осы компьютерге орнату керек пе?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Avalanche орнату</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Avalanche-ті осы компьютерге орнату керек пе?
 
 Орнату қолданбаны Бағдарламалар қалтасына көшіреді (жылдам іске қосу үшін) және Бастау мәзіріне жазба қосады. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">KillerPDF-тің барлық пайдаланушыларға арналған орнатылымын жаңарту керек пе?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Avalanche-тің барлық пайдаланушыларға арналған орнатылымын жаңарту керек пе?
 
-Бұл Program Files ішіндегі көшірмені жылдамырақ көпфайлды нұсқамен ауыстырады. Ескі пайдаланушылық көшірме жойылады, сондықтан KillerPDF тек бір рет көрінеді. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Қолданыстағы KillerPDF орнатылымын жаңарту керек пе?
+Бұл Program Files ішіндегі көшірмені жылдамырақ көпфайлды нұсқамен ауыстырады. Ескі пайдаланушылық көшірме жойылады, сондықтан Avalanche тек бір рет көрінеді. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Қолданыстағы Avalanche орнатылымын жаңарту керек пе?
 
 Бұл орнатылған көшірмені жылдамырақ көпфайлды нұсқамен ауыстырады. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF осы компьютердегі барлық пайдаланушылар үшін әлдеқашан орнатылған. Сол орнатылымды жаңартыңыз немесе пайдаланушылық орнатуды таңдамас бұрын оны жойыңыз.
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche осы компьютердегі барлық пайдаланушылар үшін әлдеқашан орнатылған. Сол орнатылымды жаңартыңыз немесе пайдаланушылық орнатуды таңдамас бұрын оны жойыңыз.
 
-KillerPDF екі орнатылған көшірме жасамайды.</sys:String>
+Avalanche екі орнатылған көшірме жасамайды.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Орнату</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Жаңарту</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Жұмыс үстеліндегі төте жолды қосу</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Осы компьютердегі барлық пайдаланушылар үшін орнату (әкімші құқығы керек)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">Орнату аяқталмады - KillerPDF әлі тасымалды түрде жұмыс істеп тұр.</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">KillerPDF-ті әдепкі PDF қарау құралы етіп орнатқыңыз келе ме?
+    <sys:String x:Key="Str_Status_InstallFailed">Орнату аяқталмады - Avalanche әлі тасымалды түрде жұмыс істеп тұр.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Avalanche-ті әдепкі PDF қарау құралы етіп орнатқыңыз келе ме?
 
 Windows параметрлері - Әдепкі қолданбалар ашылады.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Сақталмаған өзгерістер бар. Осы файлды сақтамай жабу керек пе?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">Сақталмаған өзгерістер бар. KillerPDF-ті сақтамай жабу керек пе?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Сақталмаған өзгерістер бар. Avalanche-ті сақтамай жабу керек пе?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Бұл құжатта Adobe Reader қолдайтын өлшемнен тыс (әр жағы 3-тен 14 400 нүктеге дейін) {0} бет бар - Adobe оларды бос бет ретінде көрсетеді.
 
 Оларды қолдау көрсетілетін өлшемге масштабтау керек пе? Беттер түрі мен пропорцияларын сақтайды.</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">PDF ашылмады:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} ашық құжатыңыз бар. Қолданбадан шыққанда KillerPDF олардың барлығын жапсын ба?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 ашық құжатыңыз бар. Қолданбадан шыққанда KillerPDF оны жапсын ба?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} ашық құжатыңыз бар. Қолданбадан шыққанда Avalanche олардың барлығын жапсын ба?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 ашық құжатыңыз бар. Қолданбадан шыққанда Avalanche оны жапсын ба?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">Таңдауымды есте сақтау</sys:String>
 
 
@@ -372,7 +372,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Pos_TopLeft">Жоғарғы сол</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Басып шығару</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - Басып шығару</sys:String>
     <sys:String x:Key="Str_Print_Printer">Принтер</sys:String>
     <sys:String x:Key="Str_Print_Paper">Қағаз өлшемі</sys:String>
     <sys:String x:Key="Str_Print_PaperAuto">Құжатқа сәйкес</sys:String>
@@ -431,7 +431,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Drop_Separate">Бөлек ашу</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Ашуға PDF немесе сурет табылмады.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Бұл {0} бөлек қойынды ашады. Жалғастыру керек пе?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">Бұл қалтада немесе мұрағатта {0} файл бар. KillerPDF тек алғашқы {1} файлды ашады. Жалғастыру керек пе?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Бұл қалтада немесе мұрағатта {0} файл бар. Avalanche тек алғашқы {1} файлды ашады. Жалғастыру керек пе?</sys:String>
     <sys:String x:Key="Str_Status_Merged">{0} файл біріктірілді - әлі сақталмаған</sys:String>
     <sys:String x:Key="Str_Drop_Merging">Файлдар біріктірілуде...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">Біріктіру болдырылмады</sys:String>
@@ -569,14 +569,14 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_KS_FullScreen">Толық экран</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Толық экраннан шығу үшін F11 немесе Esc басыңыз</sys:String>
     <!-- Quit prompt (family standard) -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF-тен шығу керек пе?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Avalanche-тен шығу керек пе?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Ашық қойындыларымды жабу</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Шығу</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Болдырмау</sys:String>
 
 
     <!-- Status-bar messages (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">KillerPDF-тің барлық деректері тазаланды</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">Avalanche-тің барлық деректері тазаланды</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">OCR аймағы болдырылмады</sys:String>
     <sys:String x:Key="Str_St_Erased">Өшірілді</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Топтан шығарылды</sys:String>
@@ -625,7 +625,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 
     <!-- Dialog / message-box strings (extracted from code) -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Жаңарту алдында өзгерістерді сақтаңыз.</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF жойылды.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche жойылды.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">Шығаратын беттерді таңдаңыз.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">Жоятын беттерді таңдаңыз.</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">Принтер қолжетімсіз.</sys:String>
@@ -892,7 +892,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Ізделетін PDF сақталды:&#10;{0}&#10;&#10;{1} бет өңделді, {2} сөз танылды.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">"{0}" сәтті жөнделді.&#10;&#10;Бетбелгілер, пішіндер және басқа интерактивті мүмкіндіктер жоғалуы мүмкін. Жөнделген файлды жаңа орынға жазу үшін Басқаша сақтауды пайдаланыңыз.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">"{0}" PDFium арқылы растрлеу жолымен жөнделді.&#10;&#10;Жөнделген көшірмеде мәтін таңдалмайды. Оны жаңа орынға жазу үшін Басқаша сақтауды пайдаланыңыз.</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" құрылымы зақымдалған және қосылмады.&#10;&#10;KillerPDF жөндеуді көшсін бе? Жөнделген көшірме жасалады - түпнұсқа файл өзгертілмейді.&#10;&#10;Ескерту: жөнделген файлдарда бетбелгілер, пішіндер және басқа интерактивті мүмкіндіктер болмауы мүмкін.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" құрылымы зақымдалған және қосылмады.&#10;&#10;Avalanche жөндеуді көшсін бе? Жөнделген көшірме жасалады - түпнұсқа файл өзгертілмейді.&#10;&#10;Ескерту: жөнделген файлдарда бетбелгілер, пішіндер және басқа интерактивті мүмкіндіктер болмауы мүмкін.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR іске қосылуы үшін қазір тіл үлгісі ({0}) жүктеледі.&#10;&#10;OCR мәзірінен кез келген уақытта қосымша тілдер қоса немесе жоғары сапалы үлгілерге ауыса аласыз.</sys:String>
     <sys:String x:Key="Str_Bar_More">Қосымша параметрлер</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Сызықты ең жақын осьте ұстау (көлденең немесе тік)</sys:String>
@@ -906,14 +906,14 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_SaveOptions">Сақтау параметрлері</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR параметрлері</sys:String>
     <sys:String x:Key="Str_RecentHeading">СОҢҒЫ</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Пернелер тіркесімі</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - Пернелер тіркесімі</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">Жаңарту бар: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} жүктеп орнату керек пе?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Avalanche {0} жүктеп орнату керек пе?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">Жүктелуде...</sys:String>
     <sys:String x:Key="Str_ClearAllData">Барлық деректерді тазалау</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Бұл барлық сақталған параметрлерді, жүктелген OCR тіл бумаларын және уақытша файлдарды жояды.&#10;&#10;PDF файлдарыңызға әсер етпейді. Жалғастыру керек пе?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Параметрлер, тіл бумалары және уақытша файлдар тазаланды.&#10;&#10;Осы сеанста әлі қолданылып жатқан файлдарды аяқтау үшін KillerPDF-ті қайта іске қосыңыз.</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - Күтпеген қате</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Параметрлер, тіл бумалары және уақытша файлдар тазаланды.&#10;&#10;Осы сеанста әлі қолданылып жатқан файлдарды аяқтау үшін Avalanche-ті қайта іске қосыңыз.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - Күтпеген қате</sys:String>
     <sys:String x:Key="Str_Crash_Log">Журнал: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">Есепті көшіру</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">Журналдарды ашу</sys:String>
@@ -998,17 +998,17 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Compare_BuildingReport">Әр бет тексерілуде...</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF салыстыру мәліметтері</sys:String>
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF браузердегі PDF-ті аша алмады.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF бұл браузер пәрменін танымайды.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche браузердегі PDF-ті аша алмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Avalanche бұл браузер пәрменін танымайды.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Тасымалдауда PDF мекенжайы көрсетілмеген.</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">Тасымалдаудағы PDF мекенжайын оқу мүмкін болмады.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF браузер тасымалын тек https арқылы ашады.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche браузер тасымалын тек https арқылы ашады.</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">Браузер тасымалын пайдалану мүмкін болмады.</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">PDF браузер тасымалының 256 МБ шегінен асады.</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">Жүктеп алынған файл PDF емес.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF PDF-ті жүктеп ала алмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche PDF-ті жүктеп ала алмады.</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">PDF жүктеу уақыты аяқталды.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF жүктеп алынған PDF-ті сақтай да, оқи да алмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche жүктеп алынған PDF-ті сақтай да, оқи да алмады.</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">Толтырылатын мәтін өрісін жасау үшін сүйреңіз</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">Толтырылатын мәтін өрісін жасау тоқтатылды</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">Толтырылатын мәтін өрісін жасау мүмкін болмады</sys:String>
@@ -1043,7 +1043,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_KS_EnabledStatus">Пернелер тіркесімі қосулы</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Пернелер тіркесімі өшірулі. Қосу үшін Ctrl+Shift+K басыңыз.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Іске қосылғанда жаңартуларды тексеру</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} қолжетімді. Оны қазір жүктеп, орнатқыңыз келе ме?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Avalanche {0} қолжетімді. Оны қазір жүктеп, орнатқыңыз келе ме?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Іске қосылғанда жаңартуларды әрдайым тексеру</sys:String>
     <sys:String x:Key="Str_PasswordProtected">«{0}» құпиясөзбен қорғалған.</sys:String>
     <sys:String x:Key="Str_About_Aka">Басқа аты</sys:String>

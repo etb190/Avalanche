@@ -6,7 +6,7 @@ using Avalanche.Engine.Signing;
 
 namespace Avalanche.Services.Signing
 {
-    /// <summary>Creates detached-CMS approval signatures through The KillerPDF.Engine.</summary>
+    /// <summary>Creates detached-CMS approval signatures through The Avalanche.Engine.</summary>
     internal sealed class PdfSigner
     {
         public sealed record SignInfo(string Reason, string Location, string Contact,

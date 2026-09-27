@@ -4,11 +4,11 @@ namespace Avalanche.Services
     // OCR catalog - pure data, no IO, no App, no bootstrap.
     // ============================================================
     //
-    // Split out of OcrLanguages.cs so the test project can link THIS file alone. KillerPDF.Tests
+    // Split out of OcrLanguages.cs so the test project can link THIS file alone. Avalanche.Tests
     // compiles individual sources rather than referencing the app assembly, and OcrLanguages
     // reaches App.GetSetting, OcrNativeBootstrap and HttpClient - none of which a data check needs.
     //
-    // THE RULE THIS FILE ENCODES: OCR languages track interface languages. If KillerPDF ships a UI
+    // THE RULE THIS FILE ENCODES: OCR languages track interface languages. If Avalanche ships a UI
     // in a language, it ships an OCR model for that language. There is no interface language whose
     // text the app cannot read.
     //

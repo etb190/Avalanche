@@ -24,14 +24,14 @@ namespace Avalanche.Services
                     ?? throw new InvalidOperationException("The current executable path is unavailable.");
                 using var protocol = root.CreateSubKey(RegistryPath);
                 if (protocol == null) return;
-                protocol.SetValue("", "URL:KillerPDF Protocol");
+                protocol.SetValue("", "URL:Avalanche Protocol");
                 protocol.SetValue("URL Protocol", "");
                 using (var icon = protocol.CreateSubKey("DefaultIcon"))
                     icon?.SetValue("", $"\"{appPath}\",0");
                 using var command = protocol.CreateSubKey(@"shell\open\command");
                 command?.SetValue("", $"\"{appPath}\" \"%1\"");
             }
-            catch (Exception ex) { Debug.WriteLine($"Failed to register KillerPDF protocol: {ex.Message}"); }
+            catch (Exception ex) { Debug.WriteLine($"Failed to register Avalanche protocol: {ex.Message}"); }
         }
 
         /// <summary>The executable a registration points at, or null when there is none to read.</summary>

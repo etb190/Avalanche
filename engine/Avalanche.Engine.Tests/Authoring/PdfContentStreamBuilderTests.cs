@@ -217,7 +217,7 @@ public sealed class PdfContentStreamBuilderTests
             .BeginText()
             .SetFont(PdfStandardFont.HelveticaBold, 18)
             .MoveText(72, 700)
-            .ShowLatin1Text("KillerPDF (2.0)")
+            .ShowLatin1Text("Avalanche (2.0)")
             .EndText();
         PdfDocument document = PdfDocument.Open(
             new PdfDocumentBuilder().AddPage(612, 792, content).Build());
@@ -235,7 +235,7 @@ public sealed class PdfContentStreamBuilderTests
         Assert.Equal("Helvetica-Bold", Assert.IsType<PdfName>(font[Name("BaseFont")]).ValueAsLatin1());
         var stream = Assert.IsType<PdfStream>(document.Resolve(
             Assert.IsType<PdfIndirectReference>(page[Name("Contents")])));
-        Assert.Contains("(KillerPDF \\(2.0\\)) Tj", Encoding.ASCII.GetString(stream.EncodedData.Span));
+        Assert.Contains("(Avalanche \\(2.0\\)) Tj", Encoding.ASCII.GetString(stream.EncodedData.Span));
     }
 
     [Fact]

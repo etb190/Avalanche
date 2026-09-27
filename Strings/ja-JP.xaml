@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Japanese (ja-JP) strings
+         Avalanche  -  Japanese (ja-JP) strings
          ================================================================ -->
 
     <!-- ── ツールバーのツールチップ ───────────────────────────────────── -->
@@ -48,7 +48,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">サイドバーを折りたたむ (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">サイドバーを展開 (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">キーボードショートカット (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">KillerPDF について (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">Avalanche について (F12)</sys:String>
 
     <!-- ── バージョン情報オーバーレイ ──────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">バージョン</sys:String>
@@ -137,7 +137,7 @@
     <!-- ── ステータスバー ────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">準備完了</sys:String>
     <sys:String x:Key="Str_Portable">ポータブル</sys:String>
-    <sys:String x:Key="Str_InstallBtn">KillerPDF をインストール</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Avalanche をインストール</sys:String>
 
     <!-- ── ステータスメッセージ (書式指定文字列 - string.Formatを使用) ─────── -->
     <sys:String x:Key="Str_Opened">{0} を開きました - {1} ページ</sys:String>
@@ -209,35 +209,35 @@
 ここで保存するとファイルが上書きされ、その変更は失われます。残したい場合は先にもう一方のペインを保存してください。</sys:String>
     <sys:String x:Key="Str_St_SplitOn">分割表示オン - F10 で閉じる</sys:String>
     <sys:String x:Key="Str_St_SplitOff">分割表示オフ</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF をインストール</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">KillerPDF をこのコンピューターにインストールしますか？
+    <sys:String x:Key="Str_Dlg_InstallTitle">Avalanche をインストール</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Avalanche をこのコンピューターにインストールしますか？
 
-KillerPDF はプログラムフォルダーにコピーされ、スタートメニューに項目が追加されます。この EXE のコピーはそのままの場所に残り、いつでも「プログラムの追加と削除」からアンインストールできます。</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">全ユーザー向けの既存の KillerPDF インストールを更新しますか？
+Avalanche はプログラムフォルダーにコピーされ、スタートメニューに項目が追加されます。この EXE のコピーはそのままの場所に残り、いつでも「プログラムの追加と削除」からアンインストールできます。</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">全ユーザー向けの既存の Avalanche インストールを更新しますか？
 
-Program Files のコピーを、より高速なマルチファイル版に置き換えます。古いユーザーごとのコピーは削除され、KillerPDF は 1 つだけ表示されます。このポータブルファイルはその後、保持しても削除してもかまいません。</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">既存の KillerPDF インストールを更新しますか？
+Program Files のコピーを、より高速なマルチファイル版に置き換えます。古いユーザーごとのコピーは削除され、Avalanche は 1 つだけ表示されます。このポータブルファイルはその後、保持しても削除してもかまいません。</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">既存の Avalanche インストールを更新しますか？
 
 インストール済みのコピーを、より高速なマルチファイル版に置き換えます。このポータブルファイルはその後、保持しても削除してもかまいません。</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF はこのコンピューターの全ユーザー向けに既にインストールされています。ユーザーごとのインストールを選ぶ前に、そのインストールを更新するかアンインストールしてください。
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche はこのコンピューターの全ユーザー向けに既にインストールされています。ユーザーごとのインストールを選ぶ前に、そのインストールを更新するかアンインストールしてください。
 
-KillerPDF がインストール済みコピーを 2 つ作成することはありません。</sys:String>
+Avalanche がインストール済みコピーを 2 つ作成することはありません。</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">インストール</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">更新</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">デスクトップにショートカットを追加</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">このコンピューターのすべてのユーザーにインストール (管理者権限が必要)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">インストールは完了しませんでした - KillerPDF はポータブルのまま実行中です。</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">KillerPDF を既定の PDF ビューアーに設定しますか？
+    <sys:String x:Key="Str_Status_InstallFailed">インストールは完了しませんでした - Avalanche はポータブルのまま実行中です。</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Avalanche を既定の PDF ビューアーに設定しますか？
 
 Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">保存されていない変更があります。保存せずにこのファイルを閉じますか？</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">保存されていない変更があります。保存せずに KillerPDF を終了しますか？</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">保存されていない変更があります。保存せずに Avalanche を終了しますか？</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">この文書には、Adobe Reader が対応する範囲 (1 辺あたり 3～14,400 ポイント) 外のサイズのページが {0} ページあります。Adobe ではこれらのページは白紙で表示されます。
 
 対応するサイズに拡大・縮小しますか？ページの見た目と縦横比は変わりません。</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">PDF を開けませんでした :
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
     <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} 個の開いているドキュメントがあります。アプリを終了するときにすべて閉じますか？</sys:String>
     <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1個の開いているドキュメントがあります。アプリを終了するときに閉じますか？</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">この選択を記憶する</sys:String>
@@ -375,7 +375,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Pos_TopLeft">上部左</sys:String>
 
     <!-- ── 印刷ダイアログ ────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - 印刷</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - 印刷</sys:String>
     <sys:String x:Key="Str_Print_Printer">プリンター</sys:String>
     <sys:String x:Key="Str_Print_Paper">用紙サイズ</sys:String>
     <sys:String x:Key="Str_Print_PaperAuto">文書に合わせる</sys:String>
@@ -434,7 +434,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Drop_Separate">個別に開く</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">開ける PDF または画像が見つかりませんでした。</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">{0} 個のタブを個別に開きます。続行しますか？</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">このフォルダーまたはアーカイブには {0} 個のファイルがあります。KillerPDF は最初の {1} 個のみを開きます。続行しますか？</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">このフォルダーまたはアーカイブには {0} 個のファイルがあります。Avalanche は最初の {1} 個のみを開きます。続行しますか？</sys:String>
     <sys:String x:Key="Str_Status_Merged">{0} 個のファイルを結合しました - 未保存です</sys:String>
     <sys:String x:Key="Str_Drop_Merging">ファイルを結合中...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">結合をキャンセルしました</sys:String>
@@ -595,14 +595,14 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">全画面</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">F11 または Esc で全画面を終了します</sys:String>
     <!-- KillerFind-style quit prompt (family standard) -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF を終了しますか？</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Avalanche を終了しますか？</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">開いているタブを閉じる</sys:String>
     <sys:String x:Key="Str_Btn_Quit">終了</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">キャンセル</sys:String>
 
 
     <!-- ステータスバーおよびダイアログの文字列 (コードから抽出) -->
-    <sys:String x:Key="Str_St_DataCleared">すべての KillerPDF データを消去しました</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">すべての Avalanche データを消去しました</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">OCR 領域の選択をキャンセルしました</sys:String>
     <sys:String x:Key="Str_St_Erased">消去しました</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">グループを解除しました</sys:String>
@@ -651,7 +651,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 
     <!-- その他のダイアログ / メッセージボックス文字列（コードから抽出） -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">更新する前に変更を保存してください。</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF をアンインストールしました。</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche をアンインストールしました。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">抽出するページを選択してください。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">削除するページを選択してください。</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">利用可能なプリンターがありません。</sys:String>
@@ -918,7 +918,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">検索可能な PDF を保存しました：&#10;{0}&#10;&#10;{1} ページを処理、{2} 語を認識。</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">「{0}」の修復に成功しました。&#10;&#10;しおり、フォーム、その他のインタラクティブ機能は失われている可能性があります。名前を付けて保存で修復済みファイルを新しい場所に書き出してください。</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">「{0}」は PDFium によるラスタライズで修復されました。&#10;&#10;修復済みコピーではテキストを選択できません。名前を付けて保存で新しい場所に書き出してください。</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」は構造が破損しているため追加できませんでした。&#10;&#10;KillerPDF で修復を試みますか？修復済みコピーが作成されます - 元のファイルは変更されません。&#10;&#10;注意 : 修復済みファイルでは、しおり、フォーム、その他のインタラクティブ機能が失われる場合があります。</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」は構造が破損しているため追加できませんでした。&#10;&#10;Avalanche で修復を試みますか？修復済みコピーが作成されます - 元のファイルは変更されません。&#10;&#10;注意 : 修復済みファイルでは、しおり、フォーム、その他のインタラクティブ機能が失われる場合があります。</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR を実行するため、言語モデル（{0}）を今すぐダウンロードします。&#10;&#10;OCR メニューからいつでも言語を追加したり、より高品質なモデルに切り替えたりできます。</sys:String>
     <sys:String x:Key="Str_Bar_More">その他の設定</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">線を最も近い軸 (水平または垂直) に揃えます</sys:String>
@@ -932,14 +932,14 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_SaveOptions">保存オプション</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR オプション</sys:String>
     <sys:String x:Key="Str_RecentHeading">最近</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - キーボード ショートカット</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - キーボード ショートカット</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">更新があります: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} をダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Avalanche {0} をダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">ダウンロード中...</sys:String>
     <sys:String x:Key="Str_ClearAllData">すべてのデータを消去</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">保存されたすべての設定、ダウンロード済みの OCR 言語パック、一時ファイルを削除します。&#10;&#10;PDF ファイルには影響しません。続行しますか？</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">設定、言語パック、一時ファイルを消去しました。&#10;&#10;このセッションで使用中のファイルの消去を完了するには、KillerPDF を再起動してください。</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - 予期しないエラー</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">設定、言語パック、一時ファイルを消去しました。&#10;&#10;このセッションで使用中のファイルの消去を完了するには、Avalanche を再起動してください。</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - 予期しないエラー</sys:String>
     <sys:String x:Key="Str_Crash_Log">ログ : {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">レポートをコピー</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">ログを開く</sys:String>
@@ -999,17 +999,17 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF 比較の詳細</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF はブラウザーの PDF を開けませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">そのブラウザーコマンドは KillerPDF には認識できません。</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche はブラウザーの PDF を開けませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">そのブラウザーコマンドは Avalanche には認識できません。</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">引き渡し情報に PDF のアドレスが含まれていませんでした。</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">引き渡し情報内の PDF アドレスを読み取れませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF は https 経由のブラウザからの引き渡しのみを開きます。</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche は https 経由のブラウザからの引き渡しのみを開きます。</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">ブラウザからの引き渡し情報を使用できませんでした。</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">PDF がブラウザ引き渡しの上限である 256 MB を超えています。</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">ダウンロードされたファイルは PDF ではありません。</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF は PDF をダウンロードできませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche は PDF をダウンロードできませんでした。</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">PDF のダウンロードがタイムアウトしました。</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF はダウンロードした PDF を保存または読み取ることができませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche はダウンロードした PDF を保存または読み取ることができませんでした。</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">ドラッグして入力可能なテキストフィールドを作成</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">入力可能なテキストフィールドの作成をキャンセルしました</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">入力可能なテキストフィールドを作成できませんでした</sys:String>
@@ -1044,7 +1044,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">キーボードショートカットは有効です</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">キーボードショートカットは無効です。Ctrl+Shift+K を押すと有効になります。</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">起動時に更新を確認する</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} が利用可能です。今すぐダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Avalanche {0} が利用可能です。今すぐダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">起動時に常に更新を確認する</sys:String>
     <sys:String x:Key="Str_PasswordProtected">「{0}」はパスワードで保護されています。</sys:String>
     <sys:String x:Key="Str_About_Aka">別名</sys:String>

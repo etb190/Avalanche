@@ -23,7 +23,7 @@ namespace Avalanche.Features
         private const string SignerName = "Stephen Riley";
         private const string AkaName    = "Steve the Killer";
 
-        private const string Repo = "https://github.com/SteveTheKiller/KillerPDF";
+        private const string Repo = "https://github.com/SteveTheKiller/Avalanche";
 
         private readonly IAboutHost _host;
 
@@ -210,9 +210,9 @@ namespace Avalanche.Features
             try
             {
                 using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(90) };
-                http.DefaultRequestHeaders.UserAgent.ParseAdd("KillerPDF-UpdateCheck");
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("Avalanche-UpdateCheck");
 
-                string assetName = App.IsPortable() ? "KillerPDF-Portable.exe" : "KillerPDF.exe";
+                string assetName = App.IsPortable() ? "Avalanche-Portable.exe" : "Avalanche.exe";
                 var exeUrl = $"{Repo}/releases/download/{tag}/{assetName}";
                 // Read the checksums from the release ASSET next to the exe, not from
                 // raw.githubusercontent at the tag. Both files are uploaded to the release
@@ -239,7 +239,7 @@ namespace Avalanche.Features
                     System.Security.Cryptography.SHA256.HashData(exeBytes));
                 if (!actual.Equals(expected, StringComparison.OrdinalIgnoreCase)) return null;
 
-                var path = Path.Combine(Path.GetTempPath(), $"KillerPDF_update_{Guid.NewGuid():N}.exe");
+                var path = Path.Combine(Path.GetTempPath(), $"Avalanche_update_{Guid.NewGuid():N}.exe");
                 File.WriteAllBytes(path, exeBytes);
                 return path;
             }
@@ -276,7 +276,7 @@ namespace Avalanche.Features
                 // When elevated, relaunch through explorer.exe so the app comes back at the user's
                 // normal integrity level rather than inheriting the elevated token. explorer.exe
                 // cannot forward arguments, so the currently-open file is not reopened on that
-                // path - a one-off convenience loss, preferred over leaving KillerPDF running as
+                // path - a one-off convenience loss, preferred over leaving Avalanche running as
                 // administrator for the rest of the session.
                 var script = new StringBuilder()
                     .AppendLine("@echo off")

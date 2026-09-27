@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Türkçe (tr-TR) metinleri
+         Avalanche  -  Türkçe (tr-TR) metinleri
          ================================================================ -->
 
     <!-- ── Araç çubuğu ipuçları ─────────────────────────────────────── -->
@@ -46,7 +46,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Kenar çubuğunu daralt (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Kenar çubuğunu genişlet (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Klavye kısayolları (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">KillerPDF Hakkında (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">Avalanche Hakkında (F12)</sys:String>
 
     <!-- ── Hakkında katmanı ──────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">SÜRÜM</sys:String>
@@ -120,7 +120,7 @@
     <!-- ── Durum çubuğu ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">Hazır</sys:String>
     <sys:String x:Key="Str_Portable">KURULUMSUZ</sys:String>
-    <sys:String x:Key="Str_InstallBtn">KillerPDF'i yükle</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Avalanche'i yükle</sys:String>
 
     <!-- ── Durum mesajları (biçim dizeleri - string.Format kullanır) ── -->
     <sys:String x:Key="Str_Opened">Açıldı {0} - {1} sayfa</sys:String>
@@ -154,37 +154,37 @@
 Şimdi kaydetmek dosyanın üzerine yazar ve bu değişiklikler kaybolur. Korumak istiyorsanız önce diğer bölmeyi kaydedin.</sys:String>
     <sys:String x:Key="Str_St_SplitOn">Bölünmüş görünüm açık - kapatmak için F10</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Bölünmüş görünüm kapalı</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF'i Yükle</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">KillerPDF bu bilgisayara yüklensin mi?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Avalanche'i Yükle</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Avalanche bu bilgisayara yüklensin mi?
 
-KillerPDF programlar klasörünüze kopyalanır ve bir Başlat Menüsü girdisi eklenir. EXE dosyasının bu kopyası olduğu yerde kalır ve istediğiniz zaman Program Ekle/Kaldır üzerinden kaldırabilirsiniz.</sys:String>
+Avalanche programlar klasörünüze kopyalanır ve bir Başlat Menüsü girdisi eklenir. EXE dosyasının bu kopyası olduğu yerde kalır ve istediğiniz zaman Program Ekle/Kaldır üzerinden kaldırabilirsiniz.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Yükle</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Güncelle</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Mevcut KillerPDF kurulumu güncellensin mi?
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Mevcut Avalanche kurulumu güncellensin mi?
 
 Kurulu kopya, daha hızlı çok dosyalı sürümle değiştirilir. Bu taşınabilir dosyayı daha sonra saklayabilir veya silebilirsiniz.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">KillerPDF'in tüm kullanıcılar için mevcut kurulumu güncellensin mi?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Avalanche'in tüm kullanıcılar için mevcut kurulumu güncellensin mi?
 
-Program Files içindeki kopya, daha hızlı çok dosyalı sürümle değiştirilir. Eski kullanıcı başına kopya kaldırılır, böylece KillerPDF yalnızca bir kez görünür. Bu taşınabilir dosyayı daha sonra saklayabilir veya silebilirsiniz.</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF bu bilgisayarda zaten tüm kullanıcılar için kurulu. Kullanıcı başına kurulum seçmeden önce bu kurulumu güncelleyin veya kaldırın.
+Program Files içindeki kopya, daha hızlı çok dosyalı sürümle değiştirilir. Eski kullanıcı başına kopya kaldırılır, böylece Avalanche yalnızca bir kez görünür. Bu taşınabilir dosyayı daha sonra saklayabilir veya silebilirsiniz.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche bu bilgisayarda zaten tüm kullanıcılar için kurulu. Kullanıcı başına kurulum seçmeden önce bu kurulumu güncelleyin veya kaldırın.
 
-KillerPDF iki kurulu kopya oluşturmaz.</sys:String>
+Avalanche iki kurulu kopya oluşturmaz.</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Masaüstü kısayolu ekle</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Bu bilgisayardaki herkes için yükle (yönetici gerekir)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">Yükleme tamamlanmadı - KillerPDF hâlâ taşınabilir olarak çalışıyor.</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">KillerPDF varsayılan PDF görüntüleyiciniz olarak ayarlansın mı?
+    <sys:String x:Key="Str_Status_InstallFailed">Yükleme tamamlanmadı - Avalanche hâlâ taşınabilir olarak çalışıyor.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Avalanche varsayılan PDF görüntüleyiciniz olarak ayarlansın mı?
 
 Windows Ayarları - Varsayılan Uygulamalar bölümünü açar.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Kaydedilmemiş değişiklikleriniz var. Bu dosya kaydedilmeden kapatılsın mı?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">Kaydedilmemiş değişiklikleriniz var. KillerPDF kaydedilmeden kapatılsın mı?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Kaydedilmemiş değişiklikleriniz var. Avalanche kaydedilmeden kapatılsın mı?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Bu belgede Adobe Reader'ın desteklediği aralığın (kenar başına 3 - 14.400 punto) dışında boyutlandırılmış {0} sayfa var - Adobe bu sayfaları boş gösterir.
 
 Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları korunur.</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">PDF açılamadı:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} açık belgeniz var. Uygulamadan çıkarken KillerPDF hepsini kapatsın mı?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 açık belgeniz var. Uygulamadan çıkarken KillerPDF onu kapatsın mı?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} açık belgeniz var. Uygulamadan çıkarken Avalanche hepsini kapatsın mı?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 açık belgeniz var. Uygulamadan çıkarken Avalanche onu kapatsın mı?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">Seçimimi hatırla</sys:String>
 
 
@@ -308,7 +308,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Pos_TopLeft">Üst Sol</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Yazdır</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - Yazdır</sys:String>
     <sys:String x:Key="Str_Print_Printer">Yazıcı</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Yönlendirme</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Dikey</sys:String>
@@ -359,7 +359,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Drop_Separate">Ayrı ayrı aç</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Açılacak PDF veya görüntü bulunamadı.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Bu, {0} ayrı sekme açacak. Devam edilsin mi?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">Bu klasör veya arşiv {0} dosya içeriyor. KillerPDF yalnızca ilk {1} tanesini açacak. Devam edilsin mi?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Bu klasör veya arşiv {0} dosya içeriyor. Avalanche yalnızca ilk {1} tanesini açacak. Devam edilsin mi?</sys:String>
     <sys:String x:Key="Str_Status_Merged">{0} dosya birleştirildi - henüz kaydedilmedi</sys:String>
     <sys:String x:Key="Str_Drop_Merging">Dosyalar birleştiriliyor...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">Birleştirme iptal edildi</sys:String>
@@ -519,14 +519,14 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_KS_FullScreen">Tam ekran</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Tam ekrandan çıkmak için F11 veya Esc'e basın</sys:String>
     <!-- Quit prompt -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF'den cikilsin mi?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Avalanche'den cikilsin mi?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Acik sekmelerimi kapat</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Cik</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Iptal</sys:String>
 
 
     <!-- Status-bar + dialog strings (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">Tüm KillerPDF verileri temizlendi</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">Tüm Avalanche verileri temizlendi</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">OCR bölgesi iptal edildi</sys:String>
     <sys:String x:Key="Str_St_Erased">Silindi</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Grup çözüldü</sys:String>
@@ -573,7 +573,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_PastedText">Metin yapıştırıldı - yeniden konumlandırmak için sürükleyin, kaldırmak için Delete</sys:String>
     <sys:String x:Key="Str_St_ClipEmpty">Panoda yapıştırılacak bir şey yok</sys:String>
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Lütfen güncellemeden önce değişikliklerinizi kaydedin.</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF kaldırıldı.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche kaldırıldı.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">Çıkarılacak sayfaları seçin.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">Silinecek sayfaları seçin.</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">Kullanılabilir yazıcı yok.</sys:String>
@@ -899,7 +899,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Aranabilir PDF kaydedildi:&#10;{0}&#10;&#10;{1} sayfa işlendi, {2} sözcük tanındı.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">"{0}" başarıyla onarıldı.&#10;&#10;Yer imleri, formlar ve diğer etkileşimli özellikler kaybolmuş olabilir. Onarılan dosyayı yeni bir konuma yazmak için Farklı Kaydet'i kullanın.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">"{0}" PDFium ile rasterleştirilerek onarıldı.&#10;&#10;Onarılan kopyada metin seçilemez. Yeni bir konuma yazmak için Farklı Kaydet'i kullanın.</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" hasarlı bir yapıya sahip ve eklenemedi.&#10;&#10;KillerPDF onarmayı denesin mi? Onarılmış bir kopya oluşturulacak - özgün dosya değiştirilmeyecek.&#10;&#10;Not: onarılan dosyalarda yer imleri, formlar ve diğer etkileşimli özellikler eksik olabilir.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" hasarlı bir yapıya sahip ve eklenemedi.&#10;&#10;Avalanche onarmayı denesin mi? Onarılmış bir kopya oluşturulacak - özgün dosya değiştirilmeyecek.&#10;&#10;Not: onarılan dosyalarda yer imleri, formlar ve diğer etkileşimli özellikler eksik olabilir.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR'nin çalışabilmesi için şimdi bir dil modeli ({0}) indirilecek.&#10;&#10;OCR menüsünden istediğiniz zaman başka diller ekleyebilir veya daha yüksek kaliteli modellere geçebilirsiniz.</sys:String>
     <sys:String x:Key="Str_Bar_More">Diğer ayarlar</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Çizgiyi en yakın eksende tutar (yatay veya dikey)</sys:String>
@@ -913,14 +913,14 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_TT_SaveOptions">Kaydetme seçenekleri</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR seçenekleri</sys:String>
     <sys:String x:Key="Str_RecentHeading">SON KULLANILANLAR</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Klavye kısayolları</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - Klavye kısayolları</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">Güncelleme mevcut: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} indirilip yüklensin mi?&#10;&#10;Uygulama kapanacak ve otomatik olarak yeniden açılacak.</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Avalanche {0} indirilip yüklensin mi?&#10;&#10;Uygulama kapanacak ve otomatik olarak yeniden açılacak.</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">İndiriliyor...</sys:String>
     <sys:String x:Key="Str_ClearAllData">Tüm verileri temizle</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Bu işlem kayıtlı tüm ayarları, indirilen OCR dil paketlerini ve geçici dosyaları siler.&#10;&#10;PDF dosyalarınız etkilenmez. Devam edilsin mi?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Ayarlar, dil paketleri ve geçici dosyalar temizlendi.&#10;&#10;Bu oturumda hâlâ kullanımda olan dosyaların temizlenmesini tamamlamak için KillerPDF'i yeniden başlatın.</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - Beklenmeyen hata</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Ayarlar, dil paketleri ve geçici dosyalar temizlendi.&#10;&#10;Bu oturumda hâlâ kullanımda olan dosyaların temizlenmesini tamamlamak için Avalanche'i yeniden başlatın.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - Beklenmeyen hata</sys:String>
     <sys:String x:Key="Str_Crash_Log">Günlük: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">Raporu kopyala</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">Günlükleri aç</sys:String>
@@ -979,17 +979,17 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Compare_DetailsTitle">Kıyaslama Detayları</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF tarayıcı PDF&apos;sini açamadı.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">Bu tarayıcı komutu KillerPDF&apos;nin bildiği bir komut değil.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche tarayıcı PDF&apos;sini açamadı.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Bu tarayıcı komutu Avalanche&apos;nin bildiği bir komut değil.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Devir teslimde PDF adresi yoktu.</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">Devir teslimindeki PDF adresi okunamadı.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF yalnızca https üzerinden tarayıcı aktarımlarını açar.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche yalnızca https üzerinden tarayıcı aktarımlarını açar.</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">Tarayıcı devri kullanılamadı.</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">PDF, 256 MB tarayıcı aktarım sınırından daha büyük.</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">İndirilen dosya bir PDF değil.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF PDF&apos;yi indiremedi.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche PDF&apos;yi indiremedi.</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">PDF indirme işlemi zaman aşımına uğradı.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF indirilen PDF&apos;yi kaydedemedi veya okuyamadı.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche indirilen PDF&apos;yi kaydedemedi veya okuyamadı.</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">Doldurulabilir metin alanı oluşturmak için sürükleyin</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">Doldurulabilir metin alanı oluşturma iptal edildi</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">Doldurulabilir metin alanı oluşturulamadı</sys:String>
@@ -1024,7 +1024,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_KS_EnabledStatus">Klavye kısayolları etkin</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Klavye kısayolları devre dışı. Etkinleştirmek için Ctrl+Shift+K tuşlarına basın.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Başlangıçta güncellemeleri denetle</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} kullanılabilir. Şimdi indirip yüklemek ister misiniz?&#10;&#10;Uygulama kapanacak ve otomatik olarak yeniden açılacak.</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Avalanche {0} kullanılabilir. Şimdi indirip yüklemek ister misiniz?&#10;&#10;Uygulama kapanacak ve otomatik olarak yeniden açılacak.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Başlangıçta her zaman güncellemeleri denetle</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” parola korumalıdır.</sys:String>
     <sys:String x:Key="Str_About_Aka">Diğer adıyla</sys:String>

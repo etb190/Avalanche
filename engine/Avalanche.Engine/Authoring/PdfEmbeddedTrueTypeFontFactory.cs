@@ -117,7 +117,7 @@ internal static class PdfEmbeddedTrueTypeFontFactory
         var text = new StringBuilder(
             "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n" +
             "/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> def\n" +
-            "/CMapName /KillerPDF-Identity def\n/CMapType 1 def\n/WMode 0 def\n" +
+            "/CMapName /Avalanche-Identity def\n/CMapType 1 def\n/WMode 0 def\n" +
             "1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n");
         foreach (KeyValuePair<ushort, EmbeddedCharacterMapping>[] chunk in mappings.Chunk(100))
         {

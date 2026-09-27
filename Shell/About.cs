@@ -13,9 +13,9 @@ namespace Avalanche
     /// handlers. All the logic - signature, hashing, update check, self-update - lives in
     /// <see cref="AboutController"/>.
     ///
-    /// NOTE: this stays "namespace Avalanche" rather than KillerPDF.Shell, because it is a partial
+    /// NOTE: this stays "namespace Avalanche" rather than Avalanche.Shell, because it is a partial
     /// of MainWindow and every partial of a class must share one namespace. It moves to
-    /// KillerPDF.Shell when MainWindow itself does.
+    /// Avalanche.Shell when MainWindow itself does.
     /// </summary>
     public partial class MainWindow : IAboutHost
     {

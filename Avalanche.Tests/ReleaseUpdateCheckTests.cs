@@ -50,8 +50,8 @@ public sealed class ReleaseUpdateCheckTests
         using var handler = new StubHandler(status, body);
         using var client = new HttpClient(handler);
         Assert.Equal(expected, await ReleaseUpdateCheck.FindNewerReleaseAsync(client, new Version(1, 8, 5)));
-        Assert.Equal("https://api.github.com/repos/SteveTheKiller/KillerPDF/releases/latest", handler.Url);
-        Assert.Equal("KillerPDF-UpdateCheck", handler.UserAgent);
+        Assert.Equal("https://api.github.com/repos/SteveTheKiller/Avalanche/releases/latest", handler.Url);
+        Assert.Equal("Avalanche-UpdateCheck", handler.UserAgent);
     }
 
     [Fact]

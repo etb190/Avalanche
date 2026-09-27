@@ -54,7 +54,7 @@ internal static class PdfLinkAnnotationFactory
                 Number(x), Number(y), Number(x + width), Number(y + height)])),
             ("P", page),
             ("F", new PdfInteger((int)(metadata?.Flags ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-Link-{annotation.ObjectNumber}")),
+            ("NM", Latin1String($"Avalanche-Link-{annotation.ObjectNumber}")),
             ("Border", new PdfArray([
                 Number(appearance.HorizontalCornerRadius),
                 Number(appearance.VerticalCornerRadius),

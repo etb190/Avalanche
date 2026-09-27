@@ -131,7 +131,7 @@ namespace Avalanche
 
                 var b = CurrentMonitorBoundsPixels();
                 Topmost = true;
-                // #215: Topmost exists only to cover the always-on-top taskbar while KillerPDF is
+                // #215: Topmost exists only to cover the always-on-top taskbar while Avalanche is
                 // the ACTIVE window. Held unconditionally, it sat over every other program the user
                 // switched to. Yield it on deactivate, take it back on return - browser behavior.
                 Deactivated += FsYieldTopmost;

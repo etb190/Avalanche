@@ -63,7 +63,7 @@ namespace Avalanche.Controls
         /// SetResourceReference, not a brush snapshot, on both states: an assigned brush would not
         /// follow a live theme switch.
         ///
-        /// "SelectionAccent", not "AccentBrush". KillerPDF uses the older family resource set
+        /// "SelectionAccent", not "AccentBrush". Avalanche uses the older family resource set
         /// (BgCanvas / AccentLogo / TextPrimary) and has no AccentBrush key in any theme.
         /// SetResourceReference to a missing key does not throw, it silently leaves the property
         /// unset, which blanks the border instead of accenting it.

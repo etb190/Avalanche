@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Hungarian (hu-HU) strings
+         Avalanche  -  Hungarian (hu-HU) strings
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -48,7 +48,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Oldalsáv összecsukása (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Oldalsáv kibontása (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Billentyűparancsok (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">A KillerPDF névjegye (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">A Avalanche névjegye (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERZIÓ</sys:String>
@@ -137,7 +137,7 @@
     <!-- ── Status bar ────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">Kész</sys:String>
     <sys:String x:Key="Str_Portable">HORDOZHATÓ</sys:String>
-    <sys:String x:Key="Str_InstallBtn">KillerPDF telepítése</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Avalanche telepítése</sys:String>
 
     <!-- ── Status messages (format strings - use string.Format) ─────── -->
     <sys:String x:Key="Str_Opened">Megnyitva: {0} - {1} oldal</sys:String>
@@ -209,37 +209,37 @@
 A mentés most felülírja a fájlt, és azok a módosítások elvesznek. Előbb mentse a másik ablaktáblát, ha meg szeretné őrizni őket.</sys:String>
     <sys:String x:Key="Str_St_SplitOn">Osztott ablaktábla be - F10 a bezáráshoz</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Osztott ablaktábla ki</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF telepítése</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Telepíti a KillerPDF-et erre a számítógépre?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Avalanche telepítése</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Telepíti a Avalanche-et erre a számítógépre?
 
-A KillerPDF a programok mappájába másolódik, és bekerül a Start menübe. Ez az exe-példány a helyén marad, és bármikor eltávolíthatja a Programok telepítése/törlése segítségével.</sys:String>
+A Avalanche a programok mappájába másolódik, és bekerül a Start menübe. Ez az exe-példány a helyén marad, és bármikor eltávolíthatja a Programok telepítése/törlése segítségével.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Telepítés</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Frissítés</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Frissíti a meglévő KillerPDF-telepítést?
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Frissíti a meglévő Avalanche-telepítést?
 
 Ez a telepített példányt a gyorsabb, többfájlos verzióra cseréli. Ezt a hordozható fájlt utána megtarthatja vagy törölheti.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Frissíti a KillerPDF minden felhasználóra érvényes meglévő telepítését?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Frissíti a Avalanche minden felhasználóra érvényes meglévő telepítését?
 
-Ez a Program Files mappában lévő példányt a gyorsabb, többfájlos verzióra cseréli. A régebbi, felhasználónkénti példány eltávolításra kerül, így a KillerPDF csak egyszer jelenik meg. Ezt a hordozható fájlt utána megtarthatja vagy törölheti.</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">A KillerPDF már telepítve van ezen a számítógépen minden felhasználó számára. Frissítse azt a telepítést, vagy távolítsa el, mielőtt felhasználónkénti telepítést választana.
+Ez a Program Files mappában lévő példányt a gyorsabb, többfájlos verzióra cseréli. A régebbi, felhasználónkénti példány eltávolításra kerül, így a Avalanche csak egyszer jelenik meg. Ezt a hordozható fájlt utána megtarthatja vagy törölheti.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">A Avalanche már telepítve van ezen a számítógépen minden felhasználó számára. Frissítse azt a telepítést, vagy távolítsa el, mielőtt felhasználónkénti telepítést választana.
 
-A KillerPDF nem hoz létre két telepített példányt.</sys:String>
+A Avalanche nem hoz létre két telepített példányt.</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Asztali parancsikon hozzáadása</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Telepítés a számítógép minden felhasználója számára (rendszergazdai jog szükséges)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">A telepítés nem fejeződött be - a KillerPDF továbbra is hordozható módban fut.</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Beállítja a KillerPDF-et alapértelmezett PDF-megjelenítőként?
+    <sys:String x:Key="Str_Status_InstallFailed">A telepítés nem fejeződött be - a Avalanche továbbra is hordozható módban fut.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Beállítja a Avalanche-et alapértelmezett PDF-megjelenítőként?
 
 Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Nem mentett módosításai vannak. Bezárja ezt a fájlt mentés nélkül?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">Nem mentett módosításai vannak. Bezárja a KillerPDF-et mentés nélkül?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Nem mentett módosításai vannak. Bezárja a Avalanche-et mentés nélkül?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Ebben a dokumentumban {0} oldal mérete kívül esik az Adobe Reader által támogatott tartományon (oldalanként 3-14 400 pont) - az Adobe ezeket üres oldalként jeleníti meg.
 
 Átméretezi őket támogatott méretre? Az oldalak megtartják megjelenésüket és arányaikat.</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">A PDF megnyitása sikertelen:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} megnyitott dokumentuma van. Szeretné, hogy a KillerPDF mindet bezárja az alkalmazásból való kilépéskor?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 megnyitott dokumentuma van. Szeretné, hogy a KillerPDF bezárja az alkalmazásból való kilépéskor?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} megnyitott dokumentuma van. Szeretné, hogy a Avalanche mindet bezárja az alkalmazásból való kilépéskor?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 megnyitott dokumentuma van. Szeretné, hogy a Avalanche bezárja az alkalmazásból való kilépéskor?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">Választás megjegyzése</sys:String>
 
 
@@ -375,7 +375,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Pos_TopLeft">Felül balra</sys:String>
 
     <!-- ── Print dialog ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - Nyomtatás</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - Nyomtatás</sys:String>
     <sys:String x:Key="Str_Print_Printer">Nyomtató</sys:String>
     <sys:String x:Key="Str_Print_Paper">Papírméret</sys:String>
     <sys:String x:Key="Str_Print_PaperAuto">Dokumentumhoz igazítás</sys:String>
@@ -434,7 +434,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Drop_Separate">Megnyitás külön</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Nem található megnyitható PDF vagy kép.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Ez {0} külön lapot nyit meg. Folytatja?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">Ez a mappa vagy archívum {0} fájlt tartalmaz. A KillerPDF csak az első {1} fájlt nyitja meg. Folytatja?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Ez a mappa vagy archívum {0} fájlt tartalmaz. A Avalanche csak az első {1} fájlt nyitja meg. Folytatja?</sys:String>
     <sys:String x:Key="Str_Status_Merged">{0} fájl egyesítve - még nincs mentve</sys:String>
     <sys:String x:Key="Str_Drop_Merging">Fájlok egyesítése...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">Egyesítés megszakítva</sys:String>
@@ -595,14 +595,14 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_KS_FullScreen">Teljes képernyő</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Nyomja meg az F11 vagy Esc billentyűt a teljes képernyőből való kilépéshez</sys:String>
     <!-- Quit prompt (family standard) -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">Kilép a KillerPDF-ből?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Kilép a Avalanche-ből?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">A megnyitott lapjaim bezárása</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Kilépés</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Mégse</sys:String>
 
 
     <!-- Status-bar messages (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">Minden KillerPDF-adat törölve</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">Minden Avalanche-adat törölve</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">OCR terület megszakítva</sys:String>
     <sys:String x:Key="Str_St_Erased">Törölve</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Csoport bontva</sys:String>
@@ -651,7 +651,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 
     <!-- Dialog / message-box strings (extracted from code) -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">A frissítés előtt mentse a módosításokat.</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">A KillerPDF eltávolítva.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">A Avalanche eltávolítva.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">Jelölje ki a kinyerni kívánt oldalakat.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">Jelölje ki a törölni kívánt oldalakat.</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">Nincs elérhető nyomtató.</sys:String>
@@ -906,7 +906,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Kereshető PDF mentve:&#10;{0}&#10;&#10;{1} oldal feldolgozva, {2} szó felismerve.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">A(z) "{0}" sikeresen megjavítva.&#10;&#10;A könyvjelzők, űrlapok és más interaktív funkciók elveszhettek. A Mentés másként paranccsal írja a javított fájlt új helyre.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">A(z) "{0}" a PDFium általi raszterizálással lett megjavítva.&#10;&#10;A javított másolatban a szöveg nem jelölhető ki. A Mentés másként paranccsal írja új helyre.</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">A(z) "{0}" szerkezete sérült, ezért nem adható hozzá.&#10;&#10;Megpróbálja a KillerPDF megjavítani? Javított másolat készül - az eredeti fájl nem változik.&#10;&#10;Megjegyzés: a javított fájlokból hiányozhatnak a könyvjelzők, űrlapok és más interaktív funkciók.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">A(z) "{0}" szerkezete sérült, ezért nem adható hozzá.&#10;&#10;Megpróbálja a Avalanche megjavítani? Javított másolat készül - az eredeti fájl nem változik.&#10;&#10;Megjegyzés: a javított fájlokból hiányozhatnak a könyvjelzők, űrlapok és más interaktív funkciók.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Egy nyelvi modell ({0}) letöltésre kerül, hogy az OCR futhasson.&#10;&#10;Az OCR menüből bármikor hozzáadhat további nyelveket vagy válthat jobb minőségű modellekre.</sys:String>
     <sys:String x:Key="Str_Bar_More">További beállítások</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">A vonalat a legközelebbi tengelyen tartja (vízszintes vagy függőleges)</sys:String>
@@ -920,14 +920,14 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_SaveOptions">Mentési lehetőségek</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR-lehetőségek</sys:String>
     <sys:String x:Key="Str_RecentHeading">LEGUTÓBBI</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Billentyűparancsok</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - Billentyűparancsok</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">Frissítés érhető el: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Letöltöd és telepíted a KillerPDF {0} verzióját?&#10;&#10;Az alkalmazás automatikusan bezárul és újraindul.</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Letöltöd és telepíted a Avalanche {0} verzióját?&#10;&#10;Az alkalmazás automatikusan bezárul és újraindul.</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">Letöltés...</sys:String>
     <sys:String x:Key="Str_ClearAllData">Minden adat törlése</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Ez törli az összes mentett beállítást, a letöltött OCR-nyelvi csomagokat és az ideiglenes fájlokat.&#10;&#10;A PDF-fájljaidat nem érinti. Folytatod?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">A beállítások, a nyelvi csomagok és az ideiglenes fájlok törölve lettek.&#10;&#10;Indítsd újra a KillerPDF-et a munkamenetben még használt fájlok törlésének befejezéséhez.</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - Váratlan hiba</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">A beállítások, a nyelvi csomagok és az ideiglenes fájlok törölve lettek.&#10;&#10;Indítsd újra a Avalanche-et a munkamenetben még használt fájlok törlésének befejezéséhez.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - Váratlan hiba</sys:String>
     <sys:String x:Key="Str_Crash_Log">Napló: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">Jelentés másolása</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">Naplók megnyitása</sys:String>
@@ -986,17 +986,17 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF-összehasonlítás részletei</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">A KillerPDF nem tudta megnyitni a böngésző PDF-jét.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">Ez a böngészőparancs nem egy KillerPDF által ismert parancs.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">A Avalanche nem tudta megnyitni a böngésző PDF-jét.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Ez a böngészőparancs nem egy Avalanche által ismert parancs.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Az átadás nem tartalmazott PDF-címet.</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">Az átadáskor megadott PDF-címet nem sikerült beolvasni.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">A KillerPDF csak https-en keresztül nyitja meg a böngésző átadásokat.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">A Avalanche csak https-en keresztül nyitja meg a böngésző átadásokat.</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">A böngésző átadása nem használható.</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">A PDF nagyobb, mint a 256 MB böngésző átadási korlátja.</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">A letöltött fájl nem PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">A KillerPDF nem tudta letölteni a PDF-et.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">A Avalanche nem tudta letölteni a PDF-et.</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">A PDF-letöltés túllépte az időkorlátot.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">A KillerPDF nem tudta menteni vagy olvasni a letöltött PDF-et.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">A Avalanche nem tudta menteni vagy olvasni a letöltött PDF-et.</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">Húzással hozzon létre kitölthető szövegmezőt</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">A kitölthető szövegmező létrehozása megszakítva</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">Nem sikerült létrehozni a kitölthető szövegmezőt</sys:String>
@@ -1031,7 +1031,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_KS_EnabledStatus">Billentyűparancsok bekapcsolva</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Billentyűparancsok kikapcsolva. A bekapcsolásukhoz nyomd meg a Ctrl+Shift+K billentyűkombinációt.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Frissítések keresése indításkor</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Elérhető a KillerPDF {0}. Szeretnéd most letölteni és telepíteni?&#10;&#10;Az alkalmazás automatikusan bezárul és újraindul.</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Elérhető a Avalanche {0}. Szeretnéd most letölteni és telepíteni?&#10;&#10;Az alkalmazás automatikusan bezárul és újraindul.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Mindig keressen frissítéseket indításkor</sys:String>
     <sys:String x:Key="Str_PasswordProtected">A(z) „{0}” jelszóval védett.</sys:String>
     <sys:String x:Key="Str_About_Aka">Más néven</sys:String>

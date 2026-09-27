@@ -146,12 +146,12 @@ public sealed class LocalizationParityTests
         string source = File.ReadAllText(Path.Combine(root, "Shell", "ExternalOpen.cs"));
         string[] messages =
         [
-            "KillerPDF could not open the browser PDF.",
+            "Avalanche could not open the browser PDF.",
             "The PDF is larger than the 256 MB browser handoff limit.",
             "The downloaded file is not a PDF.",
-            "KillerPDF could not download the PDF.",
+            "Avalanche could not download the PDF.",
             "The PDF download timed out.",
-            "KillerPDF could not save or read the downloaded PDF."
+            "Avalanche could not save or read the downloaded PDF."
         ];
 
         foreach (string message in messages)
@@ -171,7 +171,7 @@ public sealed class LocalizationParityTests
         string relative = Path.GetRelativePath(root, path).Replace('\\', '/');
         return relative.StartsWith("Strings/", StringComparison.OrdinalIgnoreCase)
             || relative.StartsWith("Packaging/", StringComparison.OrdinalIgnoreCase)
-            || relative.StartsWith("KillerPDF.Tests/", StringComparison.OrdinalIgnoreCase)
+            || relative.StartsWith("Avalanche.Tests/", StringComparison.OrdinalIgnoreCase)
             || relative.StartsWith("engine/", StringComparison.OrdinalIgnoreCase)
             || relative.Contains("/bin/", StringComparison.OrdinalIgnoreCase)
             || relative.Contains("/obj/", StringComparison.OrdinalIgnoreCase);

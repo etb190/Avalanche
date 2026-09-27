@@ -23,7 +23,7 @@ internal static class AppDataPaths
                 string fullPath = Path.GetFullPath(launcher);
                 if (!File.Exists(fullPath)) return null;
                 string? directory = Path.GetDirectoryName(fullPath);
-                return directory is null ? null : Path.Combine(directory, "KillerPDF-Data");
+                return directory is null ? null : Path.Combine(directory, "Avalanche-Data");
             }
             catch { return null; }
         }

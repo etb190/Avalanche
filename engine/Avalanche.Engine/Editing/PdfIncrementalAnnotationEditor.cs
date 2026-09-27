@@ -975,7 +975,7 @@ public sealed class PdfIncrementalAnnotationEditor
                     : new[]
                     {
                         (item.AnnotationReference, AllocatedAnnotationName(item)),
-                        (item.PopupReference, $"KillerPDF-Popup-{item.PopupReference.ObjectNumber}")
+                        (item.PopupReference, $"Avalanche-Popup-{item.PopupReference.ObjectNumber}")
                     }), pageRemovals);
         }
         return update.Build(options);
@@ -999,7 +999,7 @@ public sealed class PdfIncrementalAnnotationEditor
             PendingLink => "Link",
             _ => throw new InvalidOperationException("Unknown annotation definition.")
         };
-        return $"KillerPDF-{kind}-{item.AnnotationReference.ObjectNumber}";
+        return $"Avalanche-{kind}-{item.AnnotationReference.ObjectNumber}";
     }
 
     private Dictionary<int, long> PrepareTaggedAnnotationStructure(
@@ -2532,7 +2532,7 @@ public sealed class PdfIncrementalAnnotationEditor
                 ?? PdfAnnotationFlags.Print))),
             ("Contents", UnicodeString(note.Contents)),
             ("NM", note.Name is null
-                ? Latin1String($"KillerPDF-Note-{annotation.ObjectNumber}")
+                ? Latin1String($"Avalanche-Note-{annotation.ObjectNumber}")
                 : UnicodeString(note.Name)),
             ("Name", Name(PdfTextNoteIconNames.Name(note.Icon))),
             ("Open", new PdfBoolean(note.Open)),
@@ -2604,7 +2604,7 @@ public sealed class PdfIncrementalAnnotationEditor
                 }))),
             ("P", page), ("F", new PdfInteger((int)(markup.Metadata?.Flags
                 ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-{markup.Type}-{annotation.ObjectNumber}")),
+            ("NM", Latin1String($"Avalanche-{markup.Type}-{annotation.ObjectNumber}")),
             ("C", ColorArray(markup.Color)), ("CA", Number(markup.Opacity)),
             ("AP", Dictionary(("N", appearance)))
         };
@@ -2984,7 +2984,7 @@ public sealed class PdfIncrementalAnnotationEditor
             ("Rect", Rectangle(stamp.X, stamp.Y, stamp.Width, stamp.Height)),
             ("P", page), ("F", new PdfInteger((int)(stamp.Metadata?.Flags
                 ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-Image-{annotation.ObjectNumber}")),
+            ("NM", Latin1String($"Avalanche-Image-{annotation.ObjectNumber}")),
             ("Name", Name(PdfStampIconNames.Name(stamp.Icon))),
             ("AP", Dictionary(("N", appearance)))
         };
@@ -3144,7 +3144,7 @@ public sealed class PdfIncrementalAnnotationEditor
             ("F", new PdfInteger((int)(value.Metadata?.Flags
                 ?? PdfAnnotationFlags.Print))),
             ("NM", Latin1String(
-                $"KillerPDF-FileAttachment-{annotation.ObjectNumber}")),
+                $"Avalanche-FileAttachment-{annotation.ObjectNumber}")),
             ("Name", Name(value.Icon.ToString())),
             ("C", ColorArray(value.Color)),
             ("FS", value.FileSpecification),
@@ -3187,7 +3187,7 @@ public sealed class PdfIncrementalAnnotationEditor
             ("Rect", Rectangle(x, y, width, height)), ("P", page),
             ("F", new PdfInteger((int)(metadata?.Flags
                 ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-{subtype}-{annotation.ObjectNumber}")),
+            ("NM", Latin1String($"Avalanche-{subtype}-{annotation.ObjectNumber}")),
             ("C", ColorArray(color)), ("CA", Number(opacity)),
             ("AP", Dictionary(("N", appearance)))
         };

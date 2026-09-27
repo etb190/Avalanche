@@ -13,7 +13,7 @@ using WpfPoint = System.Windows.Point;
 
 namespace Avalanche.Services;
 
-/// <summary>Burns KillerPDF markup into typed engine page content.</summary>
+/// <summary>Burns Avalanche markup into typed engine page content.</summary>
 internal static class PdfEngineBurn
 {
     internal static void Burn(

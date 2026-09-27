@@ -127,7 +127,7 @@ namespace Avalanche.Services
 
         /// <summary>
         /// Strategy 1 worker (background-safe, no UI/_doc access): imports the complete source
-        /// graph through The KillerPDF.Engine into a clean temp PDF and returns its path.
+        /// graph through The Avalanche.Engine into a clean temp PDF and returns its path.
         /// </summary>
         internal static string? RepairViaImportToFile(string path)
         {

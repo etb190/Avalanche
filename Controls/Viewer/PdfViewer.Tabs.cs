@@ -8,7 +8,7 @@ using Avalanche.Services;
 
 namespace Avalanche.Controls
 {
-    // Tabbed document support. KillerPDF keeps one window and one live "working set" of
+    // Tabbed document support. Avalanche keeps one window and one live "working set" of
     // per-document fields (in MainWindow.xaml.cs). Each open PDF is a DocumentSession that
     // owns its own copy of those fields. Switching tabs captures the live fields into the
     // outgoing session and applies the incoming session's fields, then re-renders.

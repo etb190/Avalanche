@@ -77,10 +77,10 @@ namespace Avalanche
                 CornerRadius = new CornerRadius(5, 5, 0, 0)
             };
             titleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
-            // KillerPDF-prefixed titles keep the real wordmark. A qualifier such as "Uninstall"
+            // Avalanche-prefixed titles keep the real wordmark. A qualifier such as "Uninstall"
             // follows in the same typewriter family instead of flattening the whole title into
             // generic monospace text.
-            if (title == "Avalanche" || title.StartsWith("KillerPDF ", System.StringComparison.Ordinal))
+            if (title == "Avalanche" || title.StartsWith("Avalanche ", System.StringComparison.Ordinal))
             {
                 var wm = new StackPanel { Orientation = Orientation.Horizontal };
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };

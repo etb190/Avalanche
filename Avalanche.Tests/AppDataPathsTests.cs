@@ -12,7 +12,7 @@ public sealed class AppDataPathsTests
     public void PortableSettingsAreStoredBesideTheLauncher()
     {
         string root = Path.Combine(Path.GetTempPath(), $"killerpdf-portable-data-{Guid.NewGuid():N}");
-        string launcher = Path.Combine(root, "KillerPDF-Portable.exe");
+        string launcher = Path.Combine(root, "Avalanche-Portable.exe");
         string? previous = Environment.GetEnvironmentVariable("AVALANCHE_LAUNCHER_PATH");
         try
         {
@@ -22,7 +22,7 @@ public sealed class AppDataPathsTests
 
             AppDataPaths.SetPortableSetting("Locale", "ja-JP");
 
-            string dataRoot = Path.Combine(root, "KillerPDF-Data");
+            string dataRoot = Path.Combine(root, "Avalanche-Data");
             Assert.Equal(dataRoot, AppDataPaths.PortableRoot);
             Assert.Equal("ja-JP", AppDataPaths.GetPortableSetting("Locale"));
             Dictionary<string, string>? settings = JsonSerializer.Deserialize<Dictionary<string, string>>(

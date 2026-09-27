@@ -45,7 +45,7 @@ public sealed class PdfAttachmentTests
     [Fact]
     public void AddAttachment_WritesNamesTreeAssociatedFileAndExactPayload()
     {
-        byte[] payload = Encoding.UTF8.GetBytes("KillerPDF attachment");
+        byte[] payload = Encoding.UTF8.GetBytes("Avalanche attachment");
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
             .AddAttachment("résumé.txt", payload, "text/plain", "Test data",

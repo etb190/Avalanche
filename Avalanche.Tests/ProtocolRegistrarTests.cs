@@ -22,7 +22,7 @@ public sealed class ProtocolRegistrarTests
         => Assert.False(ProtocolRegistrar.TryGetTargetUrl(value, out _));
 
     // #267 follow-up: a refusal has to name its branch, or the caller cannot tell a launch that
-    // was aimed at KillerPDF and refused from one that was never a handoff. A table rather than a
+    // was aimed at Avalanche and refused from one that was never a handoff. A table rather than a
     // Theory because HandoffRejection is internal and cannot sit in a public test signature.
     [Fact]
     public void ReportsWhyALaunchWasRefused()

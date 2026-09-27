@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Chuỗi tiếng Việt (vi-VN)
+         Avalanche  -  Chuỗi tiếng Việt (vi-VN)
          ================================================================ -->
 
     <!-- ── Chú thích công cụ trên thanh công cụ ─────────────────────── -->
@@ -48,7 +48,7 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Thu gọn thanh bên (F9)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Mở rộng thanh bên (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Phím tắt (F1)</sys:String>
-    <sys:String x:Key="Str_TT_About">Giới thiệu về KillerPDF (F12)</sys:String>
+    <sys:String x:Key="Str_TT_About">Giới thiệu về Avalanche (F12)</sys:String>
 
     <!-- ── Lớp thông tin Giới thiệu ─────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">PHIÊN BẢN</sys:String>
@@ -137,7 +137,7 @@
     <!-- ── Thanh trạng thái ────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ready">Sẵn sàng</sys:String>
     <sys:String x:Key="Str_Portable">DI ĐỘNG (PORTABLE)</sys:String>
-    <sys:String x:Key="Str_InstallBtn">Cài đặt KillerPDF</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Cài đặt Avalanche</sys:String>
 
     <!-- ── Thông báo trạng thái (chuỗi định dạng - sử dụng string.Format) ── -->
     <sys:String x:Key="Str_Opened">Đã mở {0} - {1} trang</sys:String>
@@ -209,37 +209,37 @@
 Lưu ngay bây giờ sẽ ghi đè lên tệp và các thay đổi đó sẽ bị mất. Hãy lưu khung bên kia trước nếu bạn muốn giữ lại chúng.</sys:String>
     <sys:String x:Key="Str_St_SplitOn">Đã bật chia đôi khung - Nhấn F10 để đóng</sys:String>
     <sys:String x:Key="Str_St_SplitOff">Đã tắt chia đôi khung</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallTitle">Cài đặt KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Cài đặt KillerPDF trên máy tính này?
+    <sys:String x:Key="Str_Dlg_InstallTitle">Cài đặt Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Cài đặt Avalanche trên máy tính này?
 
 Việc cài đặt sẽ sao chép ứng dụng vào thư mục Chương trình (Programs) của bạn để khởi động nhanh hơn và thêm lối tắt vào menu Bắt đầu (Start menu). Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Cập nhật bản cài đặt KillerPDF hiện tại cho tất cả người dùng?
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Cập nhật bản cài đặt Avalanche hiện tại cho tất cả người dùng?
 
-Thao tác này sẽ thay thế bản sao trong Program Files bằng phiên bản nhiều tệp nhanh hơn. Mọi bản sao cũ dành cho từng người dùng sẽ bị xóa để KillerPDF chỉ xuất hiện một lần duy nhất. Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Cập nhật bản cài đặt KillerPDF hiện tại của bạn?
+Thao tác này sẽ thay thế bản sao trong Program Files bằng phiên bản nhiều tệp nhanh hơn. Mọi bản sao cũ dành cho từng người dùng sẽ bị xóa để Avalanche chỉ xuất hiện một lần duy nhất. Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Cập nhật bản cài đặt Avalanche hiện tại của bạn?
 
 Thao tác này sẽ thay thế bản đã cài đặt bằng phiên bản nhiều tệp nhanh hơn. Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
-    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF đã được cài đặt cho mọi người dùng trên máy tính này. Hãy cập nhật bản cài đặt đó, hoặc gỡ cài đặt trước khi chọn cài đặt cho riêng người dùng hiện tại.
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">Avalanche đã được cài đặt cho mọi người dùng trên máy tính này. Hãy cập nhật bản cài đặt đó, hoặc gỡ cài đặt trước khi chọn cài đặt cho riêng người dùng hiện tại.
 
-KillerPDF sẽ không tạo ra hai bản sao đã cài đặt.</sys:String>
+Avalanche sẽ không tạo ra hai bản sao đã cài đặt.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Cài đặt</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Cập nhật</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Thêm lối tắt trên màn hình nền</sys:String>
     <sys:String x:Key="Str_Chk_AllUsers">Cài đặt cho mọi người dùng trên máy tính này (cần quyền quản trị viên)</sys:String>
-    <sys:String x:Key="Str_Status_InstallFailed">Cài đặt không hoàn tất - KillerPDF vẫn đang chạy ở chế độ di động (portable).</sys:String>
-    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Bạn có muốn đặt KillerPDF làm trình xem PDF mặc định không?
+    <sys:String x:Key="Str_Status_InstallFailed">Cài đặt không hoàn tất - Avalanche vẫn đang chạy ở chế độ di động (portable).</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Bạn có muốn đặt Avalanche làm trình xem PDF mặc định không?
 
 Sẽ mở Cài đặt Windows - Ứng dụng mặc định.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Bạn có các thay đổi chưa được lưu. Đóng tệp này mà không lưu?</sys:String>
-    <sys:String x:Key="Str_Dlg_UnsavedExit">Bạn có các thay đổi chưa được lưu. Đóng KillerPDF mà không lưu?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Bạn có các thay đổi chưa được lưu. Đóng Avalanche mà không lưu?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Tài liệu này có {0} trang có kích thước nằm ngoài mức hỗ trợ của Adobe Reader (3 đến 14.400 điểm mỗi cạnh) - Adobe hiển thị các trang này là trang trống.
 
 Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn giữ nguyên giao diện và tỷ lệ.</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">Không thể mở tệp PDF:
 {0}</sys:String>
-    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocs">Bạn có {0} tài liệu đang mở. Bạn có muốn KillerPDF đóng tất cả khi thoát ứng dụng không?</sys:String>
-    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Bạn có 1 tài liệu đang mở. Bạn có muốn KillerPDF đóng tài liệu đó khi thoát ứng dụng không?</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">Avalanche</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">Bạn có {0} tài liệu đang mở. Bạn có muốn Avalanche đóng tất cả khi thoát ứng dụng không?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Bạn có 1 tài liệu đang mở. Bạn có muốn Avalanche đóng tài liệu đó khi thoát ứng dụng không?</sys:String>
     <sys:String x:Key="Str_Dlg_RememberChoice">Nhớ lựa chọn của tôi</sys:String>
 
 
@@ -375,7 +375,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Pos_TopLeft">Trái trên</sys:String>
 
     <!-- ── Hộp thoại In ───────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Print_Title">KillerPDF - In</sys:String>
+    <sys:String x:Key="Str_Print_Title">Avalanche - In</sys:String>
     <sys:String x:Key="Str_Print_Printer">Máy in</sys:String>
     <sys:String x:Key="Str_Print_Paper">Kích thước giấy</sys:String>
     <sys:String x:Key="Str_Print_PaperAuto">Khớp với tài liệu</sys:String>
@@ -434,7 +434,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Drop_Separate">Mở riêng biệt</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Không tìm thấy tệp PDF hoặc hình ảnh nào có thể mở.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Thao tác này sẽ mở {0} tab riêng biệt. Tiếp tục?</sys:String>
-    <sys:String x:Key="Str_Drop_TooMany">Thư mục hoặc tệp lưu trữ này có {0} tệp. KillerPDF sẽ chỉ mở {1} tệp đầu tiên. Tiếp tục?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Thư mục hoặc tệp lưu trữ này có {0} tệp. Avalanche sẽ chỉ mở {1} tệp đầu tiên. Tiếp tục?</sys:String>
     <sys:String x:Key="Str_Status_Merged">Đã gộp {0} tệp - chưa được lưu</sys:String>
     <sys:String x:Key="Str_Drop_Merging">Đang gộp các tệp...</sys:String>
     <sys:String x:Key="Str_Drop_MergeCanceled">Đã hủy gộp</sys:String>
@@ -595,14 +595,14 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_KS_FullScreen">Toàn màn hình</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Nhấn F11 hoặc Esc để thoát chế độ toàn màn hình</sys:String>
     <!-- Thông báo thoát (tiêu chuẩn gia đình) -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">Thoát KillerPDF?</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">Thoát Avalanche?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Đóng các tab đang mở của tôi</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Thoát</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Hủy</sys:String>
 
 
     <!-- Status-bar messages (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">Đã xóa toàn bộ dữ liệu của KillerPDF</sys:String>
+    <sys:String x:Key="Str_St_DataCleared">Đã xóa toàn bộ dữ liệu của Avalanche</sys:String>
     <sys:String x:Key="Str_St_OcrRegionCanceled">Đã hủy chọn vùng OCR</sys:String>
     <sys:String x:Key="Str_St_Erased">Đã tẩy</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Đã bỏ nhóm</sys:String>
@@ -651,7 +651,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 
     <!-- Dialog / message-box strings (extracted from code) -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Vui lòng lưu các thay đổi trước khi cập nhật.</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF đã được gỡ cài đặt.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">Avalanche đã được gỡ cài đặt.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">Chọn các trang để trích xuất.</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">Chọn các trang để xóa.</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">Không có máy in khả dụng.</sys:String>
@@ -918,7 +918,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Đã lưu PDF có thể tìm kiếm:&#10;{0}&#10;&#10;Đã xử lý {1} trang, nhận dạng được {2} từ.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">"{0}" đã được sửa chữa thành công.&#10;&#10;Dấu trang, biểu mẫu và các tính năng tương tác khác có thể đã bị mất. Sử dụng Lưu thành để ghi tệp đã sửa chữa vào một vị trí mới.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">"{0}" đã được sửa chữa bằng cách chuyển thành dạng mẻ qua PDFium.&#10;&#10;Không thể chọn văn bản trong bản sao đã sửa chữa. Sử dụng Lưu thành để ghi tệp vào một vị trí mới.</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" có cấu trúc bị hỏng và không thể thêm được.&#10;&#10;Bạn có muốn KillerPDF thử sửa chữa không? Một bản sao đã sửa chữa sẽ được tạo - tệp gốc sẽ không bị thay đổi.&#10;&#10;Lưu ý: các tệp được sửa chữa có thể bị mất dấu trang, biểu mẫu và các tính năng tương tác khác.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" có cấu trúc bị hỏng và không thể thêm được.&#10;&#10;Bạn có muốn Avalanche thử sửa chữa không? Một bản sao đã sửa chữa sẽ được tạo - tệp gốc sẽ không bị thay đổi.&#10;&#10;Lưu ý: các tệp được sửa chữa có thể bị mất dấu trang, biểu mẫu và các tính năng tương tác khác.</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Một mô hình ngôn ngữ ({0}) sẽ được tải xuống ngay bây giờ để OCR có thể chạy.&#10;&#10;Bạn có thể thêm nhiều ngôn ngữ hơn hoặc chuyển sang các mô hình chất lượng cao hơn bất cứ lúc nào từ menu OCR.</sys:String>
     <sys:String x:Key="Str_Bar_More">Thêm cài đặt</sys:String>
     <sys:String x:Key="Str_Bar_TT_Level">Giữ đường thẳng trên trục gần nhất (ngang hoặc dọc)</sys:String>
@@ -932,14 +932,14 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_TT_SaveOptions">Tùy chọn lưu</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">Tùy chọn OCR</sys:String>
     <sys:String x:Key="Str_RecentHeading">GẦN ĐÂY</sys:String>
-    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Phím tắt</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">Avalanche - Phím tắt</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">Có bản cập nhật mới: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Tải xuống và cài đặt KillerPDF {0}?&#10;&#10;Ứng dụng sẽ tự động đóng và mở lại.</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Tải xuống và cài đặt Avalanche {0}?&#10;&#10;Ứng dụng sẽ tự động đóng và mở lại.</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">Đang tải xuống...</sys:String>
     <sys:String x:Key="Str_ClearAllData">Xóa toàn bộ dữ liệu</sys:String>
     <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Thao tác này sẽ xóa tất cả cài đặt đã lưu, gói ngôn ngữ OCR đã tải xuống và các tệp tạm thời.&#10;&#10;Các tệp PDF của bạn sẽ không bị ảnh hưởng. Bạn có muốn tiếp tục không?</sys:String>
-    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Đã xóa cài đặt, gói ngôn ngữ và tệp tạm thời.&#10;&#10;Hãy khởi động lại KillerPDF để hoàn tất việc dọn dẹp mọi tệp vẫn đang được sử dụng trong phiên này.</sys:String>
-    <sys:String x:Key="Str_Crash_Title">KillerPDF - Lỗi không mong muốn</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Đã xóa cài đặt, gói ngôn ngữ và tệp tạm thời.&#10;&#10;Hãy khởi động lại Avalanche để hoàn tất việc dọn dẹp mọi tệp vẫn đang được sử dụng trong phiên này.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">Avalanche - Lỗi không mong muốn</sys:String>
     <sys:String x:Key="Str_Crash_Log">Nhật ký: {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">Sao chép báo cáo</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">Mở nhật ký</sys:String>
@@ -999,17 +999,17 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Compare_DetailsTitle">Chi tiết so sánh PDF</sys:String>
 
     <!-- ── Từ chối chuyển giao trình duyệt ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF không thể mở tệp PDF trên trình duyệt.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">Lệnh trình duyệt đó không có trong cơ sở dữ liệu của KillerPDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">Avalanche không thể mở tệp PDF trên trình duyệt.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Lệnh trình duyệt đó không có trong cơ sở dữ liệu của Avalanche.</sys:String>
     <sys:String x:Key="Str_Handoff_MissingUrl">Quá trình chuyển đổi không bao gồm địa chỉ PDF.</sys:String>
     <sys:String x:Key="Str_Handoff_MalformedUrl">Không thể đọc địa chỉ PDF trong quá trình chuyển đổi.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF chỉ mở các thao tác chuyển đổi trên trình duyệt qua giao thức https.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">Avalanche chỉ mở các thao tác chuyển đổi trên trình duyệt qua giao thức https.</sys:String>
     <sys:String x:Key="Str_Handoff_Unusable">Không thể sử dụng tính năng chuyển đổi trên trình duyệt.</sys:String>
     <sys:String x:Key="Str_Handoff_TooLarge">Tệp PDF lớn hơn giới hạn 256 MB cho phép của trình duyệt.</sys:String>
     <sys:String x:Key="Str_Handoff_NotPdf">Tệp đã tải xuống không phải là tệp PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF không thể tải xuống tệp PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">Avalanche không thể tải xuống tệp PDF.</sys:String>
     <sys:String x:Key="Str_Handoff_TimedOut">Quá thời gian tải xuống tệp PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF không thể lưu hoặc đọc tệp PDF đã tải xuống.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">Avalanche không thể lưu hoặc đọc tệp PDF đã tải xuống.</sys:String>
     <sys:String x:Key="Str_St_FormFieldDrag">Kéo để tạo trường văn bản có thể điền (&amp;D)</sys:String>
     <sys:String x:Key="Str_St_FormFieldCanceled">Đã hủy trường văn bản có thể điền</sys:String>
     <sys:String x:Key="Str_St_FormFieldCreateFailed">Không thể tạo trường văn bản có thể điền</sys:String>
@@ -1044,7 +1044,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_KS_EnabledStatus">Đã bật phím tắt</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Đã tắt phím tắt. Nhấn Ctrl+Shift+K để bật lại.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Kiểm tra cập nhật khi khởi động</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Phiên bản KillerPDF {0} đã có sẵn. Bạn có muốn tải xuống và cài đặt ngay bây giờ không?&#10;&#10;Ứng dụng sẽ tự động đóng và mở lại.</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Phiên bản Avalanche {0} đã có sẵn. Bạn có muốn tải xuống và cài đặt ngay bây giờ không?&#10;&#10;Ứng dụng sẽ tự động đóng và mở lại.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Luôn kiểm tra khi khởi động</sys:String>
     <sys:String x:Key="Str_PasswordProtected">“{0}” được bảo vệ bằng mật khẩu.</sys:String>
     <sys:String x:Key="Str_About_Aka">CÒN GỌI LÀ</sys:String>

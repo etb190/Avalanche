@@ -57,7 +57,7 @@ namespace Avalanche.Services
         {
             // Timeout covers connect + headers; the body is bounded by the cancellation token instead.
             var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(100) };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("KillerPDF-OCR");
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("Avalanche-OCR");
             return http;
         }
 

@@ -359,7 +359,7 @@ namespace Avalanche
             box.Padding = new Thickness(4, 0, 4, 0);
             return box;
         }
-        // A crosshair/target glyph drawn in vectors, to match the KillerPDF look.
+        // A crosshair/target glyph drawn in vectors, to match the Avalanche look.
         private static Grid CrosshairIcon()
         {
             var g = new Grid { Width = 14, Height = 14 };
