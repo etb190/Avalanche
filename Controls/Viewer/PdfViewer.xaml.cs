@@ -170,4 +170,57 @@ namespace Avalanche.Controls
         /// decide whether anything is unsaved, and the settings writer needs each pane's list.</summary>
         internal System.Collections.ObjectModel.ObservableCollection<DocumentSession> SessionsRef => _sessions;
     }
+
+        // ============================================================
+        // AI Chat Helper Methods
+        // ============================================================
+
+        /// <summary>
+        /// Gets the overlay canvas for a specific page index.
+        /// Returns the primary AnnotationCanvas for page 0 in single/grid/two-page mode,
+        /// or the appropriate ContinuousCanvas for continuous mode.
+        /// </summary>
+        internal Canvas? GetCanvasForPage(int pageIndex)
+        {
+            if (State.Mode == ViewMode.Continuous)
+            {
+                return State.ContinuousCanvases.TryGetValue(pageIndex, out var canvas) ? canvas : null;
+            }
+            else
+            {
+                // In single/grid/two-page mode, the primary tile is at index 0
+                // but page 0 maps to AnnotationCanvas
+                if (pageIndex == 0)
+                    return State.AnnotationCanvas;
+                return State.Pages.TryGetValue(pageIndex, out var canvas) ? canvas : null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the render dimensions (width, height) for a specific page.
+        /// </summary>
+        internal (double Width, double Height)? GetRenderDimensions(int pageIndex)
+        {
+            if (State.RenderDims is not null && State.RenderDims.TryGetValue(pageIndex, out var dims))
+                return dims;
+            return null;
+        }
+
+        /// <summary>
+        /// Gets all page canvases for iteration (used for clearing highlights).
+        /// </summary>
+        internal IEnumerable<Canvas> GetAllCanvases()
+        {
+            if (State.AnnotationCanvas is not null)
+                yield return State.AnnotationCanvas;
+
+            foreach (var kvp in State.Pages)
+                if (kvp.Value is not null)
+                    yield return kvp.Value;
+
+            foreach (var kvp in State.ContinuousCanvases)
+                if (kvp.Value is not null)
+                    yield return kvp.Value;
+        }
+    }
 }

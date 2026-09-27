@@ -16,6 +16,14 @@
                      the place for anything else - see Controls/FileDialog.xaml. -->
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- AI Chat Converters -->
+            <local:AiRoleToBrushConverter x:Key="AiRoleToBrushConverter"/>
+            <local:AiRoleToGlyphConverter x:Key="AiRoleToGlyphConverter"/>
+            <local:AiRoleToBgConverter x:Key="AiRoleToBgConverter"/>
+            <local:CountToVisibilityConverter x:Key="CountToVisibilityConverter"/>
+            <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+
             <!-- Chrome close-button corner. Defined at app scope (not just on MainWindow) so the dialog
                  windows that borrow the ChromeCloseButton style can resolve it too - otherwise the
                  DynamicResource is unfound inside a dialog and the red hover box renders square. -->

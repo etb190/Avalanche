@@ -807,6 +807,288 @@ namespace Avalanche
         }
 
         // ============================================================
+        // AI Chat Assistant
+        // ============================================================
+
+        private Features.AI.AiChatViewModel? _aiChatViewModel;
+        private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
+
+        private void AiChatBtn_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleAiChat();
+        }
+
+        private void AiChatCloseBtn_Click(object sender, RoutedEventArgs e)
+        {
+            CloseAiChat();
+        }
+
+        private void ToggleAiChat()
+        {
+            if (_aiChatOverlay is null) return;
+
+            if (_aiChatOverlay.Visibility == Visibility.Visible)
+            {
+                CloseAiChat();
+            }
+            else
+            {
+                OpenAiChat();
+            }
+        }
+
+        private void OpenAiChat()
+        {
+            if (_aiChatOverlay is null) return;
+
+            // Initialize viewmodel if needed
+            if (_aiChatViewModel is null && _currentFile is not null)
+            {
+                _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+                _aiChatViewModel = new Features.AI.AiChatViewModel(this, _aiSettingsViewModel.ToConfig());
+                _aiChatOverlay.DataContext = _aiChatViewModel;
+
+                // Subscribe to close request
+                _aiChatViewModel.RequestClose += CloseAiChat;
+            }
+
+            // Initialize for current document
+            if (_currentFile is not null && _aiChatViewModel is not null)
+            {
+                _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile);
+            }
+
+            _aiChatOverlay.Visibility = Visibility.Visible;
+            _aiChatInput?.Focus();
+        }
+
+        private void CloseAiChat()
+        {
+            if (_aiChatOverlay is null) return;
+
+            _aiChatOverlay.Visibility = Visibility.Collapsed;
+
+            // Clear the AI source highlight
+            ClearAiSourceHighlight();
+        }
+
+        private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_aiChatViewModel is null || string.IsNullOrWhiteSpace(_aiChatViewModel.CurrentInput))
+                return;
+
+            var input = _aiChatViewModel.CurrentInput;
+            _aiChatViewModel.CurrentInput = "";
+            await _aiChatViewModel.SendMessageAsync(input);
+
+            // Scroll to bottom
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            {
+                _aiChatScrollViewer?.ScrollToBottom();
+            });
+        }
+
+        private void AiChatInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                e.Handled = true;
+                AiChatSendBtn_Click(sender, e);
+            }
+            else if (e.Key == Key.Escape)
+            {
+                CloseAiChat();
+            }
+        }
+
+        private void AiSourceButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not Features.AI.AiSource source)
+                return;
+
+            NavigateToAiSource(source.PageNumber - 1, source.Quote);
+        }
+
+        /// <summary>
+        /// Navigates to a page and highlights the AI source passage.
+        /// </summary>
+        internal void NavigateToAiSource(int pageIndex, string quote)
+        {
+            if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount)
+                return;
+
+            // Clear any existing AI highlight
+            ClearAiSourceHighlight();
+
+            // Navigate to the page
+            PageList.SelectedIndex = pageIndex;
+
+            // Wait for the page to render, then highlight
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            {
+                HighlightAiSourceOnPage(pageIndex, quote);
+            });
+        }
+
+        private void HighlightAiSourceOnPage(int pageIndex, string quote)
+        {
+            if (_doc is null) return;
+
+            var activeViewer = ActiveViewer;
+            if (activeViewer is null) return;
+
+            // Get the canvas for the page
+            var canvas = activeViewer.GetCanvasForPage(pageIndex);
+            if (canvas is null) return;
+
+            // Use existing search highlighting logic to find and highlight the quote
+            var highlightRect = FindPassageRect(pageIndex, quote);
+            if (highlightRect.HasValue)
+            {
+                var (left, bottom, right, top) = highlightRect.Value;
+                DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer);
+            }
+            else
+            {
+                // Could not locate exact passage - show a subtle indicator
+                SetStatus(Loc("Str_AiChatSourceNavigateFailed"), 3000);
+            }
+        }
+
+        private (double left, double bottom, double right, double top)? FindPassageRect(int pageIndex, string quote)
+        {
+            if (_doc is null || string.IsNullOrWhiteSpace(quote)) return null;
+
+            try
+            {
+                using var pdfDoc = PdfDocument.Open(_doc.FilePath);
+                if (pageIndex >= pdfDoc.NumberOfPages) return null;
+
+                var page = pdfDoc.GetPage(pageIndex + 1);
+                var words = page.GetWords().ToList();
+
+                // Normalize quote for matching
+                var normalizedQuote = quote.Replace("\n", " ").Replace("\r", " ").Trim();
+                while (normalizedQuote.Contains("  ")) normalizedQuote = normalizedQuote.Replace("  ", " ");
+
+                // Search for the quote in the page text
+                var pageText = string.Join(" ", words.Select(w => w.Text));
+                var index = pageText.IndexOf(normalizedQuote, StringComparison.OrdinalIgnoreCase);
+
+                if (index < 0)
+                {
+                    // Try fuzzy matching - search for key phrases
+                    var phrases = normalizedQuote.Split(new[] { ". ", "? ", "! ", ", " }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var phrase in phrases)
+                    {
+                        if (phrase.Length < 10) continue;
+                        var phraseIndex = pageText.IndexOf(phrase.Trim(), StringComparison.OrdinalIgnoreCase);
+                        if (phraseIndex >= 0)
+                        {
+                            index = phraseIndex;
+                            break;
+                        }
+                    }
+                }
+
+                if (index < 0) return null;
+
+                // Find the word range that corresponds to this text position
+                int charPos = 0;
+                int startWord = -1, endWord = -1;
+                for (int i = 0; i < words.Count; i++)
+                {
+                    var wordText = words[i].Text;
+                    int wordEnd = charPos + wordText.Length + 1; // +1 for space
+
+                    if (startWord == -1 && charPos + wordText.Length > index)
+                        startWord = i;
+
+                    if (endWord == -1 && wordEnd > index + Math.Min(normalizedQuote.Length, 100))
+                        endWord = i;
+
+                    charPos = wordEnd;
+                }
+
+                if (startWord == -1) startWord = 0;
+                if (endWord == -1) endWord = words.Count - 1;
+
+                // Calculate bounding box
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+
+                for (int i = startWord; i <= endWord && i < words.Count; i++)
+                {
+                    var bb = words[i].BoundingBox;
+                    minX = Math.Min(minX, bb.Left);
+                    minY = Math.Min(minY, bb.Bottom);
+                    maxX = Math.Max(maxX, bb.Right);
+                    maxY = Math.Max(maxY, bb.Top);
+                }
+
+                if (minX == double.MaxValue) return null;
+
+                return (minX, minY, maxX, maxY);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer)
+        {
+            // Get render dimensions for coordinate conversion
+            var renderDims = viewer.GetRenderDimensions(pageIndex);
+            if (!renderDims.HasValue) return;
+
+            var (renderW, renderH) = renderDims.Value;
+            var pageInfo = _doc!.Pages[pageIndex];
+            double pdfW = pageInfo.Width;
+            double pdfH = pageInfo.Height;
+
+            if (pdfW <= 0 || pdfH <= 0) return;
+
+            double sx = renderW / pdfW;
+            double sy = renderH / pdfH;
+
+            double cw = (right - left) * sx;
+            double ch = (top - bottom) * sy;
+            double pad = ch * 0.25;
+
+            double cx = left * sx - pad;
+            double cy = renderH - (top * sy) - pad;
+
+            var rect = new Rectangle
+            {
+                Fill = new SolidColorBrush(Color.FromArgb(80, 0, 122, 255)),
+                Stroke = new SolidColorBrush(Color.FromArgb(200, 0, 122, 255)),
+                StrokeThickness = 2,
+                RadiusX = 4,
+                RadiusY = 4,
+                Width = Math.Max(cw + pad * 2, 20),
+                Height = Math.Max(ch + pad * 2, 20),
+                IsHitTestVisible = false,
+                Tag = "AiSourceHighlight"
+            };
+
+            Canvas.SetLeft(rect, cx);
+            Canvas.SetTop(rect, cy);
+            canvas.Children.Add(rect);
+        }
+
+        private void ClearAiSourceHighlight()
+        {
+            foreach (var canvas in ActiveViewer?.GetAllCanvases() ?? Enumerable.Empty<Canvas>())
+            {
+                var toRemove = canvas.Children.OfType<Rectangle>()
+                    .Where(r => r.Tag is string s && s == "AiSourceHighlight").ToList();
+                foreach (var r in toRemove)
+                    canvas.Children.Remove(r);
+            }
+        }
+
+        // ============================================================
         // Search (Ctrl+F)
         // ============================================================
 

@@ -111,8 +111,16 @@ namespace Avalanche
             /// <summary>The hardcoded primary tile's overlay, shown in Single/Grid/TwoPage.</summary>
             public Canvas AnnotationCanvas = null!;
             public Image PageImage = null!;
-            /// <summary>Active annotation surface. Single view: always AnnotationCanvas.
+/// <summary>Active annotation surface. Single view: always AnnotationCanvas.
             /// Continuous: set on mouse-down to the clicked page's overlay.</summary>
             public Canvas ActiveCanvas = null!;
+
+        // ============================================================
+        // AI Chat Helper Properties
+        // ============================================================
+
+        /// <summary>Per-page render dimensions (width, height) for coordinate conversion.</summary>
+        public readonly Dictionary<int, (double Width, double Height)> RenderDims = [];
     }
 }
+

@@ -49,6 +49,8 @@
     <sys:String x:Key="Str_TT_ExpandSidebar">Expand sidebar (F9)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Keyboard shortcuts (F1)</sys:String>
     <sys:String x:Key="Str_TT_About">About Avalanche (F12)</sys:String>
+    <sys:String x:Key="Str_TT_AiChat">AI Chat Assistant (Ctrl+Shift+A)</sys:String>
+    <sys:String x:Key="Str_Lbl_AiChat">AI Chat</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSION</sys:String>
@@ -1049,4 +1051,19 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_PasswordProtected">“{0}” is password protected.</sys:String>
     <sys:String x:Key="Str_About_Aka">AKA</sys:String>
     <sys:String x:Key="Str_Btn_Run">Run</sys:String>
+
+    <!-- ── AI Chat ────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
+    <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
+    <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>
+    <sys:String x:Key="Str_AiChatSendTip">Send (Ctrl+Enter)</sys:String>
+    <sys:String x:Key="Str_AiChatPreparing">Preparing document…</sys:String>
+    <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
+    <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
+    <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
+    <sys:String x:Key="Str_AiChatNoMatches">No relevant passages found in the document for your question.</sys:String>
+    <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatSourceTip">Page {0} — Show cited passage</sys:String>
+
 </ResourceDictionary>

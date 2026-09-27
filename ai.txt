@@ -1,0 +1,1024 @@
+I want you to implement a COMPLETE AI PDF CHAT FEATURE in this existing Avalanche repository.
+
+IMPORTANT:
+Do NOT treat this as a generic new application.
+Do NOT replace the existing PDF viewer.
+Do NOT create a mockup or fake UI.
+Do NOT create a separate PDF rendering system.
+You MUST inspect the existing Avalanche architecture and integrate into it properly.
+
+Repository:
+https://github.com/etb190/Avalanche
+
+Avalanche is a WPF/.NET application. It already has:
+- PDF rendering
+- PdfPig text extraction/search
+- Docnet rendering
+- OCR
+- page overlay canvases
+- continuous/multi-page viewing
+- page navigation
+- split PDF panes
+- existing temporary search highlighting
+- existing themed WPF controls/resources
+
+The implementation must fit the existing architecture and visual language.
+
+==================================================
+1. AI CHAT SIDEBAR — UI
+==================================================
+
+Add an AI chat sidebar on the RIGHT SIDE of the PDF viewing area.
+
+The attached screenshot shows exactly where I want it.
+
+The blue marked area in the screenshot represents the AI panel.
+
+CRITICAL LAYOUT REQUIREMENT:
+
+The AI sidebar MUST NOT push, resize, reflow, or otherwise change the layout of the PDF pages.
+
+It must be an OVERLAY.
+
+The PDF viewer must remain exactly where it is when the AI sidebar opens.
+
+For example:
+
+BEFORE:
+
++-----------------------------------------------+
+|                                               |
+|                PDF DOCUMENT                   |
+|                                               |
+|                                               |
++-----------------------------------------------+
+
+AFTER:
+
++-----------------------------------------------+
+|                            +------------------+
+|             PDF            |                  |
+|                            |   AI CHAT        |
+|                            |                  |
+|                            |                  |
++-----------------------------------------------+
+
+
+The AI panel simply covers the rightmost portion of the existing document view.
+
+DO NOT create a new Grid.Column for it.
+
+DO NOT reduce DocCol's width.
+
+DO NOT modify the existing page/sidebar layout to make room for it.
+
+Instead, place the AI chat panel as a high-Z-index overlay inside the appropriate existing document/main-content container.
+
+It should be anchored to the RIGHT and stretch vertically through the PDF viewing area.
+
+It should behave like a fixed overlay.
+
+The PDF underneath should remain exactly where it was.
+
+When the AI panel closes, the PDF view should be completely unchanged.
+
+==================================================
+2. AI SIDEBAR SIZE
+==================================================
+
+Use a sensible desktop width around 360–420 px.
+
+Do not make it absurdly wide.
+
+It should feel like a professional PDF application's AI assistant panel.
+
+It must have:
+
+- top header
+- conversation area
+- message bubbles/blocks
+- source buttons
+- text input
+- send button
+- close button
+- loading/thinking state
+- error state
+
+The panel must vertically fill the available document viewing region.
+
+The chat messages area must scroll independently.
+
+The PDF scrolling must NOT scroll the chat.
+
+The chat scrolling must NOT scroll the PDF.
+
+==================================================
+3. STYLE
+==================================================
+
+The styling must match Avalanche.
+
+DO NOT introduce a completely different design language.
+
+Use the existing Avalanche theme resources wherever possible:
+- BackgroundBrush
+- SidebarPaneBrush
+- PaneBrush
+- TextBrush
+- MutedTextBrush
+- PrimaryBrush
+- SelectionAccent
+- CardBorderBrush
+- PaneBorderBrush
+- existing corner-radius resources
+- existing toolbar/button styles where appropriate
+
+Follow the same visual language already used by Avalanche:
+- dark professional desktop application
+- restrained borders
+- subtle depth
+- existing typography
+- existing spacing
+- existing hover behavior
+- no giant rounded modern-web cards
+- no excessive gradients
+- no childish AI graphics
+- no unnecessary animations
+- no "AI magic" marketing text
+
+The panel should look like it belongs in Avalanche.
+
+==================================================
+4. OPEN/CLOSE AI PANEL
+==================================================
+
+Add a proper way to open/close the AI panel.
+
+Integrate the open button into the existing UI rather than creating an ugly floating button.
+
+Inspect the existing toolbar/command architecture and add an AI button using the same visual conventions as the existing toolbar buttons.
+
+The button should toggle the AI panel.
+
+The panel itself must have a close X.
+
+Closing the panel must NOT destroy the conversation state for the currently open document.
+
+Opening it again should restore the conversation for that document/session.
+
+==================================================
+5. THE AI MUST ACTUALLY TALK TO THE PDF
+==================================================
+
+This is the most important part.
+
+DO NOT send the entire PDF to the AI model on every question.
+
+DO NOT convert a 1,000-page PDF into one enormous prompt.
+
+DO NOT load the entire document into the model's context.
+
+Implement a proper document retrieval architecture.
+
+The system should work with PDFs that can contain hundreds or thousands of pages.
+
+Architecture:
+
+PDF
+ ↓
+text extraction
+ ↓
+document indexing
+ ↓
+retrieval
+ ↓
+relevant passages
+ ↓
+AI model
+ ↓
+answer + structured source citations
+
+The AI should only receive the relevant passages needed to answer the user's question.
+
+==================================================
+6. DOCUMENT TEXT EXTRACTION
+==================================================
+
+Use Avalanche's existing PdfPig infrastructure rather than introducing another PDF extraction system unnecessarily.
+
+When a document is opened, create an AI document index for the active PDF.
+
+Preserve:
+
+- page index
+- displayed page number
+- extracted text
+- word positions
+- PDF bounding boxes
+- enough information to locate an exact passage again
+
+Do NOT destroy the relationship between extracted text and the original PDF coordinates.
+
+This is essential because the AI must eventually say:
+
+"Page 147"
+
+and clicking that source must allow Avalanche to find and highlight the exact passage on page 147.
+
+The original PDF remains the source of truth.
+
+Do not make Markdown the canonical representation of the PDF.
+
+If an internal normalized text representation is useful, that is fine, but it MUST retain page and coordinate information.
+
+==================================================
+7. CHUNKING
+==================================================
+
+Create intelligent chunks from the PDF text.
+
+Do not simply split every N characters blindly.
+
+Prefer natural boundaries such as:
+
+- paragraphs
+- sections
+- headings
+- nearby sentences
+
+But preserve page boundaries in the metadata.
+
+A chunk should have information similar to:
+
+DocumentId
+PageIndex
+PageNumber
+ChunkId
+Text
+Start/End information
+Word information / bounding boxes
+
+If a passage spans multiple pages, it must still be possible to identify which exact page contains each part.
+
+For AI citation purposes, prefer citations that resolve to ONE PAGE at a time.
+
+==================================================
+8. RETRIEVAL
+==================================================
+
+Implement a proper retrieval layer.
+
+At minimum, support efficient lexical/full-text retrieval over the document rather than scanning the entire PDF from disk for every question.
+
+For example:
+
+Question:
+"What does the author say about X?"
+
+Retrieve the most relevant chunks.
+
+Then send only those chunks to the AI.
+
+If you introduce a vector/embedding system, keep it provider-agnostic and optional.
+
+DO NOT hard-code the architecture around one AI company.
+
+The retrieval layer should be independent from the AI provider.
+
+Ideally structure it around interfaces/classes such as:
+
+IDocumentIndexer
+IDocumentRetriever
+IAiProvider
+
+or equivalent architecture appropriate for this repository.
+
+Do not blindly use these exact names if Avalanche has a better existing convention.
+
+Inspect the repository first.
+
+==================================================
+9. AI PROVIDER
+==================================================
+
+Do not hard-code the chat implementation directly into the UI.
+
+Create an abstraction around the model provider.
+
+The provider should eventually be able to support an OpenAI-compatible HTTP endpoint so it can work with:
+
+- cloud AI APIs
+- local models
+- OpenAI-compatible local servers
+
+Do not assume the user will permanently use one provider.
+
+Keep API/model configuration separate from the PDF retrieval system.
+
+If Avalanche currently has no AI settings infrastructure, add the minimum necessary configuration cleanly.
+
+Do NOT scatter API keys throughout the application.
+
+==================================================
+10. STRUCTURED AI RESPONSES
+==================================================
+
+This is VERY important.
+
+Do not rely on parsing arbitrary AI prose to determine where an answer came from.
+
+The AI should return structured information.
+
+Conceptually:
+
+{
+    "answer": "The author argues that...",
+    "sources": [
+        {
+            "page": 147,
+            "quote": "Exact text from the PDF...",
+            "reason": "This passage directly discusses..."
+        },
+        {
+            "page": 153,
+            "quote": "Another exact passage...",
+            "reason": "This provides supporting evidence..."
+        }
+    ]
+}
+
+Use whatever strongly typed C# representation fits Avalanche.
+
+The actual AI response can still contain Markdown for the answer.
+
+But source citations must be structured objects.
+
+The application, not the model, should control the source buttons.
+
+==================================================
+11. SOURCE BUTTONS
+==================================================
+
+Every AI answer that uses material from the PDF should be able to show source/page buttons.
+
+For example:
+
+The author argues that the policy was primarily driven by
+administrative concerns rather than military ones.
+
+Sources:
+
+[147] [153] [158]
+
+These should be actual WPF buttons.
+
+The number inside the button is the displayed PDF page number.
+
+Clicking:
+
+[147]
+
+must:
+
+1. Clear the existing AI highlight.
+2. Navigate the active PDF viewer to page 147.
+3. Wait until the target page has been rendered / its page canvas is available.
+4. Locate the cited passage on that page.
+5. Draw ONE temporary blue highlight around that passage.
+6. Leave the PDF document itself unchanged.
+
+The button must not merely change the page number.
+
+It must actually navigate to the source and visually show the relevant passage.
+
+==================================================
+12. PAGE NUMBERING
+==================================================
+
+Be extremely careful about page indexing.
+
+Avalanche internally uses zero-based page indices in many places.
+
+The user sees one-based page numbers.
+
+Therefore:
+
+internal page index 0 = UI page 1
+internal page index 1 = UI page 2
+etc.
+
+Do not accidentally display page 148 when the actual UI page is 147.
+
+Use the existing page navigation mechanisms rather than inventing a second navigation system.
+
+==================================================
+13. AI SOURCE HIGHLIGHTING
+==================================================
+
+This is extremely important.
+
+When I click a source button, I want the relevant text in the PDF to be highlighted in BLUE.
+
+But I specifically DO NOT want multiple little highlight rectangles over individual words.
+
+I want ONE highlight.
+
+For example, if the relevant passage is:
+
+"The administration established provincial offices throughout the region and appointed officials to oversee taxation and military obligations."
+
+DO NOT create:
+
+[box around The]
+[box around administration]
+[box around established]
+[box around provincial]
+etc.
+
+Instead create ONE single translucent blue rectangular highlight covering the entire relevant passage.
+
+Even if the passage occupies several lines, there should be ONE rectangle representing the whole passage.
+
+The rectangle should encompass the passage's bounding area.
+
+It is acceptable if there is a little whitespace inside the rectangle between lines.
+
+The visual requirement is:
+
+ONE passage = ONE highlight rectangle.
+
+Not:
+
+ONE passage = many word highlights.
+
+==================================================
+14. HOW TO LOCATE THE PASSAGE
+==================================================
+
+The AI must provide an exact quote from the PDF for each source.
+
+Use that quote to locate the passage in the PDF text.
+
+Avalanche already has PdfPig word extraction and PDF-space bounding rectangles.
+
+Reuse and/or extend the existing search functionality instead of creating a completely separate text-coordinate system.
+
+The current SearchService already:
+
+- extracts words with PdfPig
+- identifies matching phrases
+- calculates PDF-space bounding boxes
+- returns page-specific rectangles
+
+The existing search/highlighting implementation also already converts PDF coordinates into rendered-page coordinates and draws temporary rectangles onto page canvases.
+
+Build the AI source highlighting on top of these existing mechanisms where appropriate.
+
+Do NOT duplicate the entire search/highlight system unnecessarily.
+
+==================================================
+15. IMPROVE THE EXISTING LOCATOR IF NECESSARY
+==================================================
+
+The existing search phrase matching may not be sufficient for arbitrary AI-generated citations.
+
+Improve it where necessary.
+
+The locator should:
+
+- normalize whitespace
+- handle line breaks
+- handle PDF text extraction quirks
+- handle multiple consecutive spaces
+- handle hyphenation where practical
+- be case-insensitive
+- preserve word order
+- avoid accidentally matching a completely different occurrence
+- prefer the occurrence associated with the retrieved chunk
+- return one combined bounding rectangle
+
+If the exact quote cannot be found, do NOT silently highlight an unrelated passage.
+
+Instead show a source-location failure gracefully.
+
+==================================================
+16. HIGHLIGHT LIFETIME
+==================================================
+
+The AI source highlight is TEMPORARY.
+
+It is NOT a PDF annotation.
+
+It must NOT make the document dirty.
+
+It must NOT be saved into the PDF.
+
+It must disappear when:
+
+- another AI source button is clicked
+- the AI panel is closed
+- the PDF/document is closed
+- another document becomes active
+- an appropriate new navigation/source selection replaces it
+
+There must NEVER be multiple AI source highlights simultaneously.
+
+There is always:
+
+0 or 1 active AI source highlight.
+
+==================================================
+17. IMPORTANT: DO NOT CONFUSE AI HIGHLIGHTS WITH USER ANNOTATIONS
+==================================================
+
+Avalanche already has actual PDF annotations and existing search highlights.
+
+Do NOT add AI source highlights to the PDF's annotation collection.
+
+Do NOT save them.
+
+Do NOT make them undoable.
+
+Do NOT cause them to appear in the user's saved PDF.
+
+They should be a transient viewer overlay only.
+
+Give them a distinct internal identifier/tag so they can be removed independently.
+
+For example, conceptually:
+
+"AiSourceHighlight"
+
+Do not reuse the persistent annotation mechanism.
+
+==================================================
+18. CONTINUOUS / MULTI-PAGE VIEW
+==================================================
+
+Avalanche supports multiple viewing modes.
+
+The AI source navigation must work correctly with the existing modes, particularly Continuous view.
+
+If the target page is not currently visible:
+
+- navigate/scroll to it
+- wait for the page to exist/render
+- then place the temporary highlight on that page's overlay canvas
+
+Do not assume only the primary page canvas exists.
+
+Avalanche already maintains per-page canvases for continuous viewing.
+
+Use those existing structures.
+
+==================================================
+19. SPLIT VIEW
+==================================================
+
+Avalanche supports two PDF panes.
+
+Do not break this.
+
+The AI chat should operate against the CURRENT ACTIVE PDF VIEWER/document.
+
+If split view is active:
+
+- determine which viewer is active
+- retrieve/search the document associated with that viewer
+- navigate that viewer
+- highlight that viewer
+
+Do not accidentally navigate Viewer A when the user is interacting with Viewer B.
+
+Use Avalanche's existing ActiveViewer architecture.
+
+==================================================
+20. CHAT CONTEXT
+==================================================
+
+The conversation should retain context.
+
+Example:
+
+User:
+"What does the author say about the provincial administration?"
+
+AI:
+answer + sources
+
+User:
+"How does that compare with the military system?"
+
+The second question should understand that "that" refers to the preceding discussion.
+
+However, do NOT continually send the entire previous conversation and entire PDF to the model.
+
+Maintain a sensible bounded chat history and retrieve document passages as needed.
+
+==================================================
+21. DOCUMENT SCOPE
+==================================================
+
+The AI should answer questions about the CURRENT PDF.
+
+Do not accidentally retrieve information from another open PDF/tab.
+
+The document index must be associated with the correct document/session.
+
+If the user changes tabs/documents:
+
+- switch the active AI document context
+- switch/rebuild retrieval context appropriately
+- clear the active AI source highlight
+- do not leak citations between PDFs
+
+If possible, preserve the conversation separately per open document/tab.
+
+==================================================
+22. LARGE PDF PERFORMANCE
+==================================================
+
+This feature MUST be designed with 1,000+ page PDFs in mind.
+
+Do not:
+
+- send the entire PDF to the AI
+- extract the entire PDF repeatedly for every question
+- reopen and scan the entire PDF from disk for every chat message
+- block the UI while indexing
+- create thousands of WPF visual elements unnecessarily
+- render every page solely for AI indexing
+
+Index the document once.
+
+Perform indexing/retrieval work asynchronously/off the UI thread.
+
+Do not freeze the PDF viewer while the AI index is being created.
+
+Show a small unobtrusive status in the AI panel while indexing, e.g.:
+
+"Preparing document…"
+
+Once ready:
+
+"Ready"
+
+==================================================
+23. INDEXING SHOULD BE CACHED
+==================================================
+
+If practical, cache the extracted/indexed representation for the currently open document so reopening the AI panel does not require reprocessing the PDF.
+
+Do not modify the original PDF.
+
+A sidecar/index cache is acceptable.
+
+Associate it with enough document information to detect when the PDF has changed.
+
+For example, file path + file size + modification time and/or a suitable document fingerprint.
+
+Do not create a huge pile of unexplained temporary files.
+
+Follow Avalanche's existing temp/cache conventions if they exist.
+
+==================================================
+24. AI ANSWER UX
+==================================================
+
+The answer area should support readable Markdown-like formatting if the existing architecture makes this practical.
+
+At minimum support:
+
+- paragraphs
+- bold
+- italic
+- bullet lists
+- numbered lists
+- code blocks when relevant
+
+Do not make the answer area visually bloated.
+
+The answer should be readable in a narrow sidebar.
+
+Sources should be visually separated from the main answer.
+
+For example:
+
+--------------------------------
+AI answer
+
+The author argues that...
+
+The distinction is important because...
+
+Sources
+[147] [153]
+--------------------------------
+
+Each source button should have a tooltip containing useful information such as:
+
+"Page 147 — Show cited passage"
+
+==================================================
+25. USER INPUT
+==================================================
+
+At the bottom:
+
+[ Ask about this PDF...                         ] [↑]
+
+The input should:
+
+- support multiline text
+- send with Ctrl+Enter if appropriate
+- Enter behavior should be sensible
+- remain focused when appropriate
+- not interfere with PDF keyboard shortcuts unnecessarily
+
+Disable the send button while a request is in progress.
+
+Allow cancellation if practical.
+
+==================================================
+26. LOADING STATE
+==================================================
+
+When the AI is answering:
+
+Show a restrained loading state.
+
+Do NOT use a ridiculous animated "AI thinking" graphic.
+
+Something simple such as:
+
+"Searching document…"
+
+then:
+
+"Generating answer…"
+
+is sufficient.
+
+If retrieval takes time, make that clear.
+
+==================================================
+27. ERROR HANDLING
+==================================================
+
+Handle:
+
+- no AI provider configured
+- invalid API key
+- network failure
+- local model unavailable
+- PDF has no text layer
+- OCR required
+- source quote cannot be located
+- malformed AI response
+- AI returns no citations
+- document closes while an AI request is running
+- user switches documents while a request is running
+
+Do not crash the application.
+
+Do not show raw exceptions to the user.
+
+==================================================
+28. SCANNED PDF / OCR
+==================================================
+
+Avalanche already has OCR support.
+
+If the PDF has no usable text layer, the AI indexing layer should detect that.
+
+Do not silently pretend the document has text.
+
+If OCR is needed, use the existing Avalanche OCR infrastructure where possible.
+
+The AI system should ultimately be able to work with OCR'd PDFs.
+
+Preserve the page relationship and coordinates after OCR.
+
+==================================================
+29. DO NOT DUPLICATE EXISTING FEATURES
+==================================================
+
+Before writing code, inspect the repository thoroughly.
+
+In particular inspect:
+
+- MainWindow.xaml
+- MainWindow.xaml.cs
+- Controls/
+- Features/
+- Services/
+- Shell/
+- Models/
+- existing PdfViewer implementation
+- existing search implementation
+- existing page navigation
+- existing theme resources
+- existing split-pane handling
+- existing document/session/tab handling
+
+There are already relevant systems in the repository.
+
+For example, the current search implementation has a SearchController and SearchService and already maintains page-specific PDF-space rectangles and temporary overlay highlights.
+
+Use these systems rather than writing parallel systems that will eventually conflict.
+
+==================================================
+30. ARCHITECTURE
+==================================================
+
+Keep responsibilities separated.
+
+The exact class names are up to you after inspecting the repository, but conceptually I want:
+
+AI UI
+  ↓
+AI Chat Controller / ViewModel
+  ↓
+Document Retrieval Service
+  ↓
+Document Index
+  ↓
+PDF text / coordinates
+
+and separately:
+
+AI Provider
+  ↓
+HTTP/local model
+
+and:
+
+AI Source Navigation
+  ↓
+Active PdfViewer
+  ↓
+Page navigation
+  ↓
+temporary single highlight
+
+Do not put the entire feature into MainWindow.xaml.cs.
+
+MainWindow is already substantial.
+
+Use the existing project's architectural patterns.
+
+==================================================
+31. IMPORTANT UI IMPLEMENTATION DETAIL
+==================================================
+
+The AI panel should be an overlay over the existing MainContentGrid/document region.
+
+Conceptually:
+
+MainContentGrid
+ ├── existing background
+ ├── existing sidebar
+ ├── existing SplitHost / PDF viewers
+ └── AIChatOverlay   <-- NEW, high ZIndex, aligned right
+
+NOT:
+
+MainContentGrid
+ ├── sidebar
+ ├── AI column
+ └── PDF column
+
+The second approach is WRONG because it pushes/resizes the PDF.
+
+The AI overlay should cover the right side of the document view exactly like the blue region in my screenshot.
+
+==================================================
+32. VISUAL POLISH
+==================================================
+
+After implementing the functionality, inspect the running UI carefully.
+
+Fix:
+
+- clipping
+- incorrect margins
+- text overflow
+- buttons touching each other
+- bad scrollbar placement
+- panel extending outside the window
+- chat input becoming invisible
+- source buttons being too large
+- panel covering toolbar elements it should not cover
+- incorrect Z-order
+- bad behavior when the window is resized
+- bad behavior when maximized
+- bad behavior when the sidebar is on the left/right
+- bad behavior when split view is enabled
+- bad behavior at the minimum window size
+
+The panel must resize gracefully with the window.
+
+The PDF must never move when opening/closing it.
+
+==================================================
+33. TESTING
+==================================================
+
+Do not consider this finished merely because it compiles.
+
+Test the actual workflow:
+
+1. Open a PDF.
+2. Open AI panel.
+3. Ask a question whose answer exists on a known page.
+4. Confirm AI retrieves relevant text.
+5. Confirm answer is generated.
+6. Confirm source page buttons appear.
+7. Click a source button.
+8. Confirm PDF navigates to the correct page.
+9. Confirm EXACTLY ONE blue temporary highlight appears.
+10. Confirm the highlight surrounds the relevant passage rather than individual words.
+11. Click another source.
+12. Confirm the old highlight disappears.
+13. Confirm only the new highlight exists.
+14. Close AI panel.
+15. Confirm highlight disappears.
+16. Reopen AI panel.
+17. Confirm chat state behaves correctly.
+18. Test Continuous view.
+19. Test split view.
+20. Test switching PDF tabs.
+21. Test a large PDF.
+22. Test a scanned/OCR PDF if possible.
+23. Resize the window.
+24. Move the existing sidebar from left to right.
+25. Confirm the AI overlay still behaves correctly.
+
+==================================================
+34. MOST IMPORTANT FUNCTIONAL REQUIREMENT
+==================================================
+
+The finished feature should feel like:
+
+"I am talking to this PDF."
+
+Not:
+
+"I uploaded a PDF to a chatbot."
+
+The PDF viewer remains the primary application.
+
+The AI is an integrated assistant that understands the current document and can take me directly to the evidence it used.
+
+The ideal interaction is:
+
+User:
+"What were the author's main criticisms of the previous theory?"
+
+AI:
+"The author identifies three main problems with the previous theory: ..."
+
+Sources:
+[214] [216] [219]
+
+User clicks:
+
+[216]
+
+Avalanche automatically:
+
+- navigates to page 216
+- positions the PDF correctly
+- places ONE temporary blue rectangle over the relevant passage
+- leaves the PDF otherwise untouched
+
+The user can immediately read the actual source passage in the PDF.
+
+==================================================
+35. FINAL IMPLEMENTATION RULE
+==================================================
+
+Before making changes, inspect the existing code and determine the correct integration points.
+
+Do not make assumptions about how Avalanche works when the repository already contains the answer.
+
+Reuse existing:
+- page navigation
+- viewer state
+- ActiveViewer
+- page canvases
+- PDF coordinate conversion
+- PdfPig extraction
+- temporary highlighting concepts
+- theme resources
+- document/session handling
+
+Implement the feature cleanly rather than hacking it into unrelated code.
+
+After implementation, build the project and fix all compilation errors.
+
+Then test the feature and fix runtime/UI issues.
+
+Do not stop after creating the UI.
+
+The actual document retrieval, AI communication, page citations, page navigation, and single temporary passage highlighting must all work.

@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Avalanche"
         xmlns:ctrl="clr-namespace:Avalanche.Controls"
+        xmlns:ai="clr-namespace:Avalanche.Features.AI"
         mc:Ignorable="d"
         Title="Avalanche" Height="700" Width="1000" MinHeight="480" MinWidth="620"
         WindowStartupLocation="CenterScreen"
@@ -1532,6 +1533,8 @@
                         <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAllAnnotations_Click" ToolTip="{DynamicResource Str_TT_ClearAnnotations}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
+                        <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
+                        <Button x:Name="AiChatBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
@@ -1631,6 +1634,9 @@
                                 </Button>
                                 <Button x:Name="MiClear" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="ClearAllAnnotations_Click">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="&#xED62;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_Clear}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                                <Button x:Name="MiAiChat" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="AiChatBtn_Click">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_AiChat}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                             </StackPanel>
                             </Grid>
@@ -2702,6 +2708,190 @@
                     </Border>
                 </Popup>
             </Grid>
+
+            <!-- AI Chat Overlay - anchored to right side of document area, high ZIndex -->
+            <!-- This is an OVERLAY that covers the right portion of the document view without pushing/resizing it -->
+            <Border x:Name="AiChatOverlay" Grid.Column="2" Grid.Row="1" Panel.ZIndex="200"
+                    HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                    Width="380" Visibility="Collapsed"
+                    Background="{DynamicResource SidebarPaneBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1,0,0,0"
+                    CornerRadius="{DynamicResource RadCard}"
+                    Effect="{DynamicResource PaneShadowEffect}">
+                <Border.Clip>
+                    <RectangleGeometry Rect="0,0,380,10000" RadiusX="{DynamicResource RadCard}" RadiusY="{DynamicResource RadCard}"/>
+                </Border.Clip>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>   <!-- Header -->
+                        <RowDefinition Height="*"/>      <!-- Conversation -->
+                        <RowDefinition Height="Auto"/>   <!-- Input -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Header -->
+                    <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                            Background="{DynamicResource PaneBrush}" CornerRadius="{DynamicResource RadCard},0,0,0"
+                            Padding="12,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                       Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiChatTitle}"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
+                                    ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
+                                    Width="28" Height="28" Padding="0" FontSize="10" VerticalAlignment="Center"
+                                    Foreground="{DynamicResource MutedTextBrush}"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Conversation Area -->
+                    <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  Background="Transparent" FocusVisualStyle="{x:Null}"
+                                  Padding="8,8,8,0">
+                        <ItemsControl x:Name="AiChatMessages" ItemsSource="{Binding Messages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type ai:ChatMessage}">
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Avatar -->
+                                        <Ellipse Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Width="28" Height="28"
+                                                 VerticalAlignment="Top" Margin="0,2,8,0"
+                                                 Fill="{Binding MessageRole, Converter={StaticResource AiRoleToBrushConverter}}">
+                                            <Ellipse.Effect>
+                                                <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.3"/>
+                                            </Ellipse.Effect>
+                                        </Ellipse>
+                                        <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                                   Text="{Binding MessageRole, Converter={StaticResource AiRoleToGlyphConverter}}"
+                                                   FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                   Foreground="{DynamicResource TextBrush}"
+                                                   VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+
+                                        <!-- Message Content -->
+                                        <Border Grid.Row="0" Grid.Column="1"
+                                                Background="{Binding MessageRole, Converter={StaticResource AiRoleToBgConverter}}"
+                                                CornerRadius="8" Padding="10,8" Margin="0,0,0,4"
+                                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                                            <TextBlock Text="{Binding Content}"
+                                                       FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                                       Foreground="{DynamicResource TextBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </Border>
+
+                                        <!-- Sources -->
+                                        <ItemsControl Grid.Row="1" Grid.Column="1"
+                                                      ItemsSource="{Binding Sources}"
+                                                      Visibility="{Binding Sources.Count, Converter={StaticResource CountToVisibilityConverter}}"
+                                                      Margin="0,6,0,0">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal" ItemWidth="320"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type ai:AiSource}">
+                                                    <Button Content="{Binding PageNumber, StringFormat='Page {0}'}"
+                                                            Style="{StaticResource OutlineButton}"
+                                                            FontSize="11" Padding="6,2" Margin="0,0,4,4"
+                                                            VerticalAlignment="Center"
+                                                            ToolTip="{Binding Quote, StringFormat='Page {0}: {1}'}"
+                                                            Tag="{Binding}"
+                                                            Click="AiSourceButton_Click"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Loading indicator -->
+                                        <Border Grid.Row="1" Grid.Column="1"
+                                                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                Margin="0,6,0,0" Padding="10,6" Background="{DynamicResource PaneBrush}"
+                                                CornerRadius="8" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="14" Height="14" Margin="0,0,6,0"
+                                                        BorderBrush="{DynamicResource PrimaryBrush}" BorderThickness="2"
+                                                        CornerRadius="7" RenderTransformOrigin="0.5,0.5">
+                                                    <Border.RenderTransform>
+                                                        <RotateTransform x:Name="LoadingSpinner"/>
+                                                    </Border.RenderTransform>
+                                                    <Border.Triggers>
+                                                        <EventTrigger RoutedEvent="Border.Loaded">
+                                                            <BeginStoryboard>
+                                                                <Storyboard>
+                                                                    <DoubleAnimation Storyboard.TargetName="LoadingSpinner"
+                                                                                       Storyboard.TargetProperty="Angle"
+                                                                                       From="0" To="360" Duration="0:0:1"
+                                                                                       RepeatBehavior="Forever"/>
+                                                                </Storyboard>
+                                                            </BeginStoryboard>
+                                                        </EventTrigger>
+                                                    </Border.Triggers>
+                                                </Border>
+                                                <TextBlock Text="{Binding Content, FallbackValue=Searching document...}"
+                                                           FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                                           Foreground="{DynamicResource MutedTextBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Error -->
+                                        <Border Grid.Row="1" Grid.Column="1"
+                                                Visibility="{Binding Error, Converter={StaticResource StringToVisibilityConverter}}"
+                                                Margin="0,6,0,0" Padding="10,6" Background="#3D1A1A"
+                                                CornerRadius="8" BorderBrush="#8B0000" BorderThickness="1">
+                                            <TextBlock Text="{Binding Error}"
+                                                       FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                                       Foreground="#FF6B6B" TextWrapping="Wrap"/>
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Input Area -->
+                    <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                            Background="{DynamicResource PaneBrush}" CornerRadius="0,0,{DynamicResource RadCard},0"
+                            Padding="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="AiChatInput" Grid.Column="0"
+                                     FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                     Foreground="{DynamicResource TextBrush}"
+                                     Background="{DynamicResource BackgroundBrush}"
+                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                     CornerRadius="{DynamicResource ControlCornerRadius}" Padding="10,6"
+                                     VerticalContentAlignment="Center" AcceptsReturn="True"
+                                     TextWrapping="Wrap" MinHeight="38" MaxHeight="120"
+                                     KeyDown="AiChatInput_KeyDown"
+                                     Text="{Binding CurrentInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{DynamicResource Str_AiChatInputTip}"/>
+                            <Button x:Name="AiChatSendBtn" Grid.Column="1" Content="&#xE724;" Style="{StaticResource ToolbarButton}"
+                                    Width="36" Height="36" Margin="8,0,0,0" Padding="0" FontSize="14"
+                                    VerticalAlignment="Center" Click="AiChatSendBtn_Click"
+                                    IsEnabled="{Binding CanSend}"
+                                    ToolTip="{DynamicResource Str_AiChatSendTip}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
 
             <!-- DocTopAccent / DocBottomAccent were here: 1px rules at ZIndex 60 spanning the
                  splitter + document columns, bridging the splitter to the toolbar and footer
