@@ -51,4 +51,4 @@ The monorepo keeps the engine, application integration, tests, and corpus gates 
 
 ## Source and license
 
-The engine is developed in the [KillerPDF repository](https://github.com/SteveTheKiller/KillerPDF/tree/main/engine) and licensed under GPLv3. Detailed capability history is recorded in the [engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md).
+The engine is developed in the [KillerPDF repository](https://github.com/etb190/KillerPDF/tree/main/engine) and licensed under GPLv3. Detailed capability history is recorded in the [engine changelog](https://github.com/etb190/KillerPDF/blob/main/engine/CHANGELOG.md).

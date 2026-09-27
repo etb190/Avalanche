@@ -118,7 +118,7 @@
                     <TextBlock Grid.Row="2" Margin="1,24,5,0" TextWrapping="Wrap" Foreground="#d0d0d0" LineHeight="17"
                                Text="{local:Loc Tagline}"/>
                     <TextBlock Grid.Row="3" FontFamily="Consolas" FontSize="10" Foreground="#a0a0a0">
-                        <Run Text="&#x00A9; 2026 "/><Hyperlink NavigateUri="https://thekiller.net" Click="Website_Click" Style="{StaticResource FooterLink}"><Run Text="Steve the Killer"/></Hyperlink>
+                        <Run Text="&#x00A9; 2026 "/><Hyperlink NavigateUri="https://avalanche.net" Click="Website_Click" Style="{StaticResource FooterLink}"><Run Text="Avalanche Team"/></Hyperlink>
                     </TextBlock>
                     </Grid>
                 </Grid>

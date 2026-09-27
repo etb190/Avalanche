@@ -12,7 +12,7 @@ public sealed class PdfFormWidgetReaderTests
     {
         byte[] authored = new PdfDocumentBuilder()
             .AddBlankPage(300, 400).AddBlankPage(500, 600)
-            .AddTextField(0, "customer.name", 20, 300, 180, 24, "Steve", 11,
+            .AddTextField(0, "customer.name", 20, 300, 180, 24, "Avalanche Team", 11,
                 new PdfTextFieldOptions
                 {
                     ReadOnly = true,
@@ -48,7 +48,7 @@ public sealed class PdfFormWidgetReaderTests
         Assert.Equal(5, widgets.Count);
         PdfFormWidgetInfo text = widgets.Single(widget => widget.FieldName == "customer.name");
         Assert.Equal(PdfFormFieldKind.Text, text.FieldKind);
-        Assert.Equal("Steve", text.Value);
+        Assert.Equal("Avalanche Team", text.Value);
         Assert.NotEqual(0, text.Flags & 1);
         Assert.NotEqual(0, text.Flags & 4096);
         Assert.Equal(80, text.MaximumLength);

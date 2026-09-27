@@ -57,7 +57,7 @@ public sealed class PayloadIntegrityVerifierTests
     {
         WithPayload((root, file) =>
         {
-            File.WriteAllText(Path.Combine(root, ".killerpdf-portable"), "launcher metadata");
+            File.WriteAllText(Path.Combine(root, ".avalanche-portable"), "launcher metadata");
 
             PayloadIntegrityResult markerOnly = PayloadIntegrityVerifier.Verify(root);
 
@@ -122,7 +122,7 @@ public sealed class PayloadIntegrityVerifierTests
 
     private static string NewTemporaryDirectory()
     {
-        string path = Path.Combine(Path.GetTempPath(), "killerpdf-integrity-" + Guid.NewGuid().ToString("N"));
+        string path = Path.Combine(Path.GetTempPath(), "avalanche-integrity-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(path);
         return path;
     }

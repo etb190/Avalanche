@@ -141,7 +141,7 @@
     "Записи архитектурных решений",
     "Техническое руководство настольного Avalanche",
     "The Avalanche.Engine лицензирован под GPLv3 как часть репозитория Avalanche.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" rel=\"noopener\" target=\"_blank\">Исходный код на GitHub</a> · GPLv3 · Часть <a href=\"https://killertools.net\" rel=\"noopener\" target=\"_blank\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" rel=\"noopener\" target=\"_blank\">Исходный код на GitHub</a> · GPLv3 · Часть <a href=\"https://avalanche.net\" rel=\"noopener\" target=\"_blank\">avalanche.net</a>"
   ],
   "it": [
     "Scarica",
@@ -280,7 +280,7 @@
     "Record decisionali sull'architettura",
     "Guida tecnica desktop Avalanche",
     "Avalanche.Engine è concesso in licenza con GPLv3 come parte del repository Avalanche.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Fonte su GitHub</a> · GPLv3 · Parte di <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Fonte su GitHub</a> · GPLv3 · Parte di <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "vi": [
   "Tải xuống",
@@ -419,7 +419,7 @@
   "Hồ sơ quyết định kiến trúc",
   "Hướng dẫn kỹ thuật Avalanche",
   "Avalanche.Engine được cấp phép theo GPLv3 như là một phần của kho lưu trữ Avalanche.",
-  "<a href=\"https://github.com/SteveTheKiller/Avalanche\" rel=\"noopener\" target=\"_blank\">Nguồn trên GitHub</a>&middot; GPLv3 &middot; Một phần của<a href=\"https://killertools.net\" rel=\"noopener\" target=\"_blank\">killertools.net</a>"
+  "<a href=\"https://github.com/etb190/Avalanche\" rel=\"noopener\" target=\"_blank\">Nguồn trên GitHub</a>&middot; GPLv3 &middot; Một phần của<a href=\"https://avalanche.net\" rel=\"noopener\" target=\"_blank\">avalanche.net</a>"
   ],
   "hu": [
     "Letöltés",
@@ -558,7 +558,7 @@
     "Építészeti döntési nyilvántartások",
     "Avalanche asztali technikai útmutató",
     "A Avalanche.Engine a GPLv3 licenc alatt van a Avalanche adattár részeként.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Forrás a GitHubon</a> · GPLv3 · A <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> része"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Forrás a GitHubon</a> · GPLv3 · A <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a> része"
   ],
   "pl": [
     "Pobierz",
@@ -697,7 +697,7 @@
     "Rekordy decyzji dotyczących architektury",
     "Przewodnik techniczny Avalanche dla komputerów stacjonarnych",
     "Avalanche.Engine jest objęty licencją na licencji GPLv3 jako część repozytorium Avalanche.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Źródło w GitHub</a> · GPLv3 · Część <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Źródło w GitHub</a> · GPLv3 · Część <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "cs": [
     "Stáhnout",
@@ -836,7 +836,7 @@
     "Záznamy rozhodnutí o architektuře",
     "Technická příručka pro stolní počítače Avalanche",
     "Avalanche.Engine je licencován pod GPLv3 jako součást úložiště Avalanche.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Zdroj na GitHubu</a> · GPLv3 · Část <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Zdroj na GitHubu</a> · GPLv3 · Část <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "es": [
     "Descargar",
@@ -975,7 +975,7 @@
     "Registros de decisiones de arquitectura",
     "Guía técnica de escritorio de Avalanche",
     "Avalanche.Engine tiene licencia GPLv3 como parte del repositorio de Avalanche.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Fuente en GitHub</a> · GPLv3 · Parte de <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Fuente en GitHub</a> · GPLv3 · Parte de <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "de": [
     "Herunterladen",
@@ -1114,7 +1114,7 @@
     "Architecture Decision Records",
     "Technischer Leitfaden für den Avalanche-Desktop",
     "Die Avalanche.Engine ist unter GPLv3 als Teil des Avalanche-Repositorys lizenziert.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Quelle auf GitHub</a> · GPLv3 · Teil von <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Quelle auf GitHub</a> · GPLv3 · Teil von <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "fr": [
     "Télécharger",
@@ -1253,7 +1253,7 @@
     "Enregistrements de décisions architecturales",
     "Guide technique de bureau Avalanche",
     "Le Avalanche.Engine est sous licence GPLv3 dans le cadre du référentiel Avalanche.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">Source sur GitHub</a> · GPLv3 · Fait partie de <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">Source sur GitHub</a> · GPLv3 · Fait partie de <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "tr": [
     "İndir",
@@ -1392,7 +1392,7 @@
     "Mimari karar kayıtları",
     "Avalanche masaüstü teknik kılavuzu",
     "Avalanche.Engine, Avalanche deposunun bir parçası olarak GPLv3 kapsamında lisanslanmıştır.",
-    "<a href = \"https://github.com/SteveTheKiller/Avalanche\" target = \"_blank\" rel = \"noopener\">GitHub'daki kaynak</a> · GPLv3 · <a href = \"https://killertools.net\" target = \"_blank\" rel = \"noopener\">killertools.net</a>"
+    "<a href = \"https://github.com/etb190/Avalanche\" target = \"_blank\" rel = \"noopener\">GitHub'daki kaynak</a> · GPLv3 · <a href = \"https://avalanche.net\" target = \"_blank\" rel = \"noopener\">avalanche.net</a>"
   ],
   "zh": [
     "下載",
@@ -1531,7 +1531,7 @@
     "架構決策記錄",
     "Avalanche 桌面技術指南",
     "Avalanche.Engine 作為 Avalanche 儲存庫的一部分根據 GPLv3 獲得許可。",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub 上的源代碼</a> · GPLv3 · <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killkillertool>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub 上的源代碼</a> · GPLv3 · <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">killkillertool>"
   ],
   "zh-cn": [
     "下载",
@@ -1670,7 +1670,7 @@
     "架构决策记录",
     "Avalanche 桌面技术指南",
     "Avalanche.Engine 作为 Avalanche 存储库的一部分根据 GPLv3 获得许可。",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub 上的源代码</a> · GPLv3 · <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub 上的源代码</a> · GPLv3 · <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "bn": [
     "ডাউনলোড",
@@ -1809,7 +1809,7 @@
     "স্থাপত্য সিদ্ধান্ত রেকর্ড",
     "Avalanche ডেস্কটপ প্রযুক্তিগত গাইড",
     "Avalanche.Engine Avalanche সংগ্রহস্থলের অংশ হিসেবে GPLv3-এর অধীনে লাইসেন্সপ্রাপ্ত।",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub-এর উৎস</a> · GPLv3 · <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> এর অংশ"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub-এর উৎস</a> · GPLv3 · <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a> এর অংশ"
   ],
   "ja": [
     "ダウンロード",
@@ -1948,7 +1948,7 @@
     "アーキテクチャ決定記録",
     "Avalanche デスクトップ テクニカル ガイド",
     "Avalanche.Engine は、Avalanche リポジトリの一部として GPLv3 に基づいてライセンスされています。",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub のソース</a> · GPLv3 · <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a>"
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub のソース</a> · GPLv3 · <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a>"
   ],
   "kk": [
     "Жүктеп алу",
@@ -2087,7 +2087,7 @@
     "Сәулет шешімдерінің жазбалары",
     "Avalanche жұмыс үстелінің техникалық нұсқаулығы",
     "Avalanche.Engine бағдарламасы Avalanche репозиторийінің бөлігі ретінде GPLv3 бойынша лицензияланған.",
-    "<a href=\"https://github.com/SteveTheKiller/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub сайтындағы дереккөз</a> · GPLv3 · <a href=\"https://killertools.net\" target=\"_blank\" rel=\"noopener\">killertools.net</a> бөлігі."
+    "<a href=\"https://github.com/etb190/Avalanche\" target=\"_blank\" rel=\"noopener\">GitHub сайтындағы дереккөз</a> · GPLv3 · <a href=\"https://avalanche.net\" target=\"_blank\" rel=\"noopener\">avalanche.net</a> бөлігі."
   ]
 };
   window.I18N = window.I18N || {};

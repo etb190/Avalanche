@@ -81,8 +81,8 @@ public sealed class LocalizationParityTests
             "Español", "Français", "Magyar", "Italiano", "Polski", "Tiếng Việt", "Türkçe",
             "en-US", "bn", "cs-CZ", "de-DE", "es", "fr-FR", "hu-HU", "it-IT",
             "ja-JP", "kk-KZ", "pl-PL", "ru-RU", "tr-TR", "vi-VN", "zh-CN", "zh-TW",
-            " (F5)", " (F6)", " (F7)", " (F8)", "v1.6.3", "Steve the Killer",
-            "https://killerpdf.net/help.html", "Avalanche - ", "thekiller.net", "pt",
+            " (F5)", " (F6)", " (F7)", " (F8)", "v1.6.3", "Avalanche Team",
+            "https://killerpdf.net/help.html", "Avalanche - ", "avalanche.net", "pt",
             "PNG", "JPEG"
         };
 

@@ -20,7 +20,7 @@ Version 1.8.70 reproduced every 1.8.6 file outcome and diagnostic detail, and ev
 path, status, diagnostic, and exit code agreed across all six current-run passes. All five releases recorded zero
 crashes and timeouts in the separate damaged-file safety
 collection. See the
-[1.8.2 release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md)
+[1.8.2 release record](https://github.com/etb190/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md)
 and the reports and measured runs for [1.8.3](benchmarks/1.8.3/CORPUS.md) and
 [1.8.4](benchmarks/1.8.4/CORPUS.md), [1.8.6](benchmarks/1.8.6/CORPUS.md), and
 [1.8.70](benchmarks/1.8.70/CORPUS.md).

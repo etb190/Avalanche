@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-22
-**Decider:** Steve the Killer
+**Decider:** Avalanche Team
 
 **Implementation:** Completed and released on `main` in KillerPDF 1.8.0 on 2026-08-28. The branch policy below records the development process used before release.
 

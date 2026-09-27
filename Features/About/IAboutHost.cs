@@ -32,7 +32,7 @@ namespace Avalanche.Features
         void SetVersion(string version);
 
         /// <summary>The quoted alias line. Null hides it - which is the case unless the exe is
-        /// signed AND the signature verifies AND the subject is Steve's, because a fork signed by
+        /// signed AND the signature verifies AND the subject is Avalanche Team's, because a fork signed by
         /// somebody else must not claim the alias.</summary>
         void SetAlias(string? alias);
 

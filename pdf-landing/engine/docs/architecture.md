@@ -56,6 +56,6 @@ A refusal is safer than producing a file that opens but has silently damaged nav
 
 ## Architecture decisions
 
-- [ADR-001: PDF engine boundary](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/docs/architecture/ADR-001-pdf-engine-boundary.md)
-- [ADR-002: Modern Windows shell integration](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/docs/architecture/ADR-002-integrate-engine-through-modern-windows-shell.md)
-- [ADR-003: Installed and portable packages](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/docs/architecture/ADR-003-split-installed-and-portable-packages.md)
+- [ADR-001: PDF engine boundary](https://github.com/etb190/KillerPDF/blob/main/engine/docs/architecture/ADR-001-pdf-engine-boundary.md)
+- [ADR-002: Modern Windows shell integration](https://github.com/etb190/KillerPDF/blob/main/engine/docs/architecture/ADR-002-integrate-engine-through-modern-windows-shell.md)
+- [ADR-003: Installed and portable packages](https://github.com/etb190/KillerPDF/blob/main/engine/docs/architecture/ADR-003-split-installed-and-portable-packages.md)

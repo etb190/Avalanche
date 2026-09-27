@@ -10,7 +10,7 @@
   including five measured passes of the official release payload and exact comparison with 1.8.3.
 - **1.8.3:** [Corpus benchmark and release comparison](benchmarks/1.8.3/CORPUS.md),
   including five measured passes and the comparison with 1.8.2.
-- **1.8.2:** [Corpus release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md),
+- **1.8.2:** [Corpus release record](https://github.com/etb190/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md),
   including complete per-file logs and five measured passes.
 - **1.8.1:** The standards-conformance run is preserved below.
 

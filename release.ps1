@@ -763,9 +763,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 
     Write-Host "`n==> Refreshing etb190 site..." -ForegroundColor Cyan
-    gh workflow run deploy.yml --repo etb190/thekiller-site
+    gh workflow run deploy.yml --repo etb190/avalanche-site
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "The release is published, but etb190 site refresh could not be started. Run: gh workflow run deploy.yml --repo etb190/thekiller-site"
+        Write-Warning "The release is published, but etb190 site refresh could not be started. Run: gh workflow run deploy.yml --repo etb190/avalanche-site"
     }
 
     Write-Host "`n==> Release $Tag published:" -ForegroundColor Green

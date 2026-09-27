@@ -20,7 +20,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void AddTextField_CreatesUniquelyNamedEditableWidgets()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-field-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-field-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage().Build());
@@ -71,7 +71,7 @@ public sealed class PdfEngineIntegrationTests
     public void ReplaceBookmarks_WritesEditedHierarchyThroughEngine()
     {
         string path = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-bookmarks-{Guid.NewGuid():N}.pdf");
+            $"avalanche-bookmarks-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -110,7 +110,7 @@ public sealed class PdfEngineIntegrationTests
     public void ReadPageLinks_ResolvesViewerTargetsAndAnnotationIndices()
     {
         string path = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-links-{Guid.NewGuid():N}.pdf");
+            $"avalanche-links-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -176,11 +176,11 @@ public sealed class PdfEngineIntegrationTests
     public void RebuildDocument_PreservesPagesAndOptionallyStripsRotations()
     {
         string input = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-rebuild-input-{Guid.NewGuid():N}.pdf");
+            $"avalanche-rebuild-input-{Guid.NewGuid():N}.pdf");
         string preserved = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-rebuild-preserved-{Guid.NewGuid():N}.pdf");
+            $"avalanche-rebuild-preserved-{Guid.NewGuid():N}.pdf");
         string stripped = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-rebuild-stripped-{Guid.NewGuid():N}.pdf");
+            $"avalanche-rebuild-stripped-{Guid.NewGuid():N}.pdf");
         try
         {
             PdfDocument authored = PdfDocument.Open(new PdfDocumentBuilder()
@@ -211,11 +211,11 @@ public sealed class PdfEngineIntegrationTests
     public void ResaveDocument_WritesDeterministicEngineOutput()
     {
         string input = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-resave-input-{Guid.NewGuid():N}.pdf");
+            $"avalanche-resave-input-{Guid.NewGuid():N}.pdf");
         string first = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-resave-first-{Guid.NewGuid():N}.pdf");
+            $"avalanche-resave-first-{Guid.NewGuid():N}.pdf");
         string second = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-resave-second-{Guid.NewGuid():N}.pdf");
+            $"avalanche-resave-second-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(input, new PdfDocumentBuilder()
@@ -243,7 +243,7 @@ public sealed class PdfEngineIntegrationTests
     public void RemoveAnnotation_RemovesOnlySelectedNativeAnnotation()
     {
         string path = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-remove-annotation-{Guid.NewGuid():N}.pdf");
+            $"avalanche-remove-annotation-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage(200, 300)
@@ -292,7 +292,7 @@ public sealed class PdfEngineIntegrationTests
     public void StripLinkAppearances_MakesLinksInvisibleAndPreservesTargets()
     {
         string path = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-strip-links-{Guid.NewGuid():N}.pdf");
+            $"avalanche-strip-links-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage(200, 300)
@@ -329,9 +329,9 @@ public sealed class PdfEngineIntegrationTests
     public void AddSearchableTextLayers_WritesExtractableMultiscriptUnicode()
     {
         string input = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-ocr-input-{Guid.NewGuid():N}.pdf");
+            $"avalanche-ocr-input-{Guid.NewGuid():N}.pdf");
         string output = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-ocr-output-{Guid.NewGuid():N}.pdf");
+            $"avalanche-ocr-output-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage(300, 400).Build();
@@ -368,9 +368,9 @@ public sealed class PdfEngineIntegrationTests
     public void AddSearchableTextLayers_HandlesEveryNativePageRotation()
     {
         string input = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-ocr-rotated-input-{Guid.NewGuid():N}.pdf");
+            $"avalanche-ocr-rotated-input-{Guid.NewGuid():N}.pdf");
         string output = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-ocr-rotated-output-{Guid.NewGuid():N}.pdf");
+            $"avalanche-ocr-rotated-output-{Guid.NewGuid():N}.pdf");
         try
         {
             PdfDocument authored = PdfDocument.Open(new PdfDocumentBuilder()
@@ -404,7 +404,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyFormValues_WritesAllDesktopFieldTypesInOneRevision()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-forms-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-forms-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -445,7 +445,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyFormValues_WritesABatchOfOnlyMultiSelectValues()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-multi-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-multi-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -486,7 +486,7 @@ public sealed class PdfEngineIntegrationTests
     [InlineData("日本")]
     public void ApplyFormValues_EmbedsFontForUnicodeTextValues(string value)
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-unicode-form-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-unicode-form-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -513,7 +513,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyFormValues_EmbedsFontForUnicodeChoiceValues()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-unicode-choice-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-unicode-choice-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -541,8 +541,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void RemoveEncryption_WritesPasswordFreeDocumentWithPreservedMetadata()
     {
-        string sourcePath = Path.Combine(Path.GetTempPath(), $"killerpdf-encrypted-{Guid.NewGuid():N}.pdf");
-        string destinationPath = Path.Combine(Path.GetTempPath(), $"killerpdf-decrypted-{Guid.NewGuid():N}.pdf");
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"avalanche-encrypted-{Guid.NewGuid():N}.pdf");
+        string destinationPath = Path.Combine(Path.GetTempPath(), $"avalanche-decrypted-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(sourcePath, new PdfDocumentBuilder()
@@ -571,8 +571,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void CreateZeroRotationCopy_PreservesSourcePrefixAndClearsEveryRotation()
     {
-        string sourcePath = Path.Combine(Path.GetTempPath(), $"killerpdf-rotated-{Guid.NewGuid():N}.pdf");
-        string destinationPath = Path.Combine(Path.GetTempPath(), $"killerpdf-render-{Guid.NewGuid():N}.pdf");
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"avalanche-rotated-{Guid.NewGuid():N}.pdf");
+        string destinationPath = Path.Combine(Path.GetTempPath(), $"avalanche-render-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] unrotated = new PdfDocumentBuilder()
@@ -621,8 +621,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void MergeFiles_ComposesPdfAndImageInputsInOriginalOrder()
     {
-        string pdfPath = Path.Combine(Path.GetTempPath(), $"killerpdf-merge-{Guid.NewGuid():N}.pdf");
-        string imagePath = Path.Combine(Path.GetTempPath(), $"killerpdf-merge-{Guid.NewGuid():N}.png");
+        string pdfPath = Path.Combine(Path.GetTempPath(), $"avalanche-merge-{Guid.NewGuid():N}.pdf");
+        string imagePath = Path.Combine(Path.GetTempPath(), $"avalanche-merge-{Guid.NewGuid():N}.png");
         try
         {
             File.WriteAllBytes(pdfPath, new PdfDocumentBuilder()
@@ -658,7 +658,7 @@ public sealed class PdfEngineIntegrationTests
     public void MergeFiles_EmbedsJpegInputWithoutLosslessExpansion()
     {
         string imagePath = Path.Combine(
-            Path.GetTempPath(), $"killerpdf-import-{Guid.NewGuid():N}.jpg");
+            Path.GetTempPath(), $"avalanche-import-{Guid.NewGuid():N}.jpg");
         try
         {
             using (var bitmap = new System.Drawing.Bitmap(80, 60))
@@ -749,8 +749,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void MergeReadableFiles_SkipsInvalidFolderImportEntries()
     {
-        string validPath = Path.Combine(Path.GetTempPath(), $"killerpdf-readable-{Guid.NewGuid():N}.pdf");
-        string invalidPath = Path.Combine(Path.GetTempPath(), $"killerpdf-invalid-{Guid.NewGuid():N}.pdf");
+        string validPath = Path.Combine(Path.GetTempPath(), $"avalanche-readable-{Guid.NewGuid():N}.pdf");
+        string invalidPath = Path.Combine(Path.GetTempPath(), $"avalanche-invalid-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(validPath, new PdfDocumentBuilder().AddBlankPage().Build());
@@ -799,7 +799,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ValidateDocument_RejectsSourceWithoutTrailer()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-invalid-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-invalid-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllText(path, "%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
@@ -815,7 +815,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void DuplicatePage_DeepCopiesPageAtFollowingPosition()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-duplicate-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-duplicate-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -853,8 +853,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ReplacePage_ImportsReplacementAtSamePositionAndKeepsPageCount()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-replace-{Guid.NewGuid():N}.pdf");
-        string replacementPath = Path.Combine(Path.GetTempPath(), $"killerpdf-replacement-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-replace-{Guid.NewGuid():N}.pdf");
+        string replacementPath = Path.Combine(Path.GetTempPath(), $"avalanche-replacement-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -898,9 +898,9 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ReplacePages_SwapsBatchInOneStablePageOrder()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-replace-pages-{Guid.NewGuid():N}.pdf");
-        string first = Path.Combine(Path.GetTempPath(), $"killerpdf-replace-first-{Guid.NewGuid():N}.pdf");
-        string second = Path.Combine(Path.GetTempPath(), $"killerpdf-replace-second-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-replace-pages-{Guid.NewGuid():N}.pdf");
+        string first = Path.Combine(Path.GetTempPath(), $"avalanche-replace-first-{Guid.NewGuid():N}.pdf");
+        string second = Path.Combine(Path.GetTempPath(), $"avalanche-replace-second-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -931,7 +931,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void SetTextFieldBackground_PersistsColorAndPreservesValue()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-form-color-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-form-color-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -960,8 +960,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ReplacePagesAndCompact_RemovesSupersededImageData()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-compact-pages-{Guid.NewGuid():N}.pdf");
-        string replacement = Path.Combine(Path.GetTempPath(), $"killerpdf-compact-replacement-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-compact-pages-{Guid.NewGuid():N}.pdf");
+        string replacement = Path.Combine(Path.GetTempPath(), $"avalanche-compact-replacement-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] rgba = new byte[512 * 512 * 4];
@@ -1006,8 +1006,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ReplacePagesAndCompact_ReplacesSelectedTaggedPageWithRasterPage()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-transform-{Guid.NewGuid():N}.pdf");
-        string replacement = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-transform-page-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-tagged-transform-{Guid.NewGuid():N}.pdf");
+        string replacement = Path.Combine(Path.GetTempPath(), $"avalanche-tagged-transform-page-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1050,8 +1050,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ReplacePagesAndCompact_KeepsReplacementWhenRetainedFontWidthsAreMalformed()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-font-width-transform-{Guid.NewGuid():N}.pdf");
-        string replacement = Path.Combine(Path.GetTempPath(), $"killerpdf-font-width-page-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-font-width-transform-{Guid.NewGuid():N}.pdf");
+        string replacement = Path.Combine(Path.GetTempPath(), $"avalanche-font-width-page-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, BuildMalformedSource());
@@ -1106,9 +1106,9 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ReplaceAllPagesAndCompact_DoesNotRetainAnyOriginalPageImages()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-all-pages-{Guid.NewGuid():N}.pdf");
-        string first = Path.Combine(Path.GetTempPath(), $"killerpdf-all-first-{Guid.NewGuid():N}.pdf");
-        string second = Path.Combine(Path.GetTempPath(), $"killerpdf-all-second-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-all-pages-{Guid.NewGuid():N}.pdf");
+        string first = Path.Combine(Path.GetTempPath(), $"avalanche-all-first-{Guid.NewGuid():N}.pdf");
+        string second = Path.Combine(Path.GetTempPath(), $"avalanche-all-second-{Guid.NewGuid():N}.pdf");
         try
         {
             var bitmap = BitmapSource.Create(2, 1, 96, 96, PixelFormats.Rgb24,
@@ -1192,8 +1192,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ExtractPages_WritesSelectedOrderWithEffectiveRotations()
     {
-        string sourcePath = Path.Combine(Path.GetTempPath(), $"killerpdf-extract-source-{Guid.NewGuid():N}.pdf");
-        string destinationPath = Path.Combine(Path.GetTempPath(), $"killerpdf-extract-output-{Guid.NewGuid():N}.pdf");
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"avalanche-extract-source-{Guid.NewGuid():N}.pdf");
+        string destinationPath = Path.Combine(Path.GetTempPath(), $"avalanche-extract-output-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(sourcePath, new PdfDocumentBuilder()
@@ -1222,8 +1222,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void AppendDocuments_MergesCompleteSourcesAndNormalizesStoredRotations()
     {
-        string targetPath = Path.Combine(Path.GetTempPath(), $"killerpdf-merge-target-{Guid.NewGuid():N}.pdf");
-        string sourcePath = Path.Combine(Path.GetTempPath(), $"killerpdf-merge-source-{Guid.NewGuid():N}.pdf");
+        string targetPath = Path.Combine(Path.GetTempPath(), $"avalanche-merge-target-{Guid.NewGuid():N}.pdf");
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"avalanche-merge-source-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(targetPath, new PdfDocumentBuilder().AddBlankPage(100, 200).Build());
@@ -1262,8 +1262,8 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void InsertDocuments_AddsSourcesAtRequestedPositionAndShiftsRotations()
     {
-        string targetPath = Path.Combine(Path.GetTempPath(), $"killerpdf-insert-doc-target-{Guid.NewGuid():N}.pdf");
-        string sourcePath = Path.Combine(Path.GetTempPath(), $"killerpdf-insert-doc-source-{Guid.NewGuid():N}.pdf");
+        string targetPath = Path.Combine(Path.GetTempPath(), $"avalanche-insert-doc-target-{Guid.NewGuid():N}.pdf");
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"avalanche-insert-doc-source-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(targetPath, new PdfDocumentBuilder()
@@ -1295,7 +1295,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void InsertBlankPage_AddsA4PageAtRequestedPosition()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-insert-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-insert-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1345,7 +1345,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void MovePage_ReordersPagesAndPreservesTheirRotation()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-move-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-move-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1398,7 +1398,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void MovePages_ReordersDiscontiguousSelectionAsOrderedBlock()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-move-pages-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-move-pages-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder()
@@ -1435,7 +1435,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void RemovePages_DeletesSelectedPagesAndPreservesRetainedRotations()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-delete-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-delete-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1487,7 +1487,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyCropBoxes_WritesMatchingCropAndTrimBoxesIncrementally()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-crop-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-crop-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1522,7 +1522,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyCropBoxes_WithNullRectangleRemovesCropAndTrimBoxes()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-crop-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-crop-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1549,7 +1549,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyPageRotations_WritesFinalIncrementalRotationRevision()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-rotation-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-rotation-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -1579,7 +1579,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyDocumentMetadata_WritesCompleteMetadataAndPreservesPrefix()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-metadata-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-metadata-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
@@ -1587,7 +1587,7 @@ public sealed class PdfEngineIntegrationTests
             var metadata = new PdfDocumentMetadata
             {
                 Title = "Updated title",
-                Author = "Steve",
+                Author = "Avalanche Team",
                 Subject = "The Avalanche.Engine",
                 Keywords = "PDF 2.0, PDF/A",
                 Creator = "Avalanche",
@@ -1623,7 +1623,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyDocumentMetadata_DropsInvalidExistingLanguageAndWritesOtherChanges()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-metadata-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-metadata-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
@@ -1650,7 +1650,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyPageRotations_WithNoApplicationRotations_LeavesFileUntouched()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-rotation-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-rotation-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
@@ -1669,7 +1669,7 @@ public sealed class PdfEngineIntegrationTests
     [Fact]
     public void ApplyPageRotations_WithInvalidPageIndex_PreservesOriginalFile()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-rotation-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-rotation-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
@@ -1690,7 +1690,7 @@ public sealed class PdfEngineIntegrationTests
     public void ClearInvalidatedSignatures_LeavesUnsignedFileByteIdentical()
     {
         string path = Path.Combine(Path.GetTempPath(),
-            $"killerpdf-signature-cleanup-{Guid.NewGuid():N}.pdf");
+            $"avalanche-signature-cleanup-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();

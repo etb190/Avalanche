@@ -11,7 +11,7 @@ public sealed class AppDataPathsTests
     [Fact]
     public void PortableSettingsAreStoredBesideTheLauncher()
     {
-        string root = Path.Combine(Path.GetTempPath(), $"killerpdf-portable-data-{Guid.NewGuid():N}");
+        string root = Path.Combine(Path.GetTempPath(), $"avalanche-portable-data-{Guid.NewGuid():N}");
         string launcher = Path.Combine(root, "Avalanche-Portable.exe");
         string? previous = Environment.GetEnvironmentVariable("AVALANCHE_LAUNCHER_PATH");
         try

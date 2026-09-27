@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 **Date:** 2026-08-24
-**Decider:** Steve the Killer
+**Decider:** Avalanche Team
 
 ## Context
 

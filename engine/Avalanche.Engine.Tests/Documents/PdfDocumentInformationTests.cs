@@ -45,7 +45,7 @@ public sealed class PdfDocumentInformationTests
             .SetMetadata(new PdfDocumentMetadata
             {
                 Title = "Technical overview",
-                Author = "Steve",
+                Author = "Avalanche Team",
                 Subject = "The Avalanche.Engine",
                 Keywords = "PDF 2.0, PDF/A",
                 Creator = "Tests",
@@ -62,7 +62,7 @@ public sealed class PdfDocumentInformationTests
         PdfDocumentInformation info = PdfDocumentInformation.Read(PdfDocument.Open(bytes));
 
         Assert.Equal("Technical overview", info.Title);
-        Assert.Equal("Steve", info.Author);
+        Assert.Equal("Avalanche Team", info.Author);
         Assert.Equal("The Avalanche.Engine", info.Subject);
         Assert.Equal("PDF 2.0, PDF/A", info.Keywords);
         Assert.Equal("Tests", info.Creator);

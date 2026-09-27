@@ -215,7 +215,7 @@ namespace Avalanche
                     key.SetResourceReference(Border.CornerRadiusProperty, "ControlCornerRadius");
                     key.SetResourceReference(Border.BackgroundProperty, "KeyboardKeyBrush");
                     key.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
-                    // Hover: the keycap lifts a few pixels, like the cards on the killertools.net front page.
+                    // Hover: the keycap lifts a few pixels, like the cards on the avalanche.net front page.
                     var lift = new TranslateTransform();
                     key.RenderTransform = lift;
                     string keyId = id;

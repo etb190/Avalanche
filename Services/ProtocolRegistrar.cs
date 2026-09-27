@@ -7,7 +7,7 @@ namespace Avalanche.Services
 {
     internal static class ProtocolRegistrar
     {
-        internal const string Scheme = "killerpdf";
+        internal const string Scheme = "avalanche";
         private const string RegistryPath = @"Software\Classes\avalanche";
 
         internal static void Register() => Register(Registry.CurrentUser, null);
@@ -101,11 +101,11 @@ namespace Avalanche.Services
         {
             /// <summary>Accepted; there is a target to open.</summary>
             None,
-            /// <summary>Not a killerpdf: launch at all, so it is not ours to complain about.</summary>
+            /// <summary>Not a avalanche: launch at all, so it is not ours to complain about.</summary>
             NotAHandoff,
-            /// <summary>A killerpdf: launch whose host is something other than "open".</summary>
+            /// <summary>A avalanche: launch whose host is something other than "open".</summary>
             UnknownCommand,
-            /// <summary>killerpdf://open with no url parameter.</summary>
+            /// <summary>avalanche://open with no url parameter.</summary>
             MissingUrl,
             /// <summary>A url parameter that is not an absolute address.</summary>
             MalformedUrl,
@@ -114,7 +114,7 @@ namespace Avalanche.Services
         }
 
         /// <summary>
-        /// True when the argument is a killerpdf: URL, valid or not. The launch paths use this to
+        /// True when the argument is a avalanche: URL, valid or not. The launch paths use this to
         /// decide whether an argument is aimed at the protocol handler before asking why it failed.
         /// </summary>
         internal static bool IsHandoffLaunch(string? argument) =>

@@ -74,14 +74,14 @@ Chocolatey:
 choco install avalanche
 ```
 
-- Standard installer: <https://github.com/SteveTheKiller/Avalanche/releases/latest/download/Avalanche.exe>
-- Portable edition: <https://github.com/SteveTheKiller/Avalanche/releases/latest/download/Avalanche-Portable.exe>
-- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/Avalanche/releases/download/v1.8.71/Avalanche-1.8.71-src.zip>
+- Standard installer: <https://github.com/etb190/Avalanche/releases/latest/download/Avalanche.exe>
+- Portable edition: <https://github.com/etb190/Avalanche/releases/latest/download/Avalanche-Portable.exe>
+- Source (GPL3 corresponding source for this release): <https://github.com/etb190/Avalanche/releases/download/v1.8.71/Avalanche-1.8.71-src.zip>
 
 ## Build from source
 
 ```powershell
-git clone https://github.com/SteveTheKiller/Avalanche.git
+git clone https://github.com/etb190/Avalanche.git
 cd Avalanche
 dotnet publish -c Release
 ```

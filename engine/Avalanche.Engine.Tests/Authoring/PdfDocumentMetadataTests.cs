@@ -15,7 +15,7 @@ public sealed class PdfDocumentMetadataTests
         var metadata = new PdfDocumentMetadata
         {
             Title = "Avalanche – Unicode",
-            Author = "Steve the Killer",
+            Author = "Avalanche Team",
             Subject = "PDF 2.0 authoring",
             Keywords = "PDF, authoring",
             Creator = "Avalanche",

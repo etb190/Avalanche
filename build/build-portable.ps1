@@ -139,7 +139,7 @@ $launcherTitle = if ($isInstaller) { 'Avalanche Installer' } else { 'Avalanche' 
 & dotnet publish $launcherProject -c $Configuration `
     -p:LauncherAssemblyName=Avalanche `
     -p:AssemblyTitle="$launcherTitle" `
-    -p:Copyright="Copyright $([DateTime]::Now.Year) Steve the Killer" `
+    -p:Copyright="Copyright $([DateTime]::Now.Year) Avalanche Team" `
     -p:LauncherVersion=$version `
     -p:LauncherFileVersion=$fileVersion `
     -p:LauncherIcon="$(Join-Path $projectDir 'Resources\kp-icon.ico')" `

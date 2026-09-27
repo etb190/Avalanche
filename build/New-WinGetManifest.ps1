@@ -59,7 +59,7 @@ Dependencies:
     MinimumVersion: 10.0.0
 AppsAndFeaturesEntries:
 - DisplayName: Avalanche
-  Publisher: Steve the Killer
+  Publisher: Avalanche Team
   DisplayVersion: $version
   ProductCode: Avalanche
 ReleaseDate: $date
@@ -82,15 +82,15 @@ $locale = @"
 PackageIdentifier: etb190.Avalanche
 PackageVersion: $version
 PackageLocale: en-US
-Publisher: Steve the Killer
+Publisher: Avalanche Team
 PublisherUrl: https://github.com/etb190
 PublisherSupportUrl: https://github.com/etb190/Avalanche/issues
-Author: Steve the Killer
+Author: Avalanche Team
 PackageName: Avalanche
 PackageUrl: https://github.com/etb190/Avalanche
 License: GPL-3.0
 LicenseUrl: https://github.com/etb190/Avalanche/blob/HEAD/LICENSE
-Copyright: Copyright (c) 2026 Steve the Killer
+Copyright: Copyright (c) 2026 Avalanche Team
 ShortDescription: PDF editor for Windows. No account, no subscription, no telemetry.
 Description: Avalanche is a lightweight PDF viewer and toolkit for Windows. View, merge, split, and manage PDF files. Runs portable or installs to your user profile without admin rights. No account, no subscription, no telemetry. Open source under GPLv3.
 Moniker: avalanche

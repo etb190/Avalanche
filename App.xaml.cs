@@ -692,7 +692,7 @@ namespace Avalanche
                         $"```\n{stack}\n```\n\n" +
                         $"_Log folder: `{CrashReporter.LogDir}`_");
                     Process.Start(new ProcessStartInfo(
-                        $"https://github.com/SteveTheKiller/Avalanche/issues/new?title={title}&body={body}")
+                        $"https://github.com/etb190/Avalanche/issues/new?title={title}&body={body}")
                         { UseShellExecute = true });
                 }
                 catch { }
@@ -1710,7 +1710,7 @@ namespace Avalanche
             };
             var cardContent = new StackPanel();
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Version") as string ?? string.Empty, $"v{version}", fgDim, accent,
-                onClick: () => OpenUrl($"https://github.com/SteveTheKiller/Avalanche/releases/tag/v{version}")));
+                onClick: () => OpenUrl($"https://github.com/etb190/Avalanche/releases/tag/v{version}")));
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Publisher") as string ?? string.Empty, sigInfo, fgDim, fg));
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Thumbprint") as string ?? string.Empty, thumbInfo, fgDim, fg, mono, wrap: true));
             cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_ExeSha") as string ?? string.Empty, sha256, fgDim, fg, mono, wrap: true));
@@ -1735,7 +1735,7 @@ namespace Avalanche
                 Foreground = accent,
                 TextDecorations = null
             };
-            logoHl.Click += (_, _) => OpenUrl("https://pdf.killertools.com");
+            logoHl.Click += (_, _) => OpenUrl("https://avalanche.net");
             logo.Inlines.Add(logoHl);
 
             // Tagline with Killer Tools link
@@ -1748,7 +1748,7 @@ namespace Avalanche
                 Foreground = accent,
                 TextDecorations = null
             };
-            ktHl.Click += (_, _) => OpenUrl("https://killertools.net");
+            ktHl.Click += (_, _) => OpenUrl("https://avalanche.net");
             tagline.Inlines.Add(ktHl);
             tagline.Inlines.Add(new Run(brandPosition >= 0 ? taglineText[(brandPosition + 3)..] : string.Empty) { Foreground = fgDim });
 
@@ -2046,7 +2046,7 @@ namespace Avalanche
             {
                 key.SetValue("DisplayName", AppName);
                 key.SetValue("DisplayVersion", AppVersion.Display);
-                key.SetValue("Publisher", "Steve the Killer");
+                key.SetValue("Publisher", "Avalanche Team");
                 key.SetValue("EstimatedSize", GetInstalledSizeKilobytes(installDirectory), RegistryValueKind.DWord);
                 key.SetValue("InstallLocation", installDirectory);
                 key.SetValue("DisplayIcon", $"{exePath},0");

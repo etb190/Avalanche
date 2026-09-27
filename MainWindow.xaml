@@ -2845,10 +2845,10 @@
                     <TextBlock FontSize="10" VerticalAlignment="Center"
                                FontFamily="Consolas" Margin="0,0,14,0">
                         <Run Text="&#x00A9; 2026 " Foreground="{DynamicResource TextFooter}"/>
-                        <Hyperlink NavigateUri="https://thekiller.net"
+                        <Hyperlink NavigateUri="https://avalanche.net"
                                    RequestNavigate="Hyperlink_RequestNavigate"
                                    Foreground="{DynamicResource TextFooter}" TextDecorations="None">
-                            <Run Text="Steve the Killer"/>
+                            <Run Text="Avalanche Team"/>
                         </Hyperlink>
                     </TextBlock>
                 </StackPanel>
@@ -3156,7 +3156,7 @@
                                 <TextBlock x:Name="AboutPublisherBlock"
                                            FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="12"
                                            Foreground="{DynamicResource TextBrush}"/>
-                                <!-- Shown only on an exe signed by Steve; the certificate subject is
+                                <!-- Shown only on an exe signed by Avalanche Team; the certificate subject is
                                      the legal name, this ties it back to the name people know.
                                      Inlines are built in About.cs like the tagline and version. -->
                                 <TextBlock x:Name="AboutAkaBlock" Visibility="Collapsed"

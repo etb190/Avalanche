@@ -14,7 +14,7 @@ internal static partial class ReleaseUpdateCheck
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get,
-                "https://api.github.com/repos/SteveTheKiller/Avalanche/releases/latest");
+                "https://api.github.com/repos/etb190/Avalanche/releases/latest");
             request.Headers.UserAgent.ParseAdd("Avalanche-UpdateCheck");
             using var response = await http.SendAsync(request).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();

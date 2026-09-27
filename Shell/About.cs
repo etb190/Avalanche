@@ -80,8 +80,8 @@ namespace Avalanche
 
             AboutAkaBlock.Inlines.Clear();
             AboutAkaBlock.Inlines.Add(new Run(Loc("Str_About_Aka") + " ") { Foreground = Res("MutedTextBrush") });
-            var hl = AccentLink(alias, () => AboutController.OpenUrl("https://thekiller.net"));
-            hl.ToolTip = "thekiller.net";
+            var hl = AccentLink(alias, () => AboutController.OpenUrl("https://avalanche.net"));
+            hl.ToolTip = "avalanche.net";
             AboutAkaBlock.Inlines.Add(hl);
         }
 
@@ -167,7 +167,7 @@ namespace Avalanche
 
             AddText(pre);
             AboutTaglineBlock.Inlines.Add(
-                AccentLink("Killer Tools", () => AboutController.OpenUrl("https://killertools.net")));
+                AccentLink("Killer Tools", () => AboutController.OpenUrl("https://avalanche.net")));
             AddText(suf);
         }
 

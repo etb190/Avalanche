@@ -46,8 +46,8 @@ Use `PdfObject`, `PdfDictionary`, `PdfArray`, `PdfStream`, `PdfName`, and indire
 
 The package includes XML documentation generated from the public source comments. Visual Studio, Rider, and other .NET editors display summaries and parameter help while you type.
 
-For the complete current surface, browse the [engine source](https://github.com/SteveTheKiller/KillerPDF/tree/main/engine/KillerPdf.Engine) or inspect the package with your IDE's object browser.
+For the complete current surface, browse the [engine source](https://github.com/etb190/KillerPDF/tree/main/engine/KillerPdf.Engine) or inspect the package with your IDE's object browser.
 
 ## Versioning
 
-The package version follows the KillerPDF release that ships it. Pin the version your application has tested. Review the [engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md) before upgrading.
+The package version follows the KillerPDF release that ships it. Pin the version your application has tested. Review the [engine changelog](https://github.com/etb190/KillerPDF/blob/main/engine/CHANGELOG.md) before upgrading.

@@ -782,7 +782,7 @@ KillerPDF 1.6.6 is primarily a bug fix release. Most importantly, it corrects fo
 - Sidebar page list no longer shows empty space after the last page. The list now ends at the final page entry with no trailing dead zone.
 
 ### Changed
-- Theme updated to match killertools.net: accent green changed from `#4ade80` to `#1ea54c`, backgrounds shifted to `#333333`/`#3a3a3a`, sidebar darkened to `#222222`, toolbar and title bar at `#222222`. Film grain overlay added to the main content area. Footer text lightened for readability.
+- Theme updated to match avalanche.net: accent green changed from `#4ade80` to `#1ea54c`, backgrounds shifted to `#333333`/`#3a3a3a`, sidebar darkened to `#222222`, toolbar and title bar at `#222222`. Film grain overlay added to the main content area. Footer text lightened for readability.
 - Sidebar scroll is now handled by an outer ScrollViewer wrapping the page list, allowing the list to size to its content rather than stretching to fill the panel height.
 
 ## [1.3.2] - 2026-05-11

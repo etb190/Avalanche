@@ -9,14 +9,14 @@ public sealed class ProtocolRegistrarTests
     public void ParsesEncodedHttpsPdfUrl()
     {
         Assert.True(ProtocolRegistrar.TryGetTargetUrl(
-            "killerpdf://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf%3Fx%3D1", out var target));
+            "avalanche://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf%3Fx%3D1", out var target));
         Assert.Equal("https://example.com/file.pdf?x=1", target!.AbsoluteUri);
     }
 
     [Theory]
-    [InlineData("killerpdf://open?url=http%3A%2F%2Fexample.com%2Ffile.pdf")]
-    [InlineData("killerpdf://open?url=file%3A%2F%2Fc%3A%2Fsecret.pdf")]
-    [InlineData("killerpdf://wrong?url=https%3A%2F%2Fexample.com%2Ffile.pdf")]
+    [InlineData("avalanche://open?url=http%3A%2F%2Fexample.com%2Ffile.pdf")]
+    [InlineData("avalanche://open?url=file%3A%2F%2Fc%3A%2Fsecret.pdf")]
+    [InlineData("avalanche://wrong?url=https%3A%2F%2Fexample.com%2Ffile.pdf")]
     [InlineData("https://example.com/file.pdf")]
     public void RejectsUnsafeOrUnrelatedLaunches(string value)
         => Assert.False(ProtocolRegistrar.TryGetTargetUrl(value, out _));
@@ -29,16 +29,16 @@ public sealed class ProtocolRegistrarTests
     {
         (string Launch, ProtocolRegistrar.HandoffRejection Expected)[] cases =
         [
-            ("killerpdf://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf",
+            ("avalanche://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf",
                 ProtocolRegistrar.HandoffRejection.None),
-            ("killerpdf://open?url=http%3A%2F%2Fexample.com%2Ffile.pdf",
+            ("avalanche://open?url=http%3A%2F%2Fexample.com%2Ffile.pdf",
                 ProtocolRegistrar.HandoffRejection.SchemeNotAllowed),
-            ("killerpdf://open?url=file%3A%2F%2Fc%3A%2Fsecret.pdf",
+            ("avalanche://open?url=file%3A%2F%2Fc%3A%2Fsecret.pdf",
                 ProtocolRegistrar.HandoffRejection.SchemeNotAllowed),
-            ("killerpdf://open?url=notaurl", ProtocolRegistrar.HandoffRejection.MalformedUrl),
-            ("killerpdf://open", ProtocolRegistrar.HandoffRejection.MissingUrl),
-            ("killerpdf://open?other=1", ProtocolRegistrar.HandoffRejection.MissingUrl),
-            ("killerpdf://wrong?url=https%3A%2F%2Fexample.com%2Ffile.pdf",
+            ("avalanche://open?url=notaurl", ProtocolRegistrar.HandoffRejection.MalformedUrl),
+            ("avalanche://open", ProtocolRegistrar.HandoffRejection.MissingUrl),
+            ("avalanche://open?other=1", ProtocolRegistrar.HandoffRejection.MissingUrl),
+            ("avalanche://wrong?url=https%3A%2F%2Fexample.com%2Ffile.pdf",
                 ProtocolRegistrar.HandoffRejection.UnknownCommand),
             ("https://example.com/file.pdf", ProtocolRegistrar.HandoffRejection.NotAHandoff),
             (@"C:\missing\file.pdf", ProtocolRegistrar.HandoffRejection.NotAHandoff),
@@ -52,8 +52,8 @@ public sealed class ProtocolRegistrarTests
     }
 
     [Theory]
-    [InlineData("killerpdf://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf", true)]
-    [InlineData("killerpdf://wrong", true)]
+    [InlineData("avalanche://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf", true)]
+    [InlineData("avalanche://wrong", true)]
     [InlineData("KILLERPDF://open", true)]
     [InlineData("https://example.com/file.pdf", false)]
     [InlineData(@"C:\missing\file.pdf", false)]

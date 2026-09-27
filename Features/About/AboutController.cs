@@ -18,12 +18,12 @@ namespace Avalanche.Features
     {
         // The certificate subject is the legal name ("Open Source Developer Stephen Riley"), so the
         // About card ties it back to the name people know. Gated on the subject actually being
-        // Steve's: a fork signed by somebody else must not claim the alias, and an unsigned build
+        // Avalanche Team's: a fork signed by somebody else must not claim the alias, and an unsigned build
         // has no subject at all. Family standard, see code/CLAUDE.md.
         private const string SignerName = "Stephen Riley";
-        private const string AkaName    = "Steve the Killer";
+        private const string AkaName    = "Avalanche Team";
 
-        private const string Repo = "https://github.com/SteveTheKiller/Avalanche";
+        private const string Repo = "https://github.com/etb190/Avalanche";
 
         private readonly IAboutHost _host;
 
@@ -65,7 +65,7 @@ namespace Avalanche.Features
 
             _host.SetVersion(Version);
 
-            // Signed, verified, AND signed by Steve - all three, not merely "is signed".
+            // Signed, verified, AND signed by Avalanche Team - all three, not merely "is signed".
             bool signedByMe = sigValid
                            && sigSubject.Contains(SignerName, StringComparison.OrdinalIgnoreCase);
             // 0x201C / 0x201D are the curly quotes, built from codepoints so this file stays ASCII

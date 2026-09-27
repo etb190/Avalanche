@@ -19,7 +19,7 @@ namespace KillerLauncher
         private const string InnerExeName = "Avalanche.App.exe";
         private const string PayloadResourceName = "KillerLauncher.payload.zip";
         private const string ManifestName = "payload.manifest";
-        private const string PortableMarkerName = ".killerpdf-portable";
+        private const string PortableMarkerName = ".avalanche-portable";
         private const string TestInstallRootEnvironmentVariable = "AVALANCHE_TEST_INSTALL_ROOT";
         private const string SkipRegistrationEnvironmentVariable = "AVALANCHE_SKIP_REGISTRATION";
 

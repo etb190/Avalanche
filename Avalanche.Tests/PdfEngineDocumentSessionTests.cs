@@ -10,7 +10,7 @@ public sealed class PdfEngineDocumentSessionTests
     [Fact]
     public void Open_OwnsImmutableBytesAndCachesPageGeometry()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-session-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-session-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] original = new PdfDocumentBuilder().AddBlankPage(320, 480).Build();
@@ -31,7 +31,7 @@ public sealed class PdfEngineDocumentSessionTests
     [Fact]
     public void CaptureRotations_UsesNativeStateThenPreservesCompleteApplicationState()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-rotations-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-rotations-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder().AddBlankPage(320, 480).Build();
@@ -54,7 +54,7 @@ public sealed class PdfEngineDocumentSessionTests
     [Fact]
     public void VisualPageSize_UsesApplicationRotationWhenPresent()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-visual-size-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-visual-size-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(320, 480).Build());
@@ -70,8 +70,8 @@ public sealed class PdfEngineDocumentSessionTests
     [Fact]
     public void VisualPageSize_UsesExpectedDimensionsForNativeAndApplicationRotations()
     {
-        string portraitPath = Path.Combine(Path.GetTempPath(), $"killerpdf-portrait-visual-{Guid.NewGuid():N}.pdf");
-        string landscapePath = Path.Combine(Path.GetTempPath(), $"killerpdf-landscape-visual-{Guid.NewGuid():N}.pdf");
+        string portraitPath = Path.Combine(Path.GetTempPath(), $"avalanche-portrait-visual-{Guid.NewGuid():N}.pdf");
+        string landscapePath = Path.Combine(Path.GetTempPath(), $"avalanche-landscape-visual-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(portraitPath, new PdfDocumentBuilder().AddBlankPage(320, 480).Build());

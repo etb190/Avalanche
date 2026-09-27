@@ -30,7 +30,7 @@ public sealed class PortableLauncherPolicyTests
     [Fact]
     public void LockedPortableDirectoryIsLeftForTheNextSweep()
     {
-        string directory = Path.Combine(Path.GetTempPath(), "killerpdf-cleanup-" + Guid.NewGuid().ToString("N"));
+        string directory = Path.Combine(Path.GetTempPath(), "avalanche-cleanup-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         string file = Path.Combine(directory, "locked.bin");
         File.WriteAllBytes(file, [1, 2, 3]);

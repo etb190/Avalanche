@@ -31,7 +31,7 @@ public sealed class PdfDetachedSignatureWriterTests
                     Width = 220,
                     Height = 80,
                     FontSize = 11,
-                    Text = "Digitally signed by Steve\nReason: Approved"
+                    Text = "Digitally signed by Avalanche Team\nReason: Approved"
                 }
             }));
 
@@ -45,7 +45,7 @@ public sealed class PdfDetachedSignatureWriterTests
         PdfStream normal = Assert.IsType<PdfStream>(signed.Resolve(
             Assert.IsType<PdfIndirectReference>(appearances[Name("N")])));
         string commands = Encoding.Latin1.GetString(normal.EncodedData.Span);
-        Assert.Contains("Digitally signed by Steve", commands, StringComparison.Ordinal);
+        Assert.Contains("Digitally signed by Avalanche Team", commands, StringComparison.Ordinal);
         Assert.Contains("Reason: Approved", commands, StringComparison.Ordinal);
 
         static double Number(PdfObject value) => value switch
@@ -154,7 +154,7 @@ public sealed class PdfDetachedSignatureWriterTests
         var options = new PdfSignatureOptions
         {
             FieldName = "Approval",
-            SignerName = "Steve the Killer",
+            SignerName = "Avalanche Team",
             Reason = "Release approval",
             Location = "California",
             ContactInformation = "killerpdf.net",
@@ -200,7 +200,7 @@ public sealed class PdfDetachedSignatureWriterTests
             Assert.IsType<PdfIndirectReference>(annotations[0]).ObjectNumber);
         Assert.Equal("ETSI.CAdES.detached",
             Assert.IsType<PdfName>(signature[Name("SubFilter")]).ValueAsLatin1());
-        Assert.Equal("Steve the Killer", DecodeUnicode(
+        Assert.Equal("Avalanche Team", DecodeUnicode(
             Assert.IsType<PdfString>(signature[Name("Name")])));
         Assert.Equal("Release approval", DecodeUnicode(
             Assert.IsType<PdfString>(signature[Name("Reason")])));
@@ -472,7 +472,7 @@ public sealed class PdfDetachedSignatureWriterTests
     {
         PdfDocument authored = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
-            .AddTextField(0, "workflow.owner", 20, 20, 120, 20, "Steve")
+            .AddTextField(0, "workflow.owner", 20, 20, 120, 20, "Avalanche Team")
             .AddSignatureField(0, "workflow.approval", 20, 60, 160, 40)
             .Build());
         PdfIndirectReference authoredCatalogReference = Assert.IsType<PdfIndirectReference>(

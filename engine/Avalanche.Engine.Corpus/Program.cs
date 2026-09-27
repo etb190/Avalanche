@@ -1196,7 +1196,7 @@ if (args.Length == 2 && args[0] == "--form-smoke")
         .SetMetadata(new PdfDocumentMetadata { Title = "Avalanche form smoke test", Language = "en-US" })
         .AddBlankPage()
         .AddNamedDestination("FormTop", 0, PdfDestination.At(top: 760))
-        .AddTextField(0, "customer.name", 72, 680, 240, 28, "Steve the Killer", 12,
+        .AddTextField(0, "customer.name", 72, 680, 240, 28, "Avalanche Team", 12,
             new PdfTextFieldOptions { Alignment = PdfTextFieldAlignment.Center },
             appearanceStyle: new PdfFormFieldAppearanceStyle
             {

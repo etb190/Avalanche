@@ -207,7 +207,7 @@ namespace KillerLauncher
         private void Cancel_Click(object sender, RoutedEventArgs e) { DialogResult = false; }
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.LeftButton == MouseButtonState.Pressed) DragMove(); }
         private void Website_Click(object sender, RoutedEventArgs e) =>
-            Process.Start(new ProcessStartInfo("https://thekiller.net") { UseShellExecute = true });
+            Process.Start(new ProcessStartInfo("https://avalanche.net") { UseShellExecute = true });
 
         private static ImageBrush CreateGrain()
         {

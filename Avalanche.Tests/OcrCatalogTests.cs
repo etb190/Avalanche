@@ -11,7 +11,7 @@ namespace Avalanche.Tests;
 // an interface language whose text the app cannot read.
 //
 // Nothing enforced it before, so it drifted: the UI shipped hu-HU while the catalog stayed at
-// eleven entries, and killerpdf.net went on telling people OCR covered ten languages and that
+// eleven entries, and avalanche.net went on telling people OCR covered ten languages and that
 // Polish and Hungarian "do not require OCR models".
 //
 // These read the real Strings folder instead of a second hardcoded list, so adding a locale fails
@@ -91,7 +91,7 @@ public sealed class OcrCatalogTests
     [Fact]
     public void OcrLanguageCountEqualsInterfaceLanguageCount()
     {
-        // The number killerpdf.net quotes in prose. Pinning it here is what stops the site and
+        // The number avalanche.net quotes in prose. Pinning it here is what stops the site and
         // the app from disagreeing again.
         Assert.Equal(ShippedLocales().Length, OcrCatalog.Languages.Length);
     }

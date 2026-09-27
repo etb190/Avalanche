@@ -26,7 +26,7 @@ public sealed class PdfBurnRotationTests
     [InlineData(true)]
     public void EngineBurn_AcceptsTaggedPagesWithoutRemovingTheirStructure(bool forRasterization)
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-raster-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-tagged-raster-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfDocumentBuilder()
@@ -81,7 +81,7 @@ public sealed class PdfBurnRotationTests
             [0] = [new HighlightAnnotation { PageIndex = 0, Bounds = bounds, Style = HighlightStyle.Fill }],
         };
         var dims = new Dictionary<int, (int w, int h)> { [0] = (renderW, renderH) };
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-burn-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-burn-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, source);
@@ -150,7 +150,7 @@ public sealed class PdfBurnRotationTests
     [Fact]
     public void CroppedPage_BurnsInsideTheVisiblePageBox()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-crop-burn-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-crop-burn-{Guid.NewGuid():N}.pdf");
         try
         {
             byte[] source = new PdfIncrementalPageEditor(EngineDocument.Open(
@@ -233,7 +233,7 @@ public sealed class PdfBurnRotationTests
             .SetRotation(0, 90).Build();
 
         var spec = new StampSpec { NumbersEnabled = true, Format = "{n} / {N}" };
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-stamp-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-stamp-{Guid.NewGuid():N}.pdf");
         File.WriteAllBytes(path, source);
         PdfEngineBurn.Burn(path, new Dictionary<int, List<PageAnnotation>>(),
             new Dictionary<int, (int w, int h)>(), spec);
@@ -245,7 +245,7 @@ public sealed class PdfBurnRotationTests
     [Fact]
     public void EngineBurn_WritesTypedMarkupResourcesAndReopens()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-typed-burn-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-typed-burn-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(612, 792).Build());
@@ -284,7 +284,7 @@ public sealed class PdfBurnRotationTests
     [Fact]
     public void TextBurn_WritesLetterSpacingOperator()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-letter-spacing-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-letter-spacing-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(612, 792).Build());
@@ -311,7 +311,7 @@ public sealed class PdfBurnRotationTests
     [Fact]
     public void CoverBurn_UsesNormalBlendSoItHidesOriginalText()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-cover-burn-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-cover-burn-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(612, 792).Build());

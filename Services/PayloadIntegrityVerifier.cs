@@ -12,7 +12,7 @@ internal sealed record PayloadIntegrityResult(
 internal static class PayloadIntegrityVerifier
 {
     private const string ManifestName = "payload.manifest";
-    private const string PortableMarkerName = ".killerpdf-portable";
+    private const string PortableMarkerName = ".avalanche-portable";
 
     internal static PayloadIntegrityResult Verify(string directory)
     {

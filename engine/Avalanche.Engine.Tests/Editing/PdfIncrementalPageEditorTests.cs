@@ -1745,7 +1745,7 @@ public sealed class PdfIncrementalPageEditorTests
             .SetMetadata(new PdfDocumentMetadata
             {
                 Title = "New title",
-                Author = "Steve",
+                Author = "Avalanche Team",
                 Language = "fr-CA",
                 Producer = "New producer"
             })
@@ -9861,7 +9861,7 @@ public sealed class PdfIncrementalPageEditorTests
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage(300, 400)
             .AddBlankPage(400, 500)
-            .AddTextField(0, "customer.name", 20, 300, 180, 24, "Steve")
+            .AddTextField(0, "customer.name", 20, 300, 180, 24, "Avalanche Team")
             .AddCheckBox(1, "customer.approved", 20, 400, 18, 18, isChecked: true)
             .Build());
         byte[] target = new PdfDocumentBuilder().AddBlankPage(100, 100).Build();
@@ -9910,7 +9910,7 @@ public sealed class PdfIncrementalPageEditorTests
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
             .AddBlankPage()
-            .AddTextField(0, "customer.name", 20, 20, 120, 20, "Steve")
+            .AddTextField(0, "customer.name", 20, 20, 120, 20, "Avalanche Team")
             .AddCheckBox(1, "customer.approved", 20, 20, 20, 20, isChecked: true)
             .Build());
         PdfDictionary sourceCatalog = ResolveDictionary(
@@ -9997,7 +9997,7 @@ public sealed class PdfIncrementalPageEditorTests
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
             .AddBlankPage()
-            .AddTextField(0, "customer.name", 20, 20, 120, 20, "Steve")
+            .AddTextField(0, "customer.name", 20, 20, 120, 20, "Avalanche Team")
             .AddCheckBox(1, "customer.approved", 20, 20, 20, 20, isChecked: true)
             .Build());
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
@@ -10643,7 +10643,7 @@ public sealed class PdfIncrementalPageEditorTests
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
             .AddBlankPage()
-            .AddTextField(0, "customer.name", 20, 20, 120, 20, "Steve")
+            .AddTextField(0, "customer.name", 20, 20, 120, 20, "Avalanche Team")
             .AddCheckBox(1, "customer.approved", 20, 20, 20, 20, isChecked: true)
             .Build());
         PdfIndirectReference catalogReference = Assert.IsType<PdfIndirectReference>(
@@ -13449,7 +13449,7 @@ public sealed class PdfIncrementalPageEditorTests
     public void SetFormFieldMetadata_SetsAndClearsHierarchicalFieldNames()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()
-            .AddTextField(0, "customer.name", 10, 10, 100, 20, "Steve",
+            .AddTextField(0, "customer.name", 10, 10, 100, 20, "Avalanche Team",
                 fieldMetadata: new PdfFormFieldMetadata
                 {
                     Tooltip = "Old tooltip",
@@ -13639,7 +13639,7 @@ public sealed class PdfIncrementalPageEditorTests
     public void RemoveFormField_PrunesHierarchyWidgetsAndPageAnnotations()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().AddBlankPage()
-            .AddTextField(0, "customer.name", 10, 10, 100, 20, "Steve")
+            .AddTextField(0, "customer.name", 10, 10, 100, 20, "Avalanche Team")
             .AddCheckBox(0, "approved", 10, 40, 20, 20)
             .AddRadioGroup("plan", [
                 new PdfRadioButtonOption(0, 10, 70, 20, 20, "Free"),
@@ -13673,7 +13673,7 @@ public sealed class PdfIncrementalPageEditorTests
     public void RemoveFormField_RemovesEmptyAcroFormAndAnnotationArray()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()
-            .AddTextField(0, "name", 10, 10, 100, 20, "Steve")
+            .AddTextField(0, "name", 10, 10, 100, 20, "Avalanche Team")
             .Build();
         PdfDocument document = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(source))
@@ -13836,7 +13836,7 @@ public sealed class PdfIncrementalPageEditorTests
             .Build();
         Assert.Throws<InvalidOperationException>(() =>
             new PdfIncrementalPageEditor(PdfDocument.Open(source))
-                .AddTextField(0, "survey.name", 20, 70, 120, 20, "Steve"));
+                .AddTextField(0, "survey.name", 20, 70, 120, 20, "Avalanche Team"));
         PdfDocument document = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(source))
                 .AddCheckBox(0, "survey.approved", 20, 30, 24, 24,
@@ -14126,7 +14126,7 @@ public sealed class PdfIncrementalPageEditorTests
         byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
         byte[] updated = new PdfIncrementalPageEditor(PdfDocument.Open(source))
             .AddTextField(0, "customer.name", 20, 30, 180, 24,
-                "Steve", 11,
+                "Avalanche Team", 11,
                 new PdfTextFieldOptions { Alignment = PdfTextFieldAlignment.Center },
                 fieldMetadata: new PdfFormFieldMetadata { Tooltip = "Customer name" },
                 defaultValue: "Default",
@@ -14145,13 +14145,13 @@ public sealed class PdfIncrementalPageEditorTests
             Assert.IsType<PdfArray>(form[Name("Fields")])[0]);
         PdfDictionary field = ResolveDictionary(document,
             Assert.IsType<PdfArray>(parent[Name("Kids")])[0]);
-        Assert.Equal("Steve", DecodeUnicode(Assert.IsType<PdfString>(field[Name("V")])));
+        Assert.Equal("Avalanche Team", DecodeUnicode(Assert.IsType<PdfString>(field[Name("V")])));
         Assert.Equal("Default", DecodeUnicode(Assert.IsType<PdfString>(field[Name("DV")])));
         Assert.Equal("Customer name", DecodeUnicode(
             Assert.IsType<PdfString>(field[Name("TU")])));
         Assert.Equal(1, Assert.IsType<PdfInteger>(field[Name("Q")]).Value);
         PdfDictionary appearance = DictionaryValue(document, field[Name("AP")]);
-        Assert.Contains("(Steve) Tj", Encoding.Latin1.GetString(
+        Assert.Contains("(Avalanche Team) Tj", Encoding.Latin1.GetString(
             PdfStreamDecoder.Decode(ResolveStream(document, appearance[Name("N")]))));
         (_, _, PdfDictionary[] pages) = FlatPages(document);
         Assert.Single(Assert.IsType<PdfArray>(pages[0][Name("Annots")]));

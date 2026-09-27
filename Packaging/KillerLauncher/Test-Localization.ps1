@@ -27,7 +27,7 @@ foreach ($locale in $tables.Keys) {
     }
 }
 [xml]$xaml = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'InstallerWizard.xaml') -Raw -Encoding UTF8
-$allowedDisplayLiterals = @('Killer', 'PDF', 'Steve the Killer', ([string][char]0x00A9 + ' 2026 '))
+$allowedDisplayLiterals = @('Killer', 'PDF', 'Avalanche Team', ([string][char]0x00A9 + ' 2026 '))
 foreach ($node in $xaml.SelectNodes('//*')) {
     foreach ($attribute in $node.Attributes) {
         if ($attribute.LocalName -notin @('Text', 'Content', 'Title', 'ToolTip')) { continue }

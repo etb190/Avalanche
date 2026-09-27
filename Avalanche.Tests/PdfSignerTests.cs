@@ -24,7 +24,7 @@ public sealed class PdfSignerTests
             DateTimeOffset.UtcNow.AddMinutes(-1),
             DateTimeOffset.UtcNow.AddDays(1));
 
-        string directory = Path.Combine(Path.GetTempPath(), $"killerpdf-sign-{Guid.NewGuid():N}");
+        string directory = Path.Combine(Path.GetTempPath(), $"avalanche-sign-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
         string input = Path.Combine(directory, "input.pdf");
         string output = Path.Combine(directory, "signed.pdf");

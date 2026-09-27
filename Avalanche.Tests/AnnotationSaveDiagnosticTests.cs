@@ -19,7 +19,7 @@ public sealed class AnnotationSaveDiagnosticTests
     [InlineData(true, true)]
     public void BurnMatrix_PreservesEveryAnnotationKind(bool tagged, bool forRasterization)
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-save-matrix-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-save-matrix-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, tagged ? TaggedSource() : new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
@@ -45,7 +45,7 @@ public sealed class AnnotationSaveDiagnosticTests
         byte[] clean = TaggedSource();
         for (int save = 0; save < 3; save++)
         {
-            string path = Path.Combine(Path.GetTempPath(), $"killerpdf-repeat-save-{Guid.NewGuid():N}.pdf");
+            string path = Path.Combine(Path.GetTempPath(), $"avalanche-repeat-save-{Guid.NewGuid():N}.pdf");
             try
             {
                 File.WriteAllBytes(path, clean);
@@ -65,7 +65,7 @@ public sealed class AnnotationSaveDiagnosticTests
     [Fact]
     public void MissingRenderDimensions_MustNotSilentlyDropMarkup()
     {
-        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-missing-dims-{Guid.NewGuid():N}.pdf");
+        string path = Path.Combine(Path.GetTempPath(), $"avalanche-missing-dims-{Guid.NewGuid():N}.pdf");
         try
         {
             File.WriteAllBytes(path, new PdfDocumentBuilder().AddBlankPage(200, 200).Build());

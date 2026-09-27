@@ -173,7 +173,7 @@ public sealed class PdfTextFieldTests
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
-            .AddTextField(0, "customer-name", 72, 650, 240, 24, "Steve (Killer)", 12)
+            .AddTextField(0, "customer-name", 72, 650, 240, 24, "Avalanche Team (Killer)", 12)
             .Build());
         var catalog = ResolveDictionary(document, document.Trailer[Name("Root")]);
         var acroForm = Assert.IsType<PdfDictionary>(catalog[Name("AcroForm")]);
@@ -190,11 +190,11 @@ public sealed class PdfTextFieldTests
         Assert.False(Assert.IsType<PdfBoolean>(acroForm[Name("NeedAppearances")]).Value);
         Assert.Equal("Tx", Assert.IsType<PdfName>(widget[Name("FT")]).ValueAsLatin1());
         Assert.Equal("customer-name", DecodeUnicode(Assert.IsType<PdfString>(widget[Name("T")])));
-        Assert.Equal("Steve (Killer)", DecodeUnicode(Assert.IsType<PdfString>(widget[Name("V")])));
-        Assert.Equal("Steve (Killer)", DecodeUnicode(Assert.IsType<PdfString>(widget[Name("DV")])));
+        Assert.Equal("Avalanche Team (Killer)", DecodeUnicode(Assert.IsType<PdfString>(widget[Name("V")])));
+        Assert.Equal("Avalanche Team (Killer)", DecodeUnicode(Assert.IsType<PdfString>(widget[Name("DV")])));
         Assert.Equal(widgetReference.ObjectNumber,
             Assert.IsType<PdfIndirectReference>(annotations[0]).ObjectNumber);
-        Assert.Contains("(Steve \\(Killer\\)) Tj",
+        Assert.Contains("(Avalanche Team \\(Killer\\)) Tj",
             Encoding.ASCII.GetString(appearance.EncodedData.Span));
         var resources = Assert.IsType<PdfDictionary>(appearance.Dictionary[Name("Resources")]);
         Assert.NotNull(Assert.IsType<PdfDictionary>(resources[Name("Font")])[Name("Helv")]);
@@ -205,7 +205,7 @@ public sealed class PdfTextFieldTests
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
-            .AddTextField(0, "customer.name", 0, 0, 100, 20, "Steve")
+            .AddTextField(0, "customer.name", 0, 0, 100, 20, "Avalanche Team")
             .AddCheckBox(0, "customer.approved", 0, 30, 20, 20, isChecked: true)
             .AddTextField(0, "billing.contact.email", 0, 60, 160, 20, "a@example.com")
             .Build());
