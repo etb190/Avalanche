@@ -169,7 +169,6 @@ namespace Avalanche.Controls
         /// <summary>Every open document in THIS pane. The quit prompt has to union both panes to
         /// decide whether anything is unsaved, and the settings writer needs each pane's list.</summary>
         internal System.Collections.ObjectModel.ObservableCollection<DocumentSession> SessionsRef => _sessions;
-    }
 
         // ============================================================
         // AI Chat Helper Methods
