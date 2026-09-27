@@ -2730,7 +2730,7 @@
 
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
-                            Background="{DynamicResource PaneBrush}" CornerRadius="{DynamicResource RadCard},0,0,0"
+                            Background="{DynamicResource PaneBrush}" CornerRadius="6,0,0,0"
                             Padding="12,8">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -2865,7 +2865,7 @@
 
                     <!-- Input Area -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
-                            Background="{DynamicResource PaneBrush}" CornerRadius="0,0,{DynamicResource RadCard},0"
+                            Background="{DynamicResource PaneBrush}" CornerRadius="0,0,6,0"
                             Padding="8">
                         <Grid>
                             <Grid.ColumnDefinitions>
