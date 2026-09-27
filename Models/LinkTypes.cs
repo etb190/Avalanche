@@ -1,4 +1,4 @@
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// One link rectangle on a page, in render-dim coordinates.

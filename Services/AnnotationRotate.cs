@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // #169: a plain page rotation used to reload with SaveTempAndReload's keepAnnotations
     // default, which cleared every overlay annotation - committed, unsaved user work was

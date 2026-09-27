@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Tabbed document support. KillerPDF keeps one window and one live "working set" of
     // per-document fields (in MainWindow.xaml.cs). Each open PDF is a DocumentSession that
@@ -861,7 +861,7 @@ namespace KillerPDF.Controls
             {
                 var res = KillerDialog.Show(Host!.Window,
                     Loc("Str_Dlg_UnsavedClose"),
-                    "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes) { RebuildTabStrip(); return; }
             }
 
@@ -912,7 +912,7 @@ namespace KillerPDF.Controls
             if (docTabs.Any(t => t.IsDirty))
             {
                 var res = KillerDialog.Show(Host!.Window, Loc("Str_Dlg_UnsavedCloseAll"),
-                    "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes) { RebuildTabStrip(); return; }
             }
 

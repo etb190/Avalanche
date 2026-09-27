@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     internal enum Locale { EnUS, Bn, CsCZ, De, Es, Fr, HuHU, ItIT, JaJP, KkKZ, PlPL, RuRU, TrTR, ViVN, ZhCN, ZhTW }
 

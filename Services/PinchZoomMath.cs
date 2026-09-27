@@ -1,4 +1,4 @@
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal readonly record struct PinchZoomResult(
     double Zoom, double HorizontalOffset, double VerticalOffset);

@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Moved from Shell/PageSelection.cs; the namespace and class line are the only changes. Window
     // members spelled bare here resolve through PdfViewer.Bridge.cs.

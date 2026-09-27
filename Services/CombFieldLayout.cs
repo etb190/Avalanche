@@ -1,4 +1,4 @@
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class CombFieldLayout
 {

@@ -13,15 +13,15 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
-using KillerPdf.Engine.Documents;
-using KillerPdf.Engine.Writing;
+using Avalanche.Services;
+using Avalanche.Engine.Documents;
+using Avalanche.Engine.Writing;
 // CliParsePageRange moved out with the CLI runner but is used here too (Export Images'
 // range box); its encoder sibling is now Services/BitmapHelpers.EncodeJpeg.
-using static KillerPDF.Features.CliRunner;
+using static Avalanche.Features.CliRunner;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -119,14 +119,14 @@ namespace KillerPDF
                     SetStatus(string.Format(Loc("Str_OpenedReadOnlyXRef"), System.IO.Path.GetFileName(path), _doc.PageCount));
                     KillerDialog.Show(this,
                         $"\"{System.IO.Path.GetFileName(path)}\" has a non-standard structure and was opened read-only.\n\nEditing, saving, and some other features may not work correctly.",
-                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
                 catch
                 {
                     // ReadOnly also failed - offer to repair.
                     var result = KillerDialog.Show(this,
                         string.Format(Loc("Str_Dlg_RepairAsk"), System.IO.Path.GetFileName(path)),
-                        "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                     if (result == MessageBoxResult.Yes)
                         TryRepairAndOpen(srcPath);
                 }
@@ -147,7 +147,7 @@ namespace KillerPDF
                 // offer the repair rather than just failing outright.
                 var result = KillerDialog.Show(this,
                     "This PDF couldn't be opened - its structure may be damaged.\n\nWould you like KillerPDF to attempt a repair? A repaired copy will be created - the original file will not be changed.\n\nNote: repaired files may be missing bookmarks, forms, and other interactive features.",
-                    "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (result == MessageBoxResult.Yes)
                     TryRepairAndOpen(srcPath);   // sets _asyncOpenPending and finalizes the tab itself
             }
@@ -269,7 +269,7 @@ namespace KillerPDF
                     HideBusyOverlay(busy);
                     _asyncOpenPending = false;
                     KillerDialog.Show(this, Loc("Str_Repair_Unrecoverable"),
-                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                        "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -286,13 +286,13 @@ namespace KillerPDF
                     raster
                         ? string.Format(Loc("Str_Dlg_RepairedRaster"), System.IO.Path.GetFileName(path))
                         : string.Format(Loc("Str_Dlg_Repaired"), System.IO.Path.GetFileName(path)),
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.None);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.None);
             }
             catch (Exception ex)
             {
                 HideBusyOverlay(busy);
                 _asyncOpenPending = false;
-                KillerDialog.Show(this, Loc("Str_Err_RepairFailed") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(this, Loc("Str_Err_RepairFailed") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -346,7 +346,7 @@ namespace KillerPDF
                 HideBusyOverlay(busy);
                 _asyncOpenPending = false;
                 KillerDialog.Show(this, Loc("Str_Err_OpenProtected") + "\n" + ex.Message,
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
                 EndCancellableOp();
             }
         }
@@ -376,7 +376,7 @@ namespace KillerPDF
             {
                 var res = KillerDialog.Show(this,
                     Loc("Str_Dlg_UnsavedClose"),
-                    "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes) return;
             }
             _doc.Close();
@@ -455,7 +455,7 @@ namespace KillerPDF
             {
                 AbortTabLoad(target, prev, createdNew);
                 KillerDialog.Show(this, Loc("Str_Err_NewDocFailed") + "\n" + ex.Message,
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -488,7 +488,7 @@ namespace KillerPDF
                     var item = MakeMenuItem(System.IO.Path.GetFileName(path), (_, _) =>
                     {
                         if (System.IO.File.Exists(path)) OpenInNewTab(path);
-                        else KillerDialog.Show(this, Loc("Str_Err_FileNotFound") + "\n" + path, "KillerPDF",
+                        else KillerDialog.Show(this, Loc("Str_Err_FileNotFound") + "\n" + path, "Avalanche",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                     });
                     item.ToolTip = path;
@@ -724,7 +724,7 @@ namespace KillerPDF
                     // through ActiveViewer. Clicking pane B's recents opened the file in pane A.
                     FocusPane(pane);
                     if (System.IO.File.Exists(path)) OpenInNewTab(path);
-                    else KillerDialog.Show(this, Loc("Str_Err_FileNotFound") + "\n" + path, "KillerPDF",
+                    else KillerDialog.Show(this, Loc("Str_Err_FileNotFound") + "\n" + path, "Avalanche",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 };
                 list.Items.Add(row);
@@ -771,10 +771,10 @@ namespace KillerPDF
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             CommitActiveTextBox();
             string? path = _originalFile ?? _currentFile;
-            KillerPdf.Engine.Documents.PdfDocumentInformation info =
-                KillerPdf.Engine.Documents.PdfDocumentInformation.Read(
+            Avalanche.Engine.Documents.PdfDocumentInformation info =
+                Avalanche.Engine.Documents.PdfDocumentInformation.Read(
                     EnsureEngineDocumentSession().Document);
-            KillerPdf.Engine.Authoring.PdfDocumentMetadata? editedMetadata = null;
+            Avalanche.Engine.Authoring.PdfDocumentMetadata? editedMetadata = null;
             var dlg = new DocumentInfoDialog(this, info, metadata => editedMetadata = metadata, path);
             dlg.ShowDialog();   // fade-close dialogs don't reliably return true; rely on the Saved flag
             if (dlg.Saved && editedMetadata is not null)
@@ -821,7 +821,7 @@ namespace KillerPDF
                         PdfEngineIntegration.ValidateDocument(importPath);
                     }
 
-                    IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
+                    IReadOnlyList<Avalanche.Engine.Documents.PdfPageInformation> pages =
                         PdfEngineIntegration.ReadPageInformation(importPath);
                     imports.Add(new PdfEngineIntegration.ImportedDocument(importPath,
                         [.. pages.Select(page => page.Rotation)]));
@@ -838,7 +838,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_MergeFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_MergeFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -864,7 +864,7 @@ namespace KillerPDF
                 session.Document, PdfImport.MinAdobePageDim, PdfImport.MaxAdobePageDim);
             if (pages.Count == 0) return;
             var res = KillerDialog.Show(this, string.Format(Loc("Str_Dlg_PageOutOfRange"), pages.Count),
-                "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (res != MessageBoxResult.Yes) return;
             SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
                 finalizeSavedFile: path => PdfEngineIntegration.NormalizePageDimensions(
@@ -944,7 +944,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1068,7 +1068,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_SaveFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1146,7 +1146,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                try { KillerDialog.Show(this, Loc("Str_Err_FlattenFailed") + "\n" + ex.GetType().Name + ": " + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error); }
+                try { KillerDialog.Show(this, Loc("Str_Err_FlattenFailed") + "\n" + ex.GetType().Name + ": " + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error); }
                 catch { /* dialog failed; overlay still removed in finally */ }
             }
             finally
@@ -1188,7 +1188,7 @@ namespace KillerPDF
                 if (selected is null)
                 {
                     KillerDialog.Show(this, rangeErr.Length > 0 ? rangeErr : Loc("Str_InvalidRange"),
-                                      "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                      "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
             }
@@ -1265,7 +1265,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_ExportFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_ExportFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -1445,7 +1445,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                try { KillerDialog.Show(this, Loc("Str_Err_PrintFailed") + "\n" + ex.GetType().Name + ": " + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error); }
+                try { KillerDialog.Show(this, Loc("Str_Err_PrintFailed") + "\n" + ex.GetType().Name + ": " + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error); }
                 catch { }
             }
         }

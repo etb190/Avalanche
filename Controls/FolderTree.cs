@@ -11,7 +11,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // ═══════════════════════════════════════════════════════════
     //  FOLDER TREE  -  the file dialog's left pane, below places

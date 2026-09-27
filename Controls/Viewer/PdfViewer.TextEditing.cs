@@ -14,10 +14,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Moved from Shell/TextEditing.cs; the namespace and class line are the only changes. Window
     // members spelled bare here resolve through PdfViewer.Bridge.cs.
@@ -822,7 +822,7 @@ namespace KillerPDF.Controls
                 string family = Services.FontCoverage.PickFamily(want, ta.Content);
                 string missing = Services.FontCoverage.UncoveredChars(family, ta.Content);
                 if (missing.Length == 0) return;
-                KillerDialog.Show(Host!.Window, string.Format(Loc("Str_Font_NoGlyphs"), missing), "KillerPDF",
+                KillerDialog.Show(Host!.Window, string.Format(Loc("Str_Font_NoGlyphs"), missing), "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch { /* the warning must never be the thing that breaks placing text */ }

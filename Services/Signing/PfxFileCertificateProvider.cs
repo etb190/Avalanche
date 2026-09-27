@@ -1,7 +1,7 @@
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 
-namespace KillerPDF.Services.Signing
+namespace Avalanche.Services.Signing
 {
     /// <summary>
     /// Loads a signing certificate from a .pfx / .p12 file plus its password. Fully cross-platform,

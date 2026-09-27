@@ -4,9 +4,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {

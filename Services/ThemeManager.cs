@@ -7,7 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     internal enum Theme
     {

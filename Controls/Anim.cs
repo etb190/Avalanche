@@ -37,7 +37,7 @@ using System.Windows.Media.Animation;
 //     dialog records the result, fades, and assigns it in the callback (see KillerPDF's
 //     FileDialog.OnClosing).
 // ============================================================
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     internal static class Anim
     {

@@ -1,12 +1,12 @@
 using System.Collections.Generic;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // The undo stack's entry type. Each entry is either an annotation removal or a full document
     // snapshot; AnnotationGroup removes a specific set in one step (a text edit = cover + text).
     //
     // TOP-LEVEL, not nested in MainWindow. The code that pushes undo entries - Annotations.cs and
-    // TextEditing.cs - lives in KillerPDF.Controls, where a type nested in MainWindow only spells
+    // TextEditing.cs - lives in Avalanche.Controls, where a type nested in MainWindow only spells
     // as MainWindow.UndoEntry; that would mean qualifying roughly 30 call sites for no gain. As
     // top-level types in KillerPDF they resolve unqualified from the child namespace too.
     //

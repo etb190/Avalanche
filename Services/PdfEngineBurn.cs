@@ -4,14 +4,14 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
-using KillerPdf.Engine.Authoring;
-using KillerPdf.Engine.Documents;
-using KillerPdf.Engine.Editing;
-using KillerPdf.Engine.Fonts;
-using EngineImage = KillerPdf.Engine.Authoring.PdfImage;
+using Avalanche.Engine.Authoring;
+using Avalanche.Engine.Documents;
+using Avalanche.Engine.Editing;
+using Avalanche.Engine.Fonts;
+using EngineImage = Avalanche.Engine.Authoring.PdfImage;
 using WpfPoint = System.Windows.Point;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 /// <summary>Burns KillerPDF markup into typed engine page content.</summary>
 internal static class PdfEngineBurn

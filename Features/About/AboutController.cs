@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Windows;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// Everything the About card does that is not drawing: reading the signature and release date,
@@ -145,7 +145,7 @@ namespace KillerPDF.Features
             var (result, checkOnStartup) = KillerDialog.ShowWithCheckbox(_host.Window,
                 string.Format(_host.Loc(startup ? "Str_StartupUpdatePrompt" : "Str_UpdatePrompt"), tag),
                 _host.Loc("Str_AlwaysCheckOnStartup"),
-                "KillerPDF", startup ? MessageBoxButton.YesNo : MessageBoxButton.OKCancel,
+                "Avalanche", startup ? MessageBoxButton.YesNo : MessageBoxButton.OKCancel,
                 checkboxInitial: Services.ReleaseUpdateCheck.IsEnabled(
                     App.GetSetting(Services.ReleaseUpdateCheck.Setting)));
             App.SetSetting(Services.ReleaseUpdateCheck.Setting, checkOnStartup ? "1" : "0");
@@ -167,7 +167,7 @@ namespace KillerPDF.Features
                 {
                     if (!startup)
                         KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
-                            "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -188,7 +188,7 @@ namespace KillerPDF.Features
                 if (_host.IsDirty)
                 {
                     KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
-                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 if (LaunchSwapAndExit(newExe)) newExe = null;
@@ -259,7 +259,7 @@ namespace KillerPDF.Features
                 var relArg = string.IsNullOrEmpty(reopen) ? "" : $" \"{reopen}\"";
                 var bat    = Path.Combine(Path.GetTempPath(), $"killerpdf_update_{Guid.NewGuid():N}.bat");
                 bool portable = App.IsPortable();
-                string? portableLauncher = Environment.GetEnvironmentVariable("KILLERPDF_LAUNCHER_PATH");
+                string? portableLauncher = Environment.GetEnvironmentVariable("AVALANCHE_LAUNCHER_PATH");
                 bool packagedPortable = portable && !string.IsNullOrWhiteSpace(portableLauncher) && File.Exists(portableLauncher);
 
                 if (!App.VerifyAuthenticode(newExe).Valid)
@@ -286,7 +286,7 @@ namespace KillerPDF.Features
 
                 if (packagedPortable)
                 {
-                    if (int.TryParse(Environment.GetEnvironmentVariable("KILLERPDF_LAUNCHER_PID"), out int launcherPid))
+                    if (int.TryParse(Environment.GetEnvironmentVariable("AVALANCHE_LAUNCHER_PID"), out int launcherPid))
                     {
                         script.AppendLine(":waitlauncher")
                               .AppendLine($"tasklist /fi \"PID eq {launcherPid}\" 2>nul | find \"{launcherPid}\" >nul")

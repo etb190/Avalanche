@@ -1,0 +1,161 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <!-- Required by the LibraryImport source generator. Application code continues to expose
+         typed managed wrappers rather than handwritten pointer operations. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Version>1.8.71</Version>
+
+    <AssemblyVersion>1.8.71.0</AssemblyVersion>
+    <FileVersion>1.8.71.0</FileVersion>
+    <!-- Shown in the About card beside the version so a user can tell how old their build.
+         Keep this as Unreleased during development. A final release must use the date on its
+         CHANGELOG section; release.ps1 enforces that before packaging. -->
+    <ReleaseDate>2026-09-26</ReleaseDate>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <AssemblyName>Avalanche.App</AssemblyName>
+    <RootNamespace>Avalanche</RootNamespace>
+  </PropertyGroup>
+
+  <!-- The release pipeline builds the installed/inner app as ordinary loose files. Keep this
+       opt-in so normal IDE builds remain convenient single-exe development builds while releases
+       use the faster installed payload. A separate intermediate directory prevents Fody's copy-local cache from the
+       woven build from hiding the payload dependencies when weaving is disabled. -->
+  <PropertyGroup Condition="'$(AvalanchePayloadBuild)' == 'true'">
+    <AssemblyName>Avalanche.App</AssemblyName>
+    <DisableFody>true</DisableFody>
+  </PropertyGroup>
+
+  <!-- Fody's copy-local update targets still execute when weaving is disabled. Remove caches from a
+       preceding woven build so those targets cannot reuse a list that deliberately removed every
+       dependency from the output. -->
+  <Target Name="ClearWovenCopyLocalCacheForPayload" BeforeTargets="ResolveReferences" Condition="'$(AvalanchePayloadBuild)' == 'true'">
+    <Delete Files="$(IntermediateOutputPath)$(MSBuildProjectFile).Fody.CopyLocal.cache;$(IntermediateOutputPath)$(MSBuildProjectFile).Fody.RuntimeCopyLocal.cache" />
+  </Target>
+
+  <!-- Bake ReleaseDate into the assembly so About can show it. A file timestamp would not
+       survive being copied, and the PE linker stamp is a build date, not a release date. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>ReleaseDate</_Parameter1>
+      <_Parameter2>$(ReleaseDate)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- The engine project builds independently; keep the app's implicit
+       source globs out of those trees or their files compile as part of the WPF application. -->
+  <ItemGroup>
+    <PackageReference Include="SixLabors.Fonts" Version="1.0.0-beta17" />
+    <Compile Remove="engine\**" />
+    <Compile Remove="third_party\**" />
+    <Compile Remove="Packaging\**" />
+    <Compile Remove="src\**" />
+    <Compile Remove="tests\**" />
+    <Compile Remove="tools\**" />
+    <EmbeddedResource Remove="engine\**" />
+    <EmbeddedResource Remove="third_party\**" />
+    <EmbeddedResource Remove="Packaging\**" />
+    <EmbeddedResource Remove="src\**" />
+    <EmbeddedResource Remove="tests\**" />
+    <EmbeddedResource Remove="tools\**" />
+    <None Remove="engine\**" />
+    <None Remove="third_party\**" />
+    <None Remove="Packaging\**" />
+    <None Remove="src\**" />
+    <None Remove="tests\**" />
+    <None Remove="tools\**" />
+    <Content Remove="engine\**" />
+    <Content Remove="third_party\**" />
+    <Content Remove="Packaging\**" />
+    <Content Remove="src\**" />
+    <Content Remove="tests\**" />
+    <Content Remove="tools\**" />
+    <Page Remove="engine\**" />
+    <Page Remove="third_party\**" />
+    <Page Remove="Packaging\**" />
+    <Page Remove="src\**" />
+    <Page Remove="tests\**" />
+    <Page Remove="tools\**" />
+    <Resource Remove="engine\**" />
+    <Resource Remove="third_party\**" />
+    <Resource Remove="Packaging\**" />
+    <Resource Remove="src\**" />
+    <Resource Remove="tests\**" />
+    <Resource Remove="tools\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Costura.Fody" Version="6.2.0">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Fody" Version="6.9.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <ProjectReference Include="engine\Avalanche.Engine\Avalanche.Engine.csproj" />
+    <PackageReference Include="PdfPig" Version="0.1.15" />
+    <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <!-- We embed the x64 natives as resources and self-extract them at runtime (OcrNativeBootstrap), so the
+         package's loose x86/x64 native copies in the output are dead weight. ExcludeAssets stops that copy
+         while keeping the managed assembly (compile/runtime) and the GeneratePathProperty path for the embed. -->
+    <PackageReference Include="Tesseract" Version="5.2.0" GeneratePathProperty="true" ExcludeAssets="build;buildTransitive;native;contentFiles" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <!-- Avalanche.Tests is its own project. Keep its entire tree out of this project's SDK default
+       globs, or its bin\ DLLs become items here (MSB3277 System.ValueTuple conflict) and the folder
+       shows inside this project in Solution Explorer. -->
+  <ItemGroup>
+    <Compile Remove="Avalanche.Tests\**" />
+    <None Remove="Avalanche.Tests\**" />
+    <Content Remove="Avalanche.Tests\**" />
+    <Resource Remove="Avalanche.Tests\**" />
+    <Page Remove="Avalanche.Tests\**" />
+  </ItemGroup>
+
+  <!-- /brand holds heavy source art only (stored locally, see .gitignore). Keep it out of the SDK default
+       globs so it is not part of the project. This targets Avalanche\brand only, not pdf-landing\brand. -->
+  <ItemGroup>
+    <None Remove="brand\**" />
+    <Content Remove="brand\**" />
+    <Resource Remove="brand\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\kp-icon.ico" />
+    <Resource Include="Resources\kp-icon.png" />
+    <Resource Include="Fonts\Typewriter-A602.ttf" />
+	<Resource Include="Resources\open_hand.cur" />
+	<Resource Include="Resources\closed_hand.cur" />
+    <EmbeddedResource Include="Resources\pdf-file.ico" />
+  </ItemGroup>
+
+<!-- OCR: embed only the native Tesseract libs (x64) so the app still ships as a single exe. Language data
+       is NOT bundled - it is downloaded on demand on first OCR (see EnsureOcrModelsReadyAsync), which keeps
+       the exe small. OcrNativeBootstrap extracts the natives to a per-version cache under %LOCALAPPDATA% on
+       first use, the same self-extract pattern Costura uses for the managed assemblies. PkgTesseract comes
+       from GeneratePathProperty. -->
+  <ItemGroup>
+    <EmbeddedResource Include="$(PkgTesseract)\x64\tesseract50.dll" Condition="'$(PkgTesseract)' != ''">
+      <LogicalName>Avalanche.OcrNative.tesseract50.dll</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="$(PkgTesseract)\x64\leptonica-1.82.0.dll" Condition="'$(PkgTesseract)' != ''">
+      <LogicalName>Avalanche.OcrNative.leptonica-1.82.0.dll</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- GPL3 source bundle: produces <AppName>-<Version>-src.zip in the publish folder every time you Publish. -->
+  <Target Name="BundleSource" AfterTargets="Publish" Condition="'$(AvalanchePayloadBuild)' != 'true'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File "$(ProjectDir)build\bundle-source.ps1" -ProjectDir "$(ProjectDir.TrimEnd('\'))" -Version "$(Version)" -AppName "$(AssemblyName)" -PublishDir "$(PublishDir.TrimEnd('\'))"" IgnoreExitCode="true" />
+  </Target>
+
+</Project>

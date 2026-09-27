@@ -1,6 +1,6 @@
-using KillerPdf.Engine.Documents;
+using Avalanche.Engine.Documents;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class FormOcrPolicy
 {

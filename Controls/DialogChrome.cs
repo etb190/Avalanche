@@ -5,7 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // Chrome for modal dialog windows: Configure (borderless window setup), Frame (the rounded card +
     // title bar + grain), and BuildTitleBar (the KillerPDF wordmark + red close button).
@@ -35,7 +35,7 @@ namespace KillerPDF
         // Builds the title bar.
         //   win       - the window being chromed (used for DragMove on the whole bar)
         //   owner      - supplies the themed brushes + the ChromeCloseButton style (pass the window's owner)
-        //   fullTitle  - the complete title, e.g. "KillerPDF - Transform"; the "KillerPDF" part becomes the
+        //   fullTitle  - the complete title, e.g. "KillerPDF - Transform"; the "Avalanche" part becomes the
         //                wordmark and the remainder (" - Transform") is rendered in the courier title font
         //   onClose    - invoked when the red close button is clicked (e.g. set a result then Close())
         public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose)
@@ -74,7 +74,7 @@ namespace KillerPDF
                 Brush primary   = shadow ? Brushes.Black : Brush(owner, "TextBrush", Brushes.White);
                 Brush logo      = shadow ? Brushes.Black : Brush(owner, "AccentLogo", Brushes.LimeGreen);
                 Brush secondary = shadow ? Brushes.Black : Brush(owner, "MutedTextBrush", Brushes.Gray);
-                int kp = fullTitle?.IndexOf("KillerPDF", StringComparison.Ordinal) ?? -1;
+                int kp = fullTitle?.IndexOf("Avalanche", StringComparison.Ordinal) ?? -1;
                 if (kp >= 0)
                 {
                     // Killer + PDF in one TextBlock so the two sizes share a baseline (cohesive wordmark).
@@ -82,7 +82,7 @@ namespace KillerPDF
                     logoTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = wordmark, FontWeight = FontWeights.Normal, FontSize = 16, Foreground = primary });
                     logoTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = wordmarkPdf, FontWeight = FontWeights.Bold, FontSize = 20.8, Foreground = logo });
                     sp.Children.Add(logoTb);
-                    string after = fullTitle![(kp + "KillerPDF".Length)..];
+                    string after = fullTitle![(kp + "Avalanche".Length)..];
                     if (!string.IsNullOrEmpty(after))
                         sp.Children.Add(new TextBlock { Text = after, FontFamily = UiKit.MonoFont, FontSize = 14, Foreground = secondary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 1, 0, 0) });
                 }
@@ -98,7 +98,7 @@ namespace KillerPDF
             {
                 title.Children.Add(new TextBlock
                 {
-                    Text = fullTitle ?? "KillerPDF", FontFamily = Value(owner, "ChromeFontFamily", new FontFamily("Tahoma")),
+                    Text = fullTitle ?? "Avalanche", FontFamily = Value(owner, "ChromeFontFamily", new FontFamily("Tahoma")),
                     FontSize = 11, FontWeight = FontWeights.Bold,
                     Foreground = Brush(owner, "ChromeTextBrush", Brushes.White), VerticalAlignment = VerticalAlignment.Center
                 });

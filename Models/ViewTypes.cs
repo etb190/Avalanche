@@ -1,11 +1,11 @@
-namespace KillerPDF
+namespace Avalanche
 {
     // How a document view lays its pages out, and how it fits them to the viewport.
     //
-    // TOP-LEVEL, not nested in MainWindow. The viewer is a UserControl in KillerPDF.Controls, and
+    // TOP-LEVEL, not nested in MainWindow. The viewer is a UserControl in Avalanche.Controls, and
     // from there a type nested in MainWindow only spells as MainWindow.ViewMode - which would mean
     // qualifying 91 references for no gain. As top-level types in KillerPDF they resolve
-    // unqualified from KillerPDF.Controls too (a namespace declaration puts its parent namespaces
+    // unqualified from Avalanche.Controls too (a namespace declaration puts its parent namespaces
     // in scope), so every call site compiles untouched.
     //
     // internal, not public: nothing outside the assembly has any business with either.

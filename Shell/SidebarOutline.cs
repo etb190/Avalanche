@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -167,7 +167,7 @@ namespace KillerPDF
             OutlineTree.Items.Clear();
             try
             {
-                IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> outlines = ReadEngineBookmarks();
+                IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> outlines = ReadEngineBookmarks();
                 if (outlines.Count == 0)
                 {
                     // #133: stay enabled on an editable document so the user can open the panel and
@@ -193,7 +193,7 @@ namespace KillerPDF
             }
         }
 
-        private IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> ReadEngineBookmarks()
+        private IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> ReadEngineBookmarks()
         {
             if (_doc is null) return [];
             byte[] bytes;
@@ -209,9 +209,9 @@ namespace KillerPDF
         }
 
         private void AddOutlineItems(ItemCollection target,
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> outlines, int depth = 0)
+            IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> outlines, int depth = 0)
         {
-            foreach (KillerPdf.Engine.Documents.PdfBookmarkInfo outline in outlines)
+            foreach (Avalanche.Engine.Documents.PdfBookmarkInfo outline in outlines)
             {
                 int pageIdx = outline.DestinationPageIndex ?? -1;
                 string title = outline.Title;
@@ -332,20 +332,20 @@ namespace KillerPDF
         // ============================================================
 
         /// <summary>Ties a row to engine-owned bookmark data and stable PDF object identity.</summary>
-        private sealed class OutlineNodeRef(KillerPdf.Engine.Documents.PdfBookmarkInfo bookmark)
+        private sealed class OutlineNodeRef(Avalanche.Engine.Documents.PdfBookmarkInfo bookmark)
         {
-            public readonly KillerPdf.Engine.Documents.PdfBookmarkInfo Bookmark = bookmark;
+            public readonly Avalanche.Engine.Documents.PdfBookmarkInfo Bookmark = bookmark;
             public (int ObjectNumber, int Generation) Identity =>
                 (Bookmark.ObjectNumber, Bookmark.Generation);
             public int PageIndex => Bookmark.DestinationPageIndex ?? -1;
         }
 
         private void ApplyEngineBookmarkEdit(
-            Func<IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo>,
-                IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo>> edit)
+            Func<IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo>,
+                IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo>> edit)
         {
             ArgumentNullException.ThrowIfNull(edit);
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo>? replacement = null;
+            IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo>? replacement = null;
             SaveTempAndReload(keepAnnotations: true, preserveZoom: true,
                 finalizeSavedFile: path =>
                 {
@@ -356,11 +356,11 @@ namespace KillerPDF
             MarkDirty(true);
         }
 
-        private static IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> TransformBookmarks(
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+        private static IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> TransformBookmarks(
+            IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> items,
             (int ObjectNumber, int Generation) identity,
-            Func<KillerPdf.Engine.Documents.PdfBookmarkInfo,
-                KillerPdf.Engine.Documents.PdfBookmarkInfo> transform)
+            Func<Avalanche.Engine.Documents.PdfBookmarkInfo,
+                Avalanche.Engine.Documents.PdfBookmarkInfo> transform)
         {
             return [.. items.Select(item => item.ObjectNumber == identity.ObjectNumber
                     && item.Generation == identity.Generation
@@ -368,8 +368,8 @@ namespace KillerPDF
                 : item with { Children = TransformBookmarks(item.Children, identity, transform) })];
         }
 
-        private static IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> RemoveBookmarks(
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+        private static IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> RemoveBookmarks(
+            IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> items,
             IReadOnlySet<(int ObjectNumber, int Generation)> identities)
         {
             return
@@ -383,8 +383,8 @@ namespace KillerPDF
             ];
         }
 
-        private static List<KillerPdf.Engine.Documents.PdfBookmarkInfo> MoveBookmarkModel(
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+        private static List<Avalanche.Engine.Documents.PdfBookmarkInfo> MoveBookmarkModel(
+            IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> items,
             (int ObjectNumber, int Generation) identity, int delta)
         {
             var result = items.ToList();
@@ -404,7 +404,7 @@ namespace KillerPDF
         }
 
         private static (int Index, int Count) FindBookmarkSiblingPosition(
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+            IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> items,
             (int ObjectNumber, int Generation) identity)
         {
             for (int index = 0; index < items.Count; index++)
@@ -598,15 +598,15 @@ namespace KillerPDF
             if (page >= _doc!.PageCount) page = _doc.PageCount - 1;
             if (page < 0) return;
             string title = string.Format(Loc("Str_Bm_DefaultTitle"), page + 1);
-            var added = new KillerPdf.Engine.Documents.PdfBookmarkInfo
+            var added = new Avalanche.Engine.Documents.PdfBookmarkInfo
             {
                 ObjectNumber = 0,
                 Generation = 0,
                 Title = title,
                 IsOpen = true,
-                Style = KillerPdf.Engine.Authoring.PdfBookmarkStyle.Regular,
+                Style = Avalanche.Engine.Authoring.PdfBookmarkStyle.Regular,
                 DestinationPageIndex = page,
-                Destination = KillerPdf.Engine.Authoring.PdfDestination.At(),
+                Destination = Avalanche.Engine.Authoring.PdfDestination.At(),
                 Children = []
             };
             ApplyEngineBookmarkEdit(items => parent is null
@@ -707,7 +707,7 @@ namespace KillerPDF
             var chosen = new HashSet<(int ObjectNumber, int Generation)>(targets.Select(t => t.Identity));
             bool Covered(OutlineNodeRef node)
             {
-                bool FindAncestor(IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+                bool FindAncestor(IReadOnlyList<Avalanche.Engine.Documents.PdfBookmarkInfo> items,
                     HashSet<(int, int)> ancestors)
                 {
                     foreach (var item in items)
@@ -723,7 +723,7 @@ namespace KillerPDF
             }
             targets = [.. targets.Where(t => !Covered(t))];
 
-            int Count(KillerPdf.Engine.Documents.PdfBookmarkInfo item) =>
+            int Count(Avalanche.Engine.Documents.PdfBookmarkInfo item) =>
                 1 + item.Children.Sum(Count);
             int total = targets.Sum(t => Count(t.Bookmark));
             if (total > 1)
@@ -758,7 +758,7 @@ namespace KillerPDF
                 {
                     DestinationPageIndex = page,
                     NamedDestination = null,
-                    Destination = KillerPdf.Engine.Authoring.PdfDestination.At()
+                    Destination = Avalanche.Engine.Authoring.PdfDestination.At()
                 }));
         }
 

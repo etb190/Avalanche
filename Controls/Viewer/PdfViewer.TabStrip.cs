@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // This pane's tab band: which tabs are in the strip, which of them owns an edge, what the card's
     // top corners do, where the focus ring runs, and the drag that reorders them or hands one to the

@@ -1,7 +1,7 @@
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class PrintColorConverter
 {

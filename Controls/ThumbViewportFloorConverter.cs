@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // Keeps the document scrollbar reactive (thumb sized to the visible proportion) while
     // guaranteeing it never shrinks below a grabbable floor.

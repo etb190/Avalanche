@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// What OcrController needs from the window hosting it, beyond the shared shell services.

@@ -6,9 +6,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Docnet.Core;
 using Docnet.Core.Models;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -180,7 +180,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, string.Format(Loc("Str_Tf_Failed"), ex.Message), "KillerPDF",
+                KillerDialog.Show(this, string.Format(Loc("Str_Tf_Failed"), ex.Message), "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally

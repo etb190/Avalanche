@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -789,7 +789,7 @@ namespace KillerPDF
             {
                 if (strokes.Count == 0)
                 {
-                    KillerDialog.Show(this, Loc("Str_Dlg_DrawSignatureFirst"), "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    KillerDialog.Show(this, Loc("Str_Dlg_DrawSignatureFirst"), "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -829,7 +829,7 @@ namespace KillerPDF
             btnPanel.Margin = new Thickness(12, 4, 12, 12);
             contentArea.Children.Add(btnPanel);
 
-            win.Content = DialogChrome.Frame(win, this, "KillerPDF - " + Loc("Str_Sig_Create"), () => win.Close(), contentArea);
+            win.Content = DialogChrome.Frame(win, this, "Avalanche - " + Loc("Str_Sig_Create"), () => win.Close(), contentArea);
             win.ShowDialog();
         }
 
@@ -872,7 +872,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_ImportImageFailed") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(this, Loc("Str_Err_ImportImageFailed") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

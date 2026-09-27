@@ -1,7 +1,7 @@
 using System.IO;
 using SixLabors.Fonts;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // Font resolution for the SAVE path (#168).

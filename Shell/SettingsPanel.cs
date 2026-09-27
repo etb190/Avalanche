@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -46,28 +46,28 @@ namespace KillerPDF
             ThemeMalaiseRadio.IsChecked = cur == Theme.Malaise;
             UpdateAccentStrip(animate: false);
             // Sync language picker
-            var curLoc = KillerPDF.Services.LocaleManager.Current;
-            LangEnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.EnUS;
-            LangCsRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.CsCZ;
-            LangEsRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Es;
-            LangFrRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Fr;
-            LangZhTWRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhTW;
-            LangZhCNRadio.IsChecked = curLoc == KillerPDF.Services.Locale.ZhCN;
-            LangBnRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.Bn;
-            LangTrRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.TrTR;
-            LangViRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.ViVN;
-            LangDeRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.De;
-            LangJaRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.JaJP;
-            LangPlRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.PlPL;
-            LangHuRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.HuHU;
+            var curLoc = Avalanche.Services.LocaleManager.Current;
+            LangEnRadio.IsChecked   = curLoc == Avalanche.Services.Locale.EnUS;
+            LangCsRadio.IsChecked   = curLoc == Avalanche.Services.Locale.CsCZ;
+            LangEsRadio.IsChecked   = curLoc == Avalanche.Services.Locale.Es;
+            LangFrRadio.IsChecked   = curLoc == Avalanche.Services.Locale.Fr;
+            LangZhTWRadio.IsChecked = curLoc == Avalanche.Services.Locale.ZhTW;
+            LangZhCNRadio.IsChecked = curLoc == Avalanche.Services.Locale.ZhCN;
+            LangBnRadio.IsChecked   = curLoc == Avalanche.Services.Locale.Bn;
+            LangTrRadio.IsChecked   = curLoc == Avalanche.Services.Locale.TrTR;
+            LangViRadio.IsChecked   = curLoc == Avalanche.Services.Locale.ViVN;
+            LangDeRadio.IsChecked   = curLoc == Avalanche.Services.Locale.De;
+            LangJaRadio.IsChecked   = curLoc == Avalanche.Services.Locale.JaJP;
+            LangPlRadio.IsChecked   = curLoc == Avalanche.Services.Locale.PlPL;
+            LangHuRadio.IsChecked   = curLoc == Avalanche.Services.Locale.HuHU;
             // Visual Studio can retain an older design-time XAML field name in MainWindow.g.i.cs
             // after this picker changes. Resolve the radio through the stable submenu namescope so
             // both a fresh build and a stale design-time pass remain valid.
             var italianRadio = LangSubmenu.FindName("LangItalianRadio") as RadioButton
                 ?? LangSubmenu.FindName("LangItRadio") as RadioButton;
-            italianRadio?.IsChecked = curLoc == KillerPDF.Services.Locale.ItIT;
-            LangKkRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.KkKZ;
-            LangRuRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.RuRU;
+            italianRadio?.IsChecked = curLoc == Avalanche.Services.Locale.ItIT;
+            LangKkRadio.IsChecked   = curLoc == Avalanche.Services.Locale.KkKZ;
+            LangRuRadio.IsChecked   = curLoc == Avalanche.Services.Locale.RuRU;
             // Sync view mode radios. Against the PENDING mode while a fade-wrapped switch is in
             // flight (_viewMode lags until the fade-out lands), so wheel-cycling with the flyout
             // open moves the checkmark in step instead of one notch behind.
@@ -524,7 +524,7 @@ namespace KillerPDF
         // DynamicResource strings. Called once from the window ctor; the event only ever fires
         // when the app was started with --lang-file.
         internal void HookExternalLangReload()
-            => KillerPDF.Services.LocaleManager.ExternalReloaded += () =>
+            => Avalanche.Services.LocaleManager.ExternalReloaded += () =>
             {
                 ApplyToolNumberTooltips();
                 BuildToolbarMenu();
@@ -533,30 +533,30 @@ namespace KillerPDF
                 RefreshOpenAnnotationBars();
             };
 
-        private void LangEnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.EnUS);
-        private void LangCsRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.CsCZ);
-        private void LangEsRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Es);
-        private void LangFrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Fr);
-        private void LangZhTWRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhTW);
-        private void LangZhCNRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ZhCN);
-        private void LangBnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.Bn);
-        private void LangTrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.TrTR);
-        private void LangViRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.ViVN);
-        private void LangDeRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.De);
-        private void LangJaRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.JaJP);
-        private void LangPlRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.PlPL);
-        private void LangHuRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.HuHU);
-        private void LangItalianRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ItIT);
+        private void LangEnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.EnUS);
+        private void LangCsRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.CsCZ);
+        private void LangEsRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.Es);
+        private void LangFrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.Fr);
+        private void LangZhTWRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(Avalanche.Services.Locale.ZhTW);
+        private void LangZhCNRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(Avalanche.Services.Locale.ZhCN);
+        private void LangBnRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.Bn);
+        private void LangTrRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.TrTR);
+        private void LangViRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.ViVN);
+        private void LangDeRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.De);
+        private void LangJaRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.JaJP);
+        private void LangPlRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.PlPL);
+        private void LangHuRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.HuHU);
+        private void LangItalianRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(Avalanche.Services.Locale.ItIT);
 
         // Compatibility for Visual Studio's stale design-time MainWindow.g.i.cs. The real XAML
         // uses LangItalianRadio_Checked, but an older generated file may still bind this name.
-        private void LangItRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ItIT);
-        private void LangKkRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.KkKZ);
-        private void LangRuRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.RuRU);
+        private void LangItRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(Avalanche.Services.Locale.ItIT);
+        private void LangKkRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.KkKZ);
+        private void LangRuRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(Avalanche.Services.Locale.RuRU);
 
-        private void SelectLocale(KillerPDF.Services.Locale loc)
+        private void SelectLocale(Avalanche.Services.Locale loc)
         {
-            KillerPDF.Services.LocaleManager.Apply(loc);
+            Avalanche.Services.LocaleManager.Apply(loc);
             ApplyToolNumberTooltips();   // re-append the numbers to the now-localized tool tooltips
             BuildToolbarMenu();   // the toolbar right-click picker's items carry Loc() captions
             LangFlyout.IsOpen = false;   // a pick closes the rail flyout, like the accordion used to collapse
@@ -614,9 +614,9 @@ namespace KillerPDF
             RefreshOpenAnnotationBars(active);
         }
 
-        private void RefreshOpenAnnotationBars(KillerPDF.Controls.PdfViewer viewer)
+        private void RefreshOpenAnnotationBars(Avalanche.Controls.PdfViewer viewer)
         {
-            ((KillerPDF.Features.IViewerHost)this).RunWithViewerContext(viewer, () =>
+            ((Avalanche.Features.IViewerHost)this).RunWithViewerContext(viewer, () =>
             {
                 var tool = _annotBarTool;
                 if (tool == EditTool.Text)
@@ -656,23 +656,23 @@ namespace KillerPDF
         }
 
         // Native name (autonym) for each language, shown in the picker regardless of UI locale.
-        private static string LangDisplayName(KillerPDF.Services.Locale loc) => loc switch
+        private static string LangDisplayName(Avalanche.Services.Locale loc) => loc switch
         {
-            KillerPDF.Services.Locale.CsCZ => "Čeština",
-            KillerPDF.Services.Locale.Es   => "Español",
-            KillerPDF.Services.Locale.Fr   => "Français",
-            KillerPDF.Services.Locale.ZhTW => "中文 (繁體)",
-            KillerPDF.Services.Locale.ZhCN => "中文 (简体)",
-            KillerPDF.Services.Locale.Bn   => "বাংলা",
-            KillerPDF.Services.Locale.TrTR => "Türkçe",
-            KillerPDF.Services.Locale.ViVN => "Tiếng Việt",
-            KillerPDF.Services.Locale.De   => "Deutsch",
-            KillerPDF.Services.Locale.HuHU => "Magyar",
-            KillerPDF.Services.Locale.ItIT => "Italiano",
-            KillerPDF.Services.Locale.JaJP => "日本語",
-            KillerPDF.Services.Locale.PlPL => "Polski",
-            KillerPDF.Services.Locale.KkKZ => "Қазақша",
-            KillerPDF.Services.Locale.RuRU => "Русский",
+            Avalanche.Services.Locale.CsCZ => "Čeština",
+            Avalanche.Services.Locale.Es   => "Español",
+            Avalanche.Services.Locale.Fr   => "Français",
+            Avalanche.Services.Locale.ZhTW => "中文 (繁體)",
+            Avalanche.Services.Locale.ZhCN => "中文 (简体)",
+            Avalanche.Services.Locale.Bn   => "বাংলা",
+            Avalanche.Services.Locale.TrTR => "Türkçe",
+            Avalanche.Services.Locale.ViVN => "Tiếng Việt",
+            Avalanche.Services.Locale.De   => "Deutsch",
+            Avalanche.Services.Locale.HuHU => "Magyar",
+            Avalanche.Services.Locale.ItIT => "Italiano",
+            Avalanche.Services.Locale.JaJP => "日本語",
+            Avalanche.Services.Locale.PlPL => "Polski",
+            Avalanche.Services.Locale.KkKZ => "Қазақша",
+            Avalanche.Services.Locale.RuRU => "Русский",
             _                              => "English",
         };
 

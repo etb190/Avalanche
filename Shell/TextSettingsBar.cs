@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -757,7 +757,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_LoadImageFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_LoadImageFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -838,7 +838,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_PasteFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_PasteFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

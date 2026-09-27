@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 /// <summary>Recognizes printed dotted or ruled blanks used as entry areas on flattened forms.</summary>
 internal static class TextEntryPlaceholder

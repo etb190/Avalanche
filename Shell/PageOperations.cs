@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -80,7 +80,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_SplitFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_SplitFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -89,7 +89,7 @@ namespace KillerPDF
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             var selected = PageList.SelectedItems;
             if (selected.Count == 0) { KillerDialog.Show(this, Loc("Str_Dlg_SelectDelete")); return; }
-            var result = KillerDialog.Show(this, selected.Count == 1 ? Loc("Str_Dlg_DeletePage1") : string.Format(Loc("Str_Dlg_DeletePagesN"), selected.Count), "KillerPDF",
+            var result = KillerDialog.Show(this, selected.Count == 1 ? Loc("Str_Dlg_DeletePage1") : string.Format(Loc("Str_Dlg_DeletePagesN"), selected.Count), "Avalanche",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes) return;
             try
@@ -124,7 +124,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_DeleteFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_DeleteFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -172,7 +172,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_InsertFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_InsertFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -203,7 +203,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, Loc("Str_Err_AddPageFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, Loc("Str_Err_AddPageFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

@@ -7,9 +7,9 @@ using System.Text;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Docnet.Core.Readers;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     // ============================================================
     // Headless CLI render benchmark

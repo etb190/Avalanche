@@ -4,7 +4,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // File-type (shell) icons - split out of FileOperations.cs

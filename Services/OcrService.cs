@@ -2,7 +2,7 @@ using System.IO;
 using System.Windows.Media.Imaging;
 using Tesseract;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     /// <summary>A single recognized word with its confidence and pixel box (top-left origin, OCR image space).</summary>
     internal sealed class OcrWord

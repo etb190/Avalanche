@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Combined "Stamp" tool, modeled on the Transform window: a live page preview on the left and an
@@ -94,7 +94,7 @@ namespace KillerPDF
             _spec = existing?.Clone() ?? new StampSpec { NumbersEnabled = true };
             Result = _spec;
 
-            Title = "KillerPDF - " + S("Str_Stamp_Suffix");
+            Title = "Avalanche - " + S("Str_Stamp_Suffix");
             Width = 980;
             Height = 720;
             MinWidth = 680;
@@ -213,7 +213,7 @@ namespace KillerPDF
             // Family shadow under the content pane, like the main window (flat on 98SE).
             root.Children.Add(UiKit.PaneWithShadow(previewWrap));
 
-            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + S("Str_Stamp_Suffix"), () => { Applied = false; Close(); }, root);
+            Content = DialogChrome.Frame(this, Owner, "Avalanche - " + S("Str_Stamp_Suffix"), () => { Applied = false; Close(); }, root);
 
             // Esc-to-close is wired by DialogChrome.Frame; Enter commits.
             KeyDown += (_, e) => { if (e.Key == Key.Enter) CommitAndClose(); };
@@ -500,7 +500,7 @@ namespace KillerPDF
 
         private void ChooseImage()
         {
-            var ofd = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Open)
+            var ofd = new Avalanche.Controls.FileDialog(Avalanche.Controls.FileDialogMode.Open)
                           { Filter = "Images|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*", ShowImagePreview = true };
             if (ofd.ShowDialog(this) == true)
             {

@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class SaveFileNamePolicy
 {

@@ -1,9 +1,9 @@
 using System.IO;
 using Docnet.Core;
 using Docnet.Core.Models;
-using KillerPdf.Engine.Documents;
+using Avalanche.Engine.Documents;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // File import/repair helpers - pure functions over paths and

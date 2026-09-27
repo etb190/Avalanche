@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Windows.Controls;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Everything ONE document view owns. Split pane needs two of these; each PdfViewer control
@@ -15,7 +15,7 @@ namespace KillerPDF
     /// and zoom; it does NOT need a second copy of the per-document machinery, because each
     /// pane will simply own its own set of sessions.
     ///
-    /// TOP-LEVEL, not nested in MainWindow. The viewer lives in KillerPDF.Controls and cannot own a
+    /// TOP-LEVEL, not nested in MainWindow. The viewer lives in Avalanche.Controls and cannot own a
     /// type nested in the window without every reference spelling out MainWindow.ViewerState.
     /// ViewMode and FitMode live in Models/ViewTypes.cs for the same reason.
     /// </summary>

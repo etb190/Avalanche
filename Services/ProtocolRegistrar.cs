@@ -3,12 +3,12 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     internal static class ProtocolRegistrar
     {
         internal const string Scheme = "killerpdf";
-        private const string RegistryPath = @"Software\Classes\killerpdf";
+        private const string RegistryPath = @"Software\Classes\avalanche";
 
         internal static void Register() => Register(Registry.CurrentUser, null);
 

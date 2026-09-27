@@ -4,9 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Outward stubs: the annotation, text, crop, form and link members under the names the rest of

@@ -2,7 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal sealed record PayloadIntegrityResult(
     bool Success,

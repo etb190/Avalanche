@@ -3,7 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // ============================================================
     // Keyboard-shortcuts overlay: the LIST view.

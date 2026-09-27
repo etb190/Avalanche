@@ -8,7 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // WPF has no built-in animation for GridLength, so grid columns (the sidebar) can only snap.
     // This drives a pixel-unit GridLength between From and To so a column glides instead.
@@ -466,7 +466,7 @@ namespace KillerPDF
         // Dialog/popup buttons. accent==true is the primary (fills solid accent on hover); false is secondary.
         public static Button Make(object content, bool accent)
         {
-            if (KillerPDF.Services.ThemeManager.Current == KillerPDF.Services.Theme.SE98)
+            if (Avalanche.Services.ThemeManager.Current == Avalanche.Services.Theme.SE98)
             {
                 var button = Make(content, Brush("ChipFaceBrush"), Brush("ChipFaceBrush"),
                                   Brush("TextBrush"), Brush("TextBrush"), Brushes.Transparent);

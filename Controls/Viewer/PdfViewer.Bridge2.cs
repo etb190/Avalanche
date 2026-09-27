@@ -5,7 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     /// <summary>
     /// Editing state and narrow shell-facing adapters owned by each viewer instance. Annotations,

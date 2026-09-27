@@ -1,4 +1,4 @@
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // Glyph coverage + the fallback chain (#168).

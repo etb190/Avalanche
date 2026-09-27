@@ -1,4 +1,4 @@
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // OCR catalog - pure data, no IO, no App, no bootstrap.

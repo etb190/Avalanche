@@ -4,15 +4,15 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     /// <summary>
     /// Opt-in startup timing used by the release benchmark. Normal launches do no file I/O.
-    /// Set KILLERPDF_STARTUP_TRACE to an output path before starting the process.
+    /// Set AVALANCHE_STARTUP_TRACE to an output path before starting the process.
     /// </summary>
     internal static class StartupTrace
     {
-        private const string TraceEnvironmentVariable = "KILLERPDF_STARTUP_TRACE";
+        private const string TraceEnvironmentVariable = "AVALANCHE_STARTUP_TRACE";
         private static readonly Lock Gate = new();
         private static readonly Stopwatch Clock = Stopwatch.StartNew();
         private static readonly string? OutputPath = Environment.GetEnvironmentVariable(TraceEnvironmentVariable);

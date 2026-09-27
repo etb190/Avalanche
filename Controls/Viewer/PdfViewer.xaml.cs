@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using KillerPDF.Features;
+using Avalanche.Features;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     /// <summary>
     /// One document view: its tab strip, its card and everything inside. Two instances make the

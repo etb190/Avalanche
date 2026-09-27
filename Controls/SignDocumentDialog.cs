@@ -8,11 +8,11 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
-using KillerPDF.Services.Signing;
-using KillerPDF.Services;
+using Avalanche.Services.Signing;
+using Avalanche.Services;
 using Microsoft.Win32;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Themed modal dialog that cryptographically signs the open PDF with a certificate (a .pfx/.p12
@@ -55,7 +55,7 @@ namespace KillerPDF
         public SignDocumentDialog(Window? owner, string sourcePdf)
         {
             _sourcePdf = sourcePdf;
-            Title = "KillerPDF - " + L("Str_Sign_Name");
+            Title = "Avalanche - " + L("Str_Sign_Name");
             Width = 720;
             MaxHeight = 860;
             SizeToContent = SizeToContent.Height;
@@ -239,7 +239,7 @@ namespace KillerPDF
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
             };
-            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + L("Str_Sign_TitleSuffix"),
+            Content = DialogChrome.Frame(this, Owner, "Avalanche - " + L("Str_Sign_TitleSuffix"),
                 () => { DialogResult = false; Close(); }, scroll);
         }
 
@@ -260,14 +260,14 @@ namespace KillerPDF
 
         private void BrowsePfx()
         {
-            var dlg = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Open)
+            var dlg = new Avalanche.Controls.FileDialog(Avalanche.Controls.FileDialogMode.Open)
                           { Filter = L("Str_Filter_Cert") + "|*.pfx;*.p12|" + L("Str_Filter_AllFiles") + "|*.*", Title = L("Str_Sign_ChooseCert") };
             if (dlg.ShowDialog(this) == true) _pfxBox.Text = dlg.FileName;
         }
 
         private void BrowseOutput()
         {
-            var dlg = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Save)
+            var dlg = new Avalanche.Controls.FileDialog(Avalanche.Controls.FileDialogMode.Save)
                           { Filter = L("Str_Filter_Pdf") + "|*.pdf", Title = L("Str_Sign_SaveAs"), FileName = Path.GetFileName(_outputBox.Text) };
             if (dlg.ShowDialog(this) == true) _outputBox.Text = dlg.FileName;
         }

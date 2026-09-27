@@ -12,9 +12,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Docnet.Core;
 using Docnet.Core.Models;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// KillerPDF's own print dialog with a working preview. WPF's built-in PrintDialog
@@ -1231,7 +1231,7 @@ namespace KillerPDF
         {
             if (_queue == null)
             {
-                KillerDialog.Show(this, S("Str_Dlg_NoPrinter"), "KillerPDF",
+                KillerDialog.Show(this, S("Str_Dlg_NoPrinter"), "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -1241,7 +1241,7 @@ namespace KillerPDF
             var indices = SelectedIndices();
             if (indices.Count == 0)
             {
-                KillerDialog.Show(this, S("Str_Dlg_NoValidPages"), "KillerPDF",
+                KillerDialog.Show(this, S("Str_Dlg_NoValidPages"), "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
@@ -1308,7 +1308,7 @@ namespace KillerPDF
                         if (idx < 0 || idx >= _pages.Length) continue;
                         using var pr = dr.GetPageReader(idx);
                         int w = pr.GetPageWidth(), h = pr.GetPageHeight();
-                        var pixels = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(_renderPath, idx, w, h)
+                        var pixels = Avalanche.Services.PdfiumInterop.RenderPageWithAnnotations(_renderPath, idx, w, h)
                             ?? pr.GetImage();
                         var bs = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);   // #141
                         bs.Freeze();
@@ -1341,7 +1341,7 @@ namespace KillerPDF
                 // been retyped behind the scrim, and a range that now matches nothing must stay disabled.
                 UpdatePreview();
                 KillerDialog.Show(this, S("Str_Err_PrintFailed") + "\n" + ex.GetType().Name + ": " + ex.Message,
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1395,7 +1395,7 @@ namespace KillerPDF
             // STA: both the XPS serializer and the spooler reach apartment-bound COM underneath.
             thread.SetApartmentState(System.Threading.ApartmentState.STA);
             thread.IsBackground = true;
-            thread.Name = "KillerPDF print spool";
+            thread.Name = "Avalanche print spool";
             thread.Start();
             return done.Task;
         }

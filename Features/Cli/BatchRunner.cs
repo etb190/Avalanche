@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using KillerPdf.Engine.Documents;
-using KillerPdf.Engine.Signing;
-using KillerPDF.Services;
+using Avalanche.Engine.Documents;
+using Avalanche.Engine.Signing;
+using Avalanche.Services;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     // ============================================================
     // Headless CLI batch mode

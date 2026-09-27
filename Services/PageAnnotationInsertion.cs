@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class PageAnnotationInsertion
 {

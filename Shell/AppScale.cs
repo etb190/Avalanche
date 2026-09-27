@@ -4,7 +4,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // App-wide accessibility size, ported from KillerNotes: a LayoutTransform scale on the
     // chrome (toolbar row, sidebar, tab strip) grows or shrinks the UI crisply -

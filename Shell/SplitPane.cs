@@ -3,9 +3,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using KillerPDF.Controls;
+using Avalanche.Controls;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Two document panes side by side in one window.

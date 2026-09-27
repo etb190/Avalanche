@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Page viewport: builds the page tiles and annotation overlays for all four view modes (single,
     // continuous, two-page, grid) and handles preview scrolling.

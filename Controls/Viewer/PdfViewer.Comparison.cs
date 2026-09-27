@@ -2,9 +2,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Controls;
+namespace Avalanche.Controls;
 
 public partial class PdfViewer
 {

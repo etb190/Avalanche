@@ -4,9 +4,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     /// <summary>
     /// Transitional forwards used by the moved render pipeline while the remaining bridge surface

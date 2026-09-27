@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Input;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // ============================================================
     // The family grab cursors: an open hand while hovering something

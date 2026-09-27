@@ -8,7 +8,7 @@ using System.Windows.Media.Imaging;
 using Docnet.Core;
 using Docnet.Core.Models;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// ViewModel for a single page thumbnail in the sidebar PageList.
@@ -88,7 +88,7 @@ namespace KillerPDF
                 using var pr = docReader.GetPageReader(pageIndex);
                 int tw  = pr.GetPageWidth();
                 int th  = pr.GetPageHeight();
-                var raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(filePath, pageIndex, tw, th)
+                var raw = Avalanche.Services.PdfiumInterop.RenderPageWithAnnotations(filePath, pageIndex, tw, th)
                     ?? pr.GetImage();   // #141
                 if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4)
                     return null;

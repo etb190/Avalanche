@@ -9,7 +9,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// A small, themed RGB color picker: saturation/value square + hue strip, RGB and HTML-hex inputs,
@@ -50,7 +50,7 @@ namespace KillerPDF
         private static string L(string key) => Application.Current.TryFindResource(key) as string ?? key;
         public ColorPickerDialog(Window? owner, Color initial)
         {
-            Title = "KillerPDF - " + L("Str_Color_Name");
+            Title = "Avalanche - " + L("Str_Color_Name");
             Width = 300;
             SizeToContent = SizeToContent.Height;
             DialogChrome.Configure(this, owner);

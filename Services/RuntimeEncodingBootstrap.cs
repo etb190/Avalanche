@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class RuntimeEncodingBootstrap
 {

@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // Configurable sidebar placement (left or right). The layout uses three columns in
     // MainContentGrid: one sized sidebar column, a 6px splitter, and a star document column.

@@ -1,4 +1,4 @@
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// What AboutController needs from the window hosting it, beyond the shared shell services.

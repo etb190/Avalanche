@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     internal readonly record struct DetectedPdfFontStyle(string Family, bool Bold, bool Italic);
 

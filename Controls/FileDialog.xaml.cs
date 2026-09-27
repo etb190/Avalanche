@@ -10,9 +10,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     /// <summary>Open or Save. Picked at construction; changes the accept button and the rules.</summary>
     public enum FileDialogMode { Open, Save }
@@ -1293,7 +1293,7 @@ namespace KillerPDF.Controls
                     // together. Same question, same buttons, one implementation.
                     var answer = KillerDialog.Show(this,
                         string.Format(Loc("Str_Dlg_OverwriteMsg"), Path.GetFileName(full)),
-                        "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        "Avalanche", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                     if (answer != MessageBoxResult.Yes) { FileNameBox.Focus(); return; }
                 }
             }

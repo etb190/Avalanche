@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 /// <summary>Shared geometry and page-range helpers for markup preview and engine burn-in.</summary>
 internal static class PdfBurn

@@ -1,4 +1,4 @@
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // Minimal 'cmap' reader: answers "does this face have a glyph for this

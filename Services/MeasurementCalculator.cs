@@ -1,4 +1,4 @@
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal readonly record struct MeasurementValues(
     double Points, double Inches, double Millimetres,

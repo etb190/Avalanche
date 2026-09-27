@@ -23,7 +23,7 @@ using System.Windows.Media.Animation;
 // here), the menu comes from MakeThemedMenu() so its TextOptions match the app's other
 // code-built menus, and the kit's Anim.FadeIn is inlined (KillerPDF carries no Anim class).
 // ============================================================
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {

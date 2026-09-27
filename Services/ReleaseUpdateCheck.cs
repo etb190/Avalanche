@@ -2,7 +2,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static partial class ReleaseUpdateCheck
 {

@@ -1,7 +1,7 @@
 using System.Windows.Controls;
-using KillerPDF.Controls;
+using Avalanche.Controls;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // The element names MainWindow.xaml used to generate, now that the document pane is a control
     // (Controls/PdfViewer.xaml).

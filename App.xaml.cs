@@ -15,10 +15,10 @@ using System.Windows.Input;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Threading;
-using KillerPDF.Services;
+using Avalanche.Services;
 using Microsoft.Win32;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class App : Application
     {
@@ -26,7 +26,7 @@ namespace KillerPDF
         // Paths
         // ============================================================
 
-        private static readonly string AppName   = "KillerPDF";
+        private static readonly string AppName   = "Avalanche";
         // The public portable file is KillerPDF-Portable.exe. Once installed, shortcuts launch the
         // loose-file application directly so installed startup never pays launcher/extraction cost.
         private static readonly string ExeName   = "KillerPDF.App.exe";
@@ -142,7 +142,7 @@ namespace KillerPDF
             // Headless CLI commands (see Features/Cli/CliRunner.cs; --batch-resave in
             // BatchRunner.cs). Checked before the single-instance mutex so CLI runs work
             // while a GUI instance is open, never forward to it, and never show a window.
-            if (KillerPDF.Features.CliRunner.TryRunCli(e.Args, out int cliExit))
+            if (Avalanche.Features.CliRunner.TryRunCli(e.Args, out int cliExit))
             {
                 Shutdown(cliExit);
                 return;
@@ -229,7 +229,7 @@ namespace KillerPDF
 
         private const string MutexName = @"Local\KillerPDF.SingleInstance";
         private const string PipeName  = "KillerPDF.OpenPipe";
-        private const string UninstallCloseCommand = "::KILLERPDF_CLOSE_FOR_UNINSTALL::";
+        private const string UninstallCloseCommand = "::AVALANCHE_CLOSE_FOR_UNINSTALL::";
         private Mutex? _instanceMutex;
 
         private void StartPipeServer()
@@ -836,7 +836,7 @@ namespace KillerPDF
         {
             try
             {
-                using var key = root.OpenSubKey(@"Software\KillerPDF");
+                using var key = root.OpenSubKey(@"Software\Avalanche");
                 string? path = key?.GetValue("InstallPath") as string;
                 return !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? Path.GetFullPath(path) : null;
             }
@@ -896,7 +896,7 @@ namespace KillerPDF
             try { Directory.Delete(MachineStartMenuDir, recursive: false); } catch { }
             UnregisterFileHandler(Registry.LocalMachine);
             Services.ProtocolRegistrar.Unregister(Registry.LocalMachine);
-            try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\KillerPDF"); } catch { }
+            try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\Avalanche"); } catch { }
             try { Registry.LocalMachine.DeleteSubKeyTree(
                 @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
             string directory = Path.GetDirectoryName(registeredExe ?? MachineInstallExe) ?? MachineInstallDir;
@@ -981,7 +981,7 @@ namespace KillerPDF
         {
             try
             {
-                string? path = Environment.GetEnvironmentVariable("KILLERPDF_LAUNCHER_PATH");
+                string? path = Environment.GetEnvironmentVariable("AVALANCHE_LAUNCHER_PATH");
                 return !string.IsNullOrWhiteSpace(path) && File.Exists(path) ? Path.GetFullPath(path) : null;
             }
             catch { return null; }
@@ -1037,7 +1037,7 @@ namespace KillerPDF
             try { if (Directory.Exists(directory)) Directory.Delete(directory, true); } catch { }
             try
             {
-                using var key = Registry.CurrentUser.OpenSubKey(@"Software\KillerPDF", writable: true);
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Avalanche", writable: true);
                 key?.DeleteValue("Installed", throwOnMissingValue: false);
                 key?.DeleteValue("InstallPath", throwOnMissingValue: false);
             }
@@ -1108,7 +1108,7 @@ namespace KillerPDF
         /// </summary>
         internal static readonly string TempDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "KillerPDF", "Temp");
+            "Avalanche", "Temp");
 
         private static readonly List<string> _sessionTemps = [];
 
@@ -1167,7 +1167,7 @@ namespace KillerPDF
                 return Services.AppDataPaths.GetPortableSetting(name);
             try
             {
-                using var key = Registry.CurrentUser.OpenSubKey(@"Software\KillerPDF\Settings");
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Avalanche\Settings");
                 return key?.GetValue(name) as string;
             }
             catch { return null; }
@@ -1182,7 +1182,7 @@ namespace KillerPDF
             }
             try
             {
-                using var key = Registry.CurrentUser.CreateSubKey(@"Software\KillerPDF\Settings");
+                using var key = Registry.CurrentUser.CreateSubKey(@"Software\Avalanche\Settings");
                 key.SetValue(name, value);
             }
             catch { /* best-effort */ }
@@ -1197,7 +1197,7 @@ namespace KillerPDF
             }
             try
             {
-                using var key = Registry.CurrentUser.OpenSubKey(@"Software\KillerPDF\Settings", writable: true);
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Avalanche\Settings", writable: true);
                 key?.DeleteValue(name, throwOnMissingValue: false);
             }
             catch { /* best-effort */ }
@@ -1213,7 +1213,7 @@ namespace KillerPDF
             if (Services.AppDataPaths.PortableRoot is not null)
                 TryDeleteDir(Services.AppDataPaths.UserRoot);
             else
-                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\KillerPDF\Settings", throwOnMissingSubKey: false); } catch { }
+                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Avalanche\Settings", throwOnMissingSubKey: false); } catch { }
 
             TryDeleteDir(Services.AppDataPaths.TessDataDirectory);
             TryDeleteDir(Path.Combine(Services.AppDataPaths.LocalRoot, "ocr"));
@@ -1286,7 +1286,7 @@ namespace KillerPDF
 
         private static bool IsInstalled()
         {
-            using var key = Registry.CurrentUser.OpenSubKey(@"Software\KillerPDF");
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Avalanche");
             if (key is null) return false;
             return key.GetValue("Installed") is int i && i == 1;
         }
@@ -1730,7 +1730,7 @@ namespace KillerPDF
 
             // KillerPDF logo - clickable link to product site
             var logo = new TextBlock { FontSize = 22, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 4) };
-            var logoHl = new Hyperlink(new Run("KillerPDF"))
+            var logoHl = new Hyperlink(new Run("Avalanche"))
             {
                 Foreground = accent,
                 TextDecorations = null
@@ -1918,24 +1918,24 @@ namespace KillerPDF
 
             // RegisteredApplications capability (used by Default Programs UI)
             using (var k = root.CreateSubKey(
-                @"Software\KillerPDF\Capabilities"))
+                @"Software\Avalanche\Capabilities"))
             {
                 k.SetValue("ApplicationName",        AppName);
                 k.SetValue("ApplicationDescription", "Lightweight PDF viewer and editor");
             }
             using (var k = root.CreateSubKey(
-                @"Software\KillerPDF\Capabilities\FileAssociations"))
+                @"Software\Avalanche\Capabilities\FileAssociations"))
                 k.SetValue(".pdf", "KillerPDF.pdf");
 
             // #183: without this the killerpdf:// handler never appears in Windows Settings >
             // Default apps > Choose defaults by link type. Maps the scheme to its ProgID
-            // (Software\Classes\killerpdf, written by ProtocolRegistrar).
+            // (Software\Classes\avalanche, written by ProtocolRegistrar).
             using (var k = root.CreateSubKey(
-                @"Software\KillerPDF\Capabilities\UrlAssociations"))
+                @"Software\Avalanche\Capabilities\UrlAssociations"))
                 k.SetValue(Services.ProtocolRegistrar.Scheme, Services.ProtocolRegistrar.Scheme);
 
             using (var k = root.CreateSubKey(@"Software\RegisteredApplications"))
-                k.SetValue(AppName, @"Software\KillerPDF\Capabilities");
+                k.SetValue(AppName, @"Software\Avalanche\Capabilities");
 
             // Tell the shell file associations have changed
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
@@ -1946,7 +1946,7 @@ namespace KillerPDF
             try { root.DeleteSubKeyTree(@"Software\Classes\KillerPDF.pdf", false); } catch { }
             try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.App.exe", false); } catch { }
             try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.exe", false); } catch { }
-            try { root.DeleteSubKeyTree(@"Software\KillerPDF\Capabilities", false); } catch { }
+            try { root.DeleteSubKeyTree(@"Software\Avalanche\Capabilities", false); } catch { }
             try
             {
                 using var k = root.OpenSubKey(@"Software\Classes\.pdf\OpenWithProgids", writable: true);
@@ -2034,7 +2034,7 @@ namespace KillerPDF
             RegisterFileHandler(registryRoot, exePath, iconPath);
             Services.ProtocolRegistrar.Register(registryRoot, exePath);
 
-            using (var key = registryRoot.CreateSubKey(@"Software\KillerPDF"))
+            using (var key = registryRoot.CreateSubKey(@"Software\Avalanche"))
             {
                 key.SetValue("Installed", 1);
                 key.SetValue("InstallPath", exePath);
@@ -2108,7 +2108,7 @@ namespace KillerPDF
             try { File.Delete(DesktopLnk); } catch { }
 
             // Registry cleanup
-            try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\KillerPDF"); } catch { }
+            try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Avalanche"); } catch { }
             Services.ProtocolRegistrar.Unregister();
             try { Registry.CurrentUser.DeleteSubKeyTree(
                 @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
@@ -2123,7 +2123,7 @@ namespace KillerPDF
                 try { Directory.Delete(MachineStartMenuDir, recursive: false); } catch { }
                 UnregisterFileHandler(Registry.LocalMachine);
                 Services.ProtocolRegistrar.Unregister(Registry.LocalMachine);   // #183
-                try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\KillerPDF"); } catch { }
+                try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\Avalanche"); } catch { }
                 try { Registry.LocalMachine.DeleteSubKeyTree(
                     @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
             }

@@ -2,7 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Docnet.Core;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // PDFium uses cdecl callbacks, mutable byte buffers, and native structs across one audited
     // runtime-marshalling boundary. LibraryImport does not cover every signature in this bridge,

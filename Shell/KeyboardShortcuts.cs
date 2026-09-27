@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {
@@ -182,7 +182,7 @@ namespace KillerPDF
             {
                 // A cancellable long operation (OCR, repair) is running behind the busy overlay - offer to
                 // cancel it instead of letting Escape fall through to the app-exit handler below.
-                if (KillerDialog.Show(this, string.Format(Loc("Str_Dlg_CancelBusy"), _busyOpLabel), "KillerPDF",
+                if (KillerDialog.Show(this, string.Format(Loc("Str_Dlg_CancelBusy"), _busyOpLabel), "Avalanche",
                         MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
                     _busyCts?.Cancel();
                 e.Handled = true;

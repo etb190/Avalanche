@@ -1,6 +1,6 @@
 using System.Windows.Media;
 
-namespace KillerPDF
+namespace Avalanche
 {
     internal enum StampKind { PageNumber, Watermark }
 

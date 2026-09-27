@@ -4,9 +4,9 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Single-instance entry points: App forwards a second launch's file path here rather than
@@ -78,7 +78,7 @@ namespace KillerPDF
             };
             KillerDialog.Show(this,
                 Loc("Str_Handoff_Failed") + "\n\n" + reason,
-                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         /// <summary>Replay whatever arrived during startup. No-op in the normal case.</summary>
@@ -154,7 +154,7 @@ namespace KillerPDF
             };
             KillerDialog.Show(this,
                 Loc("Str_Handoff_Failed") + "\n\n" + reason,
-                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                "Avalanche", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         public void RestoreAndActivate()

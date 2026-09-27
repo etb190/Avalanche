@@ -16,15 +16,15 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Docnet.Core;
 using Docnet.Core.Models;
-using KillerPdf.Engine.Documents;
-using KillerPDF.Services;
+using Avalanche.Engine.Documents;
+using Avalanche.Services;
 // The scrubs, bitmap helpers, import helpers and PDFium interop all live in Services
 // (BitmapHelpers.cs, PdfImport.cs, PdfiumInterop.cs; KillerUI refactor,
 // 2026-07-31), called qualified below. No Features-to-Shell reaches remain in this file.
 // OpenBatchConsole and FlattenBatchDetail are shared with the batch runner.
-using static KillerPDF.Features.BatchRunner;
+using static Avalanche.Features.BatchRunner;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     // ============================================================
     // Command-line interface
@@ -316,8 +316,8 @@ namespace KillerPDF.Features
             byte[] merged = PdfEngineIntegration.MergeFiles(inputs);
             CliEnsureParentDir(outPath);
             File.WriteAllBytes(outPath, merged);
-            int pageCount = KillerPdf.Engine.Documents.PdfDocumentInformation
-                .Read(KillerPdf.Engine.Documents.PdfDocument.Open(merged)).PageCount;
+            int pageCount = Avalanche.Engine.Documents.PdfDocumentInformation
+                .Read(Avalanche.Engine.Documents.PdfDocument.Open(merged)).PageCount;
             con.WriteLine($"Merged {inputs.Count} files ({pageCount} pages) -> {outPath}");
             return 0;
         }
@@ -338,8 +338,8 @@ namespace KillerPDF.Features
             if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
 
             byte[] source = File.ReadAllBytes(inPath);
-            int pageCount = KillerPdf.Engine.Documents.PdfDocumentInformation
-                .Read(KillerPdf.Engine.Documents.PdfDocument.Open(source)).PageCount;
+            int pageCount = Avalanche.Engine.Documents.PdfDocumentInformation
+                .Read(Avalanche.Engine.Documents.PdfDocument.Open(source)).PageCount;
             var indices = CliParsePageRange(spec, pageCount, out string err);
             if (indices is null) { con.WriteLine(err); return 2; }
 
@@ -449,7 +449,7 @@ namespace KillerPDF.Features
 
             try
             {
-                IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
+                IReadOnlyList<Avalanche.Engine.Documents.PdfPageInformation> pages =
                     PdfEngineIntegration.ReadPageInformation(workPath);
                 var rotations = new int[pages.Count];
                 var dims = new (double WPt, double HPt)[pages.Count];
@@ -544,7 +544,7 @@ namespace KillerPDF.Features
                 {
                     w = pr.GetPageWidth();
                     h = pr.GetPageHeight();
-                    raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(
+                    raw = Avalanche.Services.PdfiumInterop.RenderPageWithAnnotations(
                         renderPath, idx, w, h, transparent)
                         ?? (transparent
                             ? pr.GetImage()
@@ -599,7 +599,7 @@ namespace KillerPDF.Features
                     // #141: WithAnnotations, or the rebuild drops the file's own markup.
                     w = pr.GetPageWidth();
                     h = pr.GetPageHeight();
-                    raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(renderPath, i, w, h)
+                    raw = Avalanche.Services.PdfiumInterop.RenderPageWithAnnotations(renderPath, i, w, h)
                         ?? pr.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover());
                 }
                 int rot = rotations != null && i < rotations.Length ? rotations[i] : 0;
@@ -705,7 +705,7 @@ namespace KillerPDF.Features
                     {
                         w = pr.GetPageWidth();
                         h = pr.GetPageHeight();
-                        raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(renderPath, idx, w, h)
+                        raw = Avalanche.Services.PdfiumInterop.RenderPageWithAnnotations(renderPath, idx, w, h)
                             ?? pr.GetImage();   // #141
                     }
                     int rot = rotations != null && idx < rotations.Length ? rotations[idx] : 0;

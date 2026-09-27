@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {

@@ -1,6 +1,6 @@
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // Image placement extraction for the display dark mode (#135

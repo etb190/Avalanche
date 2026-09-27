@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// The three things every feature needs from the window: an owner for modal dialogs, string

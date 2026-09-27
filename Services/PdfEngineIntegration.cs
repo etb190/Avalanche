@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using KillerPdf.Engine.Authoring;
-using KillerPdf.Engine.Documents;
-using KillerPdf.Engine.Editing;
-using KillerPdf.Engine.Fonts;
-using KillerPdf.Engine.Signing;
-using KillerPdf.Engine.Writing;
+using Avalanche.Engine.Authoring;
+using Avalanche.Engine.Documents;
+using Avalanche.Engine.Editing;
+using Avalanche.Engine.Fonts;
+using Avalanche.Engine.Signing;
+using Avalanche.Engine.Writing;
 using DrawingBitmap = System.Drawing.Bitmap;
 using DrawingGraphics = System.Drawing.Graphics;
 using DrawingImage = System.Drawing.Image;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 /// <summary>Bridges completed application state into The KillerPDF.Engine during migration.</summary>
 internal static class PdfEngineIntegration
@@ -1189,7 +1189,7 @@ internal static class PdfEngineIntegration
             throw new ArgumentException("At least one page must be extracted.", nameof(pageIndices));
 
         PdfDocument source = PdfDocument.Open(File.ReadAllBytes(sourcePath));
-        PdfDocument empty = PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder().Build());
+        PdfDocument empty = PdfDocument.Open(new Avalanche.Engine.Authoring.PdfDocumentBuilder().Build());
         var editor = new PdfIncrementalPageEditor(empty)
             .InsertImportedPages(0, source, pageIndices);
         for (int outputIndex = 0; outputIndex < pageIndices.Count; outputIndex++)

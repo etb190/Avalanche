@@ -7,7 +7,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow
     {

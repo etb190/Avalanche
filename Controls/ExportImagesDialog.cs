@@ -1,8 +1,8 @@
 using System.Windows;
 using System.Windows.Controls;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // Export pages as images (#132): PNG/JPEG + DPI + page range, themed via DialogChrome like
     // Document Info. The destination and base file name are picked afterwards with the standard
@@ -28,7 +28,7 @@ namespace KillerPDF
         {
             _pageWidthPoints = pageWidthPoints;
             _pageHeightPoints = pageHeightPoints;
-            Title = "KillerPDF - " + L("Str_ExportImg_Suffix");
+            Title = "Avalanche - " + L("Str_ExportImg_Suffix");
             // Width follows the caption. "Export Pages as Images" is 22 characters in en-US and
             // up to 35 translated, which ran the title under the close button at a fixed 380 (#223).
             MinWidth = 380;
@@ -84,7 +84,7 @@ namespace KillerPDF
             row.Margin = new Thickness(0, 8, 0, 0);
             body.Children.Add(row);
 
-            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + L("Str_ExportImg_Suffix"),
+            Content = DialogChrome.Frame(this, Owner, "Avalanche - " + L("Str_ExportImg_Suffix"),
                 () => { Confirmed = false; Close(); }, body);
 
             Loaded += (_, _2) => _dpi.Focus();

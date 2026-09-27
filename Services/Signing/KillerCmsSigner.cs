@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 
-namespace KillerPDF.Services.Signing
+namespace Avalanche.Services.Signing
 {
     /// <summary>Creates detached CMS signatures with .NET cryptography.</summary>
     internal sealed class KillerCmsSigner(X509Certificate2 cert)

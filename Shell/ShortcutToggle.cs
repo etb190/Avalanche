@@ -1,7 +1,7 @@
 using System.Windows;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF;
+namespace Avalanche;
 
 public partial class MainWindow
 {

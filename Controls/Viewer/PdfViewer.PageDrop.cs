@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     public partial class PdfViewer
     {

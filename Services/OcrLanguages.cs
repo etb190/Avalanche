@@ -2,7 +2,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // OCR languages - the catalog, install checks and traineddata

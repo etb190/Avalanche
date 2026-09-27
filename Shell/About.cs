@@ -3,9 +3,9 @@ using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using KillerPDF.Features;
+using Avalanche.Features;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// The About overlay's window half: the IAboutHost implementation that maps the controller's
@@ -13,7 +13,7 @@ namespace KillerPDF
     /// handlers. All the logic - signature, hashing, update check, self-update - lives in
     /// <see cref="AboutController"/>.
     ///
-    /// NOTE: this stays "namespace KillerPDF" rather than KillerPDF.Shell, because it is a partial
+    /// NOTE: this stays "namespace Avalanche" rather than KillerPDF.Shell, because it is a partial
     /// of MainWindow and every partial of a class must share one namespace. It moves to
     /// KillerPDF.Shell when MainWindow itself does.
     /// </summary>

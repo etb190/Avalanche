@@ -2,11 +2,11 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using KillerPDF.Controls;
-using KillerPDF.Services;
-using KillerPdf.Engine.Documents;
+using Avalanche.Controls;
+using Avalanche.Services;
+using Avalanche.Engine.Documents;
 
-namespace KillerPDF;
+namespace Avalanche;
 
 public partial class MainWindow
 {

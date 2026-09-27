@@ -1,6 +1,6 @@
 using System.Linq;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // ============================================================
     // THE shortcut table. One source of truth for both views of the shortcuts overlay: the list

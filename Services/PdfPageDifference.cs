@@ -1,4 +1,4 @@
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal readonly record struct DifferenceRegion(int X, int Y, int Width, int Height, int ChangedPixels);
 

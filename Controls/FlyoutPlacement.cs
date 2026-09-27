@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Where every flyout opens: the bottom corner of the content pane beside the rail.

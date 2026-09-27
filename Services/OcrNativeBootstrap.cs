@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     /// <summary>
     /// Keeps the single-exe build self-sufficient for OCR. The native Tesseract DLLs (x64) and the bundled

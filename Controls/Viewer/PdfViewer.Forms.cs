@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Moved from Shell/Forms.cs; the namespace and class line are the only changes. Window members
     // spelled bare here resolve through PdfViewer.Bridge.cs.
@@ -274,10 +274,10 @@ namespace KillerPDF.Controls
             Rect canvasRectangle = new(
                 Canvas.GetLeft(element), Canvas.GetTop(element),
                 element.ActualWidth, element.ActualHeight);
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
+            IReadOnlyList<Avalanche.Engine.Documents.PdfPageInformation> pages =
                 PdfEngineIntegration.ReadPageInformation(_currentFile);
             if ((uint)pageIndex >= (uint)pages.Count) return;
-            KillerPdf.Engine.Documents.PdfPageInformation page = pages[pageIndex];
+            Avalanche.Engine.Documents.PdfPageInformation page = pages[pageIndex];
             int rotation = _pageRotations.TryGetValue(pageIndex, out int storedRotation)
                 ? ((storedRotation % 360) + 360) % 360
                 : page.Rotation;
@@ -640,8 +640,8 @@ namespace KillerPDF.Controls
             if (_doc is null || pageIndex >= _doc.PageCount) return result;
             try
             {
-                KillerPdf.Engine.Documents.PdfDocument engineDocument = EnsureEngineDocumentSession().Document;
-                foreach (KillerPdf.Engine.Documents.PdfFormWidgetInfo widget in
+                Avalanche.Engine.Documents.PdfDocument engineDocument = EnsureEngineDocumentSession().Document;
+                foreach (Avalanche.Engine.Documents.PdfFormWidgetInfo widget in
                     PdfEngineIntegration.ReadPageFormWidgets(engineDocument, pageIndex))
                 {
                     double fx1 = widget.Left - widget.PageBoxLeft;
@@ -684,10 +684,10 @@ namespace KillerPDF.Controls
                         || cw < 2 || ch < 2) continue;
                     string fieldType = widget.FieldKind switch
                     {
-                        KillerPdf.Engine.Documents.PdfFormFieldKind.Text => "/Tx",
-                        KillerPdf.Engine.Documents.PdfFormFieldKind.Button => "/Btn",
-                        KillerPdf.Engine.Documents.PdfFormFieldKind.Choice => "/Ch",
-                        KillerPdf.Engine.Documents.PdfFormFieldKind.Signature => "/Sig",
+                        Avalanche.Engine.Documents.PdfFormFieldKind.Text => "/Tx",
+                        Avalanche.Engine.Documents.PdfFormFieldKind.Button => "/Btn",
+                        Avalanche.Engine.Documents.PdfFormFieldKind.Choice => "/Ch",
+                        Avalanche.Engine.Documents.PdfFormFieldKind.Signature => "/Sig",
                         _ => string.Empty
                     };
                     if (fieldType.Length == 0 || widget.FieldName.Length == 0) continue;

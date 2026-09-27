@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Input;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // Keyboard-layout aware shortcut matching (#153).

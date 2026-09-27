@@ -15,13 +15,13 @@ namespace KillerLauncher
 {
     internal static class Program
     {
-        private const string ProductName = "KillerPDF";
+        private const string ProductName = "Avalanche";
         private const string InnerExeName = "KillerPDF.App.exe";
         private const string PayloadResourceName = "KillerLauncher.payload.zip";
         private const string ManifestName = "payload.manifest";
         private const string PortableMarkerName = ".killerpdf-portable";
-        private const string TestInstallRootEnvironmentVariable = "KILLERPDF_TEST_INSTALL_ROOT";
-        private const string SkipRegistrationEnvironmentVariable = "KILLERPDF_SKIP_REGISTRATION";
+        private const string TestInstallRootEnvironmentVariable = "AVALANCHE_TEST_INSTALL_ROOT";
+        private const string SkipRegistrationEnvironmentVariable = "AVALANCHE_SKIP_REGISTRATION";
 
         private static readonly string UserInstallDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", ProductName);
@@ -112,8 +112,8 @@ namespace KillerLauncher
                     UseShellExecute = false,
                     WorkingDirectory = directory
                 };
-                start.EnvironmentVariables["KILLERPDF_LAUNCHER_PATH"] = CurrentExecutablePath();
-                start.EnvironmentVariables["KILLERPDF_LAUNCHER_PID"] =
+                start.EnvironmentVariables["AVALANCHE_LAUNCHER_PATH"] = CurrentExecutablePath();
+                start.EnvironmentVariables["AVALANCHE_LAUNCHER_PID"] =
                     Process.GetCurrentProcess().Id.ToString(CultureInfo.InvariantCulture);
 
                 using (var child = Process.Start(start))

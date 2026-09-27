@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Annotation rendering - draws the per-page annotation overlays (text, cover, highlight, ink,
     // signature, image). Moved from Shell/Annotations.cs; the namespace and class line are the only

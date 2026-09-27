@@ -1,9 +1,9 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
-using KillerPDF.Controls;
+using Avalanche.Controls;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// What a document viewer needs from the window around it.

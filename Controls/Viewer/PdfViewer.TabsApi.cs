@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     /// <summary>
     /// This pane's tab surface, exposed to the window. Wrappers inside the same partial class, so

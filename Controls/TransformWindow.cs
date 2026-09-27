@@ -6,9 +6,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Modal "Transform" window. Renders the current page on its own canvas (so the main view's mode is
@@ -105,7 +105,7 @@ namespace KillerPDF
             _srcH = _src.PixelHeight;
             _pageWpt = pages[0].WidthPoints;
             _pageHpt = pages[0].HeightPoints;
-            Title = "KillerPDF - " + S("Str_Tf_Suffix");
+            Title = "Avalanche - " + S("Str_Tf_Suffix");
             Width = 980;
             Height = 720;
             MinWidth = 640;
@@ -533,7 +533,7 @@ namespace KillerPDF
             previewColumn.Children.Add(UiKit.PaneWithShadow(previewWrap));
             root.Children.Add(previewColumn);
 
-            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + S("Str_Tf_Suffix"), () => { Applied = false; Close(); }, root);
+            Content = DialogChrome.Frame(this, Owner, "Avalanche - " + S("Str_Tf_Suffix"), () => { Applied = false; Close(); }, root);
             UpdatePreview();   // populate the output-size readout at the original dimensions
             UpdatePageNavigation();
 

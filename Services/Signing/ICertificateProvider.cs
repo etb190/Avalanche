@@ -1,6 +1,6 @@
 using System.Security.Cryptography.X509Certificates;
 
-namespace KillerPDF.Services.Signing
+namespace Avalanche.Services.Signing
 {
     /// <summary>
     /// A source of a signing certificate (with its private key). Kept as an interface so the only

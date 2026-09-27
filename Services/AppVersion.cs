@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>One display version for the UI, CLI, diagnostics, and Windows registration.</summary>
     internal static class AppVersion

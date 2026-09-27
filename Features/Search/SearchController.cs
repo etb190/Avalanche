@@ -1,6 +1,6 @@
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// The document-search state machine: runs SearchService over the working file, keeps the

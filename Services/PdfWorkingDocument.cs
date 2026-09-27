@@ -1,7 +1,7 @@
 using System.IO;
-using KillerPdf.Engine.Documents;
+using Avalanche.Engine.Documents;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 /// <summary>Engine-validated serialized working state for one open desktop document.</summary>
 internal sealed class PdfWorkingDocument : IDisposable

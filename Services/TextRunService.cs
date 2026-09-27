@@ -1,7 +1,7 @@
 using System.IO;
 using UglyToad.PdfPig;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     /// <summary>One selectable character on a page, in reading order. Coordinates are PDF space
     /// (points, bottom-left origin), matching SearchService and ExtractTextFromRegion.</summary>

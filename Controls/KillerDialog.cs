@@ -10,9 +10,9 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // ============================================================
     // Themed dialog - replaces MessageBox for dark-UI consistency
@@ -34,7 +34,7 @@ namespace KillerPDF
         public static MessageBoxResult Show(
             Window? owner,
             string message,
-            string title = "KillerPDF",
+            string title = "Avalanche",
             MessageBoxButton buttons = MessageBoxButton.OK,
             MessageBoxImage image = MessageBoxImage.None,
             bool fadeClose = true,
@@ -80,14 +80,14 @@ namespace KillerPDF
             // KillerPDF-prefixed titles keep the real wordmark. A qualifier such as "Uninstall"
             // follows in the same typewriter family instead of flattening the whole title into
             // generic monospace text.
-            if (title == "KillerPDF" || title.StartsWith("KillerPDF ", System.StringComparison.Ordinal))
+            if (title == "Avalanche" || title.StartsWith("KillerPDF ", System.StringComparison.Ordinal))
             {
                 var wm = new StackPanel { Orientation = Orientation.Horizontal };
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 19.5, Foreground = R("AccentLogo") });
-                if (title.Length > "KillerPDF".Length)
-                    wmTb.Inlines.Add(new System.Windows.Documents.Run("  " + title["KillerPDF".Length..].TrimStart())
+                if (title.Length > "Avalanche".Length)
+                    wmTb.Inlines.Add(new System.Windows.Documents.Run("  " + title["Avalanche".Length..].TrimStart())
                     {
                         FontFamily = UiKit.WordmarkFont,
                         FontWeight = FontWeights.Normal,
@@ -227,7 +227,7 @@ namespace KillerPDF
             string message,
             string[] labels,
             int accentIndex = 0,
-            string title = "KillerPDF")
+            string title = "Avalanche")
         {
             int result = -1;
 
@@ -249,7 +249,7 @@ namespace KillerPDF
 
             var titleBar = new Border { Background = Application.Current.TryFindResource("UseDialogCaption") is true ? UiKit.Brush("TitleBarBrush") : Brushes.Transparent, Padding = new Thickness(16, 10, 16, 10) };
             titleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
-            if (title == "KillerPDF")
+            if (title == "Avalanche")
             {
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
                 wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
@@ -319,7 +319,7 @@ namespace KillerPDF
             Window? owner,
             string message,
             string checkboxText,
-            string title = "KillerPDF",
+            string title = "Avalanche",
             MessageBoxButton buttons = MessageBoxButton.OKCancel,
             MessageBoxResult? defaultResult = null,
             bool checkboxInitial = false)
@@ -371,7 +371,7 @@ namespace KillerPDF
             bool closeTabs = check1Initial;
             bool remember  = check2Initial;
 
-            var win = new Window { Title = "KillerPDF", Width = 380, SizeToContent = SizeToContent.Height };
+            var win = new Window { Title = "Avalanche", Width = 380, SizeToContent = SizeToContent.Height };
             // fade:false - the app's own fade-out follows immediately on confirm; two fades
             // back-to-back read as lag (same reasoning as the unsaved-changes prompt).
             DialogChrome.Configure(win, owner, fade: false);
@@ -389,7 +389,7 @@ namespace KillerPDF
 
             var root = new StackPanel();
 
-            // Title bar: the wordmark, exactly like Show()'s "KillerPDF" branch.
+            // Title bar: the wordmark, exactly like Show()'s "Avalanche" branch.
             var titleBar = new Border
             {
                 Background = Application.Current.TryFindResource("UseDialogCaption") is true ? UiKit.Brush("TitleBarBrush") : Brushes.Transparent,
@@ -404,7 +404,7 @@ namespace KillerPDF
             wm.Children.Add(wmTb);
             titleBar.Child = wm;
             if (Application.Current.TryFindResource("UseDialogCaption") is true)
-                titleBar = DialogChrome.BuildTitleBar(win, owner, "KillerPDF", () => win.Close());
+                titleBar = DialogChrome.BuildTitleBar(win, owner, "Avalanche", () => win.Close());
             titleBar.Height = Application.Current.TryFindResource("DialogTitleBarHeight") is double titleHeight ? titleHeight : double.NaN;
             root.Children.Add(titleBar);
 
@@ -520,7 +520,7 @@ namespace KillerPDF
             // Enter anywhere in the field submits.
             pw.KeyDown += (_, e) => { if (e.Key == Key.Enter) { result = pw.Password; win.Close(); } };
 
-            win.Content = DialogChrome.Frame(win, owner, "KillerPDF", CloseCancel, body);
+            win.Content = DialogChrome.Frame(win, owner, "Avalanche", CloseCancel, body);
             win.Loaded += (_, _2) => pw.Focus();
             win.ShowDialog();
             return result;

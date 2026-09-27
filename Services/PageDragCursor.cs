@@ -6,7 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Microsoft.Win32.SafeHandles;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     internal sealed partial class PageDragCursor : IDisposable
     {

@@ -1,10 +1,10 @@
 using System;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
-using KillerPdf.Engine.Documents;
-using KillerPdf.Engine.Signing;
+using Avalanche.Engine.Documents;
+using Avalanche.Engine.Signing;
 
-namespace KillerPDF.Services.Signing
+namespace Avalanche.Services.Signing
 {
     /// <summary>Creates detached-CMS approval signatures through The KillerPDF.Engine.</summary>
     internal sealed class PdfSigner

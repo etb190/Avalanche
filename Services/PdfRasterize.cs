@@ -2,9 +2,9 @@ using System.IO;
 using System.Threading;
 using Docnet.Core;
 using Docnet.Core.Models;
-using KillerPdf.Engine.Documents;
+using Avalanche.Engine.Documents;
 
-namespace KillerPDF.Services
+namespace Avalanche.Services
 {
     // ============================================================
     // Document rasterization cores - pure functions over a rendered

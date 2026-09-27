@@ -3,10 +3,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using KillerPDF.Services;
-using KillerPdf.Engine.Documents;
+using Avalanche.Services;
+using Avalanche.Engine.Documents;
 
-namespace KillerPDF.Controls;
+namespace Avalanche.Controls;
 
 public partial class PdfViewer
 {

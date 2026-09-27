@@ -6,9 +6,9 @@ using System.Windows;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Features
+namespace Avalanche.Features
 {
     /// <summary>
     /// The four OCR operations that work on the open document: page to clipboard, region to
@@ -99,7 +99,7 @@ namespace KillerPDF.Features
             catch (Exception ex)
             {
                 _host.HideBusy();
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_OcrFailed") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_OcrFailed") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -156,7 +156,7 @@ namespace KillerPDF.Features
             catch (Exception ex)
             {
                 _host.HideBusy();
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_OcrFailed") + "\n" + ex.Message, "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_OcrFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
@@ -188,7 +188,7 @@ namespace KillerPDF.Features
             if (!await _host.EnsureOcrModelsReadyAsync()) return;
             _host.CommitActiveTextBox();
 
-            var dlg = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Save)
+            var dlg = new Avalanche.Controls.FileDialog(Avalanche.Controls.FileDialogMode.Save)
             {
                 Filter = _host.Loc("Str_Filter_Pdf") + "|*.pdf",
                 Title = _host.Loc("Str_Ocr_SaveSearchable"),
@@ -205,7 +205,7 @@ namespace KillerPDF.Features
             try { _host.SaveDocumentTo(src); }
             catch (Exception ex)
             {
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -225,12 +225,12 @@ namespace KillerPDF.Features
                 _host.SetStatus(string.Format(_host.Loc("Str_St_SearchableSaved"), pages, words));
                 KillerDialog.Show(_host.Window,
                     string.Format(_host.Loc("Str_Dlg_SearchableSaved"), outPath, pages, words),
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 _host.HideBusy();
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_SearchableFailed") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_SearchableFailed") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -257,11 +257,11 @@ namespace KillerPDF.Features
             using var docReader = DocLib.Instance.GetDocReader(src, new PageDimensions(OcrRenderMax, OcrRenderMax));
             using var ocr = new OcrService(language: language);   // one engine reused across the whole document (single-threaded here)
             int pages = PdfEngineIntegration.ReadPageInformation(src).Count;
-            IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
+            IReadOnlyList<IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo>> formPages =
                 formAware ? ReadAllFormHints(src, pages) :
                 [
                     .. Enumerable.Range(0, pages).Select(_ =>
-                        (IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>)
+                        (IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo>)
                         [])
                 ];
             var layers = new List<PdfEngineIntegration.SearchablePage>(pages);
@@ -306,7 +306,7 @@ namespace KillerPDF.Features
             if (!await _host.EnsureOcrModelsReadyAsync()) return;
             _host.CommitActiveTextBox();
 
-            var dlg = new KillerPDF.Controls.FileDialog(KillerPDF.Controls.FileDialogMode.Save)
+            var dlg = new Avalanche.Controls.FileDialog(Avalanche.Controls.FileDialogMode.Save)
             {
                 Filter = _host.Loc("Str_Filter_Text") + "|*.txt|Markdown|*.md",
                 Title = _host.Loc("Str_Ocr_ExtractAllText"),
@@ -323,7 +323,7 @@ namespace KillerPDF.Features
             try { _host.SaveDocumentTo(src); pageCount = _host.PageCount; }
             catch (Exception ex)
             {
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_PrepareDoc") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -345,7 +345,7 @@ namespace KillerPDF.Features
             catch (Exception ex)
             {
                 _host.HideBusy();
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_ExtractFailed") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Err_ExtractFailed") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -364,11 +364,11 @@ namespace KillerPDF.Features
             var sb = new StringBuilder();
             using var docReader = DocLib.Instance.GetDocReader(src, new PageDimensions(OcrRenderMax, OcrRenderMax));
             using var ocr = new OcrService(language: language);
-            IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
+            IReadOnlyList<IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo>> formPages =
                 formAware ? ReadAllFormHints(src, pageCount) :
                 [
                     .. Enumerable.Range(0, pageCount).Select(_ =>
-                        (IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>)
+                        (IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo>)
                         [])
                 ];
 
@@ -401,14 +401,14 @@ namespace KillerPDF.Features
             return pageCount;
         }
 
-        private static IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo> ReadFormHints(
+        private static IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo> ReadFormHints(
             string path, int pageIndex)
         {
             try { return PdfEngineIntegration.ReadPageFormWidgets(path, pageIndex); }
             catch { return []; }
         }
 
-        private static IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> ReadAllFormHints(
+        private static IReadOnlyList<IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo>> ReadAllFormHints(
             string path, int pageCount)
         {
             try { return PdfEngineIntegration.ReadAllPageFormWidgets(path); }
@@ -417,7 +417,7 @@ namespace KillerPDF.Features
                 return
                 [
                     .. Enumerable.Range(0, pageCount).Select(_ =>
-                        (IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>)
+                        (IReadOnlyList<Avalanche.Engine.Documents.PdfFormWidgetInfo>)
                         [])
                 ];
             }

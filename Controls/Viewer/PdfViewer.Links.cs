@@ -13,10 +13,10 @@ using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
-using KillerPDF.Services;
+using Avalanche.Services;
 using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     // Moved from Shell/Links.cs; the namespace and class line are the only changes. Window members
     // spelled bare here resolve through PdfViewer.Bridge.cs.
@@ -233,7 +233,7 @@ namespace KillerPDF.Controls
                 double pageHeightPt = page.Height;
                 if (pageWidthPt  <= 0) pageWidthPt  = 595.28;
                 if (pageHeightPt <= 0) pageHeightPt = 841.89;
-                foreach (KillerPdf.Engine.Documents.PdfLinkInfo link in
+                foreach (Avalanche.Engine.Documents.PdfLinkInfo link in
                     PdfEngineIntegration.ReadPageLinks(session.Document, pageIndex))
                 {
                     var (cx, cy, cw, ch) = PdfRectToCanvas(
@@ -333,7 +333,7 @@ namespace KillerPDF.Controls
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(Host!.Window, $"{Loc("Str_LinkRemoveFailed")}\n{ex.Message}", "KillerPDF",
+                KillerDialog.Show(Host!.Window, $"{Loc("Str_LinkRemoveFailed")}\n{ex.Message}", "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

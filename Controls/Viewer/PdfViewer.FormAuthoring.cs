@@ -2,9 +2,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     public partial class PdfViewer
     {
@@ -46,11 +46,11 @@ namespace KillerPDF.Controls
             if (_currentFile is null || _activeCanvas is null)
                 return;
 
-            IReadOnlyList<KillerPdf.Engine.Documents.PdfPageInformation> pages =
+            IReadOnlyList<Avalanche.Engine.Documents.PdfPageInformation> pages =
                 PdfEngineIntegration.ReadPageInformation(_currentFile);
             if ((uint)pageIndex >= (uint)pages.Count)
                 return;
-            KillerPdf.Engine.Documents.PdfPageInformation page = pages[pageIndex];
+            Avalanche.Engine.Documents.PdfPageInformation page = pages[pageIndex];
             int rotation = _pageRotations.TryGetValue(pageIndex, out int storedRotation)
                 ? ((storedRotation % 360) + 360) % 360
                 : page.Rotation;

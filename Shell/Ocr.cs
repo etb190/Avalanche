@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using KillerPDF.Features;
-using KillerPDF.Services;
+using Avalanche.Features;
+using Avalanche.Services;
 
-namespace KillerPDF
+namespace Avalanche
 {
     public partial class MainWindow : IOcrHost
     {
@@ -194,13 +194,13 @@ namespace KillerPDF
                 OcrLanguages.TryDeleteFile(dest + ".part");
                 if (ct.IsCancellationRequested) SetStatus(string.Format(Loc("Str_St_LangCanceled"), name));
                 else KillerDialog.Show(this, string.Format(Loc("Str_Dlg_DownloadTimeout"), name),
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception ex)
             {
                 HideBusyOverlay(busy);
                 OcrLanguages.TryDeleteFile(dest + ".part");
-                KillerDialog.Show(this, string.Format(Loc("Str_Err_LangDataFailed"), name) + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(this, string.Format(Loc("Str_Err_LangDataFailed"), name) + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -267,7 +267,7 @@ namespace KillerPDF
             catch (Exception ex)
             {
                 HideBusyOverlay(busy);
-                KillerDialog.Show(this, Loc("Str_Err_HqDownloadFailed") + "\n" + ex.Message, "KillerPDF",
+                KillerDialog.Show(this, Loc("Str_Err_HqDownloadFailed") + "\n" + ex.Message, "Avalanche",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -293,7 +293,7 @@ namespace KillerPDF
             string names = string.Join(", ", missing.ConvertAll(OcrLanguages.NameForCode));
             var choice = KillerDialog.Show(this,
                 string.Format(Loc("Str_Dlg_LangDownloadAsk"), names),
-                "KillerPDF", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+                "Avalanche", MessageBoxButton.OKCancel, MessageBoxImage.Information);
             if (choice != MessageBoxResult.OK) return false;
 
             var ct = BeginCancellableOp(Loc("Str_Op_LangDownload"));
@@ -326,7 +326,7 @@ namespace KillerPDF
             catch (Exception ex)
             {
                 KillerDialog.Show(this, Loc("Str_Err_ModelDownloadFailed") + "\n" + ex.Message,
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
             finally

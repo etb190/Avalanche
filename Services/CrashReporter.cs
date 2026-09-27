@@ -4,7 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace KillerPDF
+namespace Avalanche
 {
     /// <summary>
     /// Writes structured crash logs to %LOCALAPPDATA%\KillerPDF\Logs\ and maintains
@@ -21,7 +21,7 @@ namespace KillerPDF
 
         internal static string LogDir { get; } = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "KillerPDF", "Logs");
+            "Avalanche", "Logs");
 
         /// <summary>Path of the log file written by the most recent Capture() call.</summary>
         internal static string? LastLogPath { get; private set; }

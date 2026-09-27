@@ -1,16 +1,16 @@
 using System.IO;
 using System.Text.Json;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 internal static class AppDataPaths
 {
-    private const string LauncherPathVariable = "KILLERPDF_LAUNCHER_PATH";
+    private const string LauncherPathVariable = "AVALANCHE_LAUNCHER_PATH";
     private static readonly Lock SettingsGate = new();
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     internal static string LocalRoot { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "KillerPDF");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Avalanche");
 
     internal static string? PortableRoot
     {

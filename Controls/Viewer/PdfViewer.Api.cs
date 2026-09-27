@@ -3,9 +3,9 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using KillerPDF.Services;
+using Avalanche.Services;
 
-namespace KillerPDF.Controls
+namespace Avalanche.Controls
 {
     /// <summary>
     /// The viewer's outward surface: what the window still calls into.

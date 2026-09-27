@@ -1,6 +1,6 @@
 using System.Windows.Input;
 
-namespace KillerPDF.Services;
+namespace Avalanche.Services;
 
 /// <summary>Separates text-editing gestures from window-level application shortcuts.</summary>
 internal static class EditableTextShortcutPolicy

@@ -1,11 +1,11 @@
-using KillerPDF.Features;
-using KillerPDF.Controls;
+using Avalanche.Features;
+using Avalanche.Controls;
 using System.Windows;
 using System.Windows.Input;
 using System;
 using System.Linq;
 
-namespace KillerPDF
+namespace Avalanche
 {
     // MainWindow's half of IViewerHost.
     //
