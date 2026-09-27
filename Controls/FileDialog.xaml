@@ -8,7 +8,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:kui="clr-namespace:Avalanche.Controls"
-        Title="KillerPDF"
+        Title="Avalanche"
         Width="720" Height="520" MinWidth="560" MinHeight="420"
         WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False"
         AllowsTransparency="True"
