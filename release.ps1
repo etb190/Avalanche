@@ -1,11 +1,11 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    KillerPDF release script: build payload, sign inner app, pack launcher, sign launcher, verify, and publish.
+    Avalanche release script: build payload, sign inner app, pack launcher, sign launcher, verify, and publish.
 .DESCRIPTION
     1. Locates and hashes pdfium.dll for the published checksum summary.
-    2. Builds the ordinary multi-file KillerPDF.App payload without Costura/Fody weaving.
-    3. Signs KillerPDF.App.exe, regenerates its hash manifest, compresses that payload once,
+    2. Builds the ordinary multi-file Avalanche.App payload without Costura/Fody weaving.
+    3. Signs Avalanche.App.exe, regenerates its hash manifest, compresses that payload once,
        and embeds it in the public portable and installer executables.
     4. Signs both public executables. Prefers CertThumbprint (exact match) over CertName (CN match)
        and retries the timestamp across three TSA endpoints.
@@ -50,16 +50,16 @@ if ($SkipSign -and -not $DryRun) {
     throw "-SkipSign is only allowed with -DryRun. Unsigned artifacts cannot be published."
 }
 
-$proj         = Join-Path $PSScriptRoot "KillerPDF.csproj"
+$proj         = Join-Path $PSScriptRoot "Avalanche.csproj"
 $publishDir   = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\publish"
-$portableExe   = Join-Path $publishDir "KillerPDF-Portable.exe"
-$installerExe  = Join-Path $publishDir "KillerPDF.exe"
+$portableExe   = Join-Path $publishDir "Avalanche-Portable.exe"
+$installerExe  = Join-Path $publishDir "Avalanche.exe"
 $packageBuild  = Join-Path $PSScriptRoot "build\build-packages.ps1"
 $portablePayloadDir  = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\portable-package\payload"
 $installerPayloadDir = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\installer-package\payload"
 $innerExes = @(
-    (Join-Path $portablePayloadDir "KillerPDF.App.exe"),
-    (Join-Path $installerPayloadDir "KillerPDF.App.exe")
+    (Join-Path $portablePayloadDir "Avalanche.App.exe"),
+    (Join-Path $installerPayloadDir "Avalanche.App.exe")
 )
 
 # TSA endpoints - tried in order; first success wins.
@@ -120,22 +120,22 @@ function Test-ReleaseArtifacts(
         throw "Portable startup smoke test failed with exit code $($portableProcess.ExitCode)."
     }
 
-    $installRoot = Join-Path $env:TEMP ('KillerPDF-release-install-' + [Guid]::NewGuid().ToString('N'))
-    $previousTestRoot = [Environment]::GetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT')
-    $previousSkipRegistration = [Environment]::GetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION')
+    $installRoot = Join-Path $env:TEMP ('Avalanche-release-install-' + [Guid]::NewGuid().ToString('N'))
+    $previousTestRoot = [Environment]::GetEnvironmentVariable('AVALANCHE_TEST_INSTALL_ROOT')
+    $previousSkipRegistration = [Environment]::GetEnvironmentVariable('AVALANCHE_SKIP_REGISTRATION')
     try {
-        [Environment]::SetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT', $installRoot)
-        [Environment]::SetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION', '1')
+        [Environment]::SetEnvironmentVariable('AVALANCHE_TEST_INSTALL_ROOT', $installRoot)
+        [Environment]::SetEnvironmentVariable('AVALANCHE_SKIP_REGISTRATION', '1')
         $installProcess = Start-Process -FilePath $InstallerPath -ArgumentList '/install-user' -Wait -PassThru
         if ($installProcess.ExitCode -ne 0) {
             throw "Signed installer smoke test failed with exit code $($installProcess.ExitCode)."
         }
 
-        $installedExe = Join-Path $installRoot 'KillerPDF.App.exe'
-        $installedAssembly = Join-Path $installRoot 'KillerPDF.App.dll'
+        $installedExe = Join-Path $installRoot 'Avalanche.App.exe'
+        $installedAssembly = Join-Path $installRoot 'Avalanche.App.dll'
         Assert-ReleaseArtifactVersion $installedAssembly $ExpectedVersion
         if (-not [IO.File]::Exists($installedExe)) {
-            throw "Signed installer smoke test did not install KillerPDF.App.exe."
+            throw "Signed installer smoke test did not install Avalanche.App.exe."
         }
         $installedProcess = Start-Process -FilePath $installedExe -ArgumentList '--version' -Wait -PassThru
         if ($installedProcess.ExitCode -ne 0) {
@@ -143,8 +143,8 @@ function Test-ReleaseArtifacts(
         }
     }
     finally {
-        [Environment]::SetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT', $previousTestRoot)
-        [Environment]::SetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION', $previousSkipRegistration)
+        [Environment]::SetEnvironmentVariable('AVALANCHE_TEST_INSTALL_ROOT', $previousTestRoot)
+        [Environment]::SetEnvironmentVariable('AVALANCHE_SKIP_REGISTRATION', $previousSkipRegistration)
         if ([IO.Directory]::Exists($installRoot)) { [IO.Directory]::Delete($installRoot, $true) }
     }
     Write-Host "    Installer, installed app, and portable startup checks passed." -ForegroundColor Green
@@ -153,11 +153,11 @@ function Test-ReleaseArtifacts(
 Write-Host "`n==> Release metadata preflight..." -ForegroundColor Cyan
 $csprojRaw = Get-Content -Path $proj -Raw
 if ($csprojRaw -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
-    throw "No <Version>x.y.z</Version> found in KillerPDF.csproj"
+    throw "No <Version>x.y.z</Version> found in Avalanche.csproj"
 }
 $Version = $Matches[1]
 $Tag = "v$Version"
-$engineProject = Join-Path $PSScriptRoot 'engine\KillerPdf.Engine\KillerPdf.Engine.csproj'
+$engineProject = Join-Path $PSScriptRoot 'engine\Avalanche.Engine\Avalanche.Engine.csproj'
 [xml]$engineMetadata = Get-Content -LiteralPath $engineProject -Raw
 $engineVersion = [string]$engineMetadata.Project.PropertyGroup.Version
 if ($engineVersion -ne $Version) {
@@ -176,7 +176,7 @@ if ($changelog -notmatch [regex]::Escape("## [$Version]")) {
 # something checks it - that something is here. It must equal the date on this
 # version's CHANGELOG section, which is the date the release actually goes out.
 if ($csprojRaw -notmatch '<ReleaseDate>([0-9]{4}-[0-9]{2}-[0-9]{2})</ReleaseDate>') {
-    throw "No <ReleaseDate>yyyy-MM-dd</ReleaseDate> found in KillerPDF.csproj"
+    throw "No <ReleaseDate>yyyy-MM-dd</ReleaseDate> found in Avalanche.csproj"
 }
 $releaseDate = $Matches[1]
 if ($changelog -notmatch ('## \[' + [regex]::Escape($Version) + '\] - ([0-9]{4}-[0-9]{2}-[0-9]{2})')) {
@@ -226,7 +226,7 @@ if ($DryRun) {
     Write-Host "`n==> DryRun: skipping WinGet fork synchronization." -ForegroundColor Yellow
 } else {
     Write-Host "`n==> Checking WinGet fork synchronization..." -ForegroundColor Cyan
-    gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
+    gh api --method POST repos/etb190/winget-pkgs/merge-upstream -f branch=master
     if ($LASTEXITCODE -ne 0) {
         throw "WinGet fork synchronization failed. Resolve the GitHub API error above before publishing."
     }
@@ -393,13 +393,13 @@ if (-not $SkipSign) {
     }
 
     # Sign the real installed application before it is compressed into the public launcher.
-    # Third-party binaries retain their publishers' signatures; only Killer-owned binaries are signed here.
+    # Third-party binaries retain their publishers' signatures; only Avalanche-owned binaries are signed here.
     Write-Host "`n==> Signing inner applications before payload packaging..." -ForegroundColor Cyan
     foreach ($innerExe in $innerExes) {
         $innerSigned = $false
         foreach ($tsa in $tsaList) {
             & $signtool sign /fd sha256 /tr $tsa /td sha256 @certArgs `
-                /d "KillerPDF Application" /du "https://killerpdf.net" /v $innerExe
+                /d "Avalanche Application" /du "https://avalanche.net" /v $innerExe
             if ($LASTEXITCODE -eq 0) { $innerSigned = $true; break }
             Start-Sleep -Seconds 3
         }
@@ -420,7 +420,7 @@ if (-not $SkipSign) {
         foreach ($tsa in $tsaList) {
             Write-Host "    Trying TSA for $([IO.Path]::GetFileName($publicExe)): $tsa"
             & $signtool sign /fd sha256 /tr $tsa /td sha256 @certArgs `
-                /d "KillerPDF" /du "https://killerpdf.net" /v $publicExe
+                /d "Avalanche" /du "https://avalanche.net" /v $publicExe
             if ($LASTEXITCODE -eq 0) { $signed = $true; break }
             Start-Sleep -Seconds 3
         }
@@ -465,11 +465,11 @@ if (-not $SkipSign) {
 # Generate the GPL source artifact once, beside the final public launcher.
 $projectXml = [xml](Get-Content -Raw -LiteralPath $proj)
 $releaseVersionNode = $projectXml.SelectSingleNode('/Project/PropertyGroup/Version')
-if (-not $releaseVersionNode) { throw "Version missing from KillerPDF.csproj." }
+if (-not $releaseVersionNode) { throw "Version missing from Avalanche.csproj." }
 $sourceBundleScript = Join-Path $PSScriptRoot 'build\bundle-source.ps1'
 $releaseBuildVersion = $releaseVersionNode.InnerText
 & powershell -NoProfile -ExecutionPolicy Bypass -File $sourceBundleScript `
-    -ProjectDir $PSScriptRoot -Version $releaseBuildVersion -AppName 'KillerPDF' -PublishDir $publishDir
+    -ProjectDir $PSScriptRoot -Version $releaseBuildVersion -AppName 'Avalanche' -PublishDir $publishDir
 if ($LASTEXITCODE -ne 0) { throw "Source bundle failed." }
 
 } else {
@@ -492,14 +492,14 @@ Test-ReleaseArtifacts $installerExe $portableExe $expectedAssemblyVersion (-not 
 Write-Host "`n==> Computing final EXE SHA256 values..." -ForegroundColor Cyan
 $portableHash  = (Get-FileHash $portableExe -Algorithm SHA256).Hash
 $installerHash = (Get-FileHash $installerExe -Algorithm SHA256).Hash
-Write-Host "    KillerPDF-Portable.exe : $portableHash" -ForegroundColor Green
-Write-Host "    KillerPDF.exe          : $installerHash" -ForegroundColor Green
+Write-Host "    Avalanche-Portable.exe : $portableHash" -ForegroundColor Green
+Write-Host "    Avalanche.exe          : $installerHash" -ForegroundColor Green
 if ($pdfiumPath) {
     Write-Host "    pdfium.dll    : $pdfiumHash" -ForegroundColor Green
 }
 
 # 5. Source zip
-$srcZipPath = Join-Path $publishDir "KillerPDF-$Version-src.zip"
+$srcZipPath = Join-Path $publishDir "Avalanche-$Version-src.zip"
 if (-not [IO.File]::Exists($srcZipPath)) {
     throw "The exact source archive for $Version is missing: $srcZipPath"
 }
@@ -515,8 +515,8 @@ if ($PublishOnly -and (Test-Path $sumsPath)) {
     $srcHash = (Get-FileHash $srcZip.FullName -Algorithm SHA256).Hash
     $sumsRaw = Get-Content -LiteralPath $sumsPath -Raw
     foreach ($expected in @(
-        @{ Name = 'KillerPDF.exe'; Hash = $installerHash },
-        @{ Name = 'KillerPDF-Portable.exe'; Hash = $portableHash },
+        @{ Name = 'Avalanche.exe'; Hash = $installerHash },
+        @{ Name = 'Avalanche-Portable.exe'; Hash = $portableHash },
         @{ Name = $srcZip.Name; Hash = $srcHash }
     )) {
         $pattern = '(?im)^' + [regex]::Escape($expected.Name) + '\s+' + [regex]::Escape($expected.Hash) + '\s*$'
@@ -527,8 +527,8 @@ if ($PublishOnly -and (Test-Path $sumsPath)) {
     Write-Host "`n==> PublishOnly: existing checksums match the exact release artifacts." -ForegroundColor Green
 } else {
 $lines    = [System.Collections.Generic.List[string]]::new()
-$lines.Add("KillerPDF.exe           $installerHash")
-$lines.Add("KillerPDF-Portable.exe  $portableHash")
+$lines.Add("Avalanche.exe           $installerHash")
+$lines.Add("Avalanche-Portable.exe  $portableHash")
 if ($pdfiumPath) { $lines.Add("pdfium.dll              $pdfiumHash") }
 if ($srcZip) {
     $srcHash = (Get-FileHash $srcZip.FullName -Algorithm SHA256).Hash
@@ -540,7 +540,7 @@ Write-Host "`n==> SHA256SUMS.txt written to: $sumsPath" -ForegroundColor Green
 
 # 7. Summary
 Write-Host "`n==============================================================" -ForegroundColor Cyan
-Write-Host   "  KillerPDF release artifacts" -ForegroundColor White
+Write-Host   "  Avalanche release artifacts" -ForegroundColor White
 Write-Host   "  SETUP   : $installerExe"
 Write-Host   "  PORTABLE: $portableExe"
 if ($srcZip) { Write-Host "  SRC  : $($srcZip.FullName)" }
@@ -567,7 +567,7 @@ Write-Host "==============================================================" -For
 Write-Host "`n==> Publish preflight..." -ForegroundColor Cyan
 $csprojRaw = Get-Content -Path $proj -Raw
 if ($csprojRaw -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
-    throw "No <Version>x.y.z</Version> found in KillerPDF.csproj"
+    throw "No <Version>x.y.z</Version> found in Avalanche.csproj"
 }
 $Version = $Matches[1]
 $Tag = "v$Version"
@@ -588,7 +588,7 @@ try {
     # ReadAllText/WriteAllText: UTF-8 no BOM, PS 5.1-safe (absolute paths).
     $readmePath = Join-Path $PSScriptRoot 'README.md'
     $readmeRaw  = [System.IO.File]::ReadAllText($readmePath)
-    $readmeNew  = $readmeRaw -replace 'releases/download/v[0-9]+\.[0-9]+\.[0-9]+/KillerPDF-[0-9]+\.[0-9]+\.[0-9]+-src\.zip', "releases/download/v$Version/KillerPDF-$Version-src.zip"
+    $readmeNew  = $readmeRaw -replace 'releases/download/v[0-9]+\.[0-9]+\.[0-9]+/Avalanche-[0-9]+\.[0-9]+\.[0-9]+-src\.zip', "releases/download/v$Version/Avalanche-$Version-src.zip"
     if ($readmeNew -ne $readmeRaw) {
         if ($DryRun) {
             Write-Host "    DryRun: README source link is stale, would update it to $Tag" -ForegroundColor Yellow
@@ -604,7 +604,7 @@ try {
     # Landing page release info (pdf-landing)
     # Ported from Killendar's release.ps1 step 7 (the family standard - KillerNotes has it
     # too; KillerPDF was the odd one out and its hero went stale by hand every release).
-    # killerpdf.net is a MANUAL Cloudflare Pages drop, so nothing here deploys - the hero
+    # avalanche.net is a MANUAL Cloudflare Pages drop, so nothing here deploys - the hero
     # block (version, released, size, sha256), the verEgg footer on every page, and the
     # translated footers in kp-i18n.js are rewritten and committed BEFORE the tag.
     # Two site-specific differences from Killendar's copy: the hash is stored LOWERCASE
@@ -614,7 +614,7 @@ try {
     # already checked against the CHANGELOG - Get-Date would stamp whatever day the script
     # happened to run.
     if ($csprojRaw -notmatch '<ReleaseDate>([0-9]{4}-[0-9]{2}-[0-9]{2})</ReleaseDate>') {
-        throw "No <ReleaseDate>yyyy-MM-dd</ReleaseDate> found in KillerPDF.csproj"
+        throw "No <ReleaseDate>yyyy-MM-dd</ReleaseDate> found in Avalanche.csproj"
     }
     $releaseDate = $Matches[1]
     $hashLower   = $installerHash.ToLower()
@@ -625,7 +625,7 @@ try {
     $indexRaw  = [System.IO.File]::ReadAllText($indexPath)
     $indexNew  = $indexRaw
     $releaseFields = @(
-        @{ Pattern = '(<span class="k"[^>]*>version</span>&nbsp;<span class="v">)KillerPDF v[0-9]+\.[0-9]+\.[0-9]+'; Value = "KillerPDF v$Version" },
+        @{ Pattern = '(<span class="k"[^>]*>version</span>&nbsp;<span class="v">)Avalanche v[0-9]+\.[0-9]+\.[0-9]+'; Value = "Avalanche v$Version" },
         @{ Pattern = '(<span class="k"[^>]*>released</span>&nbsp;<span class="v">)[0-9]{4}-[0-9]{2}-[0-9]{2}'; Value = $releaseDate },
         @{ Pattern = '(<span class="k"[^>]*>size</span>&nbsp;<span class="v">)[^<]*'; Value = "~$exeMB MB exe" },
         @{ Pattern = '(<span class="v hash">)[0-9A-Fa-f]{32}<br>[0-9A-Fa-f]{32}'; Value = $hashLower.Substring(0, 32) + '<br>' + $hashLower.Substring(32, 32) }
@@ -639,7 +639,7 @@ try {
 
     if ($DryRun) {
         Write-Host "    DryRun: would write these release facts to pdf-landing and commit:" -ForegroundColor Yellow
-        Write-Host "      version  : KillerPDF v$Version"
+        Write-Host "      version  : Avalanche v$Version"
         Write-Host "      released : $releaseDate"
         Write-Host "      size     : ~$exeMB MB exe"
         Write-Host "      sha256   : $hashLower"
@@ -665,7 +665,7 @@ try {
             git push origin $defaultBranch --quiet
             if ($LASTEXITCODE -ne 0) { throw "Landing page commit failed to push" }
             Write-Host "    pdf-landing updated to v$Version and pushed"
-            Write-Host "    Remember: killerpdf.net does NOT auto-deploy. Drag pdf-landing/ into Cloudflare Pages." -ForegroundColor Yellow
+            Write-Host "    Remember: avalanche.net does NOT auto-deploy. Drag pdf-landing/ into Cloudflare Pages." -ForegroundColor Yellow
         } else {
             Write-Host "    pdf-landing already current"
         }
@@ -716,12 +716,12 @@ try {
 
     # A red test cannot ship. Same gate as the date checks above - fail the release, not a reminder.
     Write-Host "    Running desktop unit tests..."
-    dotnet test (Join-Path $PSScriptRoot 'KillerPDF.Tests\KillerPDF.Tests.csproj') -c Release --nologo -v quiet
+    dotnet test (Join-Path $PSScriptRoot 'Avalanche.Tests\Avalanche.Tests.csproj') -c Release --nologo -v quiet
     if ($LASTEXITCODE -ne 0) { throw "Desktop unit tests failed - fix them before releasing" }
     Write-Host "    Desktop unit tests passed" -ForegroundColor Green
 
     Write-Host "    Running engine unit tests..."
-    dotnet test (Join-Path $PSScriptRoot 'engine\KillerPdf.Engine.Tests\KillerPdf.Engine.Tests.csproj') -c Release --nologo -v quiet
+    dotnet test (Join-Path $PSScriptRoot 'engine\Avalanche.Engine.Tests\Avalanche.Engine.Tests.csproj') -c Release --nologo -v quiet
     if ($LASTEXITCODE -ne 0) { throw "Engine unit tests failed - fix them before releasing" }
     Write-Host "    Engine unit tests passed" -ForegroundColor Green
 
@@ -738,7 +738,7 @@ try {
         if ($inSection) { $notes.Add($line) }
     }
     if ($notes.Count -eq 0) { throw "Could not extract [$Version] notes from CHANGELOG.md" }
-    $notesFile = Join-Path $env:TEMP "KillerPDF-$Version-notes.md"
+    $notesFile = Join-Path $env:TEMP "Avalanche-$Version-notes.md"
     $notes -join "`r`n" | Set-Content -Path $notesFile -Encoding UTF8
     Write-Host "    Notes written to $notesFile ($($notes.Count) lines)"
 
@@ -750,7 +750,7 @@ try {
 
     # 10. Tag + push
     Write-Host "`n==> Tagging $Tag..." -ForegroundColor Cyan
-    git tag -a $Tag -m "KillerPDF $Tag"
+    git tag -a $Tag -m "Avalanche $Tag"
     git push origin $Tag
     if ($LASTEXITCODE -ne 0) { throw "Tag push failed" }
 
@@ -759,13 +759,13 @@ try {
     $assets = @($installerExe, $portableExe)
     if ($srcZip) { $assets += $srcZip.FullName }
     if (Test-Path $sumsPath) { $assets += $sumsPath }
-    gh release create $Tag @assets --title "KillerPDF $Tag" --notes-file $notesFile --verify-tag
+    gh release create $Tag @assets --title "Avalanche $Tag" --notes-file $notesFile --verify-tag
     if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
 
-    Write-Host "`n==> Refreshing thekiller.net software page..." -ForegroundColor Cyan
-    gh workflow run deploy.yml --repo SteveTheKiller/thekiller-site
+    Write-Host "`n==> Refreshing etb190 site..." -ForegroundColor Cyan
+    gh workflow run deploy.yml --repo etb190/thekiller-site
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "The release is published, but thekiller.net refresh could not be started. Run: gh workflow run deploy.yml --repo SteveTheKiller/thekiller-site"
+        Write-Warning "The release is published, but etb190 site refresh could not be started. Run: gh workflow run deploy.yml --repo etb190/thekiller-site"
     }
 
     Write-Host "`n==> Release $Tag published:" -ForegroundColor Green

@@ -1,11 +1,11 @@
 CommunityToolkit.Mvvm.dll
 Docnet.Core.dll
-KillerPDF.App.deps.json
-KillerPDF.App.dll
-KillerPDF.App.exe
-KillerPDF.App.runtimeconfig.json
-KillerPdf.Engine.dll
-KillerPdf.Engine.xml
+Avalanche.App.deps.json
+Avalanche.App.dll
+Avalanche.App.exe
+Avalanche.App.runtimeconfig.json
+Avalanche.Engine.dll
+Avalanche.Engine.xml
 LICENSE
 pdf-file.ico
 pdfium.dll

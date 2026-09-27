@@ -12,7 +12,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $projectDir = Split-Path -Parent $PSScriptRoot
-$appProject = Join-Path $projectDir 'KillerPDF.csproj'
+$appProject = Join-Path $projectDir 'Avalanche.csproj'
 $launcherProject = Join-Path $projectDir 'Packaging\KillerLauncher\KillerLauncher.csproj'
 $isInstaller = $PackageKind -eq 'Installer'
 $packageSlug = if ($isInstaller) { 'installer-package' } else { 'portable-package' }
@@ -21,7 +21,7 @@ $payloadDir = Join-Path $artifactRoot 'payload'
 $payloadZip = Join-Path $artifactRoot 'payload.zip'
 $launcherOutput = Join-Path $artifactRoot 'launcher'
 $publicDir = Join-Path $projectDir "bin\$Configuration\net10.0-windows\publish"
-$publicExe = Join-Path $publicDir $(if ($isInstaller) { 'KillerPDF.exe' } else { 'KillerPDF-Portable.exe' })
+$publicExe = Join-Path $publicDir $(if ($isInstaller) { 'Avalanche.exe' } else { 'Avalanche-Portable.exe' })
 
 if (-not $RepackOnly) {
     if ([IO.Directory]::Exists($artifactRoot)) { [IO.Directory]::Delete($artifactRoot, $true) }
@@ -32,24 +32,24 @@ if ([IO.Directory]::Exists($launcherOutput)) { [IO.Directory]::Delete($launcherO
 [IO.Directory]::CreateDirectory($launcherOutput) | Out-Null
 [IO.Directory]::CreateDirectory($publicDir) | Out-Null
 if ($isInstaller) {
-    $obsoleteSetupExe = Join-Path $publicDir 'KillerPDF-Setup.exe'
+    $obsoleteSetupExe = Join-Path $publicDir 'Avalanche-Setup.exe'
     if ([IO.File]::Exists($obsoleteSetupExe)) { [IO.File]::Delete($obsoleteSetupExe) }
 }
 
 $versionXml = [xml](Get-Content -Raw -LiteralPath $appProject)
 $versionNode = $versionXml.SelectSingleNode('/Project/PropertyGroup/Version')
 $version = if ($versionNode) { [string]$versionNode.InnerText } else { '' }
-if (-not $version) { throw 'KillerPDF.csproj has no Version.' }
+if (-not $version) { throw 'Avalanche.csproj has no Version.' }
 $fileVersionNode = $versionXml.SelectSingleNode('/Project/PropertyGroup/FileVersion')
 $fileVersion = if ($fileVersionNode) { [string]$fileVersionNode.InnerText } else { '' }
-if (-not $fileVersion) { throw 'KillerPDF.csproj has no FileVersion.' }
+if (-not $fileVersion) { throw 'Avalanche.csproj has no FileVersion.' }
 
 if (-not $RepackOnly) {
-    Write-Host "==> Building loose KillerPDF payload $version..." -ForegroundColor Cyan
+    Write-Host "==> Building loose Avalanche payload $version..." -ForegroundColor Cyan
     & dotnet publish $appProject -c $Configuration `
         -r win-x64 `
         --self-contained $(!$isInstaller) `
-        -p:KillerPayloadBuild=true `
+        -p:AvalanchePayloadBuild=true `
         -p:PublishDir="$payloadDir\"
     if ($LASTEXITCODE -ne 0) { throw 'Payload build failed.' }
 
@@ -62,11 +62,11 @@ if (-not $RepackOnly) {
     # The PDF file-type icon is a loose installed asset even though the application also embeds it.
     [IO.File]::Copy((Join-Path $projectDir 'Resources\pdf-file.ico'),
                     (Join-Path $payloadDir 'pdf-file.ico'), $true)
-} elseif (-not [IO.File]::Exists((Join-Path $payloadDir 'KillerPDF.App.exe'))) {
+} elseif (-not [IO.File]::Exists((Join-Path $payloadDir 'Avalanche.App.exe'))) {
     throw 'RepackOnly requested but the prepared payload is missing.'
 }
 
-$payloadAssembly = Join-Path $payloadDir 'KillerPDF.App.dll'
+$payloadAssembly = Join-Path $payloadDir 'Avalanche.App.dll'
 if (-not [IO.File]::Exists($payloadAssembly)) {
     throw "Payload assembly is missing: $payloadAssembly"
 }
@@ -75,7 +75,7 @@ if ($actualAssemblyVersion -ne $fileVersion) {
     throw "Payload assembly version $actualAssemblyVersion does not match project file version $fileVersion."
 }
 
-$payloadApp = Join-Path $payloadDir 'KillerPDF.App.exe'
+$payloadApp = Join-Path $payloadDir 'Avalanche.App.exe'
 $payloadSmoke = Start-Process -FilePath $payloadApp -ArgumentList '--version' -Wait -PassThru
 if ($payloadSmoke.ExitCode -ne 0) {
     throw "Payload startup smoke test failed with exit code $($payloadSmoke.ExitCode)."
@@ -96,7 +96,7 @@ if ($payloadDifference.Count -gt 0) {
     $details = ($payloadDifference | ForEach-Object { "$($_.SideIndicator) $($_.InputObject)" }) -join [Environment]::NewLine
     throw "Payload file set changed. Review dependencies and update build\payload-files.txt deliberately:`n$details"
 }
-$requiredFiles = @('KillerPDF.App.exe', 'KillerPdf.Engine.dll', 'pdfium.dll')
+$requiredFiles = @('Avalanche.App.exe', 'Avalanche.Engine.dll', 'pdfium.dll')
 if (-not $isInstaller) { $requiredFiles += 'System.Text.Json.dll' }
 foreach ($required in $requiredFiles) {
     if ($actualPayloadNames -notcontains $required) {
@@ -135,9 +135,9 @@ try {
 finally { $zipStream.Dispose() }
 
 Write-Host "==> Building the public portable launcher..." -ForegroundColor Cyan
-$launcherTitle = if ($isInstaller) { 'KillerPDF Installer' } else { 'KillerPDF' }
+$launcherTitle = if ($isInstaller) { 'Avalanche Installer' } else { 'Avalanche' }
 & dotnet publish $launcherProject -c $Configuration `
-    -p:LauncherAssemblyName=KillerPDF `
+    -p:LauncherAssemblyName=Avalanche `
     -p:AssemblyTitle="$launcherTitle" `
     -p:Copyright="Copyright $([DateTime]::Now.Year) Steve the Killer" `
     -p:LauncherVersion=$version `
@@ -149,7 +149,7 @@ $launcherTitle = if ($isInstaller) { 'KillerPDF Installer' } else { 'KillerPDF' 
     -p:PublishDir="$launcherOutput\"
 if ($LASTEXITCODE -ne 0) { throw 'Launcher build failed.' }
 
-$builtLauncher = Join-Path $launcherOutput 'KillerPDF.exe'
+$builtLauncher = Join-Path $launcherOutput 'Avalanche.exe'
 if (-not [IO.File]::Exists($builtLauncher)) { throw "Launcher output is missing: $builtLauncher" }
 [IO.File]::Copy($builtLauncher, $publicExe, $true)
 
@@ -157,25 +157,25 @@ if (-not [IO.File]::Exists($builtLauncher)) { throw "Launcher output is missing:
 # fall through to the portable launch path or start the installed UI. A disposable install root
 # keeps this safe for developer and CI builds without touching registry or installed copies.
 # Keep it outside the active build tree so publish cleanup cannot remove the staging payload.
-$installSmokeRoot = Join-Path ([IO.Path]::GetTempPath()) ('KillerPDF-install-smoke-' + [Guid]::NewGuid().ToString('N'))
-$previousTestRoot = [Environment]::GetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT')
-$previousSkipRegistration = [Environment]::GetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION')
+$installSmokeRoot = Join-Path ([IO.Path]::GetTempPath()) ('Avalanche-install-smoke-' + [Guid]::NewGuid().ToString('N'))
+$previousTestRoot = [Environment]::GetEnvironmentVariable('AVALANCHE_TEST_INSTALL_ROOT')
+$previousSkipRegistration = [Environment]::GetEnvironmentVariable('AVALANCHE_SKIP_REGISTRATION')
 if ($isInstaller -and -not $RequireSignature) { try {
-    [Environment]::SetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT', $installSmokeRoot)
-    [Environment]::SetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION', '1')
+    [Environment]::SetEnvironmentVariable('AVALANCHE_TEST_INSTALL_ROOT', $installSmokeRoot)
+    [Environment]::SetEnvironmentVariable('AVALANCHE_SKIP_REGISTRATION', '1')
     $installProcess = Start-Process -FilePath $builtLauncher -ArgumentList '/install-user' -Wait -PassThru
     if ($installProcess.ExitCode -ne 0) {
         throw "Launcher install smoke test failed with exit code $($installProcess.ExitCode)."
     }
-    foreach ($required in 'KillerPDF.App.exe', 'payload.manifest') {
+    foreach ($required in 'Avalanche.App.exe', 'payload.manifest') {
         if (-not [IO.File]::Exists((Join-Path $installSmokeRoot $required))) {
             throw "Launcher install smoke test did not install $required."
         }
     }
 }
 finally {
-    [Environment]::SetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT', $previousTestRoot)
-    [Environment]::SetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION', $previousSkipRegistration)
+    [Environment]::SetEnvironmentVariable('AVALANCHE_TEST_INSTALL_ROOT', $previousTestRoot)
+    [Environment]::SetEnvironmentVariable('AVALANCHE_SKIP_REGISTRATION', $previousSkipRegistration)
     if ([IO.Directory]::Exists($installSmokeRoot)) { [IO.Directory]::Delete($installSmokeRoot, $true) }
 } }
 
