@@ -210,31 +210,9 @@ namespace Avalanche
             UpdateFooterFade();
         }
 
-        // Center Portable while there is a clear gap before the right-side controls. At narrower
-        // widths it returns to its compact slot immediately before those controls.
         private void UpdateFooterFade()
         {
-            if (StatusText is null || PortableBadge is null || FooterBorder is null
-                || FooterDocumentControls is null || FooterVersionCell is null) return;
-
-            double footerWidth = FooterBorder.ActualWidth;
-            double badgeWidth = PortableBadge.ActualWidth;
-            double rightWidth = FooterDocumentControls.ActualWidth * _appScale + FooterVersionCell.ActualWidth;
-            bool centerBadge = PortableBadge.Visibility == Visibility.Visible
-                && footerWidth > 0 && badgeWidth > 0
-                && footerWidth / 2 + badgeWidth / 2 + 16 <= footerWidth - rightWidth;
-
-            Grid.SetColumn(PortableBadge, centerBadge ? 0 : 1);
-            Grid.SetColumnSpan(PortableBadge, centerBadge ? 4 : 1);
-            PortableBadge.HorizontalAlignment = centerBadge
-                ? HorizontalAlignment.Center
-                : HorizontalAlignment.Right;
-            PortableBadge.Margin = centerBadge
-                ? new Thickness(0)
-                : new Thickness(6, 0, 8, 0);
-            StatusText.MaxWidth = centerBadge
-                ? Math.Max(0, footerWidth / 2 - badgeWidth / 2 - 24)
-                : double.PositiveInfinity;
+            // PortableBadge removed - no longer needed
         }
 
         // The collapse arrow points toward where the page-list content goes when toggled, which
