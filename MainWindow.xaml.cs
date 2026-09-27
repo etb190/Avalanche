@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
@@ -10,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
@@ -823,11 +825,15 @@ namespace Avalanche
             CloseAiChat();
         }
 
+        private Border? AiChatOverlay => FindName("AiChatOverlay") as Border;
+        private TextBox? AiChatInput => FindName("AiChatInput") as TextBox;
+        private ScrollViewer? AiChatScrollViewer => FindName("AiChatScrollViewer") as ScrollViewer;
+
         private void ToggleAiChat()
         {
-            if (_aiChatOverlay is null) return;
+            if (AiChatOverlay is null) return;
 
-            if (_aiChatOverlay.Visibility == Visibility.Visible)
+            if (AiChatOverlay.Visibility == Visibility.Visible)
             {
                 CloseAiChat();
             }
@@ -839,14 +845,14 @@ namespace Avalanche
 
         private void OpenAiChat()
         {
-            if (_aiChatOverlay is null) return;
+            if (AiChatOverlay is null) return;
 
             // Initialize viewmodel if needed
             if (_aiChatViewModel is null && _currentFile is not null)
             {
                 _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
                 _aiChatViewModel = new Features.AI.AiChatViewModel(this, _aiSettingsViewModel.ToConfig());
-                _aiChatOverlay.DataContext = _aiChatViewModel;
+                AiChatOverlay.DataContext = _aiChatViewModel;
 
                 // Subscribe to close request
                 _aiChatViewModel.RequestClose += CloseAiChat;
@@ -858,15 +864,15 @@ namespace Avalanche
                 _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile);
             }
 
-            _aiChatOverlay.Visibility = Visibility.Visible;
-            _aiChatInput?.Focus();
+            AiChatOverlay.Visibility = Visibility.Visible;
+            AiChatInput?.Focus();
         }
 
         private void CloseAiChat()
         {
-            if (_aiChatOverlay is null) return;
+            if (AiChatOverlay is null) return;
 
-            _aiChatOverlay.Visibility = Visibility.Collapsed;
+            AiChatOverlay.Visibility = Visibility.Collapsed;
 
             // Clear the AI source highlight
             ClearAiSourceHighlight();
@@ -884,7 +890,7 @@ namespace Avalanche
             // Scroll to bottom
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
             {
-                _aiChatScrollViewer?.ScrollToBottom();
+                AiChatScrollViewer?.ScrollToBottom();
             });
         }
 
@@ -951,7 +957,7 @@ namespace Avalanche
             else
             {
                 // Could not locate exact passage - show a subtle indicator
-                SetStatus(Loc("Str_AiChatSourceNavigateFailed"), 3000);
+                SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
             }
         }
 
@@ -961,7 +967,10 @@ namespace Avalanche
 
             try
             {
-                using var pdfDoc = PdfDocument.Open(_doc.FilePath);
+                var filePath = _currentFile ?? _originalFile;
+                if (string.IsNullOrEmpty(filePath)) return null;
+
+                using var pdfDoc = PdfPigDoc.Open(filePath);
                 if (pageIndex >= pdfDoc.NumberOfPages) return null;
 
                 var page = pdfDoc.GetPage(pageIndex + 1);

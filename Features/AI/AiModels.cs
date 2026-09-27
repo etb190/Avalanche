@@ -25,13 +25,13 @@ namespace Avalanche.Features.AI
     /// </summary>
     internal sealed class DocumentIndex
     {
-        public string DocumentId { get; init; } = "";
-        public string FilePath { get; init; } = "";
-        public long FileSize { get; init; }
-        public long LastWriteTime { get; init; }
-        public int PageCount { get; init; }
-        public List<DocumentChunk> Chunks { get; init; } = [];
-        public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+        public string DocumentId { get; set; } = "";
+        public string FilePath { get; set; } = "";
+        public long FileSize { get; set; }
+        public long LastWriteTime { get; set; }
+        public int PageCount { get; set; }
+        public List<DocumentChunk> Chunks { get; set; } = [];
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -39,8 +39,8 @@ namespace Avalanche.Features.AI
     /// </summary>
     internal sealed class RetrievedChunk
     {
-        public DocumentChunk Chunk { get; init; } = new();
-        public double Score { get; init; }
+        public DocumentChunk Chunk { get; set; } = new();
+        public double Score { get; set; }
     }
 
     /// <summary>
@@ -48,9 +48,9 @@ namespace Avalanche.Features.AI
     /// </summary>
     internal sealed class AiSource
     {
-        public int PageNumber { get; init; }
-        public string Quote { get; init; } = "";
-        public string Reason { get; init; } = "";
+        public int PageNumber { get; set; }
+        public string Quote { get; set; } = "";
+        public string Reason { get; set; } = "";
     }
 
     /// <summary>
@@ -58,8 +58,8 @@ namespace Avalanche.Features.AI
     /// </summary>
     internal sealed class AiResponse
     {
-        public string Answer { get; init; } = "";
-        public List<AiSource> Sources { get; init; } = [];
+        public string Answer { get; set; } = "";
+        public List<AiSource> Sources { get; set; } = [];
     }
 
     /// <summary>
@@ -68,12 +68,12 @@ namespace Avalanche.Features.AI
     internal sealed class ChatMessage
     {
         public enum Role { User, Assistant, System }
-        public Role MessageRole { get; init; }
-        public string Content { get; init; } = "";
-        public List<AiSource> Sources { get; init; } = [];
-        public DateTime Timestamp { get; init; } = DateTime.UtcNow;
-        public bool IsLoading { get; init; }
-        public string? Error { get; init; }
+        public Role MessageRole { get; set; }
+        public string Content { get; set; } = "";
+        public List<AiSource> Sources { get; set; } = [];
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public bool IsLoading { get; set; }
+        public string? Error { get; set; }
     }
 
     /// <summary>

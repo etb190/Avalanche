@@ -147,10 +147,11 @@ namespace Avalanche.Features.AI
                 // Build system prompt
                 var systemPrompt = BuildSystemPrompt();
 
-                // Get AI response
+                // Get AI response - convert ObservableCollection to List
+                var messageList = Messages.Where(m => m.MessageRole != ChatMessage.Role.System).ToList();
                 var response = await _aiProvider.GetChatCompletionAsync(
                     systemPrompt,
-                    Messages,
+                    messageList,
                     retrieved.ConvertAll(r => r.Chunk),
                     _config);
 
