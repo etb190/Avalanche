@@ -2872,17 +2872,22 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="AiChatInput" Grid.Column="0"
-                                     FontFamily="{DynamicResource UiFont}" FontSize="12"
-                                     Foreground="{DynamicResource TextBrush}"
-                                     Background="{DynamicResource BackgroundBrush}"
-                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-                                     CornerRadius="{DynamicResource ControlCornerRadius}" Padding="10,6"
-                                     VerticalContentAlignment="Center" AcceptsReturn="True"
-                                     TextWrapping="Wrap" MinHeight="38" MaxHeight="120"
-                                     KeyDown="AiChatInput_KeyDown"
-                                     Text="{Binding CurrentInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="{DynamicResource Str_AiChatInputTip}"/>
+                            <Border Grid.Column="0" CornerRadius="{DynamicResource ControlCornerRadius}"
+                                    Background="{DynamicResource BackgroundBrush}"
+                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                    Padding="0">
+                                <TextBox x:Name="AiChatInput"
+                                         FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                         Foreground="{DynamicResource TextBrush}"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         VerticalContentAlignment="Center" AcceptsReturn="True"
+                                         TextWrapping="Wrap" MinHeight="38" MaxHeight="120"
+                                         Padding="10,6"
+                                         KeyDown="AiChatInput_KeyDown"
+                                         Text="{Binding CurrentInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{DynamicResource Str_AiChatInputTip}"/>
+                            </Border>
                             <Button x:Name="AiChatSendBtn" Grid.Column="1" Content="&#xE724;" Style="{StaticResource ToolbarButton}"
                                     Width="36" Height="36" Margin="8,0,0,0" Padding="0" FontSize="14"
                                     VerticalAlignment="Center" Click="AiChatSendBtn_Click"
