@@ -1048,9 +1048,24 @@ namespace Avalanche
             if (!renderDims.HasValue) return;
 
             var (renderW, renderH) = renderDims.Value;
-            var pageInfo = _doc!.Pages[pageIndex];
-            double pdfW = pageInfo.Width;
-            double pdfH = pageInfo.Height;
+
+            // Get PDF page dimensions using PdfPig
+            var filePath = _currentFile ?? _originalFile;
+            if (string.IsNullOrEmpty(filePath)) return;
+
+            double pdfW, pdfH;
+            try
+            {
+                using var pdfDoc = PdfPigDoc.Open(filePath);
+                if (pageIndex >= pdfDoc.NumberOfPages) return;
+                var page = pdfDoc.GetPage(pageIndex + 1);
+                pdfW = page.Width;
+                pdfH = page.Height;
+            }
+            catch
+            {
+                return;
+            }
 
             if (pdfW <= 0 || pdfH <= 0) return;
 
