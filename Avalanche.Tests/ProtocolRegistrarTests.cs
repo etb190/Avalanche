@@ -54,7 +54,7 @@ public sealed class ProtocolRegistrarTests
     [Theory]
     [InlineData("avalanche://open?url=https%3A%2F%2Fexample.com%2Ffile.pdf", true)]
     [InlineData("avalanche://wrong", true)]
-    [InlineData("KILLERPDF://open", true)]
+    [InlineData("AVALANCHE://open", true)]
     [InlineData("https://example.com/file.pdf", false)]
     [InlineData(@"C:\missing\file.pdf", false)]
     [InlineData("", false)]
