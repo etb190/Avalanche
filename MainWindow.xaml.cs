@@ -948,7 +948,7 @@ namespace Avalanche
             if (highlightRect.HasValue)
             {
                 var (left, bottom, right, top) = highlightRect.Value;
-                DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer);
+                DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer, pageIndex);
             }
             else
             {
@@ -1041,7 +1041,7 @@ namespace Avalanche
             }
         }
 
-        private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer)
+        private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer, int pageIndex)
         {
             // Get render dimensions for coordinate conversion
             var renderDims = viewer.GetRenderDimensions(pageIndex);
