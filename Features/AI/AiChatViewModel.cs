@@ -66,7 +66,12 @@ namespace Avalanche.Features.AI
 
         public bool CanSend => !IsProcessing && !IsIndexing && !string.IsNullOrWhiteSpace(CurrentInput);
 
-        public string CurrentInput { get; set; } = "";
+        public string CurrentInput 
+        { 
+            get => _currentInput; 
+            set { _currentInput = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); }
+        }
+        private string _currentInput = "";
 
         public AiChatViewModel(
             MainWindow mainWindow, 
