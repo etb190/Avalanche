@@ -206,6 +206,24 @@ namespace Avalanche.Controls
         }
 
         /// <summary>
+        /// Reading-order text geometry (per-char boxes + line bands, PDF points)
+        /// for a page, from the same TextRunService cache that text selection
+        /// and the highlight tool paint from. The AI citation highlight matches
+        /// the quoted passage against this so it can fill one rect per text
+        /// line exactly where the tool would. Null when no file is open or the
+        /// page cannot be parsed.
+        /// </summary>
+        internal Services.PageTextRuns? GetTextRunsForPage(int pageIndex)
+            => _currentFile is null ? null : _textRuns.GetPage(_currentFile, pageIndex);
+
+        /// <summary>
+        /// The Highlight tool's current color (default: the classic translucent
+        /// yellow). AI citation highlights reuse it so they look exactly like
+        /// tool highlights, including a user-chosen highlight color.
+        /// </summary>
+        internal System.Windows.Media.Color HighlightToolColor => _highlightColor;
+
+        /// <summary>
         /// Gets the render dimensions (width, height) for a specific page: the
         /// overlay canvas's own coordinate space (longest side -> 2048 in
         /// continuous mode, the DIP box in single/grid mode) - the same space

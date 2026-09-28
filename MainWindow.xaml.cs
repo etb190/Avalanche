@@ -1000,35 +1000,193 @@ namespace Avalanche
             var canvas = activeViewer.GetCanvasForPage(pageIndex);
             if (canvas is null) return;
 
-            // Use exact coordinates from the retrieved chunk
+            // "Exactly like the highlight tool": resolve the cited passage to the
+            // page's real text lines (the TextRunService geometry text selection
+            // and the highlight tool paint from) and fill one rect per line with
+            // the tool's own highlight color. The quote the model returned is
+            // matched first, then the full chunk text, so the highlight covers
+            // exactly what the answer's explanation refers to instead of a loose
+            // rectangle around the whole chunk.
+            var rects = ResolveAiHighlightLines(activeViewer, pageIndex, source.Quote)
+                     ?? ResolveAiHighlightLines(activeViewer, pageIndex, chunk.Text);
+            if (rects is not null)
+            {
+                DrawAiSourceHighlightLines(canvas, rects, activeViewer);
+                return;
+            }
+
+            // Unmatchable passage (scanned page, heavily reworded quote, ...):
+            // fall back to the chunk's stored bounding box, in the tool color.
+            DrawAiSourceBBoxHighlight(chunk, activeViewer, pageIndex, canvas);
+        }
+
+        /// <summary>
+        /// Locates 'needle' on the page and returns one canvas-space rect per
+        /// text line it touches, or null when the text cannot be found. Match
+        /// passes go strict to loose - case/whitespace-insensitive, then
+        /// punctuation-insensitive - so a model-quoted passage still lands even
+        /// when it was transcribed with different spacing or quote marks.
+        /// </summary>
+        private static List<Rect>? ResolveAiHighlightLines(Controls.PdfViewer viewer, int pageIndex, string? needle)
+        {
+            var runs = viewer.GetTextRunsForPage(pageIndex);
+            if (runs is null || runs.Chars.Count == 0 || string.IsNullOrWhiteSpace(needle))
+                return null;
+
+            for (int mode = 0; mode < 2; mode++)
+            {
+                bool lettersDigitsOnly = mode == 1;
+                var (text, map) = FlattenRunsForAiHighlight(runs, lettersDigitsOnly);
+                var probe = AiSquashForHighlight(needle, lettersDigitsOnly);
+                // Too short to trust: a 2-3 char probe matches random spots.
+                if (probe.Length < 4) continue;
+                int hit = text.IndexOf(probe, System.StringComparison.Ordinal);
+                if (hit < 0) continue;
+
+                // Map the match back to the flattened char indices. Map entries
+                // are -1 for inserted separators; chars arrive in reading order,
+                // so the last mapped entry is the match's final character.
+                int charStart = -1, charEnd = -1;
+                for (int i = hit; i < hit + probe.Length; i++)
+                {
+                    int ci = map[i];
+                    if (ci < 0) continue;
+                    if (charStart < 0) charStart = ci;
+                    charEnd = ci;
+                }
+                if (charStart < 0 || charEnd < charStart) continue;
+
+                if (viewer.GetRenderDimensions(pageIndex) is not { } rd) continue;
+
+                // One rect per touched line, exactly like SelectionLineRectsForPage:
+                // the line's vertical band, the matched chars' horizontal extent,
+                // 12% breathing room, canvas render-dim space.
+                var rects = new List<Rect>();
+                double sx = rd.Width / runs.PdfWidth;
+                double sy = rd.Height / runs.PdfHeight;
+
+                int i2 = charStart;
+                while (i2 <= charEnd)
+                {
+                    int line = runs.Chars[i2].Line;
+                    var rl = runs.Lines[line];
+                    double left = double.MaxValue, right = double.MinValue;
+                    int j = i2;
+                    while (j <= charEnd && runs.Chars[j].Line == line)
+                    {
+                        left = Math.Min(left, runs.Chars[j].Left);
+                        right = Math.Max(right, runs.Chars[j].Right);
+                        j++;
+                    }
+                    double h = (rl.Top - rl.Bottom) * sy;
+                    double pad = h * 0.12;
+                    rects.Add(new Rect(left * sx, rd.Height - rl.Top * sy - pad,
+                                       Math.Max((right - left) * sx, 2),
+                                       Math.Max(h + pad * 2, 2)));
+                    i2 = j;
+                }
+                return rects;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Flattens a page's reading-order chars into one lowercase string
+        /// (spaces between words, newlines between lines; punctuation dropped
+        /// in letters-digits mode), keeping a map from string index back to the
+        /// char index (-1 for separators). The same text TextForRange builds.
+        /// </summary>
+        private static (string Text, List<int> Map) FlattenRunsForAiHighlight(
+            Avalanche.Services.PageTextRuns runs, bool lettersDigitsOnly)
+        {
+            var sb = new System.Text.StringBuilder(runs.Chars.Count + 8);
+            var map = new List<int>(runs.Chars.Count + 8);
+            int lastWord = -1, lastLine = -1;
+            for (int i = 0; i < runs.Chars.Count; i++)
+            {
+                var c = runs.Chars[i];
+                bool gap = lastLine >= 0 && c.Line != lastLine;
+                if (!gap) gap = lastWord >= 0 && c.Word != lastWord;
+                if (gap && !lettersDigitsOnly) { sb.Append(' '); map.Add(-1); }
+                foreach (char ch in c.Value)
+                {
+                    if (lettersDigitsOnly && !char.IsLetterOrDigit(ch)) continue;
+                    sb.Append(char.ToLowerInvariant(ch));
+                    map.Add(i);
+                }
+                lastWord = c.Word;
+                lastLine = c.Line;
+            }
+            return (sb.ToString(), map);
+        }
+
+        /// <summary>Squashes a needle the same way FlattenRunsForAiHighlight squashes
+        /// the page: lowercase, whitespace collapsed (or dropped), so both sides of
+        /// the comparison see identical normalization.</summary>
+        private static string AiSquashForHighlight(string text, bool lettersDigitsOnly)
+        {
+            var sb = new System.Text.StringBuilder(text.Length);
+            bool pendingSpace = false;
+            foreach (char ch in text)
+            {
+                if (char.IsWhiteSpace(ch)) { pendingSpace = sb.Length > 0; continue; }
+                if (lettersDigitsOnly && !char.IsLetterOrDigit(ch)) continue;
+                // In letters-digits mode the haystack drops separators entirely, so
+                // the needle must drop them too - a space kept here (e.g. before a
+                // dropped quote mark or bracket) could never match.
+                if (pendingSpace && !lettersDigitsOnly) sb.Append(' ');
+                pendingSpace = false;
+                sb.Append(char.ToLowerInvariant(ch));
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Paints the cited passage: one translucent rect per text line, filled
+        /// with the Highlight tool's own color (its default is the classic
+        /// translucent yellow). An AI citation lights up the text itself exactly
+        /// like a user-drawn highlight, without adding annotations to the
+        /// document. Cleared by ClearAiSourceHighlight via the shared tag.
+        /// </summary>
+        private void DrawAiSourceHighlightLines(Canvas canvas, List<Rect> rects, Controls.PdfViewer viewer)
+        {
+            var fill = new SolidColorBrush(viewer.HighlightToolColor);
+            fill.Freeze();
+            foreach (var r in rects)
+            {
+                var rect = new Rectangle
+                {
+                    Fill = fill,
+                    Width = r.Width,
+                    Height = r.Height,
+                    IsHitTestVisible = false,
+                    Tag = "AiSourceHighlight"
+                };
+                Canvas.SetLeft(rect, r.X);
+                Canvas.SetTop(rect, r.Y);
+                canvas.Children.Add(rect);
+            }
+        }
+
+        /// <summary>
+        /// Fallback for passages the text matcher cannot find (scanned pages,
+        /// reworded quotes): the chunk's stored PDF bounding box, filled with the
+        /// Highlight tool color instead of the old ad-hoc blue.
+        /// </summary>
+        private void DrawAiSourceBBoxHighlight(Features.AI.DocumentChunk chunk, Controls.PdfViewer viewer, int pageIndex, Canvas canvas)
+        {
             var coords = chunk.PdfCoordinates;
-            if (coords == null || coords.Count == 0)
-            {
-                SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
-                return;
-            }
-
-            // Find the coordinate for this specific page
             int pageIdxInChunk = chunk.PageIndices.IndexOf(pageIndex);
-            if (pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count)
+            if (coords == null || coords.Count == 0
+                || pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count
+                || coords[pageIdxInChunk] is not { } pdfCoords || pdfCoords.Length < 4)
             {
                 SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
                 return;
             }
 
-            var pdfCoords = coords[pageIdxInChunk];
-            if (pdfCoords.Length < 4)
-            {
-                SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
-                return;
-            }
-
-            double left = pdfCoords[0];
-            double bottom = pdfCoords[1];
-            double right = pdfCoords[2];
-            double top = pdfCoords[3];
-
-            DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer, pageIndex, chunk);
+            DrawAiSourceHighlight(canvas, pdfCoords[0], pdfCoords[1], pdfCoords[2], pdfCoords[3],
+                                  viewer, pageIndex, chunk);
         }
 
         private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer, int pageIndex, Features.AI.DocumentChunk chunk)
@@ -1109,11 +1267,13 @@ namespace Avalanche
             double cx = left * sx - pad;
             double cy = renderH - (top * sy) - pad;
 
-            // ONE rectangle only - combine all lines into a single bounding rectangle
+            // ONE rectangle only - combine all lines into a single bounding rectangle.
+            // Highlight-tool color, not the old ad-hoc blue: even the fallback should
+            // read as the app's highlighter, not a foreign selection box.
             var rect = new Rectangle
             {
-                Fill = new SolidColorBrush(Color.FromArgb(80, 0, 122, 255)),
-                Stroke = new SolidColorBrush(Color.FromArgb(200, 0, 122, 255)),
+                Fill = new SolidColorBrush(viewer.HighlightToolColor),
+                Stroke = new SolidColorBrush(viewer.HighlightToolColor),
                 StrokeThickness = 2,
                 RadiusX = 4,
                 RadiusY = 4,
