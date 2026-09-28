@@ -239,7 +239,8 @@ if (pageGroups.Count > 0)
                 var page = pdfDoc.GetPage(firstPageIndex + 1);
                 pageWidth = (float)page.Width;
                 pageHeight = (float)page.Height;
-                pageRotation = (int)page.Rotation; // PageRotationDegrees enum casts to int directly
+                // PageRotationDegrees is an enum - get underlying int value
+                pageRotation = (int)Enum.GetUnderlyingType(page.Rotation.GetType()).GetField("value__").GetValue(page.Rotation);
                 var crop = page.CropBox;
                 // CropBox type may vary - use reflection or fallback to page dimensions
                 try
