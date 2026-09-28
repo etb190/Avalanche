@@ -37,6 +37,7 @@ namespace Avalanche.Features.AI
         private bool _isProcessing;
         private readonly object _processingLock = new();
         private int _maxHistoryMessages = 10;
+        private string? _pendingUserInput;  // Queue message if indexing not complete
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
@@ -64,7 +65,7 @@ namespace Avalanche.Features.AI
             private set { _isProcessing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); }
         }
 
-        public bool CanSend => !IsProcessing && !IsIndexing && !string.IsNullOrWhiteSpace(CurrentInput);
+        public bool CanSend => !IsProcessing && !string.IsNullOrWhiteSpace(CurrentInput);
 
         public string CurrentInput 
         { 
@@ -160,6 +161,14 @@ namespace Avalanche.Features.AI
 
                 _currentIndex = await _indexer.CreateOrLoadIndexAsync(filePath, progress);
                 IndexingStatus = _loc("Str_AiChatReady");
+
+                // Process any pending user input after indexing completes
+                if (!string.IsNullOrEmpty(_pendingUserInput))
+                {
+                    var pendingInput = _pendingUserInput;
+                    _pendingUserInput = null;
+                    _ = SendMessageAsync(pendingInput);
+                }
             }
             catch (Exception ex)
             {
@@ -177,8 +186,26 @@ namespace Avalanche.Features.AI
         /// </summary>
         public async Task SendMessageAsync(string userInput)
         {
-            if (string.IsNullOrWhiteSpace(userInput) || IsProcessing || _currentIndex == null)
+            if (string.IsNullOrWhiteSpace(userInput) || IsProcessing)
                 return;
+
+            // If indexing not complete, queue the message and send when ready
+            if (_currentIndex == null)
+            {
+                if (IsIndexing)
+                {
+                    _pendingUserInput = userInput.Trim();
+                    CurrentInput = "";
+                    OnPropertyChanged(nameof(CurrentInput));
+                    OnPropertyChanged(nameof(CanSend));
+                    return;
+                }
+                else
+                {
+                    // Not indexing and no index - shouldn't happen, but guard anyway
+                    return;
+                }
+            }
 
             lock (_processingLock)
             {
@@ -368,6 +395,7 @@ namespace Avalanche.Features.AI
             _currentIndex = null;
             _currentFilePath = "";
             _currentDocumentId = "";
+            _pendingUserInput = null;
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
         }
 
