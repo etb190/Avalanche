@@ -926,8 +926,9 @@ namespace Avalanche
 
             // Clear any existing AI highlight
             ClearAiSourceHighlight();
+        }
 
-            /// <summary>
+        /// <summary>
         /// Navigates to a page and highlights the AI source passage using exact coordinates from retrieval.
         /// </summary>
         internal void NavigateToAiSource(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
