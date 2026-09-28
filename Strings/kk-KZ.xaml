@@ -1048,7 +1048,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_PasswordProtected">«{0}» құпиясөзбен қорғалған.</sys:String>
     <sys:String x:Key="Str_About_Aka">Басқа аты</sys:String>
     <sys:String x:Key="Str_Btn_Run">Іске қосу</sys:String>
-    <!-- -- AI Chat --------------------------------------------------------- -->
+    <!-- AI Chat -->
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>

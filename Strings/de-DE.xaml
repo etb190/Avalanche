@@ -1035,7 +1035,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_PasswordProtected">„{0}“ ist passwortgeschützt.</sys:String>
     <sys:String x:Key="Str_About_Aka">Auch bekannt als</sys:String>
     <sys:String x:Key="Str_Btn_Run">Starten</sys:String>
-    <!-- -- AI Chat --------------------------------------------------------- -->
+    <!-- AI Chat -->
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>

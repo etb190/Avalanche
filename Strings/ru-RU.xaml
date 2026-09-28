@@ -1049,7 +1049,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_PasswordProtected">«{0}» защищен паролем.</sys:String>
     <sys:String x:Key="Str_About_Aka">Также известен как</sys:String>
     <sys:String x:Key="Str_Btn_Run">Запустить</sys:String>
-    <!-- -- AI Chat --------------------------------------------------------- -->
+    <!-- AI Chat -->
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>

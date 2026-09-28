@@ -1037,7 +1037,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_PasswordProtected">Plik „{0}” jest chroniony hasłem.</sys:String>
     <sys:String x:Key="Str_About_Aka">Znany także jako</sys:String>
     <sys:String x:Key="Str_Btn_Run">Uruchom</sys:String>
-    <!-- -- AI Chat --------------------------------------------------------- -->
+    <!-- AI Chat -->
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>

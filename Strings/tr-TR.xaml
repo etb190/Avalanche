@@ -1029,7 +1029,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_PasswordProtected">“{0}” parola korumalıdır.</sys:String>
     <sys:String x:Key="Str_About_Aka">Diğer adıyla</sys:String>
     <sys:String x:Key="Str_Btn_Run">Çalıştır</sys:String>
-    <!-- -- AI Chat --------------------------------------------------------- -->
+    <!-- AI Chat -->
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>
