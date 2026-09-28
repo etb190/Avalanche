@@ -1042,8 +1042,48 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiChatError">AI সেবার সাথে যোগাযোগে ত্রুটি।</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">আপনার প্রশ্নের জন্য নথিতে কোনো প্রাসঙ্গিক অংশ পাওয়া যায়নি।</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">এই পৃষ্ঠায় উদ্ধৃত অংশটি খুঁজে পাওয়া যায়নি।</sys:String>
-    <sys:String x:Key="Str_AiChatSourceTip">পৃষ্ঠা {0} — উদ্ধৃত অংশ দেখান</sys:String>
+<sys:String x:Key="Str_AiChatSourceTip">পৃষ্ঠা {0} — উদ্ধৃত অংশ দেখান</sys:String>
     <sys:String x:Key="Str_Lbl_AiChat">AI চ্যাট</sys:String>
     <sys:String x:Key="Str_TT_AiChat">AI চ্যাট সহায়ক (Ctrl+Shift+A)</sys:String>
+
+    <!-- ── AI Settings / Ollama ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiTestConnecting">সংযোগ পরীক্ষা করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_AiTestOllamaReachable">Ollama সার্ভার যাচাই করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_AiTestChatModel">চ্যাট মডেল পরীক্ষা করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_AiTestEmbeddingModel">এম্বেডিং মডেল পরীক্ষা করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_AiTestAllPassed">সব পরীক্ষা পাস</sys:String>
+    <sys:String x:Key="Str_AiTestSomeFailed">কিছু পরীক্ষা ব্যর্থ</sys:String>
+    <sys:String x:Key="Str_AiTestError">সংযোগ পরীক্ষা ব্যর্থ</sys:String>
+
+    <!-- ── AI Error Messages ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama চালু নেই। Ollama অ্যাপটি চালু করুন এবং আবার চেষ্টা করুন।</sys:String>
+    <sys:String x:Key="Str_AiErrorNotSignedIn">Ollama ক্লাউডে সাইন ইন নেই। চালান: ollama signin</sys:String>
+    <sys:String x:Key="Str_AiErrorModelNotFound">মডেল পাওয়া যায়নি। চালান: ollama pull {0}</sys:String>
+    <sys:String x:Key="Str_AiErrorBusy">Ollama ক্লাউড ব্যস্ত। একটু পর চেষ্টা করুন।</sys:String>
+    <sys:String x:Key="Str_AiErrorUsageLimit">আপনার Ollama অ্যাকাউন্টের ক্লাউড ব্যবহার সীমা পূর্ণ।</sys:String>
+    <sys:String x:Key="Str_AiErrorCutOff">উত্তর কাটা হয়েছে; সংক্ষিপ্ত প্রশ্ন করুন বা টোকেন লিমিট বাড়ান।</sys:String>
+
+    <!-- ── AI Settings UI ─────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiSettingsChatProvider">চ্যাট প্রদানকারী</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatBaseUrl">চ্যাট বেস URL</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatApiKey">চ্যাট API কী</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatModel">চ্যাট মডেল</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatTemperature">তাপমাত্রা</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatMaxTokens">সর্বোচ্চ টোকেন</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatTopP">Top P</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatReasoningEffort">তর্কশক্তি পরিশ্রম</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbProvider">এম্বেডিং প্রদানকারী</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbBaseUrl">এম্বেডিং বেস URL</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbApiKey">এম্বেডিং API কী</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbModel">এম্বেডিং মডেল</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbDimension">এম্বেডিং ডায়মেনশন</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbMaxTokens">এম্বেডিং সর্বোচ্চ টোকেন</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbBatchSize">এম্বেডিং ব্যাচ সাইজ</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbDocPrefix">নথি প্রিফিক্স</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbQueryPrefix">প্রশ্ন প্রিফিক্স</sys:String>
+    <sys:String x:Key="Str_AiSettingsTestConnection">সংযোগ পরীক্ষা</sys:String>
+    <sys:String x:Key="Str_AiSettingsOllamaPreset">Ollama প্রিসেট ব্যবহার করুন</sys:String>
+    <sys:String x:Key="Str_AiSettingsOpenAIPreset">OpenAI প্রিসেট ব্যবহার করুন</sys:String>
+    <sys:String x:Key="Str_AiSettingsCloudWarning">⚠ এই মডেল আপনার প্রশ্ন এবং নথির অংশ ক্লাউডে (ollama.com-এ) পাঠায়। নথি কম্পিউটার ছেড়ে যায়।</sys:String>
 
 </ResourceDictionary>

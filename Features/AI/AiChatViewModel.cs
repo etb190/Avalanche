@@ -21,6 +21,7 @@ namespace Avalanche.Features.AI
         private readonly IEmbeddingProvider _embeddingProvider;
         private readonly HybridRetriever _retriever;
         private readonly VectorIndex _vectorIndex;
+        private readonly DocumentIndexer _indexer;
         private readonly AiProviderConfig _genConfig;
         private readonly EmbeddingProviderConfig _embConfig;
         private readonly MainWindow _mainWindow;
@@ -77,10 +78,22 @@ namespace Avalanche.Features.AI
             _embConfig = embConfig ?? throw new ArgumentNullException(nameof(embConfig));
             _loc = loc ?? (k => k);
 
+            _retrievalOptions = new RetrievalOptions
+            {
+                TopK = 8,
+                EvidenceCharBudget = 12000,
+                CandidatePoolSize = 30,
+                LexicalWeight = 0.4f,
+                SemanticWeight = 0.6f,
+                EnableReranking = true,
+                MinScore = 0.15f
+            };
+
             _aiProvider = AiProviderFactory.CreateProvider(genConfig.ProviderType);
             _embeddingProvider = AiProviderFactory.CreateEmbeddingProvider(embConfig);
             _vectorIndex = new VectorIndex(GetIndexDbPath());
-            _retriever = new HybridRetriever(_vectorIndex, _embeddingProvider);
+            _retriever = new HybridRetriever(_vectorIndex, _embeddingProvider, _retrievalOptions);
+            _indexer = new DocumentIndexer(_embeddingProvider, _vectorIndex, embConfig);
         }
 
         private static string GetIndexDbPath()
@@ -130,8 +143,6 @@ namespace Avalanche.Features.AI
 
             try
             {
-                var indexer = new DocumentIndexer(_embeddingProvider, _vectorIndex);
-                
                 var progress = new Progress<IndexingProgress>(p =>
                 {
                     Application.Current.Dispatcher.Invoke(() =>
@@ -141,7 +152,7 @@ namespace Avalanche.Features.AI
                     });
                 });
 
-                _currentIndex = await indexer.CreateOrLoadIndexAsync(filePath, progress);
+                _currentIndex = await _indexer.CreateOrLoadIndexAsync(filePath, progress);
                 IndexingStatus = _loc("Str_AiChatReady");
             }
             catch (Exception ex)
@@ -193,8 +204,8 @@ namespace Avalanche.Features.AI
 
             try
             {
-                // Retrieve relevant chunks using hybrid search
-                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, input, _genConfig.MaxTokens / 500);
+                // Retrieve relevant chunks using hybrid search with TopK and evidence budget
+                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, input, _retrievalOptions.TopK);
 
                 if (retrieved.Count == 0)
                 {
@@ -229,7 +240,7 @@ namespace Avalanche.Features.AI
             }
             catch (Exception ex)
             {
-                assistantMsg.Content = $"{_loc("Str_AiChatError")} {ex.Message}";
+                assistantMsg.Content = MapErrorToFriendlyMessage(ex);
                 assistantMsg.Error = ex.Message;
                 assistantMsg.IsLoading = false;
             }
@@ -248,6 +259,14 @@ namespace Avalanche.Features.AI
             sb.AppendLine("You are an AI assistant helping a user understand a PDF document.");
             sb.AppendLine("Answer ONLY using the provided document evidence.");
             sb.AppendLine("If the evidence doesn't contain the answer, clearly state that.");
+            sb.AppendLine("Distinguish the document's claims from your own explanation.");
+            sb.AppendLine("Cite only the given SOURCE_n IDs; never invent IDs, page numbers or quotes.");
+            sb.AppendLine("Quotes must be copied exactly from the cited source.");
+            sb.AppendLine("Prefer several supporting sources; do not cite passages merely because they share words.");
+            sb.AppendLine();
+            sb.AppendLine("EVIDENCE FORMAT:");
+            sb.AppendLine("[SOURCE_1] Page 147 (section: ...)");
+            sb.AppendLine("<text>");
             sb.AppendLine();
             sb.AppendLine("RETRIEVED EVIDENCE:");
             sb.AppendLine();
@@ -255,11 +274,8 @@ namespace Avalanche.Features.AI
             for (int i = 0; i < retrieved.Count; i++)
             {
                 var chunk = retrieved[i].Chunk;
-                sb.AppendLine($"--- SOURCE {i} (ID: {chunk.ChunkId}) ---");
-                sb.AppendLine($"Page: {chunk.PageNumber}");
-                if (!string.IsNullOrEmpty(chunk.SectionHeading))
-                    sb.AppendLine($"Section: {chunk.SectionHeading}");
-                sb.AppendLine($"Text: {chunk.Text}");
+                sb.AppendLine($"[SOURCE_{i + 1}] Page {chunk.PageNumber}{(string.IsNullOrEmpty(chunk.SectionHeading) ? "" : $" (section: {chunk.SectionHeading})")}");
+                sb.AppendLine(chunk.Text);
                 sb.AppendLine();
             }
 
@@ -267,11 +283,14 @@ namespace Avalanche.Features.AI
             sb.AppendLine("1. Answer based ONLY on the provided sources above.");
             sb.AppendLine("2. If sources don't contain the answer, say: 'The document does not contain information about this.'");
             sb.AppendLine("3. Return JSON with 'answer' and 'sources' fields.");
-            sb.AppendLine("4. Each source must include: 'sourceId' (use the SOURCE X ID above), 'page', 'quote' (exact text from source), 'reason'.");
-            sb.AppendLine("5. Use the EXACT sourceId from the evidence (e.g., 'SOURCE_0').");
+            sb.AppendLine("4. Each source must include: 'sourceId' (use the SOURCE_n ID above), 'quote' (exact text from source), 'reason' (why it supports the answer).");
+            sb.AppendLine("5. Use the EXACT sourceId from the evidence (e.g., 'SOURCE_1', 'SOURCE_2').");
             sb.AppendLine("6. Do NOT invent page numbers or source IDs.");
             sb.AppendLine("7. Cite multiple sources when appropriate.");
             sb.AppendLine("8. Distinguish the document's claims from your explanation.");
+            sb.AppendLine("Output ONLY a JSON object:");
+            sb.AppendLine("{\"answer\": \"<markdown>\", \"sources\": [{\"sourceId\": \"SOURCE_2\", \"quote\": \"<exact text from that source>\", \"reason\": \"<why it supports the answer>\"}]}");
+            sb.AppendLine("(Do not ask the model for page numbers; the app derives them from sourceId.)");
 
             return sb.ToString();
         }
@@ -285,7 +304,7 @@ namespace Avalanche.Features.AI
             for (int i = 0; i < retrieved.Count; i++)
             {
                 var chunk = retrieved[i].Chunk;
-                sb.AppendLine($"SOURCE_{i}");
+                sb.AppendLine($"SOURCE_{i + 1}");
                 sb.AppendLine($"Page: {chunk.PageNumber}");
                 sb.AppendLine($"Text: {chunk.Text}");
                 sb.AppendLine();
@@ -310,10 +329,23 @@ namespace Avalanche.Features.AI
             if (source == null || _mainWindow == null) return;
 
             // Use the exact source ID to find the chunk
+            // SourceId format: "SOURCE_1", "SOURCE_2", etc. (1-based)
             if (string.IsNullOrEmpty(source.SourceId)) return;
 
-            var chunk = _currentIndex?.Chunks.FirstOrDefault(c => c.ChunkId == source.SourceId);
-            if (chunk == null) return;
+            int sourceIndex;
+            if (!source.SourceId.StartsWith("SOURCE_", StringComparison.OrdinalIgnoreCase) ||
+                !int.TryParse(source.SourceId.Substring(7), out sourceIndex) ||
+                sourceIndex < 1)
+            {
+                return;
+            }
+
+            // The source index is 1-based in the prompt, convert to 0-based
+            int chunkIndex = sourceIndex - 1;
+            if (_currentIndex == null || chunkIndex >= _currentIndex.Chunks.Count)
+                return;
+
+            var chunk = _currentIndex.Chunks[chunkIndex];
 
             // Navigate to the page and highlight using exact coordinates
             _mainWindow.Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
@@ -331,6 +363,44 @@ namespace Avalanche.Features.AI
             _currentFilePath = "";
             _currentDocumentId = "";
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+        }
+
+        /// <summary>
+        /// Clears the current conversation and index (for document switch).
+        /// </summary>
+        public void ClearForDocumentSwitch()
+        {
+            _currentIndex = null;
+            _currentFilePath = "";
+            _currentDocumentId = "";
+            Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+        }
+
+        private string MapErrorToFriendlyMessage(Exception ex)
+        {
+            var message = ex.Message?.ToLowerInvariant() ?? "";
+            
+            // Connection refused / timeout on localhost
+            if (ex is System.Net.Http.HttpRequestException hre)
+            {
+                if (message.Contains("connection refused") || message.Contains("timeout") || message.Contains("unreachable"))
+                    return _loc("Str_AiErrorOllamaNotRunning");
+                if (message.Contains("401") || message.Contains("unauthorized") || message.Contains("sign in"))
+                    return _loc("Str_AiErrorNotSignedIn");
+                if (message.Contains("404") || message.Contains("not found"))
+                    return _loc("Str_AiErrorModelNotFound");
+                if (message.Contains("429") || message.Contains("503") || message.Contains("queue") || message.Contains("busy"))
+                    return _loc("Str_AiErrorBusy");
+                if (message.Contains("usage") || message.Contains("credit") || message.Contains("limit"))
+                    return _loc("Str_AiErrorUsageLimit");
+            }
+            
+            // Check for empty content with finish_reason = length
+            if (message.Contains("cut off") || message.Contains("length"))
+                return _loc("Str_AiErrorCutOff");
+
+            // Generic fallback
+            return _loc("Str_AiChatError");
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

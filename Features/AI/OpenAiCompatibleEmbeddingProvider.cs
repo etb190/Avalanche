@@ -62,13 +62,15 @@ namespace Avalanche.Features.AI
 
         public async Task<bool> IsAvailableAsync()
         {
+            // For Ollama (localhost), don't require API key
             if (string.IsNullOrWhiteSpace(_config.ApiKey) && !_config.BaseUrl.Contains("localhost"))
                 return false;
 
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, $"{_config.BaseUrl.TrimEnd('/')}/models");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.ApiKey);
+                if (!string.IsNullOrWhiteSpace(_config.ApiKey))
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.ApiKey);
                 var response = await _httpClient.SendAsync(request);
                 return response.IsSuccessStatusCode;
             }
@@ -78,12 +80,33 @@ namespace Avalanche.Features.AI
             }
         }
 
+        public (string ModelName, int Dimension) GetModelInfo()
+        {
+            return (_config.Model, Dimension);
+        }
+
         private async Task<float[][]> GenerateBatchAsync(IReadOnlyList<string> texts)
         {
+            // Apply task prefixes if configured
+            var prefixedTexts = new List<string>();
+            foreach (var text in texts)
+            {
+                var prefixed = text;
+                // Truncate if too long for embedding model
+                if (prefixed.Length > _config.MaxTokens * 4) // rough char estimate
+                    prefixed = prefixed.Substring(0, _config.MaxTokens * 4);
+                
+                // Apply document prefix for indexing
+                if (!string.IsNullOrEmpty(_config.DocumentPrefix))
+                    prefixed = _config.DocumentPrefix + prefixed;
+                
+                prefixedTexts.Add(prefixed);
+            }
+
             var requestBody = new
             {
                 model = _config.Model,
-                input = texts
+                input = prefixedTexts
             };
 
             var json = JsonSerializer.Serialize(requestBody, _jsonOptions);
@@ -93,13 +116,20 @@ namespace Avalanche.Features.AI
             {
                 Content = content
             };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.ApiKey);
+            if (!string.IsNullOrWhiteSpace(_config.ApiKey))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.ApiKey);
 
             var response = await _httpClient.SendAsync(request);
             var responseJson = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
             {
+                // Check for model not found error
+                if (responseJson.Contains("model not found", StringComparison.OrdinalIgnoreCase) ||
+                    responseJson.Contains("not found", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new HttpRequestException($"Embedding model '{_config.Model}' not found. Run: ollama pull {_config.Model}");
+                }
                 throw new HttpRequestException($"Embedding API error: {response.StatusCode} - {responseJson}");
             }
 

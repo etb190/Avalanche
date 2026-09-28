@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Avalanche.Features.AI
 {
@@ -27,7 +28,7 @@ namespace Avalanche.Features.AI
             if (string.IsNullOrWhiteSpace(query))
                 return new List<RetrievedChunk>();
 
-            // Generate query embedding
+            // Generate query embedding with query prefix
             var queryEmbedding = await _embeddingProvider.GenerateEmbeddingAsync(query);
 
             // Hybrid search: lexical + semantic
@@ -40,8 +41,11 @@ namespace Avalanche.Features.AI
                 hybridResults = await RerankAsync(query, hybridResults);
             }
 
+            // Apply evidence character budget
+            var finalResults = ApplyEvidenceBudget(hybridResults, _options.EvidenceCharBudget);
+
             // Apply final scoring and filtering
-            var finalResults = hybridResults
+            finalResults = finalResults
                 .Where(r => r.Score >= _options.MinScore)
                 .Take(maxResults)
                 .ToList();
@@ -80,6 +84,29 @@ namespace Avalanche.Features.AI
             var results = _vectorIndex.SemanticSearch(documentId, queryEmbedding, maxResults);
             foreach (var r in results) r.Method = RetrievalMethod.Semantic;
             return results;
+        }
+
+        /// <summary>
+        /// Applies evidence character budget to keep prompt size bounded.
+        /// </summary>
+        private List<RetrievedChunk> ApplyEvidenceBudget(List<RetrievedChunk> results, int budget)
+        {
+            if (budget <= 0) return results;
+            
+            var selected = new List<RetrievedChunk>();
+            int totalChars = 0;
+            
+            foreach (var r in results.OrderByDescending(r => r.Score))
+            {
+                int chunkChars = r.Chunk.Text.Length;
+                if (totalChars + chunkChars > budget && selected.Count > 0)
+                    break;
+                
+                selected.Add(r);
+                totalChars += chunkChars;
+            }
+            
+            return selected;
         }
 
         /// <summary>
@@ -153,6 +180,8 @@ namespace Avalanche.Features.AI
     {
         public int CandidatePoolSize { get; set; } = 30;      // Initial pool before reranking
         public int MaxResults { get; set; } = 10;             // Final results
+        public int TopK { get; set; } = 8;                    // Number of chunks to retrieve
+        public int EvidenceCharBudget { get; set; } = 12000;  // Total character budget for evidence
         public float MinScore { get; set; } = 0.15f;          // Minimum relevance score
         public float LexicalWeight { get; set; } = 0.4f;      // Weight for BM25 scores
         public float SemanticWeight { get; set; } = 0.6f;     // Weight for embedding scores

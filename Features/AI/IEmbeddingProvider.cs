@@ -35,6 +35,11 @@ namespace Avalanche.Features.AI
         /// Checks if the provider is available.
         /// </summary>
         Task<bool> IsAvailableAsync();
+        
+        /// <summary>
+        /// Gets the model name and dimension for index compatibility checking.
+        /// </summary>
+        (string ModelName, int Dimension) GetModelInfo();
     }
 
     /// <summary>
@@ -45,9 +50,17 @@ namespace Avalanche.Features.AI
         public string ProviderType { get; set; } = "OpenAICompatible";
         public string BaseUrl { get; set; } = "https://api.openai.com/v1";
         public string ApiKey { get; set; } = "";
-        public string Model { get; set; } = "text-embedding-3-small";
-        public int Dimension { get; set; } = 1536;
+        public string Model { get; set; } = "nomic-embed-text";
+        public int Dimension { get; set; } = 768;  // nomic-embed-text is 768
         public int MaxTokens { get; set; } = 8191;
-        public int BatchSize { get; set; } = 100;
+        public int BatchSize { get; set; } = 16;  // Smaller batches for Ollama
+        
+        // Task prefixes for embedding models that support them (e.g., nomic-embed-text)
+        public string DocumentPrefix { get; set; } = "search_document: ";
+        public string QueryPrefix { get; set; } = "search_query: ";
+        
+        // Embedding model info for index compatibility
+        public string EmbeddingModelName { get; set; } = "";
+        public int EmbeddingDimension { get; set; } = 0;
     }
 }

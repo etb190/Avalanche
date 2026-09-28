@@ -1052,4 +1052,45 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
+
+    <!-- ── AI Settings / Ollama ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiTestConnecting">Testing connection...</sys:String>
+    <sys:String x:Key="Str_AiTestOllamaReachable">Checking Ollama server...</sys:String>
+    <sys:String x:Key="Str_AiTestChatModel">Testing chat model...</sys:String>
+    <sys:String x:Key="Str_AiTestEmbeddingModel">Testing embedding model...</sys:String>
+    <sys:String x:Key="Str_AiTestAllPassed">All tests passed</sys:String>
+    <sys:String x:Key="Str_AiTestSomeFailed">Some tests failed</sys:String>
+    <sys:String x:Key="Str_AiTestError">Connection test failed</sys:String>
+
+    <!-- AI Error Messages -->
+    <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama isn't running. Start the Ollama app and try again.</sys:String>
+    <sys:String x:Key="Str_AiErrorNotSignedIn">Not signed in to Ollama cloud. Run: ollama signin</sys:String>
+    <sys:String x:Key="Str_AiErrorModelNotFound">Model not found. Run: ollama pull {0}</sys:String>
+    <sys:String x:Key="Str_AiErrorBusy">Ollama cloud is busy. Try again in a moment.</sys:String>
+    <sys:String x:Key="Str_AiErrorUsageLimit">Cloud usage limit reached for your Ollama account.</sys:String>
+    <sys:String x:Key="Str_AiErrorCutOff">Answer was cut off; try a shorter question or raise the token limit.</sys:String>
+
+    <!-- AI Settings UI -->
+    <sys:String x:Key="Str_AiSettingsChatProvider">Chat Provider</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatBaseUrl">Chat Base URL</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatApiKey">Chat API Key</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatModel">Chat Model</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatTemperature">Temperature</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatMaxTokens">Max Tokens</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatTopP">Top P</sys:String>
+    <sys:String x:Key="Str_AiSettingsChatReasoningEffort">Reasoning Effort</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbProvider">Embedding Provider</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbBaseUrl">Embedding Base URL</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbApiKey">Embedding API Key</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbModel">Embedding Model</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbDimension">Embedding Dimension</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbMaxTokens">Embedding Max Tokens</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbBatchSize">Embedding Batch Size</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbDocPrefix">Document Prefix</sys:String>
+    <sys:String x:Key="Str_AiSettingsEmbQueryPrefix">Query Prefix</sys:String>
+    <sys:String x:Key="Str_AiSettingsTestConnection">Test Connection</sys:String>
+    <sys:String x:Key="Str_AiSettingsOllamaPreset">Use Ollama Preset</sys:String>
+    <sys:String x:Key="Str_AiSettingsOpenAIPreset">Use OpenAI Preset</sys:String>
+    <sys:String x:Key="Str_AiSettingsCloudWarning">This model sends your questions and document passages to the cloud (ollama.com). Documents leave this computer.</sys:String>
+
 </ResourceDictionary>

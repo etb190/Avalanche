@@ -19,11 +19,13 @@ namespace Avalanche.Features.AI
         private readonly IEmbeddingProvider _embeddingProvider;
         private readonly VectorIndex _vectorIndex;
         private readonly IndexingOptions _options;
+        private readonly EmbeddingProviderConfig _embConfig;
 
-        public DocumentIndexer(IEmbeddingProvider embeddingProvider, VectorIndex vectorIndex, IndexingOptions? options = null)
+        public DocumentIndexer(IEmbeddingProvider embeddingProvider, VectorIndex vectorIndex, EmbeddingProviderConfig embConfig, IndexingOptions? options = null)
         {
             _embeddingProvider = embeddingProvider ?? throw new ArgumentNullException(nameof(embeddingProvider));
             _vectorIndex = vectorIndex ?? throw new ArgumentNullException(nameof(vectorIndex));
+            _embConfig = embConfig ?? throw new ArgumentNullException(nameof(embConfig));
             _options = options ?? new IndexingOptions();
         }
 
@@ -38,9 +40,11 @@ namespace Avalanche.Features.AI
             var fileInfo = new FileInfo(filePath);
             var documentId = ComputeDocumentId(filePath);
             
-            // Check if we have a current index
+            // Check if we have a current index with compatible embedding model
+            var (embModelName, embDimension) = _embeddingProvider.GetModelInfo();
             var existingDoc = _vectorIndex.GetDocument(documentId);
-            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, ""))
+            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, "", 
+                _embConfig.EmbeddingModelName, _embConfig.EmbeddingDimension))
             {
                 // Load existing chunks
                 var chunks = LoadChunksForDocument(documentId);
@@ -68,6 +72,7 @@ namespace Avalanche.Features.AI
         private async Task<DocumentIndex> BuildIndexAsync(string filePath, string documentId, FileInfo fileInfo, IProgress<IndexingProgress>? progress)
         {
             var allChunks = new List<DocumentChunk>();
+            var (embModelName, embDimension) = _embeddingProvider.GetModelInfo();
 
             await Task.Run(() =>
             {
@@ -99,14 +104,16 @@ namespace Avalanche.Features.AI
                 }
 
                 // Create intelligent chunks
-                var chunks = CreateChunks(allWords, pageCount);
+                var chunks = CreateChunks(allWords, pageCount, pdfDoc);
                 
                 // Generate embeddings
                 if (progress != null)
                     progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.5, Message = "Generating embeddings..." });
 
+                // Note: We need to call the async method, but we're in Task.Run
+                // For now, use GetAwaiter().GetResult() but in the future this should be fully async
                 GenerateEmbeddings(chunks);
-
+                
                 allChunks.AddRange(chunks);
             });
 
@@ -120,7 +127,9 @@ namespace Avalanche.Features.AI
                 PageCount = new FileInfo(filePath).Length > 0 ? GetPageCount(filePath) : 0,
                 Chunks = allChunks,
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                EmbeddingModelName = _embeddingProvider.GetModelInfo().ModelName,
+                EmbeddingDimension = _embeddingProvider.GetModelInfo().Dimension
             };
 
             return doc;
@@ -139,7 +148,7 @@ namespace Avalanche.Features.AI
             _vectorIndex.BulkInsertChunks(doc.Chunks);
         }
 
-        private List<DocumentChunk> CreateChunks(List<(int pageIndex, Word word)> allWords, int pageCount)
+        private List<DocumentChunk> CreateChunks(List<(int pageIndex, Word word)> allWords, int pageCount, UglyToad.PdfPig.PdfDocument pdfDoc)
         {
             var chunks = new List<DocumentChunk>();
             var currentChunkWords = new List<(int pageIndex, Word word)>();
@@ -163,7 +172,7 @@ namespace Avalanche.Features.AI
                     if (breakIndex >= 0)
                     {
                         var chunkWords = currentChunkWords.GetRange(0, breakIndex + 1);
-                        var chunk = CreateChunk(chunkWords, chunkIndex++, ref charOffset);
+                        var chunk = CreateChunk(chunkWords, chunkIndex++, ref charOffset, pdfDoc);
                         if (chunk != null) chunks.Add(chunk);
                         currentChunkWords.RemoveRange(0, breakIndex + 1);
                         shouldBreak = true;
@@ -186,7 +195,7 @@ namespace Avalanche.Features.AI
                     {
                         if (currentChunkWords.Count >= _options.MinChunkWords)
                         {
-                            var chunk = CreateChunk(currentChunkWords, chunkIndex++, ref charOffset);
+                            var chunk = CreateChunk(currentChunkWords, chunkIndex++, ref charOffset, pdfDoc);
                             if (chunk != null) chunks.Add(chunk);
                             currentChunkWords.Clear();
                         }
@@ -197,14 +206,14 @@ namespace Avalanche.Features.AI
             // Don't forget the last chunk
             if (currentChunkWords.Count > 0)
             {
-                var chunk = CreateChunk(currentChunkWords, chunkIndex, ref charOffset);
+                var chunk = CreateChunk(currentChunkWords, chunkIndex, ref charOffset, pdfDoc);
                 if (chunk != null) chunks.Add(chunk);
             }
 
             return chunks;
         }
 
-        private DocumentChunk? CreateChunk(List<(int pageIndex, Word word)> words, int chunkIndex, ref long charOffset)
+        private DocumentChunk? CreateChunk(List<(int pageIndex, Word word)> words, int chunkIndex, ref long charOffset, UglyToad.PdfPig.PdfDocument pdfDoc)
         {
             if (words.Count == 0) return null;
 
@@ -218,6 +227,22 @@ namespace Avalanche.Features.AI
             var pageIndices = new List<int>();
             var wordRanges = new List<int[]>();
             var pdfCoordinates = new List<float[]>();
+            
+            // Get page info for the first page (primary page)
+            float pageWidth = 0, pageHeight = 0;
+            int pageRotation = 0;
+            float[]? cropBox = null;
+            
+            if (pageGroups.Count > 0)
+            {
+                var firstPageIndex = pageGroups[0].Key;
+                var page = pdfDoc.GetPage(firstPageIndex + 1);
+                pageWidth = page.Width;
+                pageHeight = page.Height;
+                pageRotation = page.Rotation;
+                var crop = page.CropBox;
+                cropBox = new float[] { (float)crop.Left, (float)crop.Bottom, (float)crop.Right, (float)crop.Top };
+            }
 
             int wordOffset = 0;
             foreach (var group in pageGroups)
@@ -267,7 +292,11 @@ namespace Avalanche.Features.AI
                 WordRanges = wordRanges,
                 PdfCoordinates = pdfCoordinates,
                 CharOffset = charOffset,
-                LexicalTokens = lexicalTokens
+                LexicalTokens = lexicalTokens,
+                PageWidth = pageWidth,
+                PageHeight = pageHeight,
+                PageRotation = pageRotation,
+                CropBox = cropBox
             };
 
             charOffset += text.Length + 1;
@@ -304,12 +333,14 @@ namespace Avalanche.Features.AI
             return -1;
         }
 
-        private void GenerateEmbeddings(List<DocumentChunk> chunks)
+        private async Task GenerateEmbeddingsAsync(List<DocumentChunk> chunks, EmbeddingProviderConfig embConfig)
         {
             if (chunks.Count == 0) return;
 
+            // Apply query prefix for retrieval queries (done in the embedding provider)
+            // The embedding provider handles document prefix internally
             var texts = chunks.Select(c => c.Text).ToList();
-            var embeddings = _embeddingProvider.GenerateEmbeddingsAsync(texts).GetAwaiter().GetResult();
+            var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(texts);
 
             for (int i = 0; i < chunks.Count && i < embeddings.Length; i++)
             {

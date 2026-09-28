@@ -927,14 +927,52 @@ namespace Avalanche
             // Clear any existing AI highlight
             ClearAiSourceHighlight();
 
+            /// <summary>
+        /// Navigates to a page and highlights the AI source passage using exact coordinates from retrieval.
+        /// </summary>
+        internal void NavigateToAiSource(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
+        {
+            if (_doc is null || chunk == null) return;
+
+            int pageIndex = chunk.PageIndex;
+            if (pageIndex < 0 || pageIndex >= _doc.PageCount)
+                return;
+
+            // Clear any existing AI highlight
+            ClearAiSourceHighlight();
+
             // Navigate to the page
             PageList.SelectedIndex = pageIndex;
 
             // Wait for the page to render, then highlight using exact coordinates
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            // Use a retry loop for continuous view and far-away pages
+            WaitForCanvasAndHighlight(chunk, source, pageIndex, 0);
+        }
+
+        private async void WaitForCanvasAndHighlight(Features.AI.DocumentChunk chunk, Features.AI.AiSource source, int pageIndex, int attempt)
+        {
+            const int maxAttempts = 20; // ~2 seconds with 100ms intervals
+            const int delayMs = 100;
+
+            var activeViewer = ActiveViewer;
+            if (activeViewer is null) return;
+
+            var canvas = activeViewer.GetCanvasForPage(pageIndex);
+            if (canvas is null)
             {
-                HighlightAiSourceOnPage(chunk, source);
-            });
+                if (attempt < maxAttempts)
+                {
+                    await Task.Delay(delayMs);
+                    WaitForCanvasAndHighlight(chunk, source, pageIndex, attempt + 1);
+                }
+                else
+                {
+                    SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
+                }
+                return;
+            }
+
+            HighlightAiSourceOnPage(chunk, source);
         }
 
         private void HighlightAiSourceOnPage(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
@@ -976,10 +1014,10 @@ namespace Avalanche
             double right = pdfCoords[2];
             double top = pdfCoords[3];
 
-            DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer, pageIndex);
+            DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer, pageIndex, chunk);
         }
 
-        private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer, int pageIndex)
+        private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer, int pageIndex, Features.AI.DocumentChunk chunk)
         {
             // Get render dimensions for coordinate conversion
             var renderDims = viewer.GetRenderDimensions(pageIndex);
@@ -987,28 +1025,68 @@ namespace Avalanche
 
             var (renderW, renderH) = renderDims.Value;
 
-            // Get PDF page dimensions using PdfPig
-            var filePath = _currentFile ?? _originalFile;
-            if (string.IsNullOrEmpty(filePath)) return;
-
-            double pdfW, pdfH;
-            try
-            {
-                using var pdfDoc = PdfPigDoc.Open(filePath);
-                if (pageIndex >= pdfDoc.NumberOfPages) return;
-                var page = pdfDoc.GetPage(pageIndex + 1);
-                pdfW = page.Width;
-                pdfH = page.Height;
-            }
-            catch
-            {
-                return;
-            }
+            // Use cached page info from chunk
+            double pdfW = chunk.PageWidth;
+            double pdfH = chunk.PageHeight;
+            int pageRotation = chunk.PageRotation;
+            float[] cropBox = chunk.CropBox;
 
             if (pdfW <= 0 || pdfH <= 0) return;
 
+            // Handle page rotation and CropBox
             double sx = renderW / pdfW;
             double sy = renderH / pdfH;
+
+            // Adjust coordinates for CropBox if present
+            if (cropBox != null && cropBox.Length == 4)
+            {
+                double cropLeft = cropBox[0];
+                double cropBottom = cropBox[1];
+                double cropRight = cropBox[2];
+                double cropTop = cropBox[3];
+                
+                // CropBox is in PDF space, adjust coordinates
+                left = left - cropLeft;
+                right = right - cropLeft;
+                bottom = bottom - cropBottom;
+                top = top - cropBottom;
+                
+                // Adjust scale for CropBox
+                double cropW = cropRight - cropLeft;
+                double cropH = cropTop - cropBottom;
+                if (cropW > 0 && cropH > 0)
+                {
+                    sx = renderW / cropW;
+                    sy = renderH / cropH;
+                }
+            }
+
+            // Handle rotation
+            if (pageRotation != 0)
+            {
+                // Rotation is in degrees (0, 90, 180, 270)
+                // The coordinates need to be transformed
+                double cx = left;
+                double cy = bottom;
+                
+                switch (pageRotation)
+                {
+                    case 90:
+                        left = cy;
+                        bottom = pdfW - cx - (right - left);
+                        break;
+                    case 180:
+                        left = pdfW - cx - (right - left);
+                        bottom = pdfH - cy - (top - bottom);
+                        break;
+                    case 270:
+                        left = pdfH - cy - (top - bottom);
+                        bottom = cx;
+                        break;
+                }
+            }
+
+            if (pdfW <= 0 || pdfH <= 0) return;
 
             double cw = (right - left) * sx;
             double ch = (top - bottom) * sy;
