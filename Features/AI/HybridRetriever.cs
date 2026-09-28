@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,12 +29,34 @@ namespace Avalanche.Features.AI
             if (string.IsNullOrWhiteSpace(query))
                 return new List<RetrievedChunk>();
 
-            // Generate query embedding with query prefix
-            var queryEmbedding = await _embeddingProvider.GenerateEmbeddingAsync(query);
+            // Generate the query embedding. If the configured model cannot serve
+            // embeddings (e.g. the gpt-oss cloud chat model behind the Ollama
+            // bridge), fall back to pure lexical search instead of failing.
+            float[] queryEmbedding;
+            try
+            {
+                queryEmbedding = await _embeddingProvider.GenerateEmbeddingAsync(query);
+            }
+            catch (Exception)
+            {
+                queryEmbedding = Array.Empty<float>();
+            }
 
-            // Hybrid search: lexical + semantic
-            var hybridResults = _vectorIndex.HybridSearch(documentId, query, queryEmbedding, _options.CandidatePoolSize, 
-                _options.LexicalWeight, _options.SemanticWeight);
+            var usedSemantic = queryEmbedding != null && queryEmbedding.Length > 0;
+
+            List<RetrievedChunk> hybridResults;
+            if (!usedSemantic)
+            {
+                // Lexical-only retrieval (BM25) - embeddings unavailable.
+                hybridResults = _vectorIndex.LexicalSearch(documentId, query, _options.CandidatePoolSize);
+                VectorIndex.NormalizeScores(hybridResults);
+            }
+            else
+            {
+                // Hybrid search: lexical + semantic
+                hybridResults = _vectorIndex.HybridSearch(documentId, query, queryEmbedding, _options.CandidatePoolSize,
+                    _options.LexicalWeight, _options.SemanticWeight);
+            }
 
             // Rerank if enabled
             if (_options.EnableReranking && hybridResults.Count > 1)
@@ -53,7 +76,7 @@ namespace Avalanche.Features.AI
             // Mark retrieval method
             foreach (var r in finalResults)
             {
-                r.Method = RetrievalMethod.Hybrid;
+                r.Method = usedSemantic ? RetrievalMethod.Hybrid : RetrievalMethod.Lexical;
             }
 
             return finalResults;

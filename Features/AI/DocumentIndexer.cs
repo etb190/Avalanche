@@ -42,8 +42,9 @@ namespace Avalanche.Features.AI
             
             // Check if we have a current index with compatible embedding model
             var (embModelName, embDimension) = _embeddingProvider.GetModelInfo();
+            var contentHash = ComputeContentHash(filePath);
             var existingDoc = _vectorIndex.GetDocument(documentId);
-            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, "", 
+            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, contentHash,
                 _embConfig.EmbeddingModelName, _embConfig.EmbeddingDimension))
             {
                 // Load existing chunks
@@ -56,7 +57,7 @@ namespace Avalanche.Features.AI
             // Need to (re)index
             progress?.Report(new IndexingProgress { Stage = IndexingStage.Extracting, Progress = 0.0, Message = "Extracting text..." });
             
-            var doc = await BuildIndexAsync(filePath, documentId, fileInfo, progress);
+            var doc = await BuildIndexAsync(filePath, documentId, contentHash, fileInfo, progress);
             
             // Persist
             progress?.Report(new IndexingProgress { Stage = IndexingStage.Persisting, Progress = 0.9, Message = "Persisting index..." });
@@ -69,11 +70,12 @@ namespace Avalanche.Features.AI
         /// <summary>
         /// Builds a fresh index from the PDF.
         /// </summary>
-        private async Task<DocumentIndex> BuildIndexAsync(string filePath, string documentId, FileInfo fileInfo, IProgress<IndexingProgress>? progress)
+        private async Task<DocumentIndex> BuildIndexAsync(string filePath, string documentId, string contentHash, FileInfo fileInfo, IProgress<IndexingProgress>? progress)
         {
             var allChunks = new List<DocumentChunk>();
             var (embModelName, embDimension) = _embeddingProvider.GetModelInfo();
 
+            bool embedded = false;
             await Task.Run(() =>
             {
                 using var pdfDoc = PdfDocument.Open(filePath);
@@ -105,6 +107,13 @@ namespace Avalanche.Features.AI
 
                 // Create intelligent chunks
                 var chunks = CreateChunks(allWords, pageCount, pdfDoc);
+
+                // CreateChunk leaves DocumentId empty ("set by caller"). Without
+                // this assignment chunks were persisted under document_id='' and
+                // no search ever matched them again.
+                foreach (var chunk in chunks)
+                    chunk.DocumentId = documentId;
+
                 
                 // Generate embeddings
                 if (progress != null)
@@ -112,7 +121,16 @@ namespace Avalanche.Features.AI
 
                 // Note: We need to call the async method, but we're in Task.Run
                 // For now, use GetAwaiter().GetResult() but in the future this should be fully async
-                GenerateEmbeddingsAsync(chunks, _embConfig).GetAwaiter().GetResult();
+                embedded = GenerateEmbeddingsAsync(chunks, _embConfig).GetAwaiter().GetResult();
+                if (!embedded)
+                {
+                    // The configured model cannot serve embeddings (a cloud chat
+                    // model behind the Ollama bridge cannot). Keep going with a
+                    // lexical-only index instead of failing the whole operation -
+                    // retrieval falls back to BM25 search.
+                    progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.8, Message = "Embeddings unavailable - using lexical index" });
+                }
+
                 
                 allChunks.AddRange(chunks);
             });
@@ -123,13 +141,13 @@ namespace Avalanche.Features.AI
                 FilePath = filePath,
                 FileSize = new FileInfo(filePath).Length,
                 LastWriteTime = new FileInfo(filePath).LastWriteTimeUtc.Ticks,
-                ContentHash = ComputeContentHash(filePath),
+                ContentHash = contentHash,
                 PageCount = new FileInfo(filePath).Length > 0 ? GetPageCount(filePath) : 0,
                 Chunks = allChunks,
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                EmbeddingModelName = _embeddingProvider.GetModelInfo().ModelName,
-                EmbeddingDimension = _embeddingProvider.GetModelInfo().Dimension
+                EmbeddingModelName = embedded ? _embeddingProvider.GetModelInfo().ModelName : "",
+                EmbeddingDimension = embedded ? _embeddingProvider.GetModelInfo().Dimension : 0
             };
 
             return doc;
@@ -137,9 +155,10 @@ namespace Avalanche.Features.AI
 
         private List<DocumentChunk> LoadChunksForDocument(string documentId)
         {
-            // This would load from the vector index
-            // For now, return empty - actual implementation would query the DB
-            return new List<DocumentChunk>();
+            // Loads the persisted chunks from SQLite so a cached document keeps
+            // working on later opens. (Previously returned an empty list, which
+            // made retrieval find nothing for cached documents.)
+            return _vectorIndex.GetChunksForDocument(documentId);
         }
 
         private void PersistIndex(DocumentIndex doc)
@@ -360,18 +379,33 @@ if (pageGroups.Count > 0)
             return -1;
         }
 
-        private async Task GenerateEmbeddingsAsync(List<DocumentChunk> chunks, EmbeddingProviderConfig embConfig)
+        /// <summary>
+        /// Generates embeddings for chunks. Returns false (without throwing) when
+        /// the configured model cannot serve the embeddings endpoint - the caller
+        /// then continues with a lexical-only index.
+        /// </summary>
+        private async Task<bool> GenerateEmbeddingsAsync(List<DocumentChunk> chunks, EmbeddingProviderConfig embConfig)
         {
-            if (chunks.Count == 0) return;
+            if (chunks.Count == 0) return true;
 
-            // Apply query prefix for retrieval queries (done in the embedding provider)
-            // The embedding provider handles document prefix internally
             var texts = chunks.Select(c => c.Text).ToList();
-            var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(texts);
-
-            for (int i = 0; i < chunks.Count && i < embeddings.Length; i++)
+            try
             {
-                chunks[i].Embedding = embeddings[i];
+                var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(texts);
+
+                for (int i = 0; i < chunks.Count && i < embeddings.Length; i++)
+                {
+                    chunks[i].Embedding = embeddings[i];
+                }
+                return embeddings.Length == chunks.Count;
+            }
+            catch (Exception)
+            {
+                // Embeddings are optional: a missing model or a cloud chat model
+                // that cannot serve embeddings must not fail indexing.
+                foreach (var chunk in chunks)
+                    chunk.Embedding = null;
+                return false;
             }
         }
 

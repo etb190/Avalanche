@@ -251,6 +251,42 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
+        /// Loads all persisted chunks for a document (embeddings included when
+        /// available), ordered by chunk index.
+        /// </summary>
+        public List<DocumentChunk> GetChunksForDocument(string documentId)
+        {
+            var chunks = new List<DocumentChunk>();
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, embedding, lexical_tokens, page_width, page_height, page_rotation, crop_box FROM chunks WHERE document_id = $doc_id ORDER BY chunk_index";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var embeddingBytes = reader.IsDBNull(8) ? null : (byte[])reader.GetValue(8);
+                chunks.Add(new DocumentChunk
+                {
+                    ChunkId = reader.GetString(0),
+                    DocumentId = reader.GetString(1),
+                    ChunkIndex = reader.GetInt32(2),
+                    Text = reader.GetString(3),
+                    PageIndices = System.Text.Json.JsonSerializer.Deserialize<List<int>>(reader.GetString(4)) ?? new(),
+                    WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
+                    PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
+                    CharOffset = reader.GetInt64(7),
+                    Embedding = embeddingBytes != null && embeddingBytes.Length > 0 ? BytesToFloatArray(embeddingBytes) : null,
+                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? new(),
+                    PageWidth = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
+                    PageHeight = reader.IsDBNull(11) ? 0 : reader.GetFloat(11),
+                    PageRotation = reader.IsDBNull(12) ? 0 : reader.GetInt32(12),
+                    CropBox = reader.IsDBNull(13) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(13))
+                });
+            }
+            return chunks;
+        }
+
+        /// <summary>
         /// Performs semantic search using cosine similarity on embeddings.
         /// </summary>
         public List<RetrievedChunk> SemanticSearch(string documentId, float[] queryEmbedding, int topK = 20)
@@ -447,7 +483,7 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private static void NormalizeScores(List<RetrievedChunk> results)
+        public static void NormalizeScores(List<RetrievedChunk> results)
         {
             if (results.Count == 0) return;
             float max = results.Max(r => r.Score);

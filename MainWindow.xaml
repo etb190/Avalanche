@@ -2769,19 +2769,25 @@
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Avatar (left for assistant, right for user) -->
-                                        <Ellipse x:Name="AvatarEllipse" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Width="28" Height="28"
-                                                 VerticalAlignment="Top" Margin="0,2,8,0"
-                                                 Fill="{Binding MessageRole, Converter={StaticResource AiRoleToBrushConverter}}">
-                                            <Ellipse.Effect>
-                                                <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.3"/>
-                                            </Ellipse.Effect>
-                                        </Ellipse>
-                                        <TextBlock x:Name="AvatarText" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
-                                                   Text="{Binding MessageRole, Converter={StaticResource AiRoleToGlyphConverter}}"
-                                                   FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                                   Foreground="{DynamicResource TextBrush}"
-                                                   VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                        <!-- Avatar (left for assistant, right for user). The ellipse and the
+                                             glyph share one fixed 28x28 box so the icon is always concentric with
+                                             the circle; previously the glyph was centered on the whole grid column
+                                             (which also contained the ellipse's 8px margin) and sat 4px off-center
+                                             in opposite directions for user vs assistant bubbles. -->
+                                        <Grid x:Name="AvatarHost" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                              Width="28" Height="28" VerticalAlignment="Top" Margin="0,2,8,0">
+                                            <Ellipse x:Name="AvatarEllipse"
+                                                     Fill="{Binding MessageRole, Converter={StaticResource AiRoleToBrushConverter}}">
+                                                <Ellipse.Effect>
+                                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.3"/>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+                                            <TextBlock x:Name="AvatarText"
+                                                       Text="{Binding MessageRole, Converter={StaticResource AiRoleToGlyphConverter}}"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                       Foreground="{DynamicResource TextBrush}"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
 
                                         <!-- Message Content (right for assistant, left for user) -->
                                         <Border x:Name="MessageBorder" Grid.Row="0" Grid.Column="1"
@@ -2861,13 +2867,12 @@
                                     </Grid>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding MessageRole}" Value="{x:Static ai:ChatMessage+Role.User}">
-                                            <Setter TargetName="AvatarEllipse" Property="Grid.Column" Value="2"/>
-                                            <Setter TargetName="AvatarText" Property="Grid.Column" Value="2"/>
+                                            <Setter TargetName="AvatarHost" Property="Grid.Column" Value="2"/>
                                             <Setter TargetName="MessageBorder" Property="Grid.Column" Value="1"/>
                                             <!-- Keep the bubble in the star-width column, right-aligned; column 0
                                                  is Auto-sized so a wrapping bubble there overflows and gets clipped. -->
                                             <Setter TargetName="MessageBorder" Property="HorizontalAlignment" Value="Right"/>
-                                            <Setter TargetName="AvatarEllipse" Property="Margin" Value="8,2,0,0"/>
+                                            <Setter TargetName="AvatarHost" Property="Margin" Value="8,2,0,0"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>

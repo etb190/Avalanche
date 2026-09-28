@@ -20,16 +20,21 @@ namespace Avalanche.Features.AI
         private double _genTopP = 1.0;
         private string _genReasoningEffort = "low";
 
-        // Embedding provider settings
+        // Embedding provider settings - the only model used anywhere is
+        // gpt-oss:120b-cloud served through the local Ollama bridge. When that
+        // model cannot serve the embeddings endpoint, indexing and retrieval
+        // silently fall back to lexical (BM25) search - see DocumentIndexer and
+        // HybridRetriever. The nomic-specific task prefixes are removed because
+        // they corrupt embeddings for any other model.
         private string _embProviderType = "Ollama";
         private string _embBaseUrl = "http://localhost:11434/v1";
         private string _embApiKey = "ollama";
-        private string _embModel = "nomic-embed-text";
-        private int _embDimension = 768;
+        private string _embModel = "gpt-oss:120b-cloud";
+        private int _embDimension = 2880;
         private int _embMaxTokens = 8191;
         private int _embBatchSize = 16;
-        private string _embDocumentPrefix = "search_document: ";
-        private string _embQueryPrefix = "search_query: ";
+        private string _embDocumentPrefix = "";
+        private string _embQueryPrefix = "";
 
         private bool _isEnabled = false;
         private string _connectionStatus = "";
@@ -238,35 +243,14 @@ namespace Avalanche.Features.AI
             EmbProviderType = "Ollama";
             EmbBaseUrl = "http://localhost:11434/v1";
             EmbApiKey = "ollama";
-            EmbModel = "nomic-embed-text";
-            EmbDimension = 768;
+            EmbModel = "gpt-oss:120b-cloud";
+            EmbDimension = 2880;
             EmbMaxTokens = 8191;
             EmbBatchSize = 16;
-            EmbDocumentPrefix = "search_document: ";
-            EmbQueryPrefix = "search_query: ";
-        }
-
-        public void ApplyOpenAIPreset()
-        {
-            GenProviderType = "OpenAICompatible";
-            GenBaseUrl = "https://api.openai.com/v1";
-            GenApiKey = "";
-            GenModel = "gpt-4o-mini";
-            GenTemperature = 0.1;
-            GenMaxTokens = 4096;
-            GenTopP = 1.0;
-            GenReasoningEffort = "low";
-
-            EmbProviderType = "OpenAICompatible";
-            EmbBaseUrl = "https://api.openai.com/v1";
-            EmbApiKey = "";
-            EmbModel = "text-embedding-3-small";
-            EmbDimension = 1536;
-            EmbMaxTokens = 8191;
-            EmbBatchSize = 100;
             EmbDocumentPrefix = "";
             EmbQueryPrefix = "";
         }
+
 
         public async Task TestConnectionAsync(Func<string, string> loc)
         {

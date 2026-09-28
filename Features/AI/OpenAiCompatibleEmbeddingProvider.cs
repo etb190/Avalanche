@@ -151,11 +151,15 @@ namespace Avalanche.Features.AI
                 {
                     if (item.TryGetProperty("embedding", out var embProp) && embProp.ValueKind == JsonValueKind.Array)
                     {
-                        var embedding = new float[Dimension];
+                        // Use the actual vector length returned by the server rather
+                        // than the configured dimension hint, so models whose
+                        // embedding size differs still round-trip consistently
+                        // (query and document vectors must have equal length).
+                        var embedding = new float[embProp.GetArrayLength()];
                         int idx = 0;
                         foreach (var val in embProp.EnumerateArray())
                         {
-                            if (idx < Dimension)
+                            if (idx < embedding.Length)
                                 embedding[idx++] = val.GetSingle();
                         }
                         results.Add(embedding);

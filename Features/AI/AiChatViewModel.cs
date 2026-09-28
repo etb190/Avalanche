@@ -228,11 +228,15 @@ namespace Avalanche.Features.AI
 
                 // No index and not indexing (e.g. indexing failed): surface the
                 // problem to the user instead of silently dropping the message.
+                // Prefer the detailed status (e.g. the underlying exception text).
+                var failureDetail = !string.IsNullOrEmpty(IndexingStatus)
+                    ? IndexingStatus
+                    : _loc("Str_AiChatIndexingFailed");
                 Application.Current.Dispatcher.Invoke(() => Messages.Add(new ChatMessage
                 {
                     MessageRole = ChatMessage.Role.Assistant,
-                    Content = _loc("Str_AiChatIndexingFailed"),
-                    Error = _loc("Str_AiChatIndexingFailed")
+                    Content = failureDetail,
+                    Error = failureDetail
                 }));
                 return;
             }

@@ -151,10 +151,12 @@ namespace Avalanche.Features.AI
     /// </summary>
     public sealed class AiProviderConfig
     {
-        public string ProviderType { get; set; } = "OpenAICompatible";
-        public string BaseUrl { get; set; } = "https://api.openai.com/v1";
-        public string ApiKey { get; set; } = "";
-        public string Model { get; set; } = "gpt-4o-mini";
+        // Ollama's localhost bridge is the only AI backend; gpt-oss:120b-cloud is
+        // the only model (routed to ollama.com through the local bridge).
+        public string ProviderType { get; set; } = "Ollama";
+        public string BaseUrl { get; set; } = "http://localhost:11434/v1";
+        public string ApiKey { get; set; } = "ollama";
+        public string Model { get; set; } = "gpt-oss:120b-cloud";
         public double Temperature { get; set; } = 0.1;
         public int MaxTokens { get; set; } = 4096;  // Increased default for reasoning models
         public double TopP { get; set; } = 1.0;
@@ -169,17 +171,17 @@ namespace Avalanche.Features.AI
     /// </summary>
     public sealed class EmbeddingProviderConfig
     {
-        public string ProviderType { get; set; } = "OpenAICompatible";
-        public string BaseUrl { get; set; } = "https://api.openai.com/v1";
-        public string ApiKey { get; set; } = "";
-        public string Model { get; set; } = "nomic-embed-text";
-        public int Dimension { get; set; } = 768;  // nomic-embed-text is 768
+        public string ProviderType { get; set; } = "Ollama";
+        public string BaseUrl { get; set; } = "http://localhost:11434/v1";
+        public string ApiKey { get; set; } = "ollama";
+        public string Model { get; set; } = "gpt-oss:120b-cloud";
+        public int Dimension { get; set; } = 2880;  // gpt-oss:120b hidden size (hint; actual length parsed from response)
         public int MaxTokens { get; set; } = 8191;
         public int BatchSize { get; set; } = 16;  // Smaller batches for Ollama
         
         // Task prefixes for embedding models that support them (e.g., nomic-embed-text)
-        public string DocumentPrefix { get; set; } = "search_document: ";
-        public string QueryPrefix { get; set; } = "search_query: ";
+        public string DocumentPrefix { get; set; } = "";
+        public string QueryPrefix { get; set; } = "";
         
         // Embedding model info for index compatibility
         public string EmbeddingModelName { get; set; } = "";
