@@ -1534,7 +1534,9 @@
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <Button x:Name="AiChatBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
+                        <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}">
+                            <ctrl:RobotIcon Width="16" Height="16" Foreground="{DynamicResource TextBrush}"/>
+                        </Button>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
@@ -1636,7 +1638,7 @@
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="&#xED62;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_Clear}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                                 <Button x:Name="MiAiChat" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="AiChatBtn_Click">
-                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_AiChat}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
+                                    <StackPanel Orientation="Horizontal"><ctrl:RobotIcon Width="16" Height="16" Margin="4,0,4,0" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/><TextBlock Text="{DynamicResource Str_Lbl_AiChat}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                             </StackPanel>
                             </Grid>
@@ -2739,8 +2741,8 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="16"
-                                       Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ctrl:RobotIcon Grid.Column="0" Width="16" Height="16"
+                                            Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiChatTitle}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
@@ -2788,6 +2790,13 @@
                                                        FontFamily="Segoe MDL2 Assets" FontSize="12"
                                                        Foreground="{DynamicResource TextBrush}"
                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <!-- Robot icon replaces the generic glyph for assistant
+                                                 messages; visibility is flipped by the Assistant
+                                                 DataTrigger below. -->
+                                            <ctrl:RobotIcon x:Name="AvatarRobot" Width="14" Height="14"
+                                                            Visibility="Collapsed"
+                                                            Foreground="{DynamicResource TextBrush}"
+                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                         </Grid>
 
                                         <!-- Message Content (right for assistant, left for user) -->
@@ -2795,10 +2804,28 @@
                                                 Background="{Binding MessageRole, Converter={StaticResource AiRoleToBgConverter}}"
                                                 CornerRadius="8" Padding="10,8" Margin="0,0,0,4"
                                                 BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-                                            <TextBlock Text="{Binding Content}"
-                                                       FontFamily="{DynamicResource UiFont}" FontSize="12"
-                                                       Foreground="{DynamicResource TextBrush}"
-                                                       TextWrapping="Wrap"/>
+                                            <!-- Selectable and copyable message text. Assistant and system
+                                                 messages render markdown (bold/italic/code/headings/
+                                                 lists/links) via AiMarkdown; user messages are verbatim.
+                                                 MaxWidth is capped to the content's natural width so
+                                                 bubbles keep hugging their text. -->
+                                            <RichTextBox x:Name="MessageRichText"
+                                                         IsReadOnly="True" IsDocumentEnabled="True"
+                                                         IsUndoEnabled="False" Background="Transparent"
+                                                         BorderThickness="0" Padding="0"
+                                                         FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                                         Foreground="{DynamicResource TextBrush}"
+                                                         VerticalScrollBarVisibility="Disabled"
+                                                         HorizontalScrollBarVisibility="Disabled"
+                                                         ai:AiMarkdown.Text="{Binding Content}">
+                                                <RichTextBox.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem Header="{DynamicResource Str_Ctx_Copy}"
+                                                                  Command="ApplicationCommands.Copy"
+                                                                  CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                    </ContextMenu>
+                                                </RichTextBox.ContextMenu>
+                                            </RichTextBox>
                                         </Border>
 
                                         <!-- Sources -->
@@ -2874,6 +2901,10 @@
                                                  is Auto-sized so a wrapping bubble there overflows and gets clipped. -->
                                             <Setter TargetName="MessageBorder" Property="HorizontalAlignment" Value="Right"/>
                                             <Setter TargetName="AvatarHost" Property="Margin" Value="8,2,0,0"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding MessageRole}" Value="{x:Static ai:ChatMessage+Role.Assistant}">
+                                            <Setter TargetName="AvatarText" Property="Visibility" Value="Collapsed"/>
+                                            <Setter TargetName="AvatarRobot" Property="Visibility" Value="Visible"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>
