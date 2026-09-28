@@ -2762,28 +2762,29 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Avatar -->
-                                        <Ellipse Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Width="28" Height="28"
+                                        <!-- Avatar (left for assistant, right for user) -->
+                                        <Ellipse x:Name="AvatarEllipse" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Width="28" Height="28"
                                                  VerticalAlignment="Top" Margin="0,2,8,0"
                                                  Fill="{Binding MessageRole, Converter={StaticResource AiRoleToBrushConverter}}">
                                             <Ellipse.Effect>
                                                 <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1" Direction="270" Opacity="0.3"/>
                                             </Ellipse.Effect>
                                         </Ellipse>
-                                        <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                                        <TextBlock x:Name="AvatarText" Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
                                                    Text="{Binding MessageRole, Converter={StaticResource AiRoleToGlyphConverter}}"
                                                    FontFamily="Segoe MDL2 Assets" FontSize="12"
                                                    Foreground="{DynamicResource TextBrush}"
                                                    VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,6,0,0"/>
 
-                                        <!-- Message Content -->
-                                        <Border Grid.Row="0" Grid.Column="1"
+                                        <!-- Message Content (right for assistant, left for user) -->
+                                        <Border x:Name="MessageBorder" Grid.Row="0" Grid.Column="1"
                                                 Background="{Binding MessageRole, Converter={StaticResource AiRoleToBgConverter}}"
                                                 CornerRadius="8" Padding="10,8" Margin="0,0,0,4"
                                                 BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
@@ -2858,6 +2859,14 @@
                                                        Foreground="#FF6B6B" TextWrapping="Wrap"/>
                                         </Border>
                                     </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding MessageRole}" Value="{x:Static ai:ChatMessage+Role.User}">
+                                            <Setter TargetName="AvatarEllipse" Property="Grid.Column" Value="2"/>
+                                            <Setter TargetName="AvatarText" Property="Grid.Column" Value="2"/>
+                                            <Setter TargetName="MessageBorder" Property="Grid.Column" Value="0"/>
+                                            <Setter TargetName="AvatarEllipse" Property="Margin" Value="8,2,0,0"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
