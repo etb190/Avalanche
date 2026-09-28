@@ -178,6 +178,28 @@ namespace Avalanche.Features.AI
             catch (Exception ex)
             {
                 IndexingStatus = $"{_loc("Str_AiChatIndexingFailed")}: {ex.Message}";
+
+                // Never leave a deferred "Preparing document..." bubble stuck:
+                // if a message was queued while indexing, surface the failure
+                // in-chat instead of waiting for an answer that cannot come.
+                var failedInput = _pendingUserInput;
+                var failedPlaceholder = _pendingPlaceholder;
+                _pendingUserInput = null;
+                _pendingPlaceholder = null;
+                if (failedInput is not null)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (failedPlaceholder is not null)
+                            Messages.Remove(failedPlaceholder);
+                        Messages.Add(new ChatMessage
+                        {
+                            MessageRole = ChatMessage.Role.Assistant,
+                            Content = IndexingStatus,
+                            Error = IndexingStatus
+                        });
+                    });
+                }
             }
             finally
             {
@@ -223,6 +245,22 @@ namespace Avalanche.Features.AI
                         IsLoading = true
                     };
                     Application.Current.Dispatcher.Invoke(() => Messages.Add(_pendingPlaceholder));
+
+                    // Indexing can complete while the placeholder is being added
+                    // (the completion callback only consumes input queued before
+                    // it ran) - resolve immediately so this message is never left
+                    // waiting on a placeholder that nothing will replace.
+                    if (_currentIndex != null)
+                    {
+                        var queued = _pendingUserInput;
+                        var queuedPlaceholder = _pendingPlaceholder;
+                        _pendingUserInput = null;
+                        _pendingPlaceholder = null;
+                        if (queuedPlaceholder is not null)
+                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(queuedPlaceholder));
+                        if (!string.IsNullOrEmpty(queued))
+                            _ = GenerateReplyAsync(queued);
+                    }
                     return;
                 }
 
@@ -271,17 +309,30 @@ namespace Avalanche.Features.AI
                 await Task.Delay(100);
             }
 
-            // Add loading assistant message
+            // Add loading assistant message. This is the reply indicator, so
+            // it must not reuse the indexing placeholder text ("Preparing
+            // document...") - during the embedding stall users could not
+            // tell a working reply from a stuck index build.
             var assistantMsg = new ChatMessage
             {
                 MessageRole = ChatMessage.Role.Assistant,
-                Content = _loc("Str_AiChatPreparing"),
+                Content = _loc("Str_AiChatThinking"),
                 IsLoading = true
             };
             Application.Current.Dispatcher.Invoke(() => Messages.Add(assistantMsg));
 
             try
             {
+                // Greetings and other small talk need no document retrieval;
+                // answering them directly avoids replying with "no matching
+                // passages" to a plain "hi".
+                if (IsSmallTalk(input))
+                {
+                    assistantMsg.Content = _loc("Str_AiChatGreeting");
+                    assistantMsg.IsLoading = false;
+                    return;
+                }
+
                 // Retrieve relevant chunks using hybrid search with TopK and evidence budget
                 var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, input, _retrievalOptions.TopK);
 
@@ -445,6 +496,34 @@ namespace Avalanche.Features.AI
             _pendingUserInput = null;
             _pendingPlaceholder = null;
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+        }
+
+        /// <summary>
+        /// Detects greetings and other small talk that need no document retrieval.
+        /// </summary>
+        private static bool IsSmallTalk(string input)
+        {
+            var s = input.Trim().ToLowerInvariant();
+            if (s.Length == 0 || s.Length > 32 || s.Contains('?'))
+                return false;
+
+            var words = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0 || words.Length > 3)
+                return false;
+
+            var cleaned = string.Join(" ",
+                words.Select(w => new string(w.Where(char.IsLetter).ToArray())));
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return false;
+
+            string[] greetings =
+            {
+                "hi", "hello", "hey", "yo", "hiya", "howdy", "sup", "greetings",
+                "good morning", "good afternoon", "good evening", "morning",
+                "hi there", "hello there", "hey there", "how are you",
+                "how is it going", "hows it going", "whats up"
+            };
+            return greetings.Contains(cleaned);
         }
 
         private string MapErrorToFriendlyMessage(Exception ex)

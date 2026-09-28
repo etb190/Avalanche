@@ -2725,6 +2725,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- Header -->
                         <RowDefinition Height="*"/>      <!-- Conversation -->
+                        <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
 
@@ -2880,8 +2881,30 @@
                         </ItemsControl>
                     </ScrollViewer>
 
-                    <!-- Input Area -->
+                    <!-- Indexing status strip: live feedback while the document is being
+                         indexed (extraction progress, embedding availability, failures).
+                         Nothing in the UI was bound to these properties before, so a
+                         slow or stuck index build looked like an endless "Preparing
+                         document..." wait. -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                            Background="{DynamicResource PaneBrush}" Padding="12,5"
+                            Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding IndexingStatus}" TextTrimming="CharacterEllipsis"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                       Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding IndexingProgress, StringFormat={}{0:P0}}"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="8,0,0,0"
+                                       Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Input Area -->
+                    <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Background="{DynamicResource PaneBrush}" CornerRadius="0,0,6,0"
                             Padding="8">
                         <Grid>

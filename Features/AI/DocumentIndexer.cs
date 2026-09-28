@@ -72,10 +72,13 @@ namespace Avalanche.Features.AI
         /// </summary>
         private async Task<DocumentIndex> BuildIndexAsync(string filePath, string documentId, string contentHash, FileInfo fileInfo, IProgress<IndexingProgress>? progress)
         {
-            var allChunks = new List<DocumentChunk>();
-            var (embModelName, embDimension) = _embeddingProvider.GetModelInfo();
+            var chunks = new List<DocumentChunk>();
 
-            bool embedded = false;
+            // Extraction and chunking are synchronous CPU work, so they run in
+            // Task.Run. Embeddings are awaited OUTSIDE it: the previous code
+            // called GenerateEmbeddingsAsync(...).GetAwaiter().GetResult() inside
+            // the Task.Run body (sync-over-async), pinning a thread-pool thread
+            // for the entire embedding phase.
             await Task.Run(() =>
             {
                 using var pdfDoc = PdfDocument.Open(filePath);
@@ -94,34 +97,37 @@ namespace Avalanche.Features.AI
                     }
 
                     // Report progress
-                    if (progress != null && pi % 10 == 0)
+                    if (pi % 10 == 0)
                     {
-                        progress?.Report(new IndexingProgress 
-                        { 
-                            Stage = IndexingStage.Extracting, 
+                        progress?.Report(new IndexingProgress
+                        {
+                            Stage = IndexingStage.Extracting,
                             Progress = (double)pi / pageCount * 0.3,
-                            Message = $"Extracting page {pi + 1}/{pageCount}" 
+                            Message = $"Extracting page {pi + 1}/{pageCount}"
                         });
                     }
                 }
 
                 // Create intelligent chunks
-                var chunks = CreateChunks(allWords, pageCount, pdfDoc);
+                chunks = CreateChunks(allWords, pageCount, pdfDoc);
 
                 // CreateChunk leaves DocumentId empty ("set by caller"). Without
                 // this assignment chunks were persisted under document_id='' and
                 // no search ever matched them again.
                 foreach (var chunk in chunks)
                     chunk.DocumentId = documentId;
+            });
 
-                
-                // Generate embeddings
-                if (progress != null)
-                    progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.5, Message = "Generating embeddings..." });
-
-                // Note: We need to call the async method, but we're in Task.Run
-                // For now, use GetAwaiter().GetResult() but in the future this should be fully async
-                embedded = GenerateEmbeddingsAsync(chunks, _embConfig).GetAwaiter().GetResult();
+            // Generate embeddings (properly async). A cloud chat model such as
+            // gpt-oss:120b-cloud cannot serve the embeddings endpoint; the
+            // provider fails fast (one small probe request) and indexing
+            // continues with a lexical-only index instead of stalling for
+            // minutes per batch.
+            bool embedded = false;
+            if (chunks.Count > 0)
+            {
+                progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.5, Message = "Generating embeddings..." });
+                embedded = await GenerateEmbeddingsAsync(chunks, _embConfig);
                 if (!embedded)
                 {
                     // The configured model cannot serve embeddings (a cloud chat
@@ -130,20 +136,17 @@ namespace Avalanche.Features.AI
                     // retrieval falls back to BM25 search.
                     progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.8, Message = "Embeddings unavailable - using lexical index" });
                 }
-
-                
-                allChunks.AddRange(chunks);
-            });
+            }
 
             var doc = new DocumentIndex
             {
                 DocumentId = documentId,
                 FilePath = filePath,
-                FileSize = new FileInfo(filePath).Length,
-                LastWriteTime = new FileInfo(filePath).LastWriteTimeUtc.Ticks,
+                FileSize = fileInfo.Length,
+                LastWriteTime = fileInfo.LastWriteTimeUtc.Ticks,
                 ContentHash = contentHash,
-                PageCount = new FileInfo(filePath).Length > 0 ? GetPageCount(filePath) : 0,
-                Chunks = allChunks,
+                PageCount = fileInfo.Length > 0 ? GetPageCount(filePath) : 0,
+                Chunks = chunks,
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 EmbeddingModelName = embedded ? _embeddingProvider.GetModelInfo().ModelName : "",
@@ -152,7 +155,6 @@ namespace Avalanche.Features.AI
 
             return doc;
         }
-
         private List<DocumentChunk> LoadChunksForDocument(string documentId)
         {
             // Loads the persisted chunks from SQLite so a cached document keeps

@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Avalanche.Features.AI
@@ -21,6 +22,22 @@ namespace Avalanche.Features.AI
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
+        // Capability probe state. A cloud chat model behind the Ollama bridge
+        // (e.g. gpt-oss:120b-cloud) cannot serve the /embeddings endpoint: some
+        // servers reject the call instantly, others accept it and then stall.
+        // Without the probe every batch of chunks burned up to the full HTTP
+        // timeout, stalling index builds for many minutes while the UI showed
+        // nothing but "Preparing document...". The probe is one tiny request
+        // with a short timeout; a negative result is cached so retrieval
+        // queries fail over to lexical search instantly afterwards.
+        private const int CapabilityUnknown = 0;
+        private const int CapabilityAvailable = 1;
+        private const int CapabilityUnavailable = 2;
+        private int _capability = CapabilityUnknown;
+        private readonly SemaphoreSlim _probeLock = new SemaphoreSlim(1, 1);
+        private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan BatchTimeout = TimeSpan.FromSeconds(30);
+
         public int Dimension { get; }
         public int MaxTokens { get; }
 
@@ -37,6 +54,8 @@ namespace Avalanche.Features.AI
             if (texts == null || texts.Count == 0)
                 return Array.Empty<float[]>();
 
+            await EnsureEmbeddingsAvailableAsync();
+
             var results = new List<float[]>();
 
             // Process in batches
@@ -47,7 +66,8 @@ namespace Avalanche.Features.AI
                 for (int j = i; j < end; j++)
                     batch.Add(texts[j]);
 
-                var batchResults = await GenerateBatchAsync(batch);
+                using var cts = new CancellationTokenSource(BatchTimeout);
+                var batchResults = await GenerateBatchAsync(batch, cts.Token);
                 results.AddRange(batchResults);
             }
 
@@ -58,6 +78,50 @@ namespace Avalanche.Features.AI
         {
             var results = await GenerateEmbeddingsAsync(new[] { text });
             return results.Length > 0 ? results[0] : Array.Empty<float>();
+        }
+
+        /// <summary>
+        /// Probes the embeddings endpoint once with a tiny request and caches
+        /// the outcome. Throws immediately on every later call when the endpoint
+        /// turned out to be unusable, so callers fall back to lexical search
+        /// without paying a network timeout each time.
+        /// </summary>
+        private async Task EnsureEmbeddingsAvailableAsync()
+        {
+            if (Volatile.Read(ref _capability) == CapabilityUnavailable)
+            {
+                throw new HttpRequestException(
+                    $"Embeddings are unavailable for model '{_config.Model}' at {_config.BaseUrl}. " +
+                    "Search falls back to lexical (BM25) mode.");
+            }
+
+            if (Volatile.Read(ref _capability) == CapabilityAvailable)
+                return;
+
+            await _probeLock.WaitAsync();
+            try
+            {
+                if (Volatile.Read(ref _capability) != CapabilityUnknown)
+                    return;
+
+                try
+                {
+                    using var cts = new CancellationTokenSource(ProbeTimeout);
+                    await GenerateBatchAsync(new[] { "capability probe" }, cts.Token);
+                    Volatile.Write(ref _capability, CapabilityAvailable);
+                }
+                catch (Exception ex)
+                {
+                    Volatile.Write(ref _capability, CapabilityUnavailable);
+                    throw new HttpRequestException(
+                        $"Embeddings are unavailable for model '{_config.Model}' at {_config.BaseUrl} " +
+                        $"({ex.Message}). Search falls back to lexical (BM25) mode.", ex);
+                }
+            }
+            finally
+            {
+                _probeLock.Release();
+            }
         }
 
         public async Task<bool> IsAvailableAsync()
@@ -85,7 +149,7 @@ namespace Avalanche.Features.AI
             return (_config.Model, Dimension);
         }
 
-        private async Task<float[][]> GenerateBatchAsync(IReadOnlyList<string> texts)
+        private async Task<float[][]> GenerateBatchAsync(IReadOnlyList<string> texts, CancellationToken cancellationToken)
         {
             // Apply task prefixes if configured
             var prefixedTexts = new List<string>();
@@ -119,8 +183,8 @@ namespace Avalanche.Features.AI
             if (!string.IsNullOrWhiteSpace(_config.ApiKey))
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _config.ApiKey);
 
-            var response = await _httpClient.SendAsync(request);
-            var responseJson = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -177,6 +241,7 @@ namespace Avalanche.Features.AI
         public void Dispose()
         {
             _httpClient?.Dispose();
+            _probeLock?.Dispose();
         }
     }
 }

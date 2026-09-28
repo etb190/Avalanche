@@ -1045,6 +1045,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>
     <sys:String x:Key="Str_AiChatSendTip">Send (Ctrl+Enter)</sys:String>
     <sys:String x:Key="Str_AiChatPreparing">Preparing document...</sys:String>
+    <sys:String x:Key="Str_AiChatThinking">Thinking...</sys:String>
+    <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
