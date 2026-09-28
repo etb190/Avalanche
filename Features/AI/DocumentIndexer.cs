@@ -258,8 +258,11 @@ if (pageGroups.Count > 0)
                 var page = pdfDoc.GetPage(firstPageIndex + 1);
                 pageWidth = (float)page.Width;
                 pageHeight = (float)page.Height;
-                // PageRotationDegrees is an enum - get underlying int value
-                pageRotation = (int)Enum.GetUnderlyingType(page.Rotation.GetType()).GetField("value__").GetValue(page.Rotation);
+                // PdfPig's PageRotationDegrees is a readonly struct exposing int
+                // Value, not an enum. Enum.GetUnderlyingType() here previously
+                // threw "Type provided must be an Enum." on the first chunk of
+                // every index build, so no document could ever be indexed.
+                pageRotation = page.Rotation.Value;
                 var crop = page.CropBox;
                 // CropBox type may vary - use reflection or fallback to page dimensions
                 try
