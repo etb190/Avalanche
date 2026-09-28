@@ -206,13 +206,6 @@ namespace Avalanche.Controls
         }
 
         /// <summary>
-        /// The Highlight tool's current color (default: the classic translucent
-        /// yellow). AI citation highlights reuse it so they look exactly like
-        /// tool highlights, including a user-chosen highlight color.
-        /// </summary>
-        internal System.Windows.Media.Color HighlightToolColor => _highlightColor;
-
-        /// <summary>
         /// Gets the render dimensions (width, height) for a specific page: the
         /// overlay canvas's own coordinate space (longest side -> 2048 in
         /// continuous mode, the DIP box in single/grid mode) - the same space

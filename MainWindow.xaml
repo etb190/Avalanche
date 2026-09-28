@@ -46,50 +46,6 @@
         <ImageBrush x:Key="GrainBrushShared" TileMode="Tile"
                     ViewportUnits="Absolute" Viewport="0,0,256,256" Stretch="None"/>
 
-        <!-- AI source chips ("Page N" under a reply). NOT OutlineButton: that style's
-             rest/hover roles are accent-derived (OutlineBtnBrush), which read as random
-             green/colored buttons inside the chat. This skin stays theme-neutral in every
-             palette: muted border and caption at rest, translucent wash on hover, same
-             silhouette (radius, bevels, padding) as OutlineButton. -->
-        <Style x:Key="AiSourceChip" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Padding" Value="8,2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource MutedTextBrush}"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid>
-                            <Border x:Name="border" Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="{DynamicResource ControlCornerRadius}" Padding="{TemplateBinding Padding}">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <Border x:Name="bevelLight" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelLightBrush}" BorderThickness="{DynamicResource ButtonBevelLightThickness}"/>
-                            <Border x:Name="bevelDark" IsHitTestVisible="False" BorderBrush="{DynamicResource BevelDarkBrush}" BorderThickness="{DynamicResource ButtonBevelDarkThickness}"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
-                                <Setter TargetName="bevelLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
-                                <Setter TargetName="bevelDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.5"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <!-- Settings section subheaders: white with a faint depth shadow (the "Settings" title carries the
              accent color instead). Margin stays inline per row. -->
         <Style x:Key="SettingsSubheader" TargetType="TextBlock">
@@ -2871,29 +2827,6 @@
                                                 </RichTextBox.ContextMenu>
                                             </RichTextBox>
                                         </Border>
-
-                                        <!-- Sources -->
-                                        <ItemsControl Grid.Row="1" Grid.Column="1"
-                                                      ItemsSource="{Binding Sources}"
-                                                      Visibility="{Binding Sources.Count, Converter={StaticResource CountToVisibilityConverter}}"
-                                                      Margin="0,6,0,0">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <WrapPanel Orientation="Horizontal" ItemWidth="320"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="{x:Type ai:AiSource}">
-                                                    <Button Content="{Binding PageNumber, StringFormat='Page {0}'}"
-                                                            Style="{StaticResource AiSourceChip}"
-                                                            FontSize="11" Padding="6,2" Margin="0,0,4,4"
-                                                            VerticalAlignment="Center"
-                                                            ToolTip="{Binding Reason}"
-                                                            Tag="{Binding}"
-                                                            Click="AiSourceButton_Click"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
 
                                         <!-- Loading indicator -->
                                         <Border Grid.Row="1" Grid.Column="1"

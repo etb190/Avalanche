@@ -932,15 +932,6 @@ namespace Avalanche
             AiChatInput.CaretIndex = start + 2;
         }
 
-        private void AiSourceButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not Button btn || btn.Tag is not Features.AI.AiSource source)
-                return;
-
-            // Use the new chunk-based navigation with exact coordinates
-            _aiChatViewModel?.NavigateToSource(source);
-        }
-
         /// <summary>
         /// Navigates to a page and highlights the AI source passage using exact coordinates from retrieval.
         /// </summary>
@@ -989,6 +980,11 @@ namespace Avalanche
             HighlightAiSourceOnPage(chunk, source);
         }
 
+        // AI citation highlights carry their own translucent light blue so they can
+        // never be mistaken for the user's own Highlight tool marks (yellow by default).
+        private static readonly System.Windows.Media.Color AiHighlightColor =
+            System.Windows.Media.Color.FromArgb(88, 100, 180, 255);
+
         // The AI citation highlight currently painted (page + chunk + source), plus the
         // PDF-space line rects it resolved to. The annotation canvas is wiped on every
         // re-render (zoom, scroll, annotation edits); RenderAllAnnotations calls back
@@ -1014,7 +1010,7 @@ namespace Avalanche
 
             // "Exactly like the highlight tool": the cited passage is located among the
             // page's real words and painted as one translucent band per text line, in the
-            // Highlight tool's own color. The page slice of the chunk itself is the primary
+            // citation's own light blue. The page slice of the chunk itself is the primary
             // needle (the whole evidence the citation refers to), the model's quote and
             // prefix/suffix windows are fallbacks for drifted indexes.
             if (DrawAiHighlightForPage(activeViewer, pageIndex, canvas, chunk, source)) return;
@@ -1100,8 +1096,8 @@ namespace Avalanche
         }
 
         /// <summary>
-        /// Fills one translucent rect per PDF-space line rect with the Highlight tool's
-        /// own color. The conversion is the proven search-highlight one (Shell/Search
+        /// Fills one translucent rect per PDF-space line rect with the AI citation's
+        /// own light blue. The conversion is the proven search-highlight one (Shell/Search
         /// AddSearchHighlight): scale by the engine's effective page size against the
         /// canvas render dims, flip Y for PDF's bottom-left origin, and pad 12% of the
         /// band height so the highlight wraps the glyphs without spilling into the next
@@ -1129,7 +1125,7 @@ namespace Avalanche
             double sx = renderW / pdfW;
             double sy = renderH / pdfH;
 
-            var fill = new SolidColorBrush(viewer.HighlightToolColor);
+            var fill = new SolidColorBrush(AiHighlightColor);
             fill.Freeze();
 
             foreach (var (left, bottom, right, top) in pdfRects)
@@ -1155,8 +1151,8 @@ namespace Avalanche
 
         /// <summary>
         /// Fallback for passages the word locator cannot find: the chunk's stored per-page
-        /// bounding box, filled with the same Highlight tool color and converted the same
-        /// way, so even the fallback reads as a highlighter mark rather than a foreign
+        /// bounding box, filled with the same light blue and converted the same
+        /// way, so even the fallback reads as a highlight mark rather than a foreign
         /// selection box.
         /// </summary>
         private bool DrawAiSourceBBoxHighlight(Features.AI.DocumentChunk chunk, Controls.PdfViewer viewer, int pageIndex, Canvas canvas)
