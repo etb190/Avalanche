@@ -1062,7 +1062,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
-    <sys:String x:Key="Str_AiChatNoMatches">No relevant passages found in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} — Show cited passage</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
