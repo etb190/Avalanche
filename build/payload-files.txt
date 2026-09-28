@@ -89,6 +89,11 @@ Avalanche.App.exe
 Avalanche.App.runtimeconfig.json
 Avalanche.Engine.dll
 Avalanche.Engine.xml
+e_sqlite3.dll
+Microsoft.Data.Sqlite.dll
+SQLitePCLRaw.batteries_v2.dll
+SQLitePCLRaw.core.dll
+SQLitePCLRaw.provider.e_sqlite3.dll
 ko/PresentationCore.resources.dll
 ko/PresentationFramework.resources.dll
 ko/PresentationUI.resources.dll
