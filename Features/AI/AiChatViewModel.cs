@@ -365,17 +365,6 @@ namespace Avalanche.Features.AI
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
         }
 
-        /// <summary>
-        /// Clears the current conversation and index (for document switch).
-        /// </summary>
-        public void ClearForDocumentSwitch()
-        {
-            _currentIndex = null;
-            _currentFilePath = "";
-            _currentDocumentId = "";
-            Application.Current.Dispatcher.Invoke(() => Messages.Clear());
-        }
-
         private string MapErrorToFriendlyMessage(Exception ex)
         {
             var message = ex.Message?.ToLowerInvariant() ?? "";

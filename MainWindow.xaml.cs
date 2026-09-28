@@ -926,21 +926,6 @@ namespace Avalanche
 
             // Clear any existing AI highlight
             ClearAiSourceHighlight();
-        }
-
-        /// <summary>
-        /// Navigates to a page and highlights the AI source passage using exact coordinates from retrieval.
-        /// </summary>
-        internal void NavigateToAiSource(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
-        {
-            if (_doc is null || chunk == null) return;
-
-            int pageIndex = chunk.PageIndex;
-            if (pageIndex < 0 || pageIndex >= _doc.PageCount)
-                return;
-
-            // Clear any existing AI highlight
-            ClearAiSourceHighlight();
 
             // Navigate to the page
             PageList.SelectedIndex = pageIndex;
