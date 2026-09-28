@@ -6,7 +6,7 @@ namespace Avalanche.Features.AI
     /// <summary>
     /// Interface for AI providers.
     /// </summary>
-    internal interface IAiProvider
+    public interface IAiProvider
     {
         /// <summary>
         /// Gets a chat completion with structured output.
