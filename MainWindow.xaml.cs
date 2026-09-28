@@ -857,7 +857,7 @@ namespace Avalanche
             // Initialize for current document
             if (_currentFile is not null && _aiChatViewModel is not null)
             {
-                _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile);
+                _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile); // fire-and-forget, UI stays responsive
             }
 
             AiChatOverlay.Visibility = Visibility.Visible;

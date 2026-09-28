@@ -28,7 +28,6 @@ namespace Avalanche.Features.AI
         private bool _isProcessing;
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
-        public event Action? RequestClose;
 
         public bool IsIndexing
         {
