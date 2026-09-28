@@ -972,7 +972,7 @@ namespace Avalanche
             if (activeViewer is null) return;
 
             var canvas = activeViewer.GetCanvasForPage(pageIndex);
-            if (canvas is null)
+            if (canvas is null || activeViewer.GetRenderDimensions(pageIndex) is null)
             {
                 if (attempt < maxAttempts)
                 {
@@ -989,6 +989,15 @@ namespace Avalanche
             HighlightAiSourceOnPage(chunk, source);
         }
 
+        // The AI citation highlight currently painted (page + chunk + source), plus the
+        // PDF-space line rects it resolved to. The annotation canvas is wiped on every
+        // re-render (zoom, scroll, annotation edits); RenderAllAnnotations calls back
+        // through ReapplyAiSourceHighlight so the highlight survives exactly like the
+        // search highlights and text selection quads do. The rect cache keeps those
+        // repaints free of fresh file I/O.
+        private (int PageIndex, Features.AI.DocumentChunk Chunk, Features.AI.AiSource? Source)? _aiHighlight;
+        private List<(double Left, double Bottom, double Right, double Top)>? _aiHighlightRects;
+
         private void HighlightAiSourceOnPage(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
         {
             if (_doc is null) return;
@@ -1000,296 +1009,186 @@ namespace Avalanche
             var canvas = activeViewer.GetCanvasForPage(pageIndex);
             if (canvas is null) return;
 
-            // "Exactly like the highlight tool": resolve the cited passage to the
-            // page's real text lines (the TextRunService geometry text selection
-            // and the highlight tool paint from) and fill one rect per line with
-            // the tool's own highlight color. The quote the model returned is
-            // matched first, then the full chunk text, so the highlight covers
-            // exactly what the answer's explanation refers to instead of a loose
-            // rectangle around the whole chunk.
-            var rects = ResolveAiHighlightLines(activeViewer, pageIndex, source.Quote)
-                     ?? ResolveAiHighlightLines(activeViewer, pageIndex, chunk.Text);
-            if (rects is not null)
-            {
-                DrawAiSourceHighlightLines(canvas, rects, activeViewer);
-                return;
-            }
+            _aiHighlight = (pageIndex, chunk, source);
+            _aiHighlightRects = null;
 
-            // Unmatchable passage (scanned page, heavily reworded quote, ...):
-            // fall back to the chunk's stored bounding box, in the tool color.
-            DrawAiSourceBBoxHighlight(chunk, activeViewer, pageIndex, canvas);
+            // "Exactly like the highlight tool": the cited passage is located among the
+            // page's real words and painted as one translucent band per text line, in the
+            // Highlight tool's own color. The page slice of the chunk itself is the primary
+            // needle (the whole evidence the citation refers to), the model's quote and
+            // prefix/suffix windows are fallbacks for drifted indexes.
+            if (DrawAiHighlightForPage(activeViewer, pageIndex, canvas, chunk, source)) return;
+
+            // Nothing matchable (stale index, scanned page): paint the chunk's stored
+            // bounding box rather than giving up, so the user still lands on the region.
+            if (DrawAiSourceBBoxHighlight(chunk, activeViewer, pageIndex, canvas)) return;
+
+            SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
         }
 
         /// <summary>
-        /// Locates 'needle' on the page and returns one canvas-space rect per
-        /// text line it touches, or null when the text cannot be found. Match
-        /// passes go strict to loose - case/whitespace-insensitive, then
-        /// punctuation-insensitive - so a model-quoted passage still lands even
-        /// when it was transcribed with different spacing or quote marks.
+        /// Resolves and paints the cited passage for one page. Candidates are tried most
+        /// faithful first inside SearchService.LocatePassageInFile (one PdfPig open): the
+        /// chunk's own words for THIS page, the model's quote, then 40-word prefix/suffix
+        /// windows of both for indexes that drifted from the file on disk.
         /// </summary>
-        private static List<Rect>? ResolveAiHighlightLines(Controls.PdfViewer viewer, int pageIndex, string? needle)
+        private bool DrawAiHighlightForPage(Controls.PdfViewer viewer, int pageIndex, Canvas canvas,
+            Features.AI.DocumentChunk chunk, Features.AI.AiSource? source)
         {
-            var runs = viewer.GetTextRunsForPage(pageIndex);
-            if (runs is null || runs.Chars.Count == 0 || string.IsNullOrWhiteSpace(needle))
-                return null;
+            // Already resolved earlier (re-render repaint): reuse the located rects.
+            if (_aiHighlightRects is { Count: > 0 })
+                return TryDrawAiHighlightRects(canvas, _aiHighlightRects, viewer, pageIndex, chunk);
 
-            for (int mode = 0; mode < 2; mode++)
-            {
-                bool lettersDigitsOnly = mode == 1;
-                var (text, map) = FlattenRunsForAiHighlight(runs, lettersDigitsOnly);
-                var probe = AiSquashForHighlight(needle, lettersDigitsOnly);
-                // Too short to trust: a 2-3 char probe matches random spots.
-                if (probe.Length < 4) continue;
-                int hit = text.IndexOf(probe, System.StringComparison.Ordinal);
-                if (hit < 0) continue;
+            if (string.IsNullOrEmpty(_currentFile)) return false;
 
-                // Map the match back to the flattened char indices. Map entries
-                // are -1 for inserted separators; chars arrive in reading order,
-                // so the last mapped entry is the match's final character.
-                int charStart = -1, charEnd = -1;
-                for (int i = hit; i < hit + probe.Length; i++)
-                {
-                    int ci = map[i];
-                    if (ci < 0) continue;
-                    if (charStart < 0) charStart = ci;
-                    charEnd = ci;
-                }
-                if (charStart < 0 || charEnd < charStart) continue;
+            string? slice = ChunkPageSliceForPage(chunk, pageIndex);
+            string? quote = string.IsNullOrWhiteSpace(source?.Quote) ? null : source!.Quote;
 
-                if (viewer.GetRenderDimensions(pageIndex) is not { } rd) continue;
+            var match = Services.SearchService.LocatePassageInFile(
+                _currentFile!, pageIndex, CandidateAiNeedles(slice, quote));
+            if (match is null || match.LineRects.Count == 0) return false;
 
-                // One rect per touched line, exactly like SelectionLineRectsForPage:
-                // the line's vertical band, the matched chars' horizontal extent,
-                // 12% breathing room, canvas render-dim space.
-                var rects = new List<Rect>();
-                double sx = rd.Width / runs.PdfWidth;
-                double sy = rd.Height / runs.PdfHeight;
+            _aiHighlightRects = match.LineRects;
+            return TryDrawAiHighlightRects(canvas, match.LineRects, viewer, pageIndex, chunk);
+        }
 
-                int i2 = charStart;
-                while (i2 <= charEnd)
-                {
-                    int line = runs.Chars[i2].Line;
-                    var rl = runs.Lines[line];
-                    double left = double.MaxValue, right = double.MinValue;
-                    int j = i2;
-                    while (j <= charEnd && runs.Chars[j].Line == line)
-                    {
-                        left = Math.Min(left, runs.Chars[j].Left);
-                        right = Math.Max(right, runs.Chars[j].Right);
-                        j++;
-                    }
-                    double h = (rl.Top - rl.Bottom) * sy;
-                    double pad = h * 0.12;
-                    rects.Add(new Rect(left * sx, rd.Height - rl.Top * sy - pad,
-                                       Math.Max((right - left) * sx, 2),
-                                       Math.Max(h + pad * 2, 2)));
-                    i2 = j;
-                }
-                return rects;
-            }
-            return null;
+        /// <summary>Candidate needles for one page, most faithful first.</summary>
+        private static IEnumerable<string> CandidateAiNeedles(string? slice, string? quote)
+        {
+            foreach (var needle in new[] { slice, quote })
+                if (!string.IsNullOrWhiteSpace(needle)) yield return needle;
+
+            foreach (var window in new[] { NeedleWindow(slice, true), NeedleWindow(slice, false),
+                                            NeedleWindow(quote, true), NeedleWindow(quote, false) })
+                if (!string.IsNullOrWhiteSpace(window)) yield return window;
+        }
+
+        /// <summary>First (head) or last (tail) 40 words of a needle - null when the needle
+        /// is short enough to have been tried whole.</summary>
+        private static string? NeedleWindow(string? text, bool head)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            const int maxWords = 40;
+            if (words.Length <= maxWords) return null;
+            return head
+                ? string.Join(' ', words.Take(maxWords))
+                : string.Join(' ', words.Skip(words.Length - maxWords));
         }
 
         /// <summary>
-        /// Flattens a page's reading-order chars into one lowercase string
-        /// (spaces between words, newlines between lines; punctuation dropped
-        /// in letters-digits mode), keeping a map from string index back to the
-        /// char index (-1 for separators). The same text TextForRange builds.
+        /// The chunk's text restricted to one page. CreateChunk stores an inclusive
+        /// chunk-relative [startWord, endWord] per page next to the word-joined chunk text,
+        /// so splitting the text on whitespace recovers the exact words this chunk holds
+        /// on the given page. A whole-chunk needle could never match a single page when a
+        /// chunk spans pages - the slice is what the citation actually refers to here.
+        /// Null for legacy indexes that predate WordRanges.
         /// </summary>
-        private static (string Text, List<int> Map) FlattenRunsForAiHighlight(
-            Avalanche.Services.PageTextRuns runs, bool lettersDigitsOnly)
+        private static string? ChunkPageSliceForPage(Features.AI.DocumentChunk chunk, int pageIndex)
         {
-            var sb = new System.Text.StringBuilder(runs.Chars.Count + 8);
-            var map = new List<int>(runs.Chars.Count + 8);
-            int lastWord = -1, lastLine = -1;
-            for (int i = 0; i < runs.Chars.Count; i++)
-            {
-                var c = runs.Chars[i];
-                bool gap = lastLine >= 0 && c.Line != lastLine;
-                if (!gap) gap = lastWord >= 0 && c.Word != lastWord;
-                if (gap && !lettersDigitsOnly) { sb.Append(' '); map.Add(-1); }
-                foreach (char ch in c.Value)
-                {
-                    if (lettersDigitsOnly && !char.IsLetterOrDigit(ch)) continue;
-                    sb.Append(char.ToLowerInvariant(ch));
-                    map.Add(i);
-                }
-                lastWord = c.Word;
-                lastLine = c.Line;
-            }
-            return (sb.ToString(), map);
-        }
+            int idx = chunk.PageIndices.IndexOf(pageIndex);
+            if (idx < 0 || idx >= chunk.WordRanges.Count) return null;
+            var range = chunk.WordRanges[idx];
+            if (range is null || range.Length < 2 || range[0] < 0) return null;
 
-        /// <summary>Squashes a needle the same way FlattenRunsForAiHighlight squashes
-        /// the page: lowercase, whitespace collapsed (or dropped), so both sides of
-        /// the comparison see identical normalization.</summary>
-        private static string AiSquashForHighlight(string text, bool lettersDigitsOnly)
-        {
-            var sb = new System.Text.StringBuilder(text.Length);
-            bool pendingSpace = false;
-            foreach (char ch in text)
-            {
-                if (char.IsWhiteSpace(ch)) { pendingSpace = sb.Length > 0; continue; }
-                if (lettersDigitsOnly && !char.IsLetterOrDigit(ch)) continue;
-                // In letters-digits mode the haystack drops separators entirely, so
-                // the needle must drop them too - a space kept here (e.g. before a
-                // dropped quote mark or bracket) could never match.
-                if (pendingSpace && !lettersDigitsOnly) sb.Append(' ');
-                pendingSpace = false;
-                sb.Append(char.ToLowerInvariant(ch));
-            }
-            return sb.ToString();
+            var words = chunk.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) return null;
+            int start = range[0];
+            int end = Math.Min(range[1], words.Length - 1);
+            if (end < start || start >= words.Length) return null;
+            return string.Join(' ', words[start..(end + 1)]);
         }
 
         /// <summary>
-        /// Paints the cited passage: one translucent rect per text line, filled
-        /// with the Highlight tool's own color (its default is the classic
-        /// translucent yellow). An AI citation lights up the text itself exactly
-        /// like a user-drawn highlight, without adding annotations to the
-        /// document. Cleared by ClearAiSourceHighlight via the shared tag.
+        /// Fills one translucent rect per PDF-space line rect with the Highlight tool's
+        /// own color. The conversion is the proven search-highlight one (Shell/Search
+        /// AddSearchHighlight): scale by the engine's effective page size against the
+        /// canvas render dims, flip Y for PDF's bottom-left origin, and pad 12% of the
+        /// band height so the highlight wraps the glyphs without spilling into the next
+        /// line (the selection quads use the same padding).
         /// </summary>
-        private void DrawAiSourceHighlightLines(Canvas canvas, List<Rect> rects, Controls.PdfViewer viewer)
+        private bool TryDrawAiHighlightRects(Canvas canvas,
+            List<(double Left, double Bottom, double Right, double Top)> pdfRects,
+            Controls.PdfViewer viewer, int pageIndex, Features.AI.DocumentChunk chunk)
         {
-            var fill = new SolidColorBrush(viewer.HighlightToolColor);
-            fill.Freeze();
-            foreach (var r in rects)
+            var rd = viewer.GetRenderDimensions(pageIndex);
+            if (rd is null) return false;
+
+            double pdfW = 0, pdfH = 0;
+            try
             {
-                var rect = new Rectangle
-                {
-                    Fill = fill,
-                    Width = r.Width,
-                    Height = r.Height,
-                    IsHitTestVisible = false,
-                    Tag = "AiSourceHighlight"
-                };
-                Canvas.SetLeft(rect, r.X);
-                Canvas.SetTop(rect, r.Y);
-                canvas.Children.Add(rect);
+                var pageInfo = EnsureEngineDocumentSession().Pages[pageIndex];
+                pdfW = pageInfo.Width;
+                pdfH = pageInfo.Height;
             }
-        }
+            catch { /* engine session not ready yet - fall back to the chunk's cache */ }
+            if (pdfW <= 0 || pdfH <= 0) { pdfW = chunk.PageWidth; pdfH = chunk.PageHeight; }
+            if (pdfW <= 0 || pdfH <= 0) return false;
 
-        /// <summary>
-        /// Fallback for passages the text matcher cannot find (scanned pages,
-        /// reworded quotes): the chunk's stored PDF bounding box, filled with the
-        /// Highlight tool color instead of the old ad-hoc blue.
-        /// </summary>
-        private void DrawAiSourceBBoxHighlight(Features.AI.DocumentChunk chunk, Controls.PdfViewer viewer, int pageIndex, Canvas canvas)
-        {
-            var coords = chunk.PdfCoordinates;
-            int pageIdxInChunk = chunk.PageIndices.IndexOf(pageIndex);
-            if (coords == null || coords.Count == 0
-                || pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count
-                || coords[pageIdxInChunk] is not { } pdfCoords || pdfCoords.Length < 4)
-            {
-                SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
-                return;
-            }
-
-            DrawAiSourceHighlight(canvas, pdfCoords[0], pdfCoords[1], pdfCoords[2], pdfCoords[3],
-                                  viewer, pageIndex, chunk);
-        }
-
-        private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer, int pageIndex, Features.AI.DocumentChunk chunk)
-        {
-            // Get render dimensions for coordinate conversion
-            var renderDims = viewer.GetRenderDimensions(pageIndex);
-            if (!renderDims.HasValue) return;
-
-            var (renderW, renderH) = renderDims.Value;
-
-            // Use cached page info from chunk
-            double pdfW = chunk.PageWidth;
-            double pdfH = chunk.PageHeight;
-            int pageRotation = chunk.PageRotation;
-            float[]? cropBox = chunk.CropBox;
-
-            if (pdfW <= 0 || pdfH <= 0) return;
-
-            // Handle page rotation and CropBox
+            var (renderW, renderH) = rd.Value;
             double sx = renderW / pdfW;
             double sy = renderH / pdfH;
 
-            // Adjust coordinates for CropBox if present
-            if (cropBox != null && cropBox.Length == 4)
+            var fill = new SolidColorBrush(viewer.HighlightToolColor);
+            fill.Freeze();
+
+            foreach (var (left, bottom, right, top) in pdfRects)
             {
-                double cropLeft = cropBox[0];
-                double cropBottom = cropBox[1];
-                double cropRight = cropBox[2];
-                double cropTop = cropBox[3];
-                
-                // CropBox is in PDF space, adjust coordinates
-                left = left - cropLeft;
-                right = right - cropLeft;
-                bottom = bottom - cropBottom;
-                top = top - cropBottom;
-                
-                // Adjust scale for CropBox
-                double cropW = cropRight - cropLeft;
-                double cropH = cropTop - cropBottom;
-                if (cropW > 0 && cropH > 0)
+                double cw = (right - left) * sx;
+                double ch = (top - bottom) * sy;
+                if (cw <= 0 || ch <= 0) continue;
+                double pad = ch * 0.12;
+                var rect = new Rectangle
                 {
-                    sx = renderW / cropW;
-                    sy = renderH / cropH;
-                }
+                    Fill = fill,
+                    Width = cw + pad * 2,
+                    Height = ch + pad * 2,
+                    IsHitTestVisible = false,
+                    Tag = "AiSourceHighlight"
+                };
+                Canvas.SetLeft(rect, left * sx - pad);
+                Canvas.SetTop(rect, renderH - (top * sy) - pad);
+                canvas.Children.Add(rect);
             }
-
-            // Handle rotation
-            if (pageRotation != 0)
-            {
-                // Rotation is in degrees (0, 90, 180, 270)
-                // The coordinates need to be transformed
-                double tempCx = left;
-                double tempCy = bottom;
-                
-                switch (pageRotation)
-                {
-                    case 90:
-                        left = tempCy;
-                        bottom = pdfW - tempCx - (right - left);
-                        break;
-                    case 180:
-                        left = pdfW - tempCx - (right - left);
-                        bottom = pdfH - tempCy - (top - bottom);
-                        break;
-                    case 270:
-                        left = pdfH - tempCy - (top - bottom);
-                        bottom = tempCx;
-                        break;
-                }
-            }
-
-            if (pdfW <= 0 || pdfH <= 0) return;
-
-            double cw = (right - left) * sx;
-            double ch = (top - bottom) * sy;
-            double pad = ch * 0.25;
-
-            double cx = left * sx - pad;
-            double cy = renderH - (top * sy) - pad;
-
-            // ONE rectangle only - combine all lines into a single bounding rectangle.
-            // Highlight-tool color, not the old ad-hoc blue: even the fallback should
-            // read as the app's highlighter, not a foreign selection box.
-            var rect = new Rectangle
-            {
-                Fill = new SolidColorBrush(viewer.HighlightToolColor),
-                Stroke = new SolidColorBrush(viewer.HighlightToolColor),
-                StrokeThickness = 2,
-                RadiusX = 4,
-                RadiusY = 4,
-                Width = Math.Max(cw + pad * 2, 20),
-                Height = Math.Max(ch + pad * 2, 20),
-                IsHitTestVisible = false,
-                Tag = "AiSourceHighlight"
-            };
-
-            Canvas.SetLeft(rect, cx);
-            Canvas.SetTop(rect, cy);
-            canvas.Children.Add(rect);
+            return true;
         }
 
+        /// <summary>
+        /// Fallback for passages the word locator cannot find: the chunk's stored per-page
+        /// bounding box, filled with the same Highlight tool color and converted the same
+        /// way, so even the fallback reads as a highlighter mark rather than a foreign
+        /// selection box.
+        /// </summary>
+        private bool DrawAiSourceBBoxHighlight(Features.AI.DocumentChunk chunk, Controls.PdfViewer viewer, int pageIndex, Canvas canvas)
+        {
+            var coords = chunk.PdfCoordinates;
+            int pageIdxInChunk = chunk.PageIndices.IndexOf(pageIndex);
+            if (coords == null || pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count
+                || coords[pageIdxInChunk] is not { } pdfCoords || pdfCoords.Length < 4)
+                return false;
+
+            var pdfRect = new List<(double Left, double Bottom, double Right, double Top)>
+                { ((double)pdfCoords[0], (double)pdfCoords[1], (double)pdfCoords[2], (double)pdfCoords[3]) };
+            return TryDrawAiHighlightRects(canvas, pdfRect, viewer, pageIndex, chunk);
+        }
+
+        /// <summary>
+        /// Called by the viewer at the tail of every annotation re-render: repaints this
+        /// citation's line highlights onto the freshly cleared canvas, or nothing when the
+        /// re-rendered page is not the highlighted one.
+        /// </summary>
+        private void ReapplyAiSourceHighlight(int page, Canvas canvas)
+        {
+            if (_aiHighlight is not { } hl || hl.PageIndex != page) return;
+            var viewer = ActiveViewer;
+            if (viewer is null) return;
+            if (DrawAiHighlightForPage(viewer, page, canvas, hl.Chunk, hl.Source)) return;
+            DrawAiSourceBBoxHighlight(hl.Chunk, viewer, page, canvas);
+        }
         private void ClearAiSourceHighlight()
         {
+            _aiHighlight = null;
+            _aiHighlightRects = null;
             foreach (var canvas in ActiveViewer?.GetAllCanvases() ?? Enumerable.Empty<Canvas>())
             {
                 var toRemove = canvas.Children.OfType<Rectangle>()

@@ -51,6 +51,8 @@ namespace Avalanche
         bool IViewerHost.StampHitTest(int page, Point position) => StampHitTest(page, position);
         void IViewerHost.ApplySearchHighlights(int page, System.Windows.Controls.Canvas canvas)
             => ApplySearchHighlights(page, canvas);
+        void IViewerHost.ReapplyAiSourceHighlight(int page, System.Windows.Controls.Canvas canvas)
+            => ReapplyAiSourceHighlight(page, canvas);
         void IViewerHost.HighlightSearchResultsOnCurrentPage() => HighlightSearchResultsOnCurrentPage();
         void IViewerHost.ShowTextSettings() => ShowTextSettings();
         void IViewerHost.HideTextSettings() => HideTextSettings();

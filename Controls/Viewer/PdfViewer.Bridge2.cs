@@ -172,6 +172,7 @@ namespace Avalanche.Controls
         private void OpenStampTool() => Host!.OpenStampTool();
         private bool StampHitTest(int page, Point pos) => Host!.StampHitTest(page, pos);
         private void ApplySearchHighlights(int page, Canvas canvas) => Host!.ApplySearchHighlights(page, canvas);
+        private void ReapplyAiSourceHighlight(int page, Canvas canvas) => Host!.ReapplyAiSourceHighlight(page, canvas);
         private void HighlightSearchResultsOnCurrentPage() => Host!.HighlightSearchResultsOnCurrentPage();
         private void ShowTextSettings() => Host!.ShowTextSettings();
         private void HideTextSettings() => Host!.HideTextSettings();

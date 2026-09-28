@@ -83,6 +83,7 @@ namespace Avalanche.Features
         void OpenStampTool();
         bool StampHitTest(int page, Point position);
         void ApplySearchHighlights(int page, Canvas canvas);
+        void ReapplyAiSourceHighlight(int page, Canvas canvas);
         void HighlightSearchResultsOnCurrentPage();
         void ShowTextSettings();
         void HideTextSettings();

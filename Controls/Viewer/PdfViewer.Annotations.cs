@@ -272,6 +272,9 @@ namespace Avalanche.Controls
             ApplySearchHighlights(pageIndex, _activeCanvas);
             // Flowing text selection quads (#127) live here too - same deal, repaint last.
             ApplyTextSelectionQuads(pageIndex, _activeCanvas);
+            // AI citation highlights live here too - same deal, repaint last so they
+            // survive re-renders and continuous scrolling exactly like the highlights above.
+            ReapplyAiSourceHighlight(pageIndex, _activeCanvas);
         }
 
         // WPF rejects NaN and infinity for FrameworkElement dimensions. Keep malformed persisted
