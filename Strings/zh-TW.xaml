@@ -1088,4 +1088,8 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_AiSettingsOpenAIPreset">Use OpenAI Preset</sys:String>
     <sys:String x:Key="Str_AiSettingsCloudWarning">This model sends your questions and document passages to the cloud (ollama.com). Documents leave this computer.</sys:String>
 
+    <!-- ── AI Test Strings ─────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiTestChatPrompt">Reply with just 'OK'</sys:String>
+    <sys:String x:Key="Str_AiTestChatContent">test</sys:String>
+
 </ResourceDictionary>

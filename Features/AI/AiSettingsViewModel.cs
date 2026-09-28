@@ -293,7 +293,7 @@ namespace Avalanche.Features.AI
 
                 // Test 2: Chat model
                 ConnectionStatus = loc("Str_AiTestChatModel");
-                bool chatOk = await TestChatModelAsync(genConfig);
+                bool chatOk = await TestChatModelAsync(genConfig, loc);
                 results.AppendLine(chatOk ? "✓ Chat model responds" : "✗ Chat model failed");
                 if (!chatOk) allOk = false;
 
@@ -331,14 +331,14 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private async Task<bool> TestChatModelAsync(AiProviderConfig config)
+        private async Task<bool> TestChatModelAsync(AiProviderConfig config, Func<string, string> loc)
         {
             try
             {
                 var provider = AiProviderFactory.CreateProvider(config.ProviderType);
                 var response = await provider.GetChatCompletionAsync(
-                    "Reply with just 'OK'",
-                    new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = "test" } },
+                    loc("Str_AiTestChatPrompt"),
+                    new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = loc("Str_AiTestChatContent") } },
                     new List<DocumentChunk>(),
                     "",
                     config);

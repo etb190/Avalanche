@@ -1075,6 +1075,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiTestSomeFailed">Some tests failed</sys:String>
     <sys:String x:Key="Str_AiTestError">Connection test failed</sys:String>
 
+    <!-- ── AI Test Strings ─────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiTestChatPrompt">Reply with just 'OK'</sys:String>
+    <sys:String x:Key="Str_AiTestChatContent">test</sys:String>
+
     <!-- ── AI Error Messages ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama isn't running. Start the Ollama app and try again.</sys:String>
     <sys:String x:Key="Str_AiErrorNotSignedIn">Not signed in to Ollama cloud. Run: ollama signin</sys:String>
