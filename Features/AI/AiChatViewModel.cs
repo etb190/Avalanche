@@ -213,7 +213,7 @@ namespace Avalanche.Features.AI
                 var response = await _aiProvider.GetChatCompletionAsync(
                     systemPrompt,
                     GetRecentMessages(),
-                    retrieved,
+                    retrieved.ConvertAll(r => r.Chunk),
                     sourceRefs,
                     _genConfig);
 
