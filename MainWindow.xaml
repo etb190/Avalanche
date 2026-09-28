@@ -2719,7 +2719,7 @@
                     CornerRadius="{DynamicResource RadCard}"
                     Effect="{DynamicResource PaneShadowEffect}">
                 <Border.Clip>
-                    <RectangleGeometry Rect="0,0,380,10000" RadiusX="{DynamicResource RadCard}" RadiusY="{DynamicResource RadCard}"/>
+                    <RectangleGeometry Rect="0,0,380,10000" RadiusX="6" RadiusY="6"/>
                 </Border.Clip>
                 <Grid>
                     <Grid.RowDefinitions>
