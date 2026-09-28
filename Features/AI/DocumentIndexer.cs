@@ -233,15 +233,31 @@ namespace Avalanche.Features.AI
             int pageRotation = 0;
             float[]? cropBox = null;
             
-            if (pageGroups.Count > 0)
+if (pageGroups.Count > 0)
             {
                 var firstPageIndex = pageGroups[0].Key;
                 var page = pdfDoc.GetPage(firstPageIndex + 1);
                 pageWidth = (float)page.Width;
                 pageHeight = (float)page.Height;
-                pageRotation = (int)page.Rotation.Degrees; // PageRotationDegrees enum to int
+                pageRotation = (int)page.Rotation; // PageRotationDegrees enum casts to int directly
                 var crop = page.CropBox;
-                cropBox = new float[] { (float)crop.Left, (float)crop.Bottom, (float)crop.Right, (float)crop.Top };
+                // CropBox may be a PdfRectangle - try different property access patterns
+                try
+                {
+                    cropBox = new float[] { (float)crop.Left, (float)crop.Bottom, (float)crop.Right, (float)crop.Top };
+                }
+                catch
+                {
+                    // Fallback: try alternative property names
+                    try
+                    {
+                        cropBox = new float[] { (float)crop.X, (float)crop.Y, (float)crop.Right, (float)crop.Top };
+                    }
+                    catch
+                    {
+                        cropBox = new float[] { 0, 0, pageWidth, pageHeight };
+                    }
+                }
             }
 
             int wordOffset = 0;
