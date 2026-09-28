@@ -2753,7 +2753,7 @@
                     <!-- Conversation Area -->
                     <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                  Background="Transparent" FocusVisualStyle="{x:Null}"
+                                  Background="{DynamicResource SidebarPaneBrush}" FocusVisualStyle="{x:Null}"
                                   Padding="8,8,8,0">
                         <ItemsControl x:Name="AiChatMessages" ItemsSource="{Binding Messages}">
                             <ItemsControl.ItemTemplate>
