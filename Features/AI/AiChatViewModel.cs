@@ -17,11 +17,12 @@ namespace Avalanche.Features.AI
     /// </summary>
     public sealed class AiChatViewModel : INotifyPropertyChanged
     {
-        private readonly IAiProvider _aiProvider;
+        private IAiProvider? _aiProvider;
+        private string _aiProviderType = "";
         private readonly HybridRetriever _retriever;
         private readonly VectorIndex _vectorIndex;
         private readonly DocumentIndexer _indexer;
-        private readonly AiProviderConfig _genConfig;
+        private readonly Func<AiProviderConfig> _configProvider;
         private readonly MainWindow _mainWindow;
         private readonly Func<string, string> _loc;
         private readonly RetrievalOptions _retrievalOptions;
@@ -29,6 +30,10 @@ namespace Avalanche.Features.AI
         private DocumentIndex? _currentIndex;
         private string _currentDocumentId = "";
         private string _currentFilePath = "";
+        /// <summary>Bumped on every document switch so a still-running
+        /// index build for the previous document can never commit stale
+        /// state over the current one.</summary>
+        private int _initGeneration;
         private bool _isIndexing;
         private string _indexingStatus = "";
         private double _indexingProgress = 0.0;
@@ -75,11 +80,11 @@ namespace Avalanche.Features.AI
 
         public AiChatViewModel(
             MainWindow mainWindow, 
-            AiProviderConfig genConfig, 
+            Func<AiProviderConfig> configProvider, 
             Func<string, string> loc)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
-            _genConfig = genConfig ?? throw new ArgumentNullException(nameof(genConfig));
+            _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
             _loc = loc ?? (k => k);
 
             _retrievalOptions = new RetrievalOptions
@@ -91,7 +96,6 @@ namespace Avalanche.Features.AI
                 MinScore = 0.15f
             };
 
-            _aiProvider = AiProviderFactory.CreateProvider(genConfig.ProviderType);
             _vectorIndex = new VectorIndex(GetIndexDbPath());
             _retriever = new HybridRetriever(_vectorIndex, _retrievalOptions);
             _indexer = new DocumentIndexer(_vectorIndex);
@@ -99,6 +103,22 @@ namespace Avalanche.Features.AI
             // Inline citation footnotes inside answer bubbles route their
             // clicks through this bridge into this conversation's navigation.
             AiMarkdown.CitationClicked += OnInlineCitationClicked;
+        }
+
+        /// <summary>
+        /// Resolves the provider from LIVE settings at send time. Settings
+        /// were previously captured once at view model creation, so changes
+        /// made in the AI settings panel never reached the chat until the
+        /// app was restarted.
+        /// </summary>
+        private IAiProvider GetProvider(AiProviderConfig config)
+        {
+            if (_aiProvider is null || config.ProviderType != _aiProviderType)
+            {
+                _aiProvider = AiProviderFactory.CreateProvider(config.ProviderType);
+                _aiProviderType = config.ProviderType ?? "";
+            }
+            return _aiProvider;
         }
 
         private void OnInlineCitationClicked(ChatMessage message, AiSource source)
@@ -125,31 +145,27 @@ namespace Avalanche.Features.AI
         {
             if (string.IsNullOrEmpty(filePath)) return;
 
+            int generation;
             lock (_processingLock)
             {
                 if (_currentFilePath == filePath && _currentIndex != null)
                     return;
-            }
 
-            _currentFilePath = filePath;
-            _currentDocumentId = ComputeDocumentId(filePath);
+                // Claim a new generation: any index build still running for
+                // the previous document is now stale and must not commit.
+                generation = ++_initGeneration;
+                _currentFilePath = filePath;
+                _currentIndex = null;
+                _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
+            }
 
             // Clear conversation for new document (or could preserve per-document history)
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
 
-            await IndexDocumentAsync(filePath);
+            await IndexDocumentAsync(filePath, generation);
         }
 
-        private string ComputeDocumentId(string filePath)
-        {
-            var info = new FileInfo(filePath);
-            using var sha256 = System.Security.Cryptography.SHA256.Create();
-            var input = $"{info.FullName}|{info.Length}|{info.LastWriteTimeUtc.Ticks}";
-            var hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-            return "doc_" + Convert.ToHexString(hash).Substring(0, 16);
-        }
-
-        private async Task IndexDocumentAsync(string filePath)
+        private async Task IndexDocumentAsync(string filePath, int generation)
         {
             IsIndexing = true;
             IndexingStatus = _loc("Str_AiChatPreparing");
@@ -166,7 +182,17 @@ namespace Avalanche.Features.AI
                     });
                 });
 
-                _currentIndex = await _indexer.CreateOrLoadIndexAsync(filePath, progress);
+                var index = await _indexer.CreateOrLoadIndexAsync(filePath, progress);
+
+                // A newer InitializeForDocumentAsync started while this one
+                // was building (rapid tab switching): discard, never clobber.
+                lock (_processingLock)
+                {
+                    if (generation != _initGeneration)
+                        return;
+                }
+
+                _currentIndex = index;
                 IndexingStatus = _loc("Str_AiChatReady");
 
                 // Process any pending user input after indexing completes
@@ -183,7 +209,7 @@ namespace Avalanche.Features.AI
             }
             catch (Exception ex)
             {
-                IndexingStatus = $"{_loc("Str_AiChatIndexingFailed")}: {ex.Message}";
+                IndexingStatus = DescribeIndexingFailure(ex);
 
                 // Never leave a deferred "Preparing document..." bubble stuck:
                 // if a message was queued while indexing, surface the failure
@@ -210,8 +236,37 @@ namespace Avalanche.Features.AI
             finally
             {
                 await Task.Delay(500);
-                Application.Current.Dispatcher.Invoke(() => IsIndexing = false);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    lock (_processingLock)
+                    {
+                        // Only the current generation may clear the flag; a
+                        // stale build finishing late must not hide the new
+                        // build's progress.
+                        if (generation == _initGeneration)
+                            IsIndexing = false;
+                    }
+                });
             }
+        }
+
+        /// <summary>
+        /// Maps indexing failures to user-facing text. Typed failures
+        /// (scanned document, password protection) get their own friendly
+        /// message instead of leaking raw PdfPig exception text.
+        /// </summary>
+        private string DescribeIndexingFailure(Exception ex)
+        {
+            if (ex is AiIndexingException aix)
+            {
+                return aix.Reason switch
+                {
+                    AiIndexingFailure.NoTextLayer => _loc("Str_AiChatNoTextLayer"),
+                    AiIndexingFailure.PasswordProtected => _loc("Str_AiChatPasswordProtected"),
+                    _ => $"{_loc("Str_AiChatIndexingFailed")}: {aix.Message}"
+                };
+            }
+            return $"{_loc("Str_AiChatIndexingFailed")}: {ex.Message}";
         }
 
         /// <summary>
@@ -339,8 +394,13 @@ namespace Avalanche.Features.AI
                     return;
                 }
 
-                // Retrieve relevant chunks using hybrid search with TopK and evidence budget
-                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, input, _retrievalOptions.TopK);
+                // Retrieve relevant chunks using hybrid search with TopK and
+                // evidence budget. Short follow-ups ("why does he think
+                // that?") are almost all pronouns and stopwords; retrieving
+                // on their raw words found nothing, so the query is widened
+                // with the previous user question for context.
+                var retrievalQuery = BuildRetrievalQuery(input);
+                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, retrievalQuery, _retrievalOptions.TopK);
 
                 if (retrieved.Count == 0)
                 {
@@ -355,13 +415,14 @@ namespace Avalanche.Features.AI
                 // Prepare available sources for the model
                 var sourceRefs = BuildSourceReferences(retrieved);
 
-                // Get AI response
-                var response = await _aiProvider.GetChatCompletionAsync(
+                // Get AI response with the CURRENT provider settings
+                var config = _configProvider();
+                var response = await GetProvider(config).GetChatCompletionAsync(
                     systemPrompt,
                     GetRecentMessages(),
                     retrieved.ConvertAll(r => r.Chunk),
                     sourceRefs,
-                    _genConfig);
+                    config);
 
                 // Resolve each returned sourceId through THIS reply's evidence
                 // list before anything binds to Sources: the chip row and the
@@ -416,6 +477,9 @@ namespace Avalanche.Features.AI
                 src.ResolvedChunk = chunk;
                 src.PageIndex = chunk.PageIndex;
                 src.PageNumber = chunk.PageNumber;
+                // Verify the model's quote against the chunk's own text;
+                // unverified quotes are never used as highlight needles.
+                src.QuoteVerified = PassageQuoteValidator.IsValidQuote(src.Quote, chunk.Text);
                 kept.Add(src);
             }
 
@@ -524,12 +588,84 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void ClearForDocumentSwitch()
         {
-            _currentIndex = null;
-            _currentFilePath = "";
-            _currentDocumentId = "";
-            _pendingUserInput = null;
-            _pendingPlaceholder = null;
+            lock (_processingLock)
+            {
+                // Invalidate any in-flight index build or deferred reply.
+                _initGeneration++;
+                _currentIndex = null;
+                _currentFilePath = "";
+                _currentDocumentId = "";
+                _pendingUserInput = null;
+                _pendingPlaceholder = null;
+            }
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+        }
+
+        /// <summary>
+        /// Called by the window when the active document changes (tab
+        /// switch, new open, close). Same file: no-op. Otherwise chat,
+        /// pending queue and index are cleared and the new document is
+        /// indexed. ClearForDocumentSwitch previously had NO callers, so
+        /// switching tabs with the panel open kept the old document's
+        /// index and messages and answered from the wrong document.
+        /// </summary>
+        public void HandleDocumentSwitch(string? filePath)
+        {
+            if (_currentFilePath == filePath)
+                return;
+
+            ClearForDocumentSwitch();
+
+            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
+                _ = InitializeForDocumentAsync(filePath);
+        }
+
+        /// <summary>
+        /// Retrieval query for the user's input. Short follow-up questions
+        /// are mostly pronouns and stopwords; prepending the previous user
+        /// question gives the lexical query something substantive to match
+        /// without changing what the model is asked to answer.
+        /// </summary>
+        private string BuildRetrievalQuery(string input)
+        {
+            if (!LooksLikeFollowUp(input))
+                return input;
+
+            string? previous = null;
+            for (int i = Messages.Count - 1; i >= 0; i--)
+            {
+                var m = Messages[i];
+                if (m.MessageRole == ChatMessage.Role.User && !string.IsNullOrWhiteSpace(m.Content))
+                {
+                    previous = m.Content.Trim();
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(previous) || previous == input)
+                return input;
+
+            var combined = previous + " " + input;
+            return combined.Length <= 400 ? combined : combined[..400];
+        }
+
+        /// <summary>Short questions, or ones opening with pronouns or
+        /// question words, lean on the previous turn for their subject.</summary>
+        private static bool LooksLikeFollowUp(string input)
+        {
+            var trimmed = input.Trim();
+            if (trimmed.Length < 80)
+                return true;
+
+            var first = trimmed.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                               .FirstOrDefault();
+            if (first is null) return true;
+            first = new string(first.Where(char.IsLetter).ToArray()).ToLowerInvariant();
+            return first is "why" or "what" or "how" or "who" or "when" or "where"
+                or "it" or "its" or "that" or "this" or "these" or "those"
+                or "they" or "them" or "he" or "she" or "his" or "her"
+                or "so" or "and" or "but" or "because" or "then" or "also"
+                or "more" or "else" or "explain" or "continue";
         }
 
         /// <summary>

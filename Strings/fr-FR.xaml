@@ -1061,6 +1061,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">Ce document n'a pas de couche de texte, l'IA ne peut donc pas le lire. Les PDF numérisés nécessitent un OCR, que le chat IA ne prend pas encore en charge.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Ce PDF est protégé par mot de passe. Supprimez le mot de passe (ou enregistrez une copie déverrouillée), puis rouvrez-le pour discuter avec lui.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

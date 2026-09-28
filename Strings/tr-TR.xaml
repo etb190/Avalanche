@@ -1041,6 +1041,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">Bu belgede metin katmanı yok, bu yüzden yapay zekâ onu okuyamıyor. Taranan PDF'ler OCR gerektirir; AI sohbeti bunu henüz desteklemiyor.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Bu PDF şifre korumalı. Sohbet etmek için şifreyi kaldırın (veya kilidi açılmış bir kopya kaydedin) ve dosyayı yeniden açın.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

@@ -1040,6 +1040,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">প্রস্তুত</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">ইন্ডেক্সিং ব্যর্থ</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">এই ডকুমেন্টে কোনো টেক্সট লেয়ার নেই, তাই AI এটি পড়তে পারছে না। স্ক্যান করা PDF-এর জন্য OCR দরকার, যা AI চ্যাট এখনও সমর্থন করে না।</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">এই PDF পাসওয়ার্ড-সুরক্ষিত। এটি নিয়ে চ্যাট করতে পাসওয়ার্ড সরিয়ে (বা আনলক করা কপি সংরক্ষণ করে) এটি আবার খুলুন।</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">কোনো AI প্রদানকারী কনফিগার করা নেই। সেটিংস খোলেন API কী যোগ করতে।</sys:String>
     <sys:String x:Key="Str_AiChatError">AI সেবার সাথে যোগাযোগে ত্রুটি।</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">আপনার প্রশ্নের জন্য নথিতে কোনো প্রাসঙ্গিক অংশ পাওয়া যায়নি।</sys:String>

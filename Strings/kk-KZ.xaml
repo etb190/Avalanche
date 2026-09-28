@@ -1060,6 +1060,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">Бұл құжатта мәтін қабаты жоқ, сондықтан AI оны оқи алмайды. Сканерленген PDF файлдары OCR қажет етеді, оны AI чаты әзірге қолдамайды.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Бұл PDF құпиясөзбен қорғалған. Чаттау үшін құпиясөзді алып тастаңыз (немесе құлыпталмаған көшірмесін сақтаңыз) және оны қайта ашыңыз.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

@@ -1062,6 +1062,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">This document has no text layer, so the AI can't read it. Scanned PDFs need OCR, which the AI chat doesn't support yet.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">This PDF is password-protected. Remove the password (or save an unlocked copy) and reopen it to chat with it.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>

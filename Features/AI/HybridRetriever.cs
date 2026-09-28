@@ -29,9 +29,18 @@ namespace Avalanche.Features.AI
             if (string.IsNullOrWhiteSpace(query))
                 return Task.FromResult(new List<RetrievedChunk>());
 
-            // Lexical retrieval (BM25 via FTS5)
+            // Lexical retrieval (BM25 via FTS5). Scores are -bm25, best-first.
             var results = _vectorIndex.LexicalSearch(documentId, query, _options.CandidatePoolSize);
+            if (results.Count == 0)
+                return Task.FromResult(new List<RetrievedChunk>());
+
             VectorIndex.NormalizeScores(results);
+
+            // A single hit has nothing to normalize against; it matched the
+            // query's own terms, so it is relevant by definition. Previously it
+            // kept its raw -bm25-derived score and the MinScore filter could
+            // drop it, reporting "no matches" for an exact-term question.
+            if (results.Count == 1) results[0].Score = 1f;
 
             // Rerank if enabled
             bool reranked = false;

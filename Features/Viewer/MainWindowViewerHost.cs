@@ -53,6 +53,10 @@ namespace Avalanche
             => ApplySearchHighlights(page, canvas);
         void IViewerHost.ReapplyAiSourceHighlight(int page, System.Windows.Controls.Canvas canvas)
             => ReapplyAiSourceHighlight(page, canvas);
+
+
+        void IViewerHost.ActiveDocumentChanged(string? filePath)
+            => ActiveDocumentChanged(filePath);
         void IViewerHost.HighlightSearchResultsOnCurrentPage() => HighlightSearchResultsOnCurrentPage();
         void IViewerHost.ShowTextSettings() => ShowTextSettings();
         void IViewerHost.HideTextSettings() => HideTextSettings();

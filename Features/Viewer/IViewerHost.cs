@@ -84,6 +84,11 @@ namespace Avalanche.Features
         bool StampHitTest(int page, Point position);
         void ApplySearchHighlights(int page, Canvas canvas);
         void ReapplyAiSourceHighlight(int page, Canvas canvas);
+
+
+        /// <summary>The active document changed (tab switch, open, close) -
+        /// lets the AI chat re-bind to the current file.</summary>
+        void ActiveDocumentChanged(string? filePath);
         void HighlightSearchResultsOnCurrentPage();
         void ShowTextSettings();
         void HideTextSettings();

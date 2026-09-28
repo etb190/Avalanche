@@ -17,7 +17,9 @@ namespace Avalanche.Features.AI
         
         // Page-level mapping (chunk can span multiple pages)
         public List<int> PageIndices { get; set; } = new();           // 0-based page indices
-        public List<int[]> WordRanges { get; set; } = new();          // [startWord, endWord] per page
+        public List<int[]> WordRanges { get; set; } = new();          // [startWord, endWord] per page,
+                                                                      // CHUNK-relative (word indices
+                                                                      // inside this chunk's Text)
         public List<float[]> PdfCoordinates { get; set; } = new();    // [left, bottom, right, top] per page in PDF space
         
         // Character offset in the full document text
@@ -34,6 +36,13 @@ namespace Avalanche.Features.AI
         public float PageHeight { get; set; }
         public int PageRotation { get; set; }
         public float[]? CropBox { get; set; } // [left, bottom, right, top]
+
+        // Per-page geometry aligned with PageIndices. A chunk's pages can differ
+        // in size and rotation; the single-page legacy fields above only described
+        // the first page and broke coordinate conversion on every other page.
+        public List<float[]> PageSizes { get; set; } = new();         // [width, height] per page
+        public List<int> PageRotations { get; set; } = new();         // rotation degrees per page
+        public List<float[]> CropBoxes { get; set; } = new();         // [left, bottom, right, top] per page
         
         // Primary page (first page this chunk appears on) for backward compatibility
         [JsonIgnore]
@@ -93,6 +102,11 @@ namespace Avalanche.Features.AI
         
         // Resolved chunk for exact navigation
         public DocumentChunk? ResolvedChunk { get; set; }
+
+        // True when the model's quote was verified against the cited chunk's
+        // text (relaxed letters/digits compare). Unverified quotes are never
+        // used as highlight needles - they would paint unrelated passages.
+        public bool QuoteVerified { get; set; }
     }
 
     /// <summary>
@@ -164,6 +178,12 @@ namespace Avalanche.Features.AI
         public int MaxTokens { get; set; } = 4096;  // Increased default for reasoning models
         public double TopP { get; set; } = 1.0;
         public string? ReasoningEffort { get; set; } = "low";  // low, medium, high
+
+        // Ask the endpoint for JSON output (response_format). gpt-oss supports it;
+        // other OpenAI-compatible servers (e.g. Nemotron builds) may reject unknown
+        // request fields. The provider also falls back automatically when the server
+        // answers 400 naming the field; set false to never send it at all.
+        public bool RequestJsonOutput { get; set; } = true;
         
         // Ollama-specific: cloud model detection
         public bool IsCloudModel => Model?.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase) == true;

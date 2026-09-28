@@ -1061,6 +1061,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">Questo documento non ha livello di testo, quindi l'IA non può leggerlo. I PDF scansionati richiedono l'OCR, che la chat IA non supporta ancora.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Questo PDF è protetto da password. Rimuovi la password (o salva una copia sbloccata) e riaprilo per chattare.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

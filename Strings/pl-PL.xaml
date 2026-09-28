@@ -1049,6 +1049,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">Ten dokument nie ma warstwy tekstu, więc AI nie może go odczytać. Zeskanowane PDF-y wymagają OCR, którego czat AI jeszcze nie obsługuje.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Ten PDF jest chroniony hasłem. Aby z nim czatować, usuń hasło (lub zapisz odblokowaną kopię) i otwórz plik ponownie.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

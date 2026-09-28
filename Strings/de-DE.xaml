@@ -1047,6 +1047,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">Dieses Dokument hat keine Textebene, daher kann die KI es nicht lesen. Gescannte PDFs benötigen OCR, was der KI-Chat noch nicht unterstützt.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Dieses PDF ist passwortgeschützt. Entfernen Sie das Passwort (oder speichern Sie eine ungesperrte Kopie) und öffnen Sie es erneut, um damit zu chatten.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

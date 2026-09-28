@@ -1061,6 +1061,8 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">У этого документа нет текстового слоя, поэтому ИИ не может его прочитать. Отсканированным PDF требуется OCR, который ИИ-чат пока не поддерживает.</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">Этот PDF защищён паролем. Чтобы общаться с ним, снимите пароль (или сохраните разблокированную копию) и откройте файл заново.</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

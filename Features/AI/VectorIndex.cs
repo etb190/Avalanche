@@ -34,8 +34,8 @@ namespace Avalanche.Features.AI
         private static readonly string[] ChunksColumns =
         {
             "id", "document_id", "chunk_index", "text", "page_indices", "word_ranges",
-            "pdf_coords", "char_offset", "lexical_tokens", "page_width", "page_height",
-            "page_rotation", "crop_box", "created_at"
+            "pdf_coords", "char_offset", "lexical_tokens", "page_sizes",
+            "page_rotations", "crop_boxes", "created_at"
         };
 
         public VectorIndex(string dbPath)
@@ -95,10 +95,9 @@ namespace Avalanche.Features.AI
                     pdf_coords TEXT NOT NULL, -- JSON array of [left, bottom, right, top] per page
                     char_offset INTEGER NOT NULL,
                     lexical_tokens TEXT NOT NULL, -- JSON array of tokens
-                    page_width REAL NOT NULL DEFAULT 0,
-                    page_height REAL NOT NULL DEFAULT 0,
-                    page_rotation INTEGER NOT NULL DEFAULT 0,
-                    crop_box TEXT NOT NULL DEFAULT '', -- JSON array [left, bottom, right, top]
+                    page_sizes TEXT NOT NULL DEFAULT '[]', -- JSON [[width, height] per page]
+                    page_rotations TEXT NOT NULL DEFAULT '[]', -- JSON [degrees per page]
+                    crop_boxes TEXT NOT NULL DEFAULT '[]', -- JSON [[l, b, r, t] per page]
                     created_at INTEGER NOT NULL
                 );
 
@@ -190,9 +189,10 @@ namespace Avalanche.Features.AI
         /// <summary>
         /// Upserts a document record.
         /// </summary>
-        public void UpsertDocument(DocumentIndex doc)
+        public void UpsertDocument(DocumentIndex doc, SqliteTransaction? transaction = null)
         {
             using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
             cmd.CommandText = @"
                 INSERT INTO documents (id, file_path, file_size, last_write_time, content_hash, page_count, created_at, updated_at)
                 VALUES ($id, $file_path, $file_size, $last_write_time, $content_hash, $page_count, $created_at, $updated_at)
@@ -262,16 +262,18 @@ namespace Avalanche.Features.AI
         /// <summary>
         /// Bulk inserts chunks.
         /// </summary>
-        public void BulkInsertChunks(IEnumerable<DocumentChunk> chunks)
+        public void BulkInsertChunks(IEnumerable<DocumentChunk> chunks, SqliteTransaction? transaction = null)
         {
-            using var transaction = _connection.BeginTransaction();
+            bool ownTx = transaction is null;
+            using var tx = ownTx ? _connection.BeginTransaction() : null;
+            var effectiveTx = transaction ?? tx;
             try
             {
                 using var cmd = _connection.CreateCommand();
-                cmd.Transaction = transaction;
+                cmd.Transaction = effectiveTx;
                 cmd.CommandText = @"
-                    INSERT INTO chunks (id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_width, page_height, page_rotation, crop_box, created_at)
-                    VALUES ($id, $document_id, $chunk_index, $text, $page_indices, $word_ranges, $pdf_coords, $char_offset, $lexical_tokens, $page_width, $page_height, $page_rotation, $crop_box, $created_at)
+                    INSERT INTO chunks (id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_sizes, page_rotations, crop_boxes, created_at)
+                    VALUES ($id, $document_id, $chunk_index, $text, $page_indices, $word_ranges, $pdf_coords, $char_offset, $lexical_tokens, $page_sizes, $page_rotations, $crop_boxes, $created_at)
                     ON CONFLICT(id) DO UPDATE SET
                         document_id = $document_id,
                         chunk_index = $chunk_index,
@@ -281,10 +283,9 @@ namespace Avalanche.Features.AI
                         pdf_coords = $pdf_coords,
                         char_offset = $char_offset,
                         lexical_tokens = $lexical_tokens,
-                        page_width = $page_width,
-                        page_height = $page_height,
-                        page_rotation = $page_rotation,
-                        crop_box = $crop_box;
+                        page_sizes = $page_sizes,
+                        page_rotations = $page_rotations,
+                        crop_boxes = $crop_boxes;
                 ";
 
                 foreach (var chunk in chunks)
@@ -299,13 +300,69 @@ namespace Avalanche.Features.AI
                     cmd.Parameters.AddWithValue("$pdf_coords", System.Text.Json.JsonSerializer.Serialize(chunk.PdfCoordinates));
                     cmd.Parameters.AddWithValue("$char_offset", chunk.CharOffset);
                     cmd.Parameters.AddWithValue("$lexical_tokens", System.Text.Json.JsonSerializer.Serialize(chunk.LexicalTokens));
-                    cmd.Parameters.AddWithValue("$page_width", chunk.PageWidth);
-                    cmd.Parameters.AddWithValue("$page_height", chunk.PageHeight);
-                    cmd.Parameters.AddWithValue("$page_rotation", chunk.PageRotation);
-                    cmd.Parameters.AddWithValue("$crop_box", System.Text.Json.JsonSerializer.Serialize(chunk.CropBox ?? new float[0]));
+                    cmd.Parameters.AddWithValue("$page_sizes", System.Text.Json.JsonSerializer.Serialize(chunk.PageSizes));
+                    cmd.Parameters.AddWithValue("$page_rotations", System.Text.Json.JsonSerializer.Serialize(chunk.PageRotations));
+                    cmd.Parameters.AddWithValue("$crop_boxes", System.Text.Json.JsonSerializer.Serialize(chunk.CropBoxes));
                     cmd.Parameters.AddWithValue("$created_at", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
                     cmd.ExecuteNonQuery();
                 }
+
+                // Commit only when we own the transaction; when the caller
+                // supplies one (PersistDocumentAtomic) it commits or rolls back.
+                if (tx is not null) tx.Commit();
+            }
+            catch
+            {
+                if (tx is not null) tx.Rollback();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Persists document + chunks as ONE transaction: the document row and
+        /// its chunks become visible together, so a crash mid-persist can never
+        /// leave a "current" document with zero chunks.
+        /// </summary>
+        public void PersistDocumentAtomic(DocumentIndex doc)
+        {
+            using var transaction = _connection.BeginTransaction();
+            try
+            {
+                DeleteDocumentChunks(doc.DocumentId, transaction);
+                UpsertDocument(doc, transaction);
+                BulkInsertChunks(doc.Chunks, transaction);
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Deletes chunks + document rows of OTHER document ids that point at
+        /// the same file path. Older builds keyed documents by path+size+mtime,
+        /// so every file edit orphaned the previous chunks and the database only
+        /// ever grew; this reclaims those rows on the next successful index.
+        /// </summary>
+        public void CleanupOrphanedDocumentRows(string filePath, string keepDocumentId)
+        {
+            using var transaction = _connection.BeginTransaction();
+            try
+            {
+                using var cmd = _connection.CreateCommand();
+                cmd.Transaction = transaction;
+                cmd.CommandText = "DELETE FROM chunks WHERE document_id IN (SELECT id FROM documents WHERE file_path = $path AND id != $id)";
+                cmd.Parameters.AddWithValue("$path", filePath);
+                cmd.Parameters.AddWithValue("$id", keepDocumentId);
+                cmd.ExecuteNonQuery();
+
+                cmd.Parameters.Clear();
+                cmd.CommandText = "DELETE FROM documents WHERE file_path = $path AND id != $id";
+                cmd.Parameters.AddWithValue("$path", filePath);
+                cmd.Parameters.AddWithValue("$id", keepDocumentId);
+                cmd.ExecuteNonQuery();
 
                 transaction.Commit();
             }
@@ -323,46 +380,35 @@ namespace Avalanche.Features.AI
         {
             var chunks = new List<DocumentChunk>();
             using var cmd = _connection.CreateCommand();
-            cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_width, page_height, page_rotation, crop_box FROM chunks WHERE document_id = $doc_id ORDER BY chunk_index";
+            cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_sizes, page_rotations, crop_boxes FROM chunks WHERE document_id = $doc_id ORDER BY chunk_index";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
-            {
-                chunks.Add(new DocumentChunk
-                {
-                    ChunkId = reader.GetString(0),
-                    DocumentId = reader.GetString(1),
-                    ChunkIndex = reader.GetInt32(2),
-                    Text = reader.GetString(3),
-                    PageIndices = System.Text.Json.JsonSerializer.Deserialize<List<int>>(reader.GetString(4)) ?? new(),
-                    WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
-                    PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
-                    CharOffset = reader.GetInt64(7),
-                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(8)) ?? new(),
-                    PageWidth = reader.IsDBNull(9) ? 0 : reader.GetFloat(9),
-                    PageHeight = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
-                    PageRotation = reader.IsDBNull(11) ? 0 : reader.GetInt32(11),
-                    CropBox = reader.IsDBNull(12) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(12))
-                });
-            }
+                chunks.Add(ReadChunkRow(reader));
             return chunks;
         }
 
         /// <summary>
-        /// Performs lexical (full-text) search using FTS5.
+        /// Performs lexical (full-text) search using FTS5. FTS5's bm25() returns
+        /// NEGATIVE values (better matches are more negative), so the score is
+        /// its negation: higher = better, always positive. The old 1/(1+bm25)
+        /// mapping was non-monotonic with a division-by-zero pole at exactly -1,
+        /// and min-max normalization + the MinScore filter then dropped the very
+        /// hits the query was about. Rows come back best-first.
         /// </summary>
         public List<RetrievedChunk> LexicalSearch(string documentId, string query, int topK = 20)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return new List<RetrievedChunk>();
 
-            // Escape FTS5 special characters
-            var escapedQuery = EscapeFtsQuery(query);
+            var matchQuery = FtsQueryBuilder.Build(query);
+            if (matchQuery is null)
+                return new List<RetrievedChunk>();
 
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
-                SELECT c.id, c.document_id, c.chunk_index, c.text, c.page_indices, c.word_ranges, c.pdf_coords, c.char_offset, c.lexical_tokens, c.page_width, c.page_height, c.page_rotation, c.crop_box,
+                SELECT c.id, c.document_id, c.chunk_index, c.text, c.page_indices, c.word_ranges, c.pdf_coords, c.char_offset, c.lexical_tokens, c.page_sizes, c.page_rotations, c.crop_boxes,
                        bm25(chunks_fts) as rank
                 FROM chunks_fts
                 JOIN chunks c ON c.id = chunks_fts.chunk_id
@@ -371,31 +417,15 @@ namespace Avalanche.Features.AI
                 LIMIT $limit
             ";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
-            cmd.Parameters.AddWithValue("$query", escapedQuery);
+            cmd.Parameters.AddWithValue("$query", matchQuery);
             cmd.Parameters.AddWithValue("$limit", topK);
 
             var results = new List<RetrievedChunk>();
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var chunk = new DocumentChunk
-                {
-                    ChunkId = reader.GetString(0),
-                    DocumentId = reader.GetString(1),
-                    ChunkIndex = reader.GetInt32(2),
-                    Text = reader.GetString(3),
-                    PageIndices = System.Text.Json.JsonSerializer.Deserialize<List<int>>(reader.GetString(4)) ?? new(),
-                    WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
-                    PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
-                    CharOffset = reader.GetInt64(7),
-                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(8)) ?? new(),
-                    PageWidth = reader.IsDBNull(9) ? 0 : reader.GetFloat(9),
-                    PageHeight = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
-                    PageRotation = reader.IsDBNull(11) ? 0 : reader.GetInt32(11),
-                    CropBox = reader.IsDBNull(12) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(12))
-                };
-
-                float score = (float)(1.0 / (1.0 + reader.GetDouble(13))); // BM25 rank -> similarity
+                var chunk = ReadChunkRow(reader);
+                float score = (float)(-reader.GetDouble(12)); // FTS5 bm25() is <= 0; negate it
                 results.Add(new RetrievedChunk { Chunk = chunk, Score = score });
             }
 
@@ -405,9 +435,10 @@ namespace Avalanche.Features.AI
         /// <summary>
         /// Deletes all chunks for a document (for re-indexing).
         /// </summary>
-        public void DeleteDocumentChunks(string documentId)
+        public void DeleteDocumentChunks(string documentId, SqliteTransaction? transaction = null)
         {
             using var cmd = _connection.CreateCommand();
+            cmd.Transaction = transaction;
             cmd.CommandText = "DELETE FROM chunks WHERE document_id = $doc_id";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
             cmd.ExecuteNonQuery();
@@ -449,30 +480,32 @@ namespace Avalanche.Features.AI
                 r.Score = (r.Score - min) / (max - min);
         }
 
-        private static string EscapeFtsQuery(string query)
+        /// <summary>Reads a chunk row in the fixed column order shared by
+        /// GetChunksForDocument and LexicalSearch. The per-page geometry arrays
+        /// are the stored source of truth; the legacy first-page fields are
+        /// mapped from them so older consumers keep working.</summary>
+        private DocumentChunk ReadChunkRow(SqliteDataReader reader)
         {
-            // Escape FTS5 special characters
-            var escaped = query
-                .Replace("\"", "\"\"")
-                .Replace("'", "''")
-                .Replace(":", " ")
-                .Replace("-", " ")
-                .Replace("(", " ")
-                .Replace(")", " ")
-                .Replace("[", " ")
-                .Replace("]", " ")
-                .Replace("{", " ")
-                .Replace("}", " ")
-                .Replace("^", " ")
-                .Replace("*", " ")
-                .Replace("?", " ");
-
-            // Split into terms and wrap each in quotes for phrase matching
-            var terms = escaped.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if (terms.Length == 1)
-                return $"\"{terms[0]}\"";
-
-            return string.Join(" OR ", terms.Select(t => $"\"{t}\""));
+            var chunk = new DocumentChunk
+            {
+                ChunkId = reader.GetString(0),
+                DocumentId = reader.GetString(1),
+                ChunkIndex = reader.GetInt32(2),
+                Text = reader.GetString(3),
+                PageIndices = System.Text.Json.JsonSerializer.Deserialize<List<int>>(reader.GetString(4)) ?? new(),
+                WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
+                PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
+                CharOffset = reader.GetInt64(7),
+                LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(8)) ?? new(),
+                PageSizes = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(9)) ?? new(),
+                PageRotations = System.Text.Json.JsonSerializer.Deserialize<List<int>>(reader.GetString(10)) ?? new(),
+                CropBoxes = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(11)) ?? new()
+            };
+            chunk.PageWidth = chunk.PageSizes.Count > 0 && chunk.PageSizes[0].Length == 2 ? chunk.PageSizes[0][0] : 0;
+            chunk.PageHeight = chunk.PageSizes.Count > 0 && chunk.PageSizes[0].Length == 2 ? chunk.PageSizes[0][1] : 0;
+            chunk.PageRotation = chunk.PageRotations.Count > 0 ? chunk.PageRotations[0] : 0;
+            chunk.CropBox = chunk.CropBoxes.Count > 0 && chunk.CropBoxes[0].Length == 4 ? chunk.CropBoxes[0] : null;
+            return chunk;
         }
 
         public void Dispose()

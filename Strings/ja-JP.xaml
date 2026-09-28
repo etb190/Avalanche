@@ -1061,6 +1061,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">この文書にはテキストレイヤーがないため、AIは読み取れません。スキャンされたPDFにはOCRが必要ですが、AIチャットはまだ対応していません。</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">このPDFはパスワードで保護されています。チャットするには、パスワードを解除する（またはロック解除済みのコピーを保存する）してから、開き直してください。</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

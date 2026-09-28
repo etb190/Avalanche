@@ -51,31 +51,45 @@ namespace Avalanche.Features.AI
             await _chatSemaphore.WaitAsync();
             try
             {
-                var requestBody = BuildRequest(systemPrompt, messages, sourceReferences, config);
+                bool jsonOutput = config.RequestJsonOutput;
+                string? reasoning = string.IsNullOrWhiteSpace(config.ReasoningEffort) ? null : config.ReasoningEffort;
 
-                var json = JsonSerializer.Serialize(requestBody, _jsonOptions);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl.TrimEnd('/')}/chat/completions")
+                // Each loop iteration builds a fresh request; the only way back
+                // around the loop is a 400 that explicitly names an optional
+                // field, and each field is dropped at most once, so this is
+                // bounded to three attempts.
+                while (true)
                 {
-                    Content = content
-                };
-                // For Ollama (localhost), use dummy key if empty
-                var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && config.BaseUrl.Contains("localhost") 
-                    ? "ollama" 
-                    : config.ApiKey;
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                    var body = BuildRequestBody(systemPrompt, messages, sourceReferences, config, jsonOutput, reasoning);
+                    var response = await SendWithRetryAsync(() => CreateRequest(body, config));
+                    var responseJson = await response.Content.ReadAsStringAsync();
 
-                // Retry logic for 429/503
-                var response = await SendWithRetryAsync(request, config);
-                var responseJson = await response.Content.ReadAsStringAsync();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        // Strict OpenAI-compatible servers reject unknown request
+                        // fields. If the 400 names one of the optional ones, drop
+                        // it and retry once instead of failing the whole turn.
+                        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                        {
+                            if (jsonOutput && responseJson.Contains("response_format", StringComparison.OrdinalIgnoreCase))
+                            {
+                                jsonOutput = false;
+                                response.Dispose();
+                                continue;
+                            }
+                            if (reasoning is not null && responseJson.Contains("reasoning_effort", StringComparison.OrdinalIgnoreCase))
+                            {
+                                reasoning = null;
+                                response.Dispose();
+                                continue;
+                            }
+                        }
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw MapError(response.StatusCode, responseJson, config);
+                        throw MapError(response.StatusCode, responseJson, config);
+                    }
+
+                    return ParseResponse(responseJson, config);
                 }
-
-                return ParseResponse(responseJson, config);
             }
             finally
             {
@@ -83,32 +97,58 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private async Task<HttpResponseMessage> SendWithRetryAsync(HttpRequestMessage request, AiProviderConfig config)
+        /// <summary>Builds a fresh HttpRequestMessage. HttpContent cannot be
+        /// reused across sends, so this factory runs once per attempt.</summary>
+        private HttpRequestMessage CreateRequest(Dictionary<string, object> body, AiProviderConfig config)
+        {
+            var json = JsonSerializer.Serialize(body, _jsonOptions);
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{config.BaseUrl.TrimEnd('/')}/chat/completions")
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+            // For Ollama (localhost), use dummy key if empty
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && config.BaseUrl.Contains("localhost")
+                ? "ollama"
+                : config.ApiKey;
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            return request;
+        }
+
+        /// <summary>
+        /// Sends the request, retrying on 429/503 with a short backoff. The
+        /// previous loop re-sent one HttpRequestMessage instance, which throws
+        /// "The request message was already sent" on the second attempt - the
+        /// retry could never actually happen.
+        /// </summary>
+        private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory)
         {
             const int maxRetries = 2;
-            for (int attempt = 0; attempt <= maxRetries; attempt++)
+            for (int attempt = 0; ; attempt++)
             {
+                using var request = requestFactory();
                 var response = await _httpClient.SendAsync(request);
-                
-                // Retry on 429 (rate limit) or 503 (service unavailable)
-                if ((response.StatusCode == System.Net.HttpStatusCode.TooManyRequests || 
-                     response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable) && 
-                    attempt < 1)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(2)); // Short backoff
-                    continue;
-                }
-                return response;
+
+                bool retryable = response.StatusCode == System.Net.HttpStatusCode.TooManyRequests
+                              || response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable;
+                if (!retryable || attempt >= maxRetries)
+                    return response;
+
+                // Honor Retry-After when the server sends one; clamp to keep a
+                // hostile value from stalling the UI conversation.
+                int delayMs = 2000 * (attempt + 1);
+                if (response.Headers.RetryAfter?.Delta is { } delta)
+                    delayMs = (int)Math.Clamp(delta.TotalMilliseconds, 500, 15000);
+
+                response.Dispose();
+                await Task.Delay(delayMs);
             }
-            // Should not reach here
-            return await _httpClient.SendAsync(request);
         }
 
         public async Task<bool> IsAvailableAsync(AiProviderConfig config)
         {
             // For Ollama (localhost), don't require API key
-            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && config.BaseUrl.Contains("localhost") 
-                ? "ollama" 
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && config.BaseUrl.Contains("localhost")
+                ? "ollama"
                 : config.ApiKey;
 
             try
@@ -124,11 +164,19 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private object BuildRequest(
+        /// <summary>
+        /// Builds the request body. response_format and reasoning_effort are
+        /// optional: gpt-oss wants both, but other OpenAI-compatible models
+        /// (Nemotron and friends) may reject unknown fields, so they are only
+        /// sent when enabled in the configuration.
+        /// </summary>
+        private Dictionary<string, object> BuildRequestBody(
             string systemPrompt,
             List<ChatMessage> messages,
             string sourceReferences,
-            AiProviderConfig config)
+            AiProviderConfig config,
+            bool jsonOutput,
+            string? reasoningEffort)
         {
             var fullSystemPrompt = systemPrompt + "\n\n" + sourceReferences;
 
@@ -144,42 +192,21 @@ namespace Avalanche.Features.AI
                 requestMessages.Add(new { role = msg.MessageRole.ToString().ToLowerInvariant(), content = msg.Content });
             }
 
-            var request = new
+            var body = new Dictionary<string, object>
             {
-                model = config.Model,
-                messages = requestMessages,
-                temperature = config.Temperature,
-                max_tokens = config.MaxTokens,
-                top_p = config.TopP,
-                response_format = new { type = "json_object" }
+                ["model"] = config.Model,
+                ["messages"] = requestMessages,
+                ["temperature"] = config.Temperature,
+                ["max_tokens"] = config.MaxTokens,
+                ["top_p"] = config.TopP
             };
 
-            // Add reasoning_effort if specified (for reasoning models like gpt-oss)
-            if (!string.IsNullOrEmpty(config.ReasoningEffort))
-            {
-                // Use reflection to add optional field
-                var dict = new Dictionary<string, object>
-                {
-                    ["model"] = config.Model,
-                    ["messages"] = requestMessages,
-                    ["temperature"] = config.Temperature,
-                    ["max_tokens"] = config.MaxTokens,
-                    ["top_p"] = config.TopP,
-                    ["response_format"] = new { type = "json_object" }
-                };
-                dict["reasoning_effort"] = config.ReasoningEffort;
-                return dict;
-            }
+            if (jsonOutput)
+                body["response_format"] = new { type = "json_object" };
+            if (reasoningEffort is not null)
+                body["reasoning_effort"] = reasoningEffort;
 
-            return new
-            {
-                model = config.Model,
-                messages = requestMessages,
-                temperature = config.Temperature,
-                max_tokens = config.MaxTokens,
-                top_p = config.TopP,
-                response_format = new { type = "json_object" }
-            };
+            return body;
         }
 
         private AiResponse ParseResponse(string json, AiProviderConfig config)
@@ -191,7 +218,7 @@ namespace Avalanche.Features.AI
 
                 var choice = root.GetProperty("choices")[0];
                 var message = choice.GetProperty("message");
-                
+
                 // Handle reasoning field (for reasoning models like gpt-oss)
                 // We ignore it for display but log it for debugging
                 if (message.TryGetProperty("reasoning", out var reasoningProp))
@@ -202,15 +229,15 @@ namespace Avalanche.Features.AI
                 }
 
                 var content = message.GetProperty("content").GetString() ?? "";
-                
+
                 // Check for empty content with finish_reason = length
                 var finishReason = choice.TryGetProperty("finish_reason", out var frProp) ? frProp.GetString() : "";
                 if (string.IsNullOrEmpty(content) && finishReason == "length")
                 {
-                    return new AiResponse 
-                    { 
-                        Answer = "Answer was cut off; try a shorter question or raise the token limit.", 
-                        Sources = new List<AiSource>() 
+                    return new AiResponse
+                    {
+                        Answer = "Answer was cut off; try a shorter question or raise the token limit.",
+                        Sources = new List<AiSource>()
                     };
                 }
 
@@ -231,22 +258,22 @@ namespace Avalanche.Features.AI
 
             return statusCode switch
             {
-                System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden => 
-                    new HttpRequestException(isCloudModel 
+                System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden =>
+                    new HttpRequestException(isCloudModel
                         ? "Not signed in to Ollama cloud. Run: ollama signin"
                         : "Authentication failed. Check your API key."),
-                
-                System.Net.HttpStatusCode.NotFound => 
-                    new HttpRequestException("Model not found. " + (isLocalhost 
-                        ? $"Run: ollama pull {config.Model}" 
+
+                System.Net.HttpStatusCode.NotFound =>
+                    new HttpRequestException("Model not found. " + (isLocalhost
+                        ? $"Run: ollama pull {config.Model}"
                         : "Check model name and availability.")),
-                
-                System.Net.HttpStatusCode.TooManyRequests => 
+
+                System.Net.HttpStatusCode.TooManyRequests =>
                     new HttpRequestException("Ollama cloud is busy. Try again in a moment."),
-                
-                System.Net.HttpStatusCode.ServiceUnavailable => 
+
+                System.Net.HttpStatusCode.ServiceUnavailable =>
                     new HttpRequestException("Ollama cloud is busy. Try again in a moment."),
-                
+
                 _ => new HttpRequestException($"AI API error: {statusCode} - {responseJson}")
             };
         }
@@ -255,7 +282,7 @@ namespace Avalanche.Features.AI
         {
             // Handle markdown code fences around JSON
             var jsonContent = ExtractJsonFromMarkdown(content);
-            
+
             try
             {
                 using var doc = JsonDocument.Parse(jsonContent);

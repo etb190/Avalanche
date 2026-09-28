@@ -211,6 +211,10 @@ namespace Avalanche
             }
             SetStatus(string.Format(Loc("Str_Opened"), System.IO.Path.GetFileName(displayPath), pageCount));
             SyncSidebarToDocState(hasDoc: true, startup: false);   // a document is up: open the rail, show page controls
+
+            // The AI chat follows the active document: a new open in this
+            // tab must not keep answering from the previous document's index.
+            ActiveDocumentChanged(_currentFile);
         }
 
         // Themed "Password Required" prompt (KillerDialog): family dialog chrome + themed PasswordBox.

@@ -1045,6 +1045,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>
     <sys:String x:Key="Str_AiChatReady">Ready</sys:String>
     <sys:String x:Key="Str_AiChatIndexingFailed">Indexing failed</sys:String>
+    <sys:String x:Key="Str_AiChatNoTextLayer">此文档没有文本层，AI 无法读取。扫描版 PDF 需要 OCR，AI 聊天目前尚不支持。</sys:String>
+    <sys:String x:Key="Str_AiChatPasswordProtected">此 PDF 受密码保护。请移除密码（或保存解锁副本）后重新打开，即可与之聊天。</sys:String>
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>

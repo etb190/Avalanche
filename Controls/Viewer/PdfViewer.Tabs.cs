@@ -768,6 +768,11 @@ namespace Avalanche.Controls
             // chevron), which changes which tab sits on each edge - and that is the card's corner
             // rounding and the ring's outer verticals, not just the strip.
             RebuildTabStrip();
+            // The AI chat follows the active document: notify the host so chat,
+            // index and highlight never leak across tabs. Deferred tabs report
+            // through OpenFile -> FinishOpenFile once they materialize.
+            if (target.CurrentFile != null)
+                Host?.ActiveDocumentChanged(target.CurrentFile);
             FadeInDocContent();
         }
 
@@ -886,6 +891,7 @@ namespace Avalanche.Controls
                 SetActiveSession(blank);
                 ApplySessionState(blank);
                 ShowEmptyState();
+                Host?.ActiveDocumentChanged(null);   // last tab closed: AI chat resets
             }
             else
             {
@@ -894,6 +900,8 @@ namespace Avalanche.Controls
                 ApplySessionState(next);
                 if (next.Doc == null && next.DeferredPath != null) MaterializeDeferred(next);
                 else RenderActiveSession();
+                if (next.CurrentFile != null)
+                    Host?.ActiveDocumentChanged(next.CurrentFile);   // AI chat follows the tab
             }
             RebuildTabStrip();
         }
@@ -928,6 +936,7 @@ namespace Avalanche.Controls
             SetActiveSession(blank2);
             ApplySessionState(blank2);
             ShowEmptyState();
+            Host?.ActiveDocumentChanged(null);   // everything closed: AI chat resets
             RebuildTabStrip();
         }
 
