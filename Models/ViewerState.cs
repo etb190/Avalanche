@@ -115,12 +115,6 @@ namespace Avalanche
             /// Continuous: set on mouse-down to the clicked page's overlay.</summary>
             public Canvas ActiveCanvas = null!;
 
-        // ============================================================
-        // AI Chat Helper Properties
-        // ============================================================
-
-        /// <summary>Per-page render dimensions (width, height) for coordinate conversion.</summary>
-        public readonly Dictionary<int, (double Width, double Height)> RenderDims = [];
     }
 }
 

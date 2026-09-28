@@ -187,21 +187,42 @@ namespace Avalanche.Controls
             }
             else
             {
-                // In single/grid/two-page mode, the primary tile is at index 0
-                // but page 0 maps to AnnotationCanvas
-                if (pageIndex == 0)
-                    return State.AnnotationCanvas;
-                return State.Pages.TryGetValue(pageIndex, out var canvas) ? canvas : null;
+                // Single/Grid/TwoPage: the unified _pages map registers every live
+                // canvas under the page it currently displays (the primary tile
+                // included). An unrendered page returns null so AI navigation can
+                // poll until it renders. The old "page 0 -> AnnotationCanvas"
+                // shortcut highlighted page 0's coordinates over WHATEVER page the
+                // primary tile was showing whenever the viewer sat on another page.
+                if (State.Pages.TryGetValue(pageIndex, out var canvas))
+                    return canvas;
+                // Before the very first render the primary tile exists but is not
+                // registered yet; it can only ever show page 0 at that point.
+                if (pageIndex == 0
+                    && State.AnnotationCanvas is { } primary
+                    && primary.Tag is not int)
+                    return primary;
+                return null;
             }
         }
 
         /// <summary>
-        /// Gets the render dimensions (width, height) for a specific page.
+        /// Gets the render dimensions (width, height) for a specific page: the
+        /// overlay canvas's own coordinate space (longest side -> 2048 in
+        /// continuous mode, the DIP box in single/grid mode) - the same space
+        /// annotations and text selection use.
         /// </summary>
+        /// <remarks>
+        /// Reads _renderDims, the per-page map every render path fills. The AI
+        /// highlight originally read ViewerState.RenderDims, a dictionary NO code
+        /// ever wrote, so this returned null every time and DrawAiSourceHighlight
+        /// bailed before drawing: clicking a citation scrolled to the cited page
+        /// but the highlight rectangle never appeared.
+        /// </remarks>
         internal (double Width, double Height)? GetRenderDimensions(int pageIndex)
         {
-            if (State.RenderDims is not null && State.RenderDims.TryGetValue(pageIndex, out var dims))
-                return dims;
+            if (pageIndex >= 0 && _renderDims.TryGetValue(pageIndex, out var dims)
+                && dims.w > 0 && dims.h > 0)
+                return (dims.w, dims.h);
             return null;
         }
 

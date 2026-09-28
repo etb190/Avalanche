@@ -153,6 +153,10 @@ namespace Avalanche.Features.AI
         internal static FlowDocument BuildDocument(string text, bool parseMarkdown, RichTextBox? rtb)
         {
             var doc = new FlowDocument { PagePadding = new Thickness(0) };
+            // Footnote display numbers are handed out in order of first appearance
+            // as the circles are created (skipping fences/quotes/headings, which
+            // never render citations). See AiCitationNumberer.
+            var numberer = new AiCitationNumberer();
             // Theme-aware defaults so bubbles follow Dark/Light/98SE/... live.
             doc.SetResourceReference(TextElement.ForegroundProperty, "TextBrush");
             doc.SetResourceReference(TextElement.FontFamilyProperty, "UiFont");
@@ -210,14 +214,14 @@ namespace Avalanche.Features.AI
                     var bullet = BulletRx.Match(line);
                     if (bullet.Success)
                     {
-                        AddListParagraph(doc, "\u2022\u00A0", bullet.Groups[1].Value, parseMarkdown, sources);
+                        AddListParagraph(doc, "\u2022\u00A0", bullet.Groups[1].Value, parseMarkdown, sources, numberer);
                         continue;
                     }
 
                     var numbered = NumberedRx.Match(line);
                     if (numbered.Success)
                     {
-                        AddListParagraph(doc, numbered.Groups[1].Value + ".\u00A0", numbered.Groups[2].Value, parseMarkdown, sources);
+                        AddListParagraph(doc, numbered.Groups[1].Value + ".\u00A0", numbered.Groups[2].Value, parseMarkdown, sources, numberer);
                         continue;
                     }
 
@@ -229,7 +233,7 @@ namespace Avalanche.Features.AI
                     }
                 }
 
-                AddBody(doc, line, parseMarkdown, sources);
+                AddBody(doc, line, parseMarkdown, sources, numberer);
             }
 
             if (inFence && fence.Count > 0)
@@ -241,11 +245,11 @@ namespace Avalanche.Features.AI
             return doc;
         }
 
-        private static void AddBody(FlowDocument doc, string line, bool parse, IReadOnlyList<AiSource> sources)
+        private static void AddBody(FlowDocument doc, string line, bool parse, IReadOnlyList<AiSource> sources, AiCitationNumberer numberer)
         {
             var p = new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
             if (parse)
-                AddInlines(p.Inlines, line, sources);
+                AddInlines(p.Inlines, line, sources, numberer);
             else
                 p.Inlines.Add(new Run(line));
             doc.Blocks.Add(p);
@@ -264,7 +268,7 @@ namespace Avalanche.Features.AI
             doc.Blocks.Add(p);
         }
 
-        private static void AddListParagraph(FlowDocument doc, string marker, string content, bool parse, IReadOnlyList<AiSource> sources)
+        private static void AddListParagraph(FlowDocument doc, string marker, string content, bool parse, IReadOnlyList<AiSource> sources, AiCitationNumberer numberer)
         {
             // Hanging indent: marker hangs into the 12px left margin so wrapped
             // lines align under the text, not under the marker.
@@ -273,7 +277,7 @@ namespace Avalanche.Features.AI
             mark.SetResourceReference(TextElement.ForegroundProperty, "MutedTextBrush");
             p.Inlines.Add(mark);
             if (parse)
-                AddInlines(p.Inlines, content, sources);
+                AddInlines(p.Inlines, content, sources, numberer);
             else
                 p.Inlines.Add(new Run(content));
             doc.Blocks.Add(p);
@@ -341,7 +345,7 @@ namespace Avalanche.Features.AI
         /// become small numbered circle buttons that navigate the PDF viewer to
         /// the cited passage when clicked.
         /// </summary>
-        private static void AddInlines(InlineCollection inlines, string text, IReadOnlyList<AiSource> sources)
+        private static void AddInlines(InlineCollection inlines, string text, IReadOnlyList<AiSource> sources, AiCitationNumberer numberer)
         {
             int pos = 0;
             foreach (Match m in AiCitations.InlineRx.Matches(text))
@@ -351,7 +355,9 @@ namespace Avalanche.Features.AI
                     continue; // degenerate match: keep the raw text instead
                 if (m.Index > pos)
                     AddMarkdownInlines(inlines, text.Substring(pos, m.Index - pos));
-                inlines.Add(MakeCitation(number, sources));
+                // Circle shows the appearance-order display number; the Tag keeps
+                // the original SOURCE_n id so the click still finds the evidence.
+                inlines.Add(MakeCitation(number, numberer.Register(number), sources));
                 pos = m.Index + m.Length;
             }
             if (pos < text.Length)
@@ -527,19 +533,22 @@ namespace Avalanche.Features.AI
         /// the model never backed up in 'sources' renders as a visibly muted,
         /// inert circle so the raw marker never leaks into the chat again.
         /// </summary>
-        private static Inline MakeCitation(int number, IReadOnlyList<AiSource> sources)
+        private static Inline MakeCitation(int sourceNumber, int displayNumber, IReadOnlyList<AiSource> sources)
         {
-            var source = FindSource(sources, number);
+            var source = FindSource(sources, sourceNumber);
             var btn = new Button
             {
-                Content = number.ToString(CultureInfo.InvariantCulture),
-                Tag = AiCitations.FormatId(number),
+                // Footnote face = order of appearance (1, 2, ... through the text);
+                // identity = the original SOURCE_n the model cited.
+                Content = displayNumber.ToString(CultureInfo.InvariantCulture),
+                Tag = AiCitations.FormatId(sourceNumber),
+                // Two-digit footnotes ("10" +) need a touch more room than "1".
+                Width = displayNumber > 9 ? 22 : 16,
                 Focusable = false,
                 IsTabStop = false,
                 Cursor = Cursors.Hand,
                 FontSize = 9.5,
                 FontWeight = FontWeights.SemiBold,
-                Width = 16,
                 Height = 16,
                 Padding = new Thickness(0),
                 Margin = new Thickness(3, 0, 3, 0),
@@ -549,9 +558,14 @@ namespace Avalanche.Features.AI
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Template = CreateCitationTemplate()
             };
-            btn.SetValue(AutomationProperties.NameProperty, $"Source {number}");
+            btn.SetValue(AutomationProperties.NameProperty, $"Source {displayNumber}");
             if (source is not null)
                 btn.ToolTip = BuildCitationTooltip(source);
+            else
+                // The model invented this SOURCE_n (nothing backs it): the disabled
+                // trigger renders it visibly muted and the click handler would
+                // ignore it anyway - this just makes the inertness visible.
+                btn.IsEnabled = false;
 
             return new InlineUIContainer(btn) { BaselineAlignment = BaselineAlignment.TextBottom };
         }
@@ -575,7 +589,11 @@ namespace Avalanche.Features.AI
                 AiBrushHelpers.ThemedTint("TextBrush", 0.14,
                     new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88))));
             border.SetValue(Border.BorderThicknessProperty, new Thickness(1));
-            border.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+            // Neutral ring, not CardBorderBrush: that key is a saturated accent in
+            // several palettes (teal in Ectoplasm/Cyanotic), which made every circle
+            // read as a "green button". MutedTextBrush stays a quiet text-family
+            // gray in every theme and follows live theme switches for free.
+            border.SetResourceReference(Border.BorderBrushProperty, "MutedTextBrush");
 
             var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
             presenter.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
@@ -622,6 +640,34 @@ namespace Avalanche.Features.AI
             }
             return null;
         }
+    }
+}
+
+/// <summary>
+/// Assigns footnote display numbers in order of first appearance while an
+/// answer's document is built. The model's SOURCE_n ids index the reply's
+/// evidence list, so citing [SOURCE_2] before [SOURCE_1] made the circles
+/// read "2" above "1"; readers expect footnotes to count upward through the
+/// text instead. The circle's face shows the display number, its Tag keeps
+/// the original SOURCE_n id, and clicks/tooltips resolve through the id -
+/// so renumbering changes nothing about where a citation jumps.
+/// Numbers are handed out exactly when a circle is created, so markers in
+/// contexts that never render citations (code fences, quotes, headings)
+/// cannot consume a number.
+/// </summary>
+internal sealed class AiCitationNumberer
+{
+    private readonly Dictionary<int, int> _displayBySource = new();
+    private int _next = 1;
+
+    /// <summary>Returns the display number for this source id, assigning the next free number on first sight.</summary>
+    internal int Register(int sourceNumber)
+    {
+        if (_displayBySource.TryGetValue(sourceNumber, out int display))
+            return display;
+        display = _next++;
+        _displayBySource[sourceNumber] = display;
+        return display;
     }
 }
 
