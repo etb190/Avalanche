@@ -16,28 +16,11 @@ namespace Avalanche.Features.AI
             };
         }
 
-        public static IEmbeddingProvider CreateEmbeddingProvider(EmbeddingProviderConfig config)
-        {
-            return EmbeddingProviderFactory.CreateProvider(config);
-        }
-
         public static async Task<bool> TestProviderAsync(IAiProvider provider, AiProviderConfig config)
         {
             try
             {
                 return await provider.IsAvailableAsync(config);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public static async Task<bool> TestEmbeddingProviderAsync(IEmbeddingProvider provider)
-        {
-            try
-            {
-                return await provider.IsAvailableAsync();
             }
             catch
             {

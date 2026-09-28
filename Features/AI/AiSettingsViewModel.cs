@@ -20,22 +20,6 @@ namespace Avalanche.Features.AI
         private double _genTopP = 1.0;
         private string _genReasoningEffort = "low";
 
-        // Embedding provider settings - the only model used anywhere is
-        // gpt-oss:120b-cloud served through the local Ollama bridge. When that
-        // model cannot serve the embeddings endpoint, indexing and retrieval
-        // silently fall back to lexical (BM25) search - see DocumentIndexer and
-        // HybridRetriever. The nomic-specific task prefixes are removed because
-        // they corrupt embeddings for any other model.
-        private string _embProviderType = "Ollama";
-        private string _embBaseUrl = "http://localhost:11434/v1";
-        private string _embApiKey = "ollama";
-        private string _embModel = "gpt-oss:120b-cloud";
-        private int _embDimension = 2880;
-        private int _embMaxTokens = 8191;
-        private int _embBatchSize = 16;
-        private string _embDocumentPrefix = "";
-        private string _embQueryPrefix = "";
-
         private bool _isEnabled = false;
         private string _connectionStatus = "";
         private bool _isTestingConnection;
@@ -90,61 +74,6 @@ namespace Avalanche.Features.AI
             set { _genReasoningEffort = value; OnPropertyChanged(); }
         }
 
-        // Embedding
-        public string EmbProviderType
-        {
-            get => _embProviderType;
-            set { _embProviderType = value; OnPropertyChanged(); }
-        }
-
-        public string EmbBaseUrl
-        {
-            get => _embBaseUrl;
-            set { _embBaseUrl = value; OnPropertyChanged(); }
-        }
-
-        public string EmbApiKey
-        {
-            get => _embApiKey;
-            set { _embApiKey = value; OnPropertyChanged(); }
-        }
-
-        public string EmbModel
-        {
-            get => _embModel;
-            set { _embModel = value; OnPropertyChanged(); }
-        }
-
-        public int EmbDimension
-        {
-            get => _embDimension;
-            set { _embDimension = value; OnPropertyChanged(); }
-        }
-
-        public int EmbMaxTokens
-        {
-            get => _embMaxTokens;
-            set { _embMaxTokens = value; OnPropertyChanged(); }
-        }
-
-        public int EmbBatchSize
-        {
-            get => _embBatchSize;
-            set { _embBatchSize = value; OnPropertyChanged(); }
-        }
-
-        public string EmbDocumentPrefix
-        {
-            get => _embDocumentPrefix;
-            set { _embDocumentPrefix = value; OnPropertyChanged(); }
-        }
-
-        public string EmbQueryPrefix
-        {
-            get => _embQueryPrefix;
-            set { _embQueryPrefix = value; OnPropertyChanged(); }
-        }
-
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -188,22 +117,6 @@ namespace Avalanche.Features.AI
             };
         }
 
-        public EmbeddingProviderConfig ToEmbConfig()
-        {
-            return new EmbeddingProviderConfig
-            {
-                ProviderType = EmbProviderType,
-                BaseUrl = EmbBaseUrl,
-                ApiKey = EmbApiKey,
-                Model = EmbModel,
-                Dimension = EmbDimension,
-                MaxTokens = EmbMaxTokens,
-                BatchSize = EmbBatchSize,
-                DocumentPrefix = EmbDocumentPrefix,
-                QueryPrefix = EmbQueryPrefix
-            };
-        }
-
         public void LoadFromGenConfig(AiProviderConfig config)
         {
             GenProviderType = config.ProviderType;
@@ -216,19 +129,6 @@ namespace Avalanche.Features.AI
             GenReasoningEffort = config.ReasoningEffort ?? "low";
         }
 
-        public void LoadFromEmbConfig(EmbeddingProviderConfig config)
-        {
-            EmbProviderType = config.ProviderType;
-            EmbBaseUrl = config.BaseUrl;
-            EmbApiKey = config.ApiKey;
-            EmbModel = config.Model;
-            EmbDimension = config.Dimension;
-            EmbMaxTokens = config.MaxTokens;
-            EmbBatchSize = config.BatchSize;
-            EmbDocumentPrefix = config.DocumentPrefix;
-            EmbQueryPrefix = config.QueryPrefix;
-        }
-
         public void ApplyOllamaPreset()
         {
             GenProviderType = "Ollama";
@@ -239,18 +139,7 @@ namespace Avalanche.Features.AI
             GenMaxTokens = 4096;
             GenTopP = 1.0;
             GenReasoningEffort = "low";
-
-            EmbProviderType = "Ollama";
-            EmbBaseUrl = "http://localhost:11434/v1";
-            EmbApiKey = "ollama";
-            EmbModel = "gpt-oss:120b-cloud";
-            EmbDimension = 2880;
-            EmbMaxTokens = 8191;
-            EmbBatchSize = 16;
-            EmbDocumentPrefix = "";
-            EmbQueryPrefix = "";
         }
-
 
         public async Task TestConnectionAsync(Func<string, string> loc)
         {
@@ -261,10 +150,8 @@ namespace Avalanche.Features.AI
             try
             {
                 var genConfig = ToGenConfig();
-                var embConfig = ToEmbConfig();
 
                 var genProvider = AiProviderFactory.CreateProvider(genConfig.ProviderType);
-                var embProvider = AiProviderFactory.CreateEmbeddingProvider(embConfig);
 
                 var results = new System.Text.StringBuilder();
                 bool allOk = true;
@@ -280,12 +167,6 @@ namespace Avalanche.Features.AI
                 bool chatOk = await TestChatModelAsync(genConfig, loc);
                 results.AppendLine(chatOk ? "✓ Chat model responds" : "✗ Chat model failed");
                 if (!chatOk) allOk = false;
-
-                // Test 3: Embedding model
-                ConnectionStatus = loc("Str_AiTestEmbeddingModel");
-                bool embOk = await TestEmbeddingModelAsync(embConfig);
-                results.AppendLine(embOk ? "✓ Embedding model responds" : "✗ Embedding model failed");
-                if (!embOk) allOk = false;
 
                 ConnectionStatus = allOk ? loc("Str_AiTestAllPassed") : loc("Str_AiTestSomeFailed");
                 ConnectionStatus += "\n\n" + results.ToString();
@@ -327,20 +208,6 @@ namespace Avalanche.Features.AI
                     "",
                     config);
                 return !string.IsNullOrEmpty(response.Answer);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private async Task<bool> TestEmbeddingModelAsync(EmbeddingProviderConfig config)
-        {
-            try
-            {
-                var provider = AiProviderFactory.CreateEmbeddingProvider(config);
-                var embedding = await provider.GenerateEmbeddingAsync("test");
-                return embedding != null && embedding.Length > 0;
             }
             catch
             {

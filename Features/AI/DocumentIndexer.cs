@@ -12,20 +12,17 @@ using UglyToad.PdfPig.Content;
 namespace Avalanche.Features.AI
 {
     /// <summary>
-    /// Creates and manages persistent document indexes with embeddings.
+    /// Creates and manages persistent lexical (FTS5/BM25) document indexes.
+    /// No embedding model is used or required.
     /// </summary>
     public sealed class DocumentIndexer
     {
-        private readonly IEmbeddingProvider _embeddingProvider;
         private readonly VectorIndex _vectorIndex;
         private readonly IndexingOptions _options;
-        private readonly EmbeddingProviderConfig _embConfig;
 
-        public DocumentIndexer(IEmbeddingProvider embeddingProvider, VectorIndex vectorIndex, EmbeddingProviderConfig embConfig, IndexingOptions? options = null)
+        public DocumentIndexer(VectorIndex vectorIndex, IndexingOptions? options = null)
         {
-            _embeddingProvider = embeddingProvider ?? throw new ArgumentNullException(nameof(embeddingProvider));
             _vectorIndex = vectorIndex ?? throw new ArgumentNullException(nameof(vectorIndex));
-            _embConfig = embConfig ?? throw new ArgumentNullException(nameof(embConfig));
             _options = options ?? new IndexingOptions();
         }
 
@@ -39,13 +36,9 @@ namespace Avalanche.Features.AI
 
             var fileInfo = new FileInfo(filePath);
             var documentId = ComputeDocumentId(filePath);
-            
-            // Check if we have a current index with compatible embedding model
-            var (embModelName, embDimension) = _embeddingProvider.GetModelInfo();
             var contentHash = ComputeContentHash(filePath);
             var existingDoc = _vectorIndex.GetDocument(documentId);
-            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, contentHash,
-                _embConfig.EmbeddingModelName, _embConfig.EmbeddingDimension))
+            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, contentHash))
             {
                 // Load existing chunks
                 var chunks = LoadChunksForDocument(documentId);
@@ -56,13 +49,13 @@ namespace Avalanche.Features.AI
 
             // Need to (re)index
             progress?.Report(new IndexingProgress { Stage = IndexingStage.Extracting, Progress = 0.0, Message = "Extracting text..." });
-            
+
             var doc = await BuildIndexAsync(filePath, documentId, contentHash, fileInfo, progress);
-            
+
             // Persist
             progress?.Report(new IndexingProgress { Stage = IndexingStage.Persisting, Progress = 0.9, Message = "Persisting index..." });
             PersistIndex(doc);
-            
+
             progress?.Report(new IndexingProgress { Stage = IndexingStage.Complete, Progress = 1.0, Message = "Indexing complete" });
             return doc;
         }
@@ -75,10 +68,7 @@ namespace Avalanche.Features.AI
             var chunks = new List<DocumentChunk>();
 
             // Extraction and chunking are synchronous CPU work, so they run in
-            // Task.Run. Embeddings are awaited OUTSIDE it: the previous code
-            // called GenerateEmbeddingsAsync(...).GetAwaiter().GetResult() inside
-            // the Task.Run body (sync-over-async), pinning a thread-pool thread
-            // for the entire embedding phase.
+            // Task.Run to keep the UI responsive.
             await Task.Run(() =>
             {
                 using var pdfDoc = PdfDocument.Open(filePath);
@@ -118,26 +108,6 @@ namespace Avalanche.Features.AI
                     chunk.DocumentId = documentId;
             });
 
-            // Generate embeddings (properly async). A cloud chat model such as
-            // gpt-oss:120b-cloud cannot serve the embeddings endpoint; the
-            // provider fails fast (one small probe request) and indexing
-            // continues with a lexical-only index instead of stalling for
-            // minutes per batch.
-            bool embedded = false;
-            if (chunks.Count > 0)
-            {
-                progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.5, Message = "Generating embeddings..." });
-                embedded = await GenerateEmbeddingsAsync(chunks, _embConfig);
-                if (!embedded)
-                {
-                    // The configured model cannot serve embeddings (a cloud chat
-                    // model behind the Ollama bridge cannot). Keep going with a
-                    // lexical-only index instead of failing the whole operation -
-                    // retrieval falls back to BM25 search.
-                    progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.8, Message = "Embeddings unavailable - using lexical index" });
-                }
-            }
-
             var doc = new DocumentIndex
             {
                 DocumentId = documentId,
@@ -148,18 +118,16 @@ namespace Avalanche.Features.AI
                 PageCount = fileInfo.Length > 0 ? GetPageCount(filePath) : 0,
                 Chunks = chunks,
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-                EmbeddingModelName = embedded ? _embeddingProvider.GetModelInfo().ModelName : "",
-                EmbeddingDimension = embedded ? _embeddingProvider.GetModelInfo().Dimension : 0
+                UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
 
             return doc;
         }
+
         private List<DocumentChunk> LoadChunksForDocument(string documentId)
         {
             // Loads the persisted chunks from SQLite so a cached document keeps
-            // working on later opens. (Previously returned an empty list, which
-            // made retrieval find nothing for cached documents.)
+            // working on later opens.
             return _vectorIndex.GetChunksForDocument(documentId);
         }
 
@@ -244,17 +212,17 @@ namespace Avalanche.Features.AI
 
             // Group words by page
             var pageGroups = words.GroupBy(w => w.pageIndex).OrderBy(g => g.Key).ToList();
-            
+
             var pageIndices = new List<int>();
             var wordRanges = new List<int[]>();
             var pdfCoordinates = new List<float[]>();
-            
+
             // Get page info for the first page (primary page)
             float pageWidth = 0, pageHeight = 0;
             int pageRotation = 0;
             float[]? cropBox = null;
-            
-if (pageGroups.Count > 0)
+
+            if (pageGroups.Count > 0)
             {
                 var firstPageIndex = pageGroups[0].Key;
                 var page = pdfDoc.GetPage(firstPageIndex + 1);
@@ -276,12 +244,12 @@ if (pageGroups.Count > 0)
                     var topProp = cropType.GetProperty("Top");
                     if (leftProp != null && bottomProp != null && rightProp != null && topProp != null)
                     {
-                        cropBox = new float[] 
-                        { 
-                            (float)leftProp.GetValue(crop), 
-                            (float)bottomProp.GetValue(crop), 
-                            (float)rightProp.GetValue(crop), 
-                            (float)topProp.GetValue(crop) 
+                        cropBox = new float[]
+                        {
+                            (float)leftProp.GetValue(crop),
+                            (float)bottomProp.GetValue(crop),
+                            (float)rightProp.GetValue(crop),
+                            (float)topProp.GetValue(crop)
                         };
                     }
                     else
@@ -301,14 +269,14 @@ if (pageGroups.Count > 0)
                 var pageWords = group.ToList();
                 int startWord = wordOffset;
                 int endWord = wordOffset + pageWords.Count - 1;
-                
+
                 pageIndices.Add(group.Key);
                 wordRanges.Add(new[] { startWord, endWord });
-                
+
                 // Calculate bounding box for this page's portion
                 double minX = double.MaxValue, minY = double.MaxValue;
                 double maxX = double.MinValue, maxY = double.MinValue;
-                
+
                 foreach (var (_, word) in pageWords)
                 {
                     var bb = word.BoundingBox;
@@ -317,12 +285,12 @@ if (pageGroups.Count > 0)
                     maxX = Math.Max(maxX, bb.Right);
                     maxY = Math.Max(maxY, bb.Top);
                 }
-                
-                pdfCoordinates.Add(new float[] 
-                { 
-                    (float)minX, (float)minY, (float)maxX, (float)maxY 
+
+                pdfCoordinates.Add(new float[]
+                {
+                    (float)minX, (float)minY, (float)maxX, (float)maxY
                 });
-                
+
                 wordOffset += pageWords.Count;
             }
 
@@ -384,36 +352,6 @@ if (pageGroups.Count > 0)
             return -1;
         }
 
-        /// <summary>
-        /// Generates embeddings for chunks. Returns false (without throwing) when
-        /// the configured model cannot serve the embeddings endpoint - the caller
-        /// then continues with a lexical-only index.
-        /// </summary>
-        private async Task<bool> GenerateEmbeddingsAsync(List<DocumentChunk> chunks, EmbeddingProviderConfig embConfig)
-        {
-            if (chunks.Count == 0) return true;
-
-            var texts = chunks.Select(c => c.Text).ToList();
-            try
-            {
-                var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(texts);
-
-                for (int i = 0; i < chunks.Count && i < embeddings.Length; i++)
-                {
-                    chunks[i].Embedding = embeddings[i];
-                }
-                return embeddings.Length == chunks.Count;
-            }
-            catch (Exception)
-            {
-                // Embeddings are optional: a missing model or a cloud chat model
-                // that cannot serve embeddings must not fail indexing.
-                foreach (var chunk in chunks)
-                    chunk.Embedding = null;
-                return false;
-            }
-        }
-
         private string ComputeDocumentId(string filePath)
         {
             var info = new FileInfo(filePath);
@@ -452,7 +390,6 @@ if (pageGroups.Count > 0)
         public int MaxChunkSize { get; set; } = 800;
         public int MinChunkSize { get; set; } = 100;
         public int MinChunkWords { get; set; } = 20;
-        public bool GenerateEmbeddings { get; set; } = true;
     }
 
     /// <summary>
@@ -469,7 +406,6 @@ if (pageGroups.Count > 0)
     {
         Extracting,
         Chunking,
-        Embedding,
         Persisting,
         Loaded,
         Complete

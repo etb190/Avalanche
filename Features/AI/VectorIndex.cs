@@ -9,8 +9,9 @@ using Microsoft.Data.Sqlite;
 namespace Avalanche.Features.AI
 {
     /// <summary>
-    /// SQLite-based persistent vector index for document embeddings.
-    /// Stores chunk metadata, embeddings, and supports hybrid search.
+    /// SQLite-based persistent lexical index for document chunks (FTS5/BM25).
+    /// The index is a disposable cache rebuilt from the PDF, so schema drift
+    /// from older builds is healed by dropping and recreating the tables.
     /// </summary>
     public sealed class VectorIndex : IDisposable
     {
@@ -18,30 +19,61 @@ namespace Avalanche.Features.AI
         private readonly SqliteConnection _connection;
         private bool _disposed;
 
+        // Expected column sets. Older builds created different schemas (for
+        // example the embedding columns that have since been removed), and
+        // "CREATE TABLE IF NOT EXISTS" cannot migrate an existing table - a
+        // stale schema made every INSERT fail with "table documents has no
+        // column named ...". When the on-disk columns do not match exactly,
+        // the tables are dropped and rebuilt from scratch instead.
+        private static readonly string[] DocumentsColumns =
+        {
+            "id", "file_path", "file_size", "last_write_time", "content_hash",
+            "page_count", "created_at", "updated_at"
+        };
+
+        private static readonly string[] ChunksColumns =
+        {
+            "id", "document_id", "chunk_index", "text", "page_indices", "word_ranges",
+            "pdf_coords", "char_offset", "lexical_tokens", "page_width", "page_height",
+            "page_rotation", "crop_box", "created_at"
+        };
+
         public VectorIndex(string dbPath)
         {
             _dbPath = dbPath ?? throw new ArgumentNullException(nameof(dbPath));
-            
+
             var directory = Path.GetDirectoryName(_dbPath);
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
             _connection = new SqliteConnection($"Data Source={_dbPath};Cache=Shared");
             _connection.Open();
-            
+
             InitializeSchema();
         }
 
         private void InitializeSchema()
         {
-            using var cmd = _connection.CreateCommand();
-            cmd.CommandText = @"
+            using var pragma = _connection.CreateCommand();
+            pragma.CommandText = @"
                 PRAGMA journal_mode = WAL;
                 PRAGMA synchronous = NORMAL;
                 PRAGMA temp_store = MEMORY;
                 PRAGMA mmap_size = 268435456;
                 PRAGMA page_size = 4096;
+            ";
+            pragma.ExecuteNonQuery();
 
+            if (!SchemaMatches())
+                DropAllTables();
+
+            CreateTables();
+        }
+
+        private void CreateTables()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
                 CREATE TABLE IF NOT EXISTS documents (
                     id TEXT PRIMARY KEY,
                     file_path TEXT NOT NULL,
@@ -50,9 +82,7 @@ namespace Avalanche.Features.AI
                     content_hash TEXT NOT NULL,
                     page_count INTEGER NOT NULL,
                     created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL,
-                    embedding_model_name TEXT NOT NULL DEFAULT '',
-                    embedding_dimension INTEGER NOT NULL DEFAULT 0
+                    updated_at INTEGER NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS chunks (
@@ -64,7 +94,6 @@ namespace Avalanche.Features.AI
                     word_ranges TEXT NOT NULL, -- JSON array of [start, end] per page
                     pdf_coords TEXT NOT NULL, -- JSON array of [left, bottom, right, top] per page
                     char_offset INTEGER NOT NULL,
-                    embedding BLOB, -- Binary float32 array
                     lexical_tokens TEXT NOT NULL, -- JSON array of tokens
                     page_width REAL NOT NULL DEFAULT 0,
                     page_height REAL NOT NULL DEFAULT 0,
@@ -74,7 +103,6 @@ namespace Avalanche.Features.AI
                 );
 
                 CREATE INDEX IF NOT EXISTS idx_chunks_document ON chunks(document_id);
-                CREATE INDEX IF NOT EXISTS idx_chunks_embedding ON chunks(document_id, id) WHERE embedding IS NOT NULL;
 
                 -- FTS5 virtual table for full-text search
                 CREATE VIRTUAL TABLE IF NOT EXISTS chunks_fts USING fts5(
@@ -86,7 +114,7 @@ namespace Avalanche.Features.AI
 
                 CREATE TRIGGER IF NOT EXISTS chunks_after_insert
                 AFTER INSERT ON chunks BEGIN
-                    INSERT INTO chunks_fts (chunk_id, document_id, text) 
+                    INSERT INTO chunks_fts (chunk_id, document_id, text)
                     VALUES (NEW.id, NEW.document_id, NEW.text);
                 END;
 
@@ -98,9 +126,63 @@ namespace Avalanche.Features.AI
                 CREATE TRIGGER IF NOT EXISTS chunks_after_update
                 AFTER UPDATE ON chunks BEGIN
                     DELETE FROM chunks_fts WHERE chunk_id = OLD.id;
-                    INSERT INTO chunks_fts (chunk_id, document_id, text) 
+                    INSERT INTO chunks_fts (chunk_id, document_id, text)
                     VALUES (NEW.id, NEW.document_id, NEW.text);
                 END;
+            ";
+            cmd.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// True when every existing table has exactly the expected columns.
+        /// Absent tables are fine - CreateTables creates them afterwards.
+        /// </summary>
+        private bool SchemaMatches()
+        {
+            var documentsColumns = GetTableColumns("documents");
+            if (documentsColumns.Count > 0 && !ColumnsMatch(documentsColumns, DocumentsColumns))
+                return false;
+
+            var chunksColumns = GetTableColumns("chunks");
+            if (chunksColumns.Count > 0 && !ColumnsMatch(chunksColumns, ChunksColumns))
+                return false;
+
+            return true;
+        }
+
+        private static bool ColumnsMatch(HashSet<string> existing, string[] expected)
+        {
+            if (existing.Count != expected.Length)
+                return false;
+            foreach (var column in expected)
+            {
+                if (!existing.Contains(column))
+                    return false;
+            }
+            return true;
+        }
+
+        private HashSet<string> GetTableColumns(string table)
+        {
+            var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = $"PRAGMA table_info({table})";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                columns.Add(reader.GetString(1));
+            return columns;
+        }
+
+        private void DropAllTables()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+                DROP TRIGGER IF EXISTS chunks_after_insert;
+                DROP TRIGGER IF EXISTS chunks_after_delete;
+                DROP TRIGGER IF EXISTS chunks_after_update;
+                DROP TABLE IF EXISTS chunks;
+                DROP TABLE IF EXISTS documents;
+                DROP TABLE IF EXISTS chunks_fts;
             ";
             cmd.ExecuteNonQuery();
         }
@@ -112,17 +194,15 @@ namespace Avalanche.Features.AI
         {
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
-                INSERT INTO documents (id, file_path, file_size, last_write_time, content_hash, page_count, created_at, updated_at, embedding_model_name, embedding_dimension)
-                VALUES ($id, $file_path, $file_size, $last_write_time, $content_hash, $page_count, $created_at, $updated_at, $embedding_model_name, $embedding_dimension)
+                INSERT INTO documents (id, file_path, file_size, last_write_time, content_hash, page_count, created_at, updated_at)
+                VALUES ($id, $file_path, $file_size, $last_write_time, $content_hash, $page_count, $created_at, $updated_at)
                 ON CONFLICT(id) DO UPDATE SET
                     file_path = $file_path,
                     file_size = $file_size,
                     last_write_time = $last_write_time,
                     content_hash = $content_hash,
                     page_count = $page_count,
-                    updated_at = $updated_at,
-                    embedding_model_name = $embedding_model_name,
-                    embedding_dimension = $embedding_dimension;
+                    updated_at = $updated_at;
             ";
             cmd.Parameters.AddWithValue("$id", doc.DocumentId);
             cmd.Parameters.AddWithValue("$file_path", doc.FilePath);
@@ -132,8 +212,6 @@ namespace Avalanche.Features.AI
             cmd.Parameters.AddWithValue("$page_count", doc.PageCount);
             cmd.Parameters.AddWithValue("$created_at", doc.CreatedAt);
             cmd.Parameters.AddWithValue("$updated_at", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-            cmd.Parameters.AddWithValue("$embedding_model_name", doc.EmbeddingModelName ?? "");
-            cmd.Parameters.AddWithValue("$embedding_dimension", doc.EmbeddingDimension);
             cmd.ExecuteNonQuery();
         }
 
@@ -143,7 +221,7 @@ namespace Avalanche.Features.AI
         public DocumentIndex? GetDocument(string documentId)
         {
             using var cmd = _connection.CreateCommand();
-            cmd.CommandText = "SELECT * FROM documents WHERE id = $id";
+            cmd.CommandText = "SELECT id, file_path, file_size, last_write_time, content_hash, page_count, created_at, updated_at FROM documents WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", documentId);
 
             using var reader = cmd.ExecuteReader();
@@ -159,40 +237,30 @@ namespace Avalanche.Features.AI
                 ContentHash = reader.GetString(4),
                 PageCount = reader.GetInt32(5),
                 CreatedAt = reader.GetInt64(6),
-                EmbeddingModelName = reader.IsDBNull(9) ? "" : reader.GetString(9),
-                EmbeddingDimension = reader.IsDBNull(10) ? 0 : reader.GetInt32(10)
+                UpdatedAt = reader.GetInt64(7)
             };
         }
 
         /// <summary>
-        /// Checks if document exists and is unchanged, including embedding model compatibility.
+        /// Checks if document exists and is unchanged.
         /// </summary>
-        public bool IsDocumentCurrent(string documentId, long fileSize, long lastWriteTime, string contentHash, string embeddingModelName = "", int embeddingDimension = 0)
+        public bool IsDocumentCurrent(string documentId, long fileSize, long lastWriteTime, string contentHash)
         {
             using var cmd = _connection.CreateCommand();
-            cmd.CommandText = "SELECT file_size, last_write_time, content_hash, embedding_model_name, embedding_dimension FROM documents WHERE id = $id";
+            cmd.CommandText = "SELECT file_size, last_write_time, content_hash FROM documents WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", documentId);
 
             using var reader = cmd.ExecuteReader();
             if (!reader.Read())
                 return false;
 
-            bool basicMatch = reader.GetInt64(0) == fileSize 
-                && reader.GetInt64(1) == lastWriteTime 
+            return reader.GetInt64(0) == fileSize
+                && reader.GetInt64(1) == lastWriteTime
                 && reader.GetString(2) == contentHash;
-
-            // Check embedding model compatibility
-            string storedModelName = reader.IsDBNull(3) ? "" : reader.GetString(3);
-            int storedDimension = reader.IsDBNull(4) ? 0 : reader.GetInt32(4);
-            
-            bool modelMatch = string.IsNullOrEmpty(embeddingModelName) || 
-                (storedModelName == embeddingModelName && storedDimension == embeddingDimension);
-
-            return basicMatch && modelMatch;
         }
 
         /// <summary>
-        /// Bulk inserts chunks with embeddings.
+        /// Bulk inserts chunks.
         /// </summary>
         public void BulkInsertChunks(IEnumerable<DocumentChunk> chunks)
         {
@@ -202,8 +270,8 @@ namespace Avalanche.Features.AI
                 using var cmd = _connection.CreateCommand();
                 cmd.Transaction = transaction;
                 cmd.CommandText = @"
-                    INSERT INTO chunks (id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, embedding, lexical_tokens, page_width, page_height, page_rotation, crop_box, created_at)
-                    VALUES ($id, $document_id, $chunk_index, $text, $page_indices, $word_ranges, $pdf_coords, $char_offset, $embedding, $lexical_tokens, $page_width, $page_height, $page_rotation, $crop_box, $created_at)
+                    INSERT INTO chunks (id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_width, page_height, page_rotation, crop_box, created_at)
+                    VALUES ($id, $document_id, $chunk_index, $text, $page_indices, $word_ranges, $pdf_coords, $char_offset, $lexical_tokens, $page_width, $page_height, $page_rotation, $crop_box, $created_at)
                     ON CONFLICT(id) DO UPDATE SET
                         document_id = $document_id,
                         chunk_index = $chunk_index,
@@ -212,7 +280,6 @@ namespace Avalanche.Features.AI
                         word_ranges = $word_ranges,
                         pdf_coords = $pdf_coords,
                         char_offset = $char_offset,
-                        embedding = $embedding,
                         lexical_tokens = $lexical_tokens,
                         page_width = $page_width,
                         page_height = $page_height,
@@ -231,7 +298,6 @@ namespace Avalanche.Features.AI
                     cmd.Parameters.AddWithValue("$word_ranges", System.Text.Json.JsonSerializer.Serialize(chunk.WordRanges));
                     cmd.Parameters.AddWithValue("$pdf_coords", System.Text.Json.JsonSerializer.Serialize(chunk.PdfCoordinates));
                     cmd.Parameters.AddWithValue("$char_offset", chunk.CharOffset);
-                    cmd.Parameters.AddWithValue("$embedding", chunk.Embedding != null ? FloatArrayToBytes(chunk.Embedding) : (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("$lexical_tokens", System.Text.Json.JsonSerializer.Serialize(chunk.LexicalTokens));
                     cmd.Parameters.AddWithValue("$page_width", chunk.PageWidth);
                     cmd.Parameters.AddWithValue("$page_height", chunk.PageHeight);
@@ -251,20 +317,18 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
-        /// Loads all persisted chunks for a document (embeddings included when
-        /// available), ordered by chunk index.
+        /// Loads all persisted chunks for a document, ordered by chunk index.
         /// </summary>
         public List<DocumentChunk> GetChunksForDocument(string documentId)
         {
             var chunks = new List<DocumentChunk>();
             using var cmd = _connection.CreateCommand();
-            cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, embedding, lexical_tokens, page_width, page_height, page_rotation, crop_box FROM chunks WHERE document_id = $doc_id ORDER BY chunk_index";
+            cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_width, page_height, page_rotation, crop_box FROM chunks WHERE document_id = $doc_id ORDER BY chunk_index";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
 
             using var reader = cmd.ExecuteReader();
             while (reader.Read())
             {
-                var embeddingBytes = reader.IsDBNull(8) ? null : (byte[])reader.GetValue(8);
                 chunks.Add(new DocumentChunk
                 {
                     ChunkId = reader.GetString(0),
@@ -275,74 +339,14 @@ namespace Avalanche.Features.AI
                     WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
                     PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
                     CharOffset = reader.GetInt64(7),
-                    Embedding = embeddingBytes != null && embeddingBytes.Length > 0 ? BytesToFloatArray(embeddingBytes) : null,
-                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? new(),
-                    PageWidth = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
-                    PageHeight = reader.IsDBNull(11) ? 0 : reader.GetFloat(11),
-                    PageRotation = reader.IsDBNull(12) ? 0 : reader.GetInt32(12),
-                    CropBox = reader.IsDBNull(13) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(13))
+                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(8)) ?? new(),
+                    PageWidth = reader.IsDBNull(9) ? 0 : reader.GetFloat(9),
+                    PageHeight = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
+                    PageRotation = reader.IsDBNull(11) ? 0 : reader.GetInt32(11),
+                    CropBox = reader.IsDBNull(12) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(12))
                 });
             }
             return chunks;
-        }
-
-        /// <summary>
-        /// Performs semantic search using cosine similarity on embeddings.
-        /// </summary>
-        public List<RetrievedChunk> SemanticSearch(string documentId, float[] queryEmbedding, int topK = 20)
-        {
-            if (queryEmbedding == null || queryEmbedding.Length == 0)
-                return new List<RetrievedChunk>();
-
-            // Load all embeddings for the document and compute cosine similarity
-            // For large datasets, this should use a proper ANN index (HNSW, etc.)
-            // For now, we do linear scan which is fine for <100k chunks
-            var candidates = new List<(DocumentChunk chunk, float similarity)>();
-
-            using var cmd = _connection.CreateCommand();
-            cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, embedding, lexical_tokens, page_width, page_height, page_rotation, crop_box FROM chunks WHERE document_id = $doc_id AND embedding IS NOT NULL";
-            cmd.Parameters.AddWithValue("$doc_id", documentId);
-
-            using var reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var embeddingBytes = reader.IsDBNull(8) ? null : (byte[])reader.GetValue(8);
-                if (embeddingBytes == null || embeddingBytes.Length == 0)
-                    continue;
-
-                var embedding = BytesToFloatArray(embeddingBytes);
-                if (embedding.Length != queryEmbedding.Length)
-                    continue;
-
-                float similarity = CosineSimilarity(queryEmbedding, embedding);
-                if (similarity > 0.1f) // Threshold
-                {
-                    var chunk = new DocumentChunk
-                    {
-                        ChunkId = reader.GetString(0),
-                        DocumentId = reader.GetString(1),
-                        ChunkIndex = reader.GetInt32(2),
-                        Text = reader.GetString(3),
-                        PageIndices = System.Text.Json.JsonSerializer.Deserialize<List<int>>(reader.GetString(4)) ?? new(),
-                        WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
-                        PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
-                        CharOffset = reader.GetInt64(7),
-                        Embedding = embedding,
-                        LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? new(),
-                        PageWidth = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
-                        PageHeight = reader.IsDBNull(11) ? 0 : reader.GetFloat(11),
-                        PageRotation = reader.IsDBNull(12) ? 0 : reader.GetInt32(12),
-                        CropBox = reader.IsDBNull(13) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(13))
-                    };
-                    candidates.Add((chunk, similarity));
-                }
-            }
-
-            return candidates
-                .OrderByDescending(c => c.similarity)
-                .Take(topK)
-                .Select(c => new RetrievedChunk { Chunk = c.chunk, Score = c.similarity })
-                .ToList();
         }
 
         /// <summary>
@@ -358,7 +362,7 @@ namespace Avalanche.Features.AI
 
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
-                SELECT c.id, c.document_id, c.chunk_index, c.text, c.page_indices, c.word_ranges, c.pdf_coords, c.char_offset, c.embedding, c.lexical_tokens, c.page_width, c.page_height, c.page_rotation, c.crop_box,
+                SELECT c.id, c.document_id, c.chunk_index, c.text, c.page_indices, c.word_ranges, c.pdf_coords, c.char_offset, c.lexical_tokens, c.page_width, c.page_height, c.page_rotation, c.crop_box,
                        bm25(chunks_fts) as rank
                 FROM chunks_fts
                 JOIN chunks c ON c.id = chunks_fts.chunk_id
@@ -384,66 +388,18 @@ namespace Avalanche.Features.AI
                     WordRanges = System.Text.Json.JsonSerializer.Deserialize<List<int[]>>(reader.GetString(5)) ?? new(),
                     PdfCoordinates = System.Text.Json.JsonSerializer.Deserialize<List<float[]>>(reader.GetString(6)) ?? new(),
                     CharOffset = reader.GetInt64(7),
-                    Embedding = reader.IsDBNull(8) ? null : BytesToFloatArray((byte[])reader.GetValue(8)),
-                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? new(),
-                    PageWidth = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
-                    PageHeight = reader.IsDBNull(11) ? 0 : reader.GetFloat(11),
-                    PageRotation = reader.IsDBNull(12) ? 0 : reader.GetInt32(12),
-                    CropBox = reader.IsDBNull(13) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(13))
+                    LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(8)) ?? new(),
+                    PageWidth = reader.IsDBNull(9) ? 0 : reader.GetFloat(9),
+                    PageHeight = reader.IsDBNull(10) ? 0 : reader.GetFloat(10),
+                    PageRotation = reader.IsDBNull(11) ? 0 : reader.GetInt32(11),
+                    CropBox = reader.IsDBNull(12) ? null : System.Text.Json.JsonSerializer.Deserialize<float[]>(reader.GetString(12))
                 };
 
-                float score = (float)(1.0 / (1.0 + reader.GetDouble(14))); // BM25 rank -> similarity
+                float score = (float)(1.0 / (1.0 + reader.GetDouble(13))); // BM25 rank -> similarity
                 results.Add(new RetrievedChunk { Chunk = chunk, Score = score });
             }
 
             return results;
-        }
-
-        /// <summary>
-        /// Hybrid search combining lexical and semantic results.
-        /// </summary>
-        public List<RetrievedChunk> HybridSearch(string documentId, string query, float[] queryEmbedding, int topK = 10, float lexicalWeight = 0.4f, float semanticWeight = 0.6f)
-        {
-            // Get more candidates from each for better merge
-            var lexicalResults = LexicalSearch(documentId, query, topK * 3);
-            var semanticResults = SemanticSearch(documentId, queryEmbedding, topK * 3);
-
-            // Normalize scores
-            NormalizeScores(lexicalResults);
-            NormalizeScores(semanticResults);
-
-            // Merge by chunk ID
-            var merged = new Dictionary<string, (DocumentChunk chunk, float lexicalScore, float semanticScore)>();
-
-            foreach (var r in lexicalResults)
-            {
-                merged[r.Chunk.ChunkId] = (r.Chunk, r.Score, 0f);
-            }
-
-            foreach (var r in semanticResults)
-            {
-                if (merged.TryGetValue(r.Chunk.ChunkId, out var existing))
-                {
-                    merged[r.Chunk.ChunkId] = (existing.chunk, existing.lexicalScore, r.Score);
-                }
-                else
-                {
-                    merged[r.Chunk.ChunkId] = (r.Chunk, 0f, r.Score);
-                }
-            }
-
-            // Compute hybrid scores
-            var hybridResults = merged.Values
-                .Select(m => new RetrievedChunk
-                {
-                    Chunk = m.chunk,
-                    Score = (m.lexicalScore * lexicalWeight) + (m.semanticScore * semanticWeight)
-                })
-                .OrderByDescending(r => r.Score)
-                .Take(topK)
-                .ToList();
-
-            return hybridResults;
         }
 
         /// <summary>
@@ -493,34 +449,6 @@ namespace Avalanche.Features.AI
                 r.Score = (r.Score - min) / (max - min);
         }
 
-        private static float CosineSimilarity(float[] a, float[] b)
-        {
-            if (a.Length != b.Length) return 0f;
-            float dot = 0f, normA = 0f, normB = 0f;
-            for (int i = 0; i < a.Length; i++)
-            {
-                dot += a[i] * b[i];
-                normA += a[i] * a[i];
-                normB += b[i] * b[i];
-            }
-            if (normA == 0f || normB == 0f) return 0f;
-            return dot / (MathF.Sqrt(normA) * MathF.Sqrt(normB));
-        }
-
-        private static byte[] FloatArrayToBytes(float[] array)
-        {
-            var bytes = new byte[array.Length * 4];
-            Buffer.BlockCopy(array, 0, bytes, 0, bytes.Length);
-            return bytes;
-        }
-
-        private static float[] BytesToFloatArray(byte[] bytes)
-        {
-            var array = new float[bytes.Length / 4];
-            Buffer.BlockCopy(bytes, 0, array, 0, bytes.Length);
-            return array;
-        }
-
         private static string EscapeFtsQuery(string query)
         {
             // Escape FTS5 special characters
@@ -538,12 +466,12 @@ namespace Avalanche.Features.AI
                 .Replace("^", " ")
                 .Replace("*", " ")
                 .Replace("?", " ");
-            
+
             // Split into terms and wrap each in quotes for phrase matching
             var terms = escaped.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             if (terms.Length == 1)
                 return $"\"{terms[0]}\"";
-            
+
             return string.Join(" OR ", terms.Select(t => $"\"{t}\""));
         }
 

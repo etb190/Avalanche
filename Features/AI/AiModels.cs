@@ -23,9 +23,6 @@ namespace Avalanche.Features.AI
         // Character offset in the full document text
         public long CharOffset { get; set; }
         
-        // Embedding vector
-        public float[]? Embedding { get; set; }
-        
         // Lexical search tokens
         public List<string> LexicalTokens { get; set; } = new();
         
@@ -61,10 +58,6 @@ namespace Avalanche.Features.AI
         public long CreatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         public long UpdatedAt { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         
-        // Embedding model info for index compatibility checking
-        public string EmbeddingModelName { get; set; } = "";
-        public int EmbeddingDimension { get; set; } = 0;
-        
         // Computed properties
         public int ChunkCount => Chunks.Count;
     }
@@ -76,14 +69,12 @@ namespace Avalanche.Features.AI
     {
         public DocumentChunk Chunk { get; set; } = new();
         public float Score { get; set; }
-        public RetrievalMethod Method { get; set; } = RetrievalMethod.Hybrid;
+        public RetrievalMethod Method { get; set; } = RetrievalMethod.Lexical;
     }
 
     public enum RetrievalMethod
     {
         Lexical,
-        Semantic,
-        Hybrid,
         Reranked
     }
 
@@ -166,25 +157,4 @@ namespace Avalanche.Features.AI
         public bool IsCloudModel => Model?.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase) == true;
     }
 
-    /// <summary>
-    /// Configuration for embedding providers.
-    /// </summary>
-    public sealed class EmbeddingProviderConfig
-    {
-        public string ProviderType { get; set; } = "Ollama";
-        public string BaseUrl { get; set; } = "http://localhost:11434/v1";
-        public string ApiKey { get; set; } = "ollama";
-        public string Model { get; set; } = "gpt-oss:120b-cloud";
-        public int Dimension { get; set; } = 2880;  // gpt-oss:120b hidden size (hint; actual length parsed from response)
-        public int MaxTokens { get; set; } = 8191;
-        public int BatchSize { get; set; } = 16;  // Smaller batches for Ollama
-        
-        // Task prefixes for embedding models that support them (e.g., nomic-embed-text)
-        public string DocumentPrefix { get; set; } = "";
-        public string QueryPrefix { get; set; } = "";
-        
-        // Embedding model info for index compatibility
-        public string EmbeddingModelName { get; set; } = "";
-        public int EmbeddingDimension { get; set; } = 0;
-    }
 }

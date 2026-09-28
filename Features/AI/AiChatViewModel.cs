@@ -18,12 +18,10 @@ namespace Avalanche.Features.AI
     public sealed class AiChatViewModel : INotifyPropertyChanged
     {
         private readonly IAiProvider _aiProvider;
-        private readonly IEmbeddingProvider _embeddingProvider;
         private readonly HybridRetriever _retriever;
         private readonly VectorIndex _vectorIndex;
         private readonly DocumentIndexer _indexer;
         private readonly AiProviderConfig _genConfig;
-        private readonly EmbeddingProviderConfig _embConfig;
         private readonly MainWindow _mainWindow;
         private readonly Func<string, string> _loc;
         private readonly RetrievalOptions _retrievalOptions;
@@ -78,12 +76,10 @@ namespace Avalanche.Features.AI
         public AiChatViewModel(
             MainWindow mainWindow, 
             AiProviderConfig genConfig, 
-            EmbeddingProviderConfig embConfig,
             Func<string, string> loc)
         {
             _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
             _genConfig = genConfig ?? throw new ArgumentNullException(nameof(genConfig));
-            _embConfig = embConfig ?? throw new ArgumentNullException(nameof(embConfig));
             _loc = loc ?? (k => k);
 
             _retrievalOptions = new RetrievalOptions
@@ -91,17 +87,14 @@ namespace Avalanche.Features.AI
                 TopK = 8,
                 EvidenceCharBudget = 12000,
                 CandidatePoolSize = 30,
-                LexicalWeight = 0.4f,
-                SemanticWeight = 0.6f,
                 EnableReranking = true,
                 MinScore = 0.15f
             };
 
             _aiProvider = AiProviderFactory.CreateProvider(genConfig.ProviderType);
-            _embeddingProvider = AiProviderFactory.CreateEmbeddingProvider(embConfig);
             _vectorIndex = new VectorIndex(GetIndexDbPath());
-            _retriever = new HybridRetriever(_vectorIndex, _embeddingProvider, _retrievalOptions);
-            _indexer = new DocumentIndexer(_embeddingProvider, _vectorIndex, embConfig);
+            _retriever = new HybridRetriever(_vectorIndex, _retrievalOptions);
+            _indexer = new DocumentIndexer(_vectorIndex);
         }
 
         private static string GetIndexDbPath()

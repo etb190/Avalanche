@@ -850,7 +850,6 @@ namespace Avalanche
                 _aiChatViewModel = new Features.AI.AiChatViewModel(
                     this, 
                     _aiSettingsViewModel.ToGenConfig(), 
-                    _aiSettingsViewModel.ToEmbConfig(), 
                     Loc);
                 AiChatOverlay.DataContext = _aiChatViewModel;
             }

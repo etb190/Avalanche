@@ -6,66 +6,43 @@ using System.Threading.Tasks;
 namespace Avalanche.Features.AI
 {
     /// <summary>
-    /// Hybrid retriever combining lexical and semantic search with reranking.
+    /// Lexical (BM25/FTS5) retriever with heuristic reranking. Embedding-based
+    /// semantic search was removed: retrieval runs entirely on the local
+    /// full-text index and needs no embedding model.
     /// </summary>
     public sealed class HybridRetriever
     {
         private readonly VectorIndex _vectorIndex;
-        private readonly IEmbeddingProvider _embeddingProvider;
         private readonly RetrievalOptions _options;
 
-        public HybridRetriever(VectorIndex vectorIndex, IEmbeddingProvider embeddingProvider, RetrievalOptions? options = null)
+        public HybridRetriever(VectorIndex vectorIndex, RetrievalOptions? options = null)
         {
             _vectorIndex = vectorIndex ?? throw new ArgumentNullException(nameof(vectorIndex));
-            _embeddingProvider = embeddingProvider ?? throw new ArgumentNullException(nameof(embeddingProvider));
             _options = options ?? new RetrievalOptions();
         }
 
         /// <summary>
-        /// Retrieves relevant chunks using hybrid search with optional reranking.
+        /// Retrieves relevant chunks using lexical search with optional reranking.
         /// </summary>
-        public async Task<List<RetrievedChunk>> RetrieveAsync(string documentId, string query, int maxResults = 10)
+        public Task<List<RetrievedChunk>> RetrieveAsync(string documentId, string query, int maxResults = 10)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return new List<RetrievedChunk>();
+                return Task.FromResult(new List<RetrievedChunk>());
 
-            // Generate the query embedding. If the configured model cannot serve
-            // embeddings (e.g. the gpt-oss cloud chat model behind the Ollama
-            // bridge), fall back to pure lexical search instead of failing.
-            float[] queryEmbedding;
-            try
-            {
-                queryEmbedding = await _embeddingProvider.GenerateEmbeddingAsync(query);
-            }
-            catch (Exception)
-            {
-                queryEmbedding = Array.Empty<float>();
-            }
-
-            var usedSemantic = queryEmbedding != null && queryEmbedding.Length > 0;
-
-            List<RetrievedChunk> hybridResults;
-            if (!usedSemantic)
-            {
-                // Lexical-only retrieval (BM25) - embeddings unavailable.
-                hybridResults = _vectorIndex.LexicalSearch(documentId, query, _options.CandidatePoolSize);
-                VectorIndex.NormalizeScores(hybridResults);
-            }
-            else
-            {
-                // Hybrid search: lexical + semantic
-                hybridResults = _vectorIndex.HybridSearch(documentId, query, queryEmbedding, _options.CandidatePoolSize,
-                    _options.LexicalWeight, _options.SemanticWeight);
-            }
+            // Lexical retrieval (BM25 via FTS5)
+            var results = _vectorIndex.LexicalSearch(documentId, query, _options.CandidatePoolSize);
+            VectorIndex.NormalizeScores(results);
 
             // Rerank if enabled
-            if (_options.EnableReranking && hybridResults.Count > 1)
+            bool reranked = false;
+            if (_options.EnableReranking && results.Count > 1)
             {
-                hybridResults = await RerankAsync(query, hybridResults);
+                results = Rerank(query, results);
+                reranked = true;
             }
 
             // Apply evidence character budget
-            var finalResults = ApplyEvidenceBudget(hybridResults, _options.EvidenceCharBudget);
+            var finalResults = ApplyEvidenceBudget(results, _options.EvidenceCharBudget);
 
             // Apply final scoring and filtering
             finalResults = finalResults
@@ -76,10 +53,10 @@ namespace Avalanche.Features.AI
             // Mark retrieval method
             foreach (var r in finalResults)
             {
-                r.Method = usedSemantic ? RetrievalMethod.Hybrid : RetrievalMethod.Lexical;
+                r.Method = reranked ? RetrievalMethod.Reranked : RetrievalMethod.Lexical;
             }
 
-            return finalResults;
+            return Task.FromResult(finalResults);
         }
 
         /// <summary>
@@ -96,50 +73,36 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
-        /// Semantic-only search for conceptual queries.
-        /// </summary>
-        public async Task<List<RetrievedChunk>> SemanticSearchAsync(string documentId, string query, int maxResults = 10)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-                return new List<RetrievedChunk>();
-
-            var queryEmbedding = await _embeddingProvider.GenerateEmbeddingAsync(query);
-            var results = _vectorIndex.SemanticSearch(documentId, queryEmbedding, maxResults);
-            foreach (var r in results) r.Method = RetrievalMethod.Semantic;
-            return results;
-        }
-
-        /// <summary>
         /// Applies evidence character budget to keep prompt size bounded.
         /// </summary>
         private List<RetrievedChunk> ApplyEvidenceBudget(List<RetrievedChunk> results, int budget)
         {
             if (budget <= 0) return results;
-            
+
             var selected = new List<RetrievedChunk>();
             int totalChars = 0;
-            
+
             foreach (var r in results.OrderByDescending(r => r.Score))
             {
                 int chunkChars = r.Chunk.Text.Length;
                 if (totalChars + chunkChars > budget && selected.Count > 0)
                     break;
-                
+
                 selected.Add(r);
                 totalChars += chunkChars;
             }
-            
+
             return selected;
         }
 
         /// <summary>
-        /// Reranks candidates using a cross-encoder or heuristic approach.
+        /// Reranks candidates using a heuristic approach based on query-term
+        /// overlap and position. Pure CPU work - no model call involved.
         /// </summary>
-        private async Task<List<RetrievedChunk>> RerankAsync(string query, List<RetrievedChunk> candidates)
+        private List<RetrievedChunk> Rerank(string query, List<RetrievedChunk> candidates)
         {
             if (candidates.Count <= 1) return candidates;
 
-            // Heuristic reranking based on query-term overlap and position
             var reranked = new List<RetrievedChunk>();
 
             var queryTerms = query.ToLowerInvariant()
@@ -206,8 +169,6 @@ namespace Avalanche.Features.AI
         public int TopK { get; set; } = 8;                    // Number of chunks to retrieve
         public int EvidenceCharBudget { get; set; } = 12000;  // Total character budget for evidence
         public float MinScore { get; set; } = 0.15f;          // Minimum relevance score
-        public float LexicalWeight { get; set; } = 0.4f;      // Weight for BM25 scores
-        public float SemanticWeight { get; set; } = 0.6f;     // Weight for embedding scores
         public bool EnableReranking { get; set; } = true;     // Apply reranking
         public int MaxRerankCandidates { get; set; } = 20;    // Max candidates to rerank
     }
