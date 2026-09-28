@@ -2955,7 +2955,7 @@
                                          VerticalContentAlignment="Center" AcceptsReturn="True"
                                          TextWrapping="Wrap" MinHeight="38" MaxHeight="120"
                                          Padding="10,6"
-                                         KeyDown="AiChatInput_KeyDown"
+                                         PreviewKeyDown="AiChatInput_PreviewKeyDown"
                                          Text="{Binding CurrentInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          ToolTip="{DynamicResource Str_AiChatInputTip}"/>
                             </Border>

@@ -1055,8 +1055,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <!-- ── AI Chat ────────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
-    <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>
-    <sys:String x:Key="Str_AiChatSendTip">Send (Ctrl+Enter)</sys:String>
+    <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Enter to send, Ctrl+Enter for a new line)</sys:String>
+    <sys:String x:Key="Str_AiChatSendTip">Send (Enter)</sys:String>
     <sys:String x:Key="Str_AiChatPreparing">Preparing document…</sys:String>
     <sys:String x:Key="Str_AiChatThinking">Thinking…</sys:String>
     <sys:String x:Key="Str_AiChatGreeting">Hi! Ask me anything about this document and I'll answer from its contents.</sys:String>

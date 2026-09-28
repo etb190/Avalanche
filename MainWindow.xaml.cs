@@ -876,7 +876,7 @@ namespace Avalanche
 
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)
         {
-            // Guard with CanSend (not just non-empty input): Ctrl+Enter reaches this
+            // Guard with CanSend (not just non-empty input): Enter reaches this
             // handler even while the send button is disabled, and previously the
             // captured text was dropped when a reply was still being generated.
             if (_aiChatViewModel is null || !_aiChatViewModel.CanSend)
@@ -893,17 +893,43 @@ namespace Avalanche
             });
         }
 
-        private void AiChatInput_KeyDown(object sender, KeyEventArgs e)
+        // PreviewKeyDown (not KeyDown) is required here: with AcceptsReturn on, the
+        // TextBox class handler consumes plain Enter while the event bubbles, so a
+        // KeyDown handler never sees it and cannot turn it into a send.
+        private void AiChatInput_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+            if (e.Key == Key.Enter)
             {
-                e.Handled = true;
-                AiChatSendBtn_Click(sender, e);
+                if (Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    // Ctrl+Enter inserts a newline at the caret (replacing any selection).
+                    e.Handled = true;
+                    InsertAiChatNewLine();
+                }
+                else if (Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    // Plain Enter sends the message instead of starting a new line.
+                    e.Handled = true;
+                    AiChatSendBtn_Click(sender, e);
+                }
+                // Other modifier combinations (Shift/Alt) keep the default editing behaviour.
             }
             else if (e.Key == Key.Escape)
             {
                 CloseAiChat();
             }
+        }
+
+        private void InsertAiChatNewLine()
+        {
+            if (AiChatInput is null) return;
+
+            // Replaces the current selection (or inserts at the caret when nothing is
+            // selected) while preserving the TextBox undo stack, then parks the caret
+            // right after the inserted line break.
+            var start = Math.Max(AiChatInput.SelectionStart, 0);
+            AiChatInput.SelectedText = "\r\n";
+            AiChatInput.CaretIndex = start + 2;
         }
 
         private void AiSourceButton_Click(object sender, RoutedEventArgs e)
