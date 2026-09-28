@@ -1,1024 +1,980 @@
-I want you to implement a COMPLETE AI PDF CHAT FEATURE in this existing Avalanche repository.
+I want you to FIX AND UPGRADE the AI PDF system you just implemented in Avalanche.
 
-IMPORTANT:
-Do NOT treat this as a generic new application.
-Do NOT replace the existing PDF viewer.
-Do NOT create a mockup or fake UI.
-Do NOT create a separate PDF rendering system.
-You MUST inspect the existing Avalanche architecture and integrate into it properly.
+DO NOT rebuild the entire feature from scratch.
+
+DO NOT redesign the existing AI sidebar.
+
+DO NOT remove working functionality.
+
+The current implementation is a prototype and has several architectural problems that need to be corrected.
 
 Repository:
 https://github.com/etb190/Avalanche
 
-Avalanche is a WPF/.NET application. It already has:
-- PDF rendering
-- PdfPig text extraction/search
-- Docnet rendering
-- OCR
-- page overlay canvases
-- continuous/multi-page viewing
-- page navigation
-- split PDF panes
-- existing temporary search highlighting
-- existing themed WPF controls/resources
+The AI model I am using is:
 
-The implementation must fit the existing architecture and visual language.
+NVIDIA Nemotron 3 Ultra 550B A55B.
+
+It is being accessed through an OpenAI-compatible API endpoint.
+
+KEEP THE AI PROVIDER ABSTRACTION, but make the document-retrieval system substantially better.
+
+The goal is a serious research-grade PDF question-answering system capable of working with 1,000+ page PDFs.
 
 ==================================================
-1. AI CHAT SIDEBAR — UI
+1. CRITICAL: DO NOT BLAME THE LLM
 ==================================================
 
-Add an AI chat sidebar on the RIGHT SIDE of the PDF viewing area.
+The current retrieval system is the problem.
 
-The attached screenshot shows exactly where I want it.
+The current DocumentRetriever is essentially keyword matching.
 
-The blue marked area in the screenshot represents the AI panel.
+It takes words from the question and scores chunks based on whether those words appear in the chunk.
 
-CRITICAL LAYOUT REQUIREMENT:
+That is NOT sufficient for semantic PDF question answering.
 
-The AI sidebar MUST NOT push, resize, reflow, or otherwise change the layout of the PDF pages.
+Replace the current retrieval architecture with a proper HYBRID RETRIEVAL SYSTEM.
 
-It must be an OVERLAY.
-
-The PDF viewer must remain exactly where it is when the AI sidebar opens.
-
-For example:
-
-BEFORE:
-
-+-----------------------------------------------+
-|                                               |
-|                PDF DOCUMENT                   |
-|                                               |
-|                                               |
-+-----------------------------------------------+
-
-AFTER:
-
-+-----------------------------------------------+
-|                            +------------------+
-|             PDF            |                  |
-|                            |   AI CHAT        |
-|                            |                  |
-|                            |                  |
-+-----------------------------------------------+
-
-
-The AI panel simply covers the rightmost portion of the existing document view.
-
-DO NOT create a new Grid.Column for it.
-
-DO NOT reduce DocCol's width.
-
-DO NOT modify the existing page/sidebar layout to make room for it.
-
-Instead, place the AI chat panel as a high-Z-index overlay inside the appropriate existing document/main-content container.
-
-It should be anchored to the RIGHT and stretch vertically through the PDF viewing area.
-
-It should behave like a fixed overlay.
-
-The PDF underneath should remain exactly where it was.
-
-When the AI panel closes, the PDF view should be completely unchanged.
-
-==================================================
-2. AI SIDEBAR SIZE
-==================================================
-
-Use a sensible desktop width around 360–420 px.
-
-Do not make it absurdly wide.
-
-It should feel like a professional PDF application's AI assistant panel.
-
-It must have:
-
-- top header
-- conversation area
-- message bubbles/blocks
-- source buttons
-- text input
-- send button
-- close button
-- loading/thinking state
-- error state
-
-The panel must vertically fill the available document viewing region.
-
-The chat messages area must scroll independently.
-
-The PDF scrolling must NOT scroll the chat.
-
-The chat scrolling must NOT scroll the PDF.
-
-==================================================
-3. STYLE
-==================================================
-
-The styling must match Avalanche.
-
-DO NOT introduce a completely different design language.
-
-Use the existing Avalanche theme resources wherever possible:
-- BackgroundBrush
-- SidebarPaneBrush
-- PaneBrush
-- TextBrush
-- MutedTextBrush
-- PrimaryBrush
-- SelectionAccent
-- CardBorderBrush
-- PaneBorderBrush
-- existing corner-radius resources
-- existing toolbar/button styles where appropriate
-
-Follow the same visual language already used by Avalanche:
-- dark professional desktop application
-- restrained borders
-- subtle depth
-- existing typography
-- existing spacing
-- existing hover behavior
-- no giant rounded modern-web cards
-- no excessive gradients
-- no childish AI graphics
-- no unnecessary animations
-- no "AI magic" marketing text
-
-The panel should look like it belongs in Avalanche.
-
-==================================================
-4. OPEN/CLOSE AI PANEL
-==================================================
-
-Add a proper way to open/close the AI panel.
-
-Integrate the open button into the existing UI rather than creating an ugly floating button.
-
-Inspect the existing toolbar/command architecture and add an AI button using the same visual conventions as the existing toolbar buttons.
-
-The button should toggle the AI panel.
-
-The panel itself must have a close X.
-
-Closing the panel must NOT destroy the conversation state for the currently open document.
-
-Opening it again should restore the conversation for that document/session.
-
-==================================================
-5. THE AI MUST ACTUALLY TALK TO THE PDF
-==================================================
-
-This is the most important part.
-
-DO NOT send the entire PDF to the AI model on every question.
-
-DO NOT convert a 1,000-page PDF into one enormous prompt.
-
-DO NOT load the entire document into the model's context.
-
-Implement a proper document retrieval architecture.
-
-The system should work with PDFs that can contain hundreds or thousands of pages.
-
-Architecture:
+The final architecture should be:
 
 PDF
  ↓
-text extraction
+Text extraction
  ↓
-document indexing
+Document structure
  ↓
-retrieval
+Chunking
  ↓
-relevant passages
+Persistent document index
  ↓
-AI model
- ↓
-answer + structured source citations
+       ┌─────────────────────┐
+       │                     │
+       ▼                     ▼
+ Lexical/full-text       Semantic/vector
+    retrieval               retrieval
+       │                     │
+       └──────────┬──────────┘
+                  ▼
+             Hybrid merge
+                  ▼
+              Reranking
+                  ▼
+          Best relevant chunks
+                  ▼
+           Nemotron 3 Ultra
+                  ▼
+          Answer + citations
 
-The AI should only receive the relevant passages needed to answer the user's question.
+Do not merely improve the existing keyword scoring algorithm.
+
+Implement actual semantic retrieval.
 
 ==================================================
-6. DOCUMENT TEXT EXTRACTION
+2. EMBEDDINGS
 ==================================================
 
-Use Avalanche's existing PdfPig infrastructure rather than introducing another PDF extraction system unnecessarily.
+Add an embedding-based retrieval layer.
 
-When a document is opened, create an AI document index for the active PDF.
+The embedding implementation MUST be provider-independent.
 
-Preserve:
+Do not make the document index depend on Nemotron itself.
 
-- page index
-- displayed page number
-- extracted text
-- word positions
-- PDF bounding boxes
-- enough information to locate an exact passage again
+Nemotron 3 Ultra is the GENERATION MODEL.
 
-Do NOT destroy the relationship between extracted text and the original PDF coordinates.
+Embeddings are a separate component.
 
-This is essential because the AI must eventually say:
+Create an abstraction similar to:
 
-"Page 147"
+IEmbeddingProvider
 
-and clicking that source must allow Avalanche to find and highlight the exact passage on page 147.
+or whatever naming fits Avalanche's existing architecture.
 
-The original PDF remains the source of truth.
+It should support generating embeddings for:
 
-Do not make Markdown the canonical representation of the PDF.
+- document chunks
+- user queries
 
-If an internal normalized text representation is useful, that is fine, but it MUST retain page and coordinate information.
+The embedding provider must be configurable.
+
+Do not hard-code one embedding vendor into the retrieval architecture.
+
+The system should be capable of using a local embedding model or an OpenAI-compatible embedding endpoint.
+
+IMPORTANT:
+
+Do NOT use Nemotron 3 Ultra itself to generate embeddings unless there is a specific technical reason to do so.
+
+Keep generation and embeddings separate.
 
 ==================================================
-7. CHUNKING
+3. VECTOR INDEX
 ==================================================
 
-Create intelligent chunks from the PDF text.
+Add a persistent vector index.
 
-Do not simply split every N characters blindly.
+Do not keep all embeddings only in RAM.
 
-Prefer natural boundaries such as:
+The vector store must persist between application sessions.
 
-- paragraphs
-- sections
-- headings
-- nearby sentences
+Use an implementation appropriate for a local Windows desktop application.
 
-But preserve page boundaries in the metadata.
+Prefer an architecture that does not require the user to run a separate database server.
 
-A chunk should have information similar to:
+If SQLite is already used or appropriate in Avalanche, strongly prefer a local SQLite-based solution.
+
+The exact vector implementation is up to you after inspecting the repository and available .NET libraries.
+
+Do not introduce a giant infrastructure dependency unnecessarily.
+
+The important requirements are:
+
+- persistent
+- local
+- fast
+- searchable
+- associated with the correct PDF
+- able to store chunk metadata
+- able to store embeddings
+
+==================================================
+4. PERSISTENT DOCUMENT INDEX
+==================================================
+
+The current implementation creates an index in memory.
+
+Fix this.
+
+When a PDF is first opened/indexed:
+
+1. Extract text.
+2. Build chunks.
+3. Generate embeddings.
+4. Build lexical/full-text index.
+5. Store the complete index persistently.
+
+When the same PDF is opened again:
+
+1. Determine whether the PDF has changed.
+2. If unchanged, load the existing index.
+3. Do NOT re-extract and re-embed the entire PDF.
+
+The cache/index identity should account for document changes.
+
+Use an appropriate document fingerprint based on things such as:
+
+- absolute path
+- file size
+- last modified time
+- and/or a cryptographic hash if appropriate
+
+Do not trust only the filename.
+
+==================================================
+5. CHUNK METADATA — VERY IMPORTANT
+==================================================
+
+The current implementation loses too much information about where a chunk came from.
+
+Fix this.
+
+Every chunk MUST retain enough information to identify its exact original PDF location.
+
+A chunk should conceptually contain:
 
 DocumentId
-PageIndex
-PageNumber
 ChunkId
+PageIndex
+DisplayedPageNumber
+Section/heading if available
 Text
-Start/End information
-Word information / bounding boxes
+Word IDs / word range
+PDF-space coordinates
+Bounding information
+Character offsets if useful
+Embedding
+Lexical-search metadata
 
-If a passage spans multiple pages, it must still be possible to identify which exact page contains each part.
+Do not reduce a chunk to:
 
-For AI citation purposes, prefer citations that resolve to ONE PAGE at a time.
+"text + one page number + one rectangle"
+
+The relationship between:
+
+TEXT → WORDS → PAGE → PDF COORDINATES
+
+must be preserved.
+
+This is critical for reliable source highlighting.
 
 ==================================================
-8. RETRIEVAL
+6. PAGE BOUNDARIES
 ==================================================
 
-Implement a proper retrieval layer.
+Do NOT assume a chunk belongs to only the first page it touches.
 
-At minimum, support efficient lexical/full-text retrieval over the document rather than scanning the entire PDF from disk for every question.
+If a chunk crosses pages, retain the exact page/word mapping.
 
 For example:
 
-Question:
-"What does the author say about X?"
+Chunk 100
+ ├── page 147
+ │    └── words 1–43
+ └── page 148
+      └── words 44–71
 
-Retrieve the most relevant chunks.
+The chunk can still be treated as one retrieval unit, but its source-location metadata must preserve each page separately.
 
-Then send only those chunks to the AI.
-
-If you introduce a vector/embedding system, keep it provider-agnostic and optional.
-
-DO NOT hard-code the architecture around one AI company.
-
-The retrieval layer should be independent from the AI provider.
-
-Ideally structure it around interfaces/classes such as:
-
-IDocumentIndexer
-IDocumentRetriever
-IAiProvider
-
-or equivalent architecture appropriate for this repository.
-
-Do not blindly use these exact names if Avalanche has a better existing convention.
-
-Inspect the repository first.
+For citations, prefer returning individual page-level source records.
 
 ==================================================
-9. AI PROVIDER
+7. BETTER CHUNKING
 ==================================================
 
-Do not hard-code the chat implementation directly into the UI.
+Improve the current simplistic character-based chunking.
 
-Create an abstraction around the model provider.
+Do not blindly split every N characters.
 
-The provider should eventually be able to support an OpenAI-compatible HTTP endpoint so it can work with:
+Prefer:
 
-- cloud AI APIs
-- local models
-- OpenAI-compatible local servers
+1. headings
+2. paragraphs
+3. sentences
+4. page boundaries
+5. then controlled size limits
 
-Do not assume the user will permanently use one provider.
+Maintain overlap where appropriate.
 
-Keep API/model configuration separate from the PDF retrieval system.
+Avoid:
 
-If Avalanche currently has no AI settings infrastructure, add the minimum necessary configuration cleanly.
+- splitting in the middle of sentences unnecessarily
+- splitting citations from the text they belong to
+- splitting headings away from their section
+- creating huge chunks
+- creating tiny useless chunks
 
-Do NOT scatter API keys throughout the application.
+The exact token/character limits should be configurable or sensibly chosen.
+
+The system must remain suitable for 1,000+ page PDFs.
 
 ==================================================
-10. STRUCTURED AI RESPONSES
+8. HYBRID SEARCH
 ==================================================
 
-This is VERY important.
+Implement BOTH:
 
-Do not rely on parsing arbitrary AI prose to determine where an answer came from.
+A. Lexical retrieval
+B. Semantic retrieval
 
-The AI should return structured information.
+Lexical retrieval should support exact terminology.
+
+Semantic retrieval should support conceptual questions.
+
+Example:
+
+PDF says:
+
+"provincial taxation administration"
+
+User asks:
+
+"How did the government collect revenue in its provinces?"
+
+Semantic retrieval should still identify the relevant passage even though the wording differs.
+
+Conversely, if the user searches for:
+
+"Blanchard 2001"
+
+exact lexical retrieval should work extremely well.
+
+Combine the results.
+
+Do not simply concatenate the two lists.
+
+Normalize scores and implement a sensible hybrid ranking.
+
+==================================================
+9. RERANKING
+==================================================
+
+After initial retrieval, rerank the candidate passages.
+
+For example:
+
+Question
+ ↓
+lexical top 20
+semantic top 20
+ ↓
+merge
+ ↓
+remove duplicates
+ ↓
+rerank
+ ↓
+top 5–10 passages
+
+The exact numbers are up to you.
+
+The important thing is that the LLM should receive HIGH-QUALITY candidates rather than simply the first five chunks returned by a basic keyword scorer.
+
+If using an additional reranking model is practical, make it optional/configurable.
+
+Do not require a second expensive cloud service if the application can function without it.
+
+==================================================
+10. DO NOT SEND THE WHOLE PDF TO NEMOTRON
+==================================================
+
+Nemotron 3 Ultra has a very large context window, but that does NOT mean we should dump an entire 1,000-page PDF into every request.
+
+Use retrieval.
+
+Only send the most relevant passages.
+
+The model should receive something conceptually like:
+
+SYSTEM INSTRUCTIONS
+
+CONVERSATION HISTORY
+
+CURRENT QUESTION
+
+RETRIEVED DOCUMENT EVIDENCE:
+
+[Source 1]
+Document: ...
+Page: 147
+Chunk ID: ...
+Text: ...
+
+[Source 2]
+Document: ...
+Page: 153
+Chunk ID: ...
+Text: ...
+
+[Source 3]
+...
+
+Then ask Nemotron to answer ONLY using the retrieved evidence when making claims about the document.
+
+==================================================
+11. NEMOTRON 3 ULTRA
+==================================================
+
+The generation model is:
+
+NVIDIA Nemotron 3 Ultra 550B A55B.
+
+Keep the existing OpenAI-compatible provider architecture.
+
+Make sure the request format is compatible with the endpoint being used.
+
+Do not assume that every OpenAI-compatible server behaves identically.
+
+Keep:
+
+- endpoint
+- API key
+- model name
+- temperature
+- maximum output tokens
+
+configurable.
+
+Use a low/moderate temperature appropriate for document-grounded research answers.
+
+Do not artificially truncate the model's input unnecessarily.
+
+However, do not use the model's huge context window as an excuse to bypass retrieval.
+
+==================================================
+12. STRUCTURED CITATIONS
+==================================================
+
+The model MUST return structured citations.
+
+Do not parse arbitrary prose for page numbers.
+
+The application should have a strongly typed source representation.
 
 Conceptually:
 
 {
-    "answer": "The author argues that...",
+    "answer": "...",
     "sources": [
         {
+            "sourceId": "chunk/page identifier",
             "page": 147,
-            "quote": "Exact text from the PDF...",
-            "reason": "This passage directly discusses..."
-        },
-        {
-            "page": 153,
-            "quote": "Another exact passage...",
-            "reason": "This provides supporting evidence..."
+            "quote": "exact source text",
+            "reason": "why this passage supports the answer"
         }
     ]
 }
 
-Use whatever strongly typed C# representation fits Avalanche.
+The exact JSON implementation can use C# classes.
 
-The actual AI response can still contain Markdown for the answer.
+IMPORTANT:
 
-But source citations must be structured objects.
+The sourceId should correspond to a RETRIEVED CHUNK/PASSAGE ID known to Avalanche.
 
-The application, not the model, should control the source buttons.
+The AI should NOT be responsible for inventing a source ID.
 
-==================================================
-11. SOURCE BUTTONS
-==================================================
+The application should give the model the available source IDs and require the model to cite those IDs.
 
-Every AI answer that uses material from the PDF should be able to show source/page buttons.
+Example:
 
-For example:
+AVAILABLE SOURCES:
 
-The author argues that the policy was primarily driven by
-administrative concerns rather than military ones.
+SOURCE_001
+Page 147
+Text: ...
 
-Sources:
+SOURCE_002
+Page 153
+Text: ...
 
-[147] [153] [158]
+The model must return:
 
-These should be actual WPF buttons.
+"sourceIds": ["SOURCE_001", "SOURCE_002"]
 
-The number inside the button is the displayed PDF page number.
-
-Clicking:
-
-[147]
-
-must:
-
-1. Clear the existing AI highlight.
-2. Navigate the active PDF viewer to page 147.
-3. Wait until the target page has been rendered / its page canvas is available.
-4. Locate the cited passage on that page.
-5. Draw ONE temporary blue highlight around that passage.
-6. Leave the PDF document itself unchanged.
-
-The button must not merely change the page number.
-
-It must actually navigate to the source and visually show the relevant passage.
+This is MUCH safer than trusting the model to invent page numbers.
 
 ==================================================
-12. PAGE NUMBERING
+13. SOURCE QUOTES
 ==================================================
 
-Be extremely careful about page indexing.
+The AI can return a quote for readability, but the application's canonical source location must come from the retrieved chunk.
 
-Avalanche internally uses zero-based page indices in many places.
+Do NOT rely on fuzzy-searching the entire PDF to figure out where the AI's quote came from.
 
-The user sees one-based page numbers.
+Instead:
 
-Therefore:
+Retrieved chunk
+ ↓
+known page
+ ↓
+known word range
+ ↓
+known PDF coordinates
 
-internal page index 0 = UI page 1
-internal page index 1 = UI page 2
-etc.
+The AI citation should point back to that retrieved chunk.
 
-Do not accidentally display page 148 when the actual UI page is 147.
+The quote should be validated against the retrieved text.
 
-Use the existing page navigation mechanisms rather than inventing a second navigation system.
+If the AI returns a quote that does not correspond to the cited chunk, reject or repair that citation rather than highlighting an unrelated passage.
 
 ==================================================
-13. AI SOURCE HIGHLIGHTING
+14. FIX THE CURRENT HIGHLIGHTING ARCHITECTURE
 ==================================================
 
-This is extremely important.
+Keep the current requirement:
 
-When I click a source button, I want the relevant text in the PDF to be highlighted in BLUE.
+EXACTLY ONE temporary AI highlight at a time.
 
-But I specifically DO NOT want multiple little highlight rectangles over individual words.
+Do not change this.
 
-I want ONE highlight.
+However, improve the implementation.
 
-For example, if the relevant passage is:
+The source button should reference the actual retrieved source location.
 
-"The administration established provincial offices throughout the region and appointed officials to oversee taxation and military obligations."
+Clicking a source:
 
-DO NOT create:
+1. Clear existing AI highlight.
+2. Navigate the ACTIVE PDF VIEWER to the correct page.
+3. Wait for that page's visual canvas to be available.
+4. Retrieve the stored PDF-space coordinates for the cited passage.
+5. Convert those coordinates to viewer coordinates using Avalanche's existing coordinate conversion.
+6. Draw ONE translucent blue rectangle around the passage.
+7. Do not modify the PDF.
+8. Do not create an annotation.
+9. Do not save anything into the PDF.
 
-[box around The]
-[box around administration]
-[box around established]
-[box around provincial]
-etc.
+There must never be multiple AI source highlights.
 
-Instead create ONE single translucent blue rectangular highlight covering the entire relevant passage.
+==================================================
+15. ONE RECTANGLE ONLY
+==================================================
 
-Even if the passage occupies several lines, there should be ONE rectangle representing the whole passage.
+This requirement is absolute.
 
-The rectangle should encompass the passage's bounding area.
+If the source passage contains:
 
-It is acceptable if there is a little whitespace inside the rectangle between lines.
+line 1
+line 2
+line 3
+line 4
 
-The visual requirement is:
+DO NOT draw four rectangles.
 
-ONE passage = ONE highlight rectangle.
+Calculate the combined bounding rectangle:
+
+minX
+minY
+maxX
+maxY
+
+and draw ONE rectangle.
+
+Whitespace inside the rectangle is acceptable.
+
+The visual result should clearly communicate:
+
+"THIS is the passage supporting the answer."
 
 Not:
 
-ONE passage = many word highlights.
+"These 23 individual words matched."
 
 ==================================================
-14. HOW TO LOCATE THE PASSAGE
+16. NEVER FALL BACK TO AN UNRELATED MATCH
 ==================================================
 
-The AI must provide an exact quote from the PDF for each source.
+The current implementation has fuzzy quote matching.
 
-Use that quote to locate the passage in the PDF text.
+That is dangerous for research.
 
-Avalanche already has PdfPig word extraction and PDF-space bounding rectangles.
+Do not silently highlight an unrelated passage merely because a few words happen to match.
 
-Reuse and/or extend the existing search functionality instead of creating a completely separate text-coordinate system.
+If exact source coordinates are known from retrieval, use those coordinates.
 
-The current SearchService already:
+If the citation cannot be resolved:
 
-- extracts words with PdfPig
-- identifies matching phrases
-- calculates PDF-space bounding boxes
-- returns page-specific rectangles
+show a small source-location error in the UI.
 
-The existing search/highlighting implementation also already converts PDF coordinates into rendered-page coordinates and draws temporary rectangles onto page canvases.
+For example:
 
-Build the AI source highlighting on top of these existing mechanisms where appropriate.
+"Source could not be located."
 
-Do NOT duplicate the entire search/highlight system unnecessarily.
+Do NOT highlight an arbitrary passage.
 
 ==================================================
-15. IMPROVE THE EXISTING LOCATOR IF NECESSARY
+17. CONVERSATION MEMORY
 ==================================================
 
-The existing search phrase matching may not be sufficient for arbitrary AI-generated citations.
-
-Improve it where necessary.
-
-The locator should:
-
-- normalize whitespace
-- handle line breaks
-- handle PDF text extraction quirks
-- handle multiple consecutive spaces
-- handle hyphenation where practical
-- be case-insensitive
-- preserve word order
-- avoid accidentally matching a completely different occurrence
-- prefer the occurrence associated with the retrieved chunk
-- return one combined bounding rectangle
-
-If the exact quote cannot be found, do NOT silently highlight an unrelated passage.
-
-Instead show a source-location failure gracefully.
-
-==================================================
-16. HIGHLIGHT LIFETIME
-==================================================
-
-The AI source highlight is TEMPORARY.
-
-It is NOT a PDF annotation.
-
-It must NOT make the document dirty.
-
-It must NOT be saved into the PDF.
-
-It must disappear when:
-
-- another AI source button is clicked
-- the AI panel is closed
-- the PDF/document is closed
-- another document becomes active
-- an appropriate new navigation/source selection replaces it
-
-There must NEVER be multiple AI source highlights simultaneously.
-
-There is always:
-
-0 or 1 active AI source highlight.
-
-==================================================
-17. IMPORTANT: DO NOT CONFUSE AI HIGHLIGHTS WITH USER ANNOTATIONS
-==================================================
-
-Avalanche already has actual PDF annotations and existing search highlights.
-
-Do NOT add AI source highlights to the PDF's annotation collection.
-
-Do NOT save them.
-
-Do NOT make them undoable.
-
-Do NOT cause them to appear in the user's saved PDF.
-
-They should be a transient viewer overlay only.
-
-Give them a distinct internal identifier/tag so they can be removed independently.
-
-For example, conceptually:
-
-"AiSourceHighlight"
-
-Do not reuse the persistent annotation mechanism.
-
-==================================================
-18. CONTINUOUS / MULTI-PAGE VIEW
-==================================================
-
-Avalanche supports multiple viewing modes.
-
-The AI source navigation must work correctly with the existing modes, particularly Continuous view.
-
-If the target page is not currently visible:
-
-- navigate/scroll to it
-- wait for the page to exist/render
-- then place the temporary highlight on that page's overlay canvas
-
-Do not assume only the primary page canvas exists.
-
-Avalanche already maintains per-page canvases for continuous viewing.
-
-Use those existing structures.
-
-==================================================
-19. SPLIT VIEW
-==================================================
-
-Avalanche supports two PDF panes.
-
-Do not break this.
-
-The AI chat should operate against the CURRENT ACTIVE PDF VIEWER/document.
-
-If split view is active:
-
-- determine which viewer is active
-- retrieve/search the document associated with that viewer
-- navigate that viewer
-- highlight that viewer
-
-Do not accidentally navigate Viewer A when the user is interacting with Viewer B.
-
-Use Avalanche's existing ActiveViewer architecture.
-
-==================================================
-20. CHAT CONTEXT
-==================================================
-
-The conversation should retain context.
+Keep conversational context.
 
 Example:
 
 User:
-"What does the author say about the provincial administration?"
+"What is the author's argument about X?"
 
-AI:
-answer + sources
+AI answers.
 
 User:
-"How does that compare with the military system?"
+"Why does he think that?"
 
-The second question should understand that "that" refers to the preceding discussion.
+The second question should understand the previous exchange.
 
-However, do NOT continually send the entire previous conversation and entire PDF to the model.
+However:
 
-Maintain a sensible bounded chat history and retrieve document passages as needed.
+Do NOT send unlimited conversation history.
 
-==================================================
-21. DOCUMENT SCOPE
-==================================================
+Use a bounded conversation history.
 
-The AI should answer questions about the CURRENT PDF.
+The PDF evidence retrieval should happen for each new question.
 
-Do not accidentally retrieve information from another open PDF/tab.
+The architecture should be:
 
-The document index must be associated with the correct document/session.
+Conversation
++
+current question
++
+retrieved evidence
 
-If the user changes tabs/documents:
+rather than:
 
-- switch the active AI document context
-- switch/rebuild retrieval context appropriately
-- clear the active AI source highlight
-- do not leak citations between PDFs
-
-If possible, preserve the conversation separately per open document/tab.
-
-==================================================
-22. LARGE PDF PERFORMANCE
-==================================================
-
-This feature MUST be designed with 1,000+ page PDFs in mind.
-
-Do not:
-
-- send the entire PDF to the AI
-- extract the entire PDF repeatedly for every question
-- reopen and scan the entire PDF from disk for every chat message
-- block the UI while indexing
-- create thousands of WPF visual elements unnecessarily
-- render every page solely for AI indexing
-
-Index the document once.
-
-Perform indexing/retrieval work asynchronously/off the UI thread.
-
-Do not freeze the PDF viewer while the AI index is being created.
-
-Show a small unobtrusive status in the AI panel while indexing, e.g.:
-
-"Preparing document…"
-
-Once ready:
-
-"Ready"
+entire conversation
++
+entire PDF.
 
 ==================================================
-23. INDEXING SHOULD BE CACHED
+18. DOCUMENT-SPECIFIC CHAT
 ==================================================
 
-If practical, cache the extracted/indexed representation for the currently open document so reopening the AI panel does not require reprocessing the PDF.
+The conversation should belong to the PDF/document.
 
-Do not modify the original PDF.
+If I have:
 
-A sidecar/index cache is acceptable.
+Book A
+Book B
 
-Associate it with enough document information to detect when the PDF has changed.
+I should not accidentally have Book A's retrieval context used for Book B.
 
-For example, file path + file size + modification time and/or a suitable document fingerprint.
+When switching documents:
 
-Do not create a huge pile of unexplained temporary files.
+- change retrieval index
+- change document context
+- clear current source highlight
 
-Follow Avalanche's existing temp/cache conventions if they exist.
+If practical, preserve the chat separately for each open document.
+
+Do not mix sources between documents.
 
 ==================================================
-24. AI ANSWER UX
+19. LARGE PDF PERFORMANCE
 ==================================================
 
-The answer area should support readable Markdown-like formatting if the existing architecture makes this practical.
+This must work for 1,000+ page PDFs.
 
-At minimum support:
+The UI must never freeze while:
 
-- paragraphs
-- bold
-- italic
-- bullet lists
-- numbered lists
-- code blocks when relevant
+- extracting text
+- chunking
+- embedding
+- indexing
+- loading the index
 
-Do not make the answer area visually bloated.
+All expensive operations should be asynchronous.
 
-The answer should be readable in a narrow sidebar.
-
-Sources should be visually separated from the main answer.
+Show indexing status.
 
 For example:
 
---------------------------------
-AI answer
-
-The author argues that...
-
-The distinction is important because...
-
-Sources
-[147] [153]
---------------------------------
-
-Each source button should have a tooltip containing useful information such as:
-
-"Page 147 — Show cited passage"
-
-==================================================
-25. USER INPUT
-==================================================
-
-At the bottom:
-
-[ Ask about this PDF...                         ] [↑]
-
-The input should:
-
-- support multiline text
-- send with Ctrl+Enter if appropriate
-- Enter behavior should be sensible
-- remain focused when appropriate
-- not interfere with PDF keyboard shortcuts unnecessarily
-
-Disable the send button while a request is in progress.
-
-Allow cancellation if practical.
-
-==================================================
-26. LOADING STATE
-==================================================
-
-When the AI is answering:
-
-Show a restrained loading state.
-
-Do NOT use a ridiculous animated "AI thinking" graphic.
-
-Something simple such as:
-
-"Searching document…"
+"Indexing document: 43%"
 
 then:
 
-"Generating answer…"
+"Document ready"
 
-is sufficient.
+Do not repeatedly parse the same pages.
 
-If retrieval takes time, make that clear.
+Do not repeatedly generate embeddings.
 
-==================================================
-27. ERROR HANDLING
-==================================================
-
-Handle:
-
-- no AI provider configured
-- invalid API key
-- network failure
-- local model unavailable
-- PDF has no text layer
-- OCR required
-- source quote cannot be located
-- malformed AI response
-- AI returns no citations
-- document closes while an AI request is running
-- user switches documents while a request is running
-
-Do not crash the application.
-
-Do not show raw exceptions to the user.
+Do not repeatedly scan the entire PDF.
 
 ==================================================
-28. SCANNED PDF / OCR
+20. INCREMENTAL INDEXING
 ==================================================
 
-Avalanche already has OCR support.
+If possible, design the index so that future changes can be incremental.
 
-If the PDF has no usable text layer, the AI indexing layer should detect that.
+For example:
 
-Do not silently pretend the document has text.
+If the PDF has not changed:
+load the index.
 
-If OCR is needed, use the existing Avalanche OCR infrastructure where possible.
+If it changed:
+rebuild it safely.
 
-The AI system should ultimately be able to work with OCR'd PDFs.
+Do not corrupt an existing valid index if indexing fails midway.
 
-Preserve the page relationship and coordinates after OCR.
+Prefer:
 
-==================================================
-29. DO NOT DUPLICATE EXISTING FEATURES
-==================================================
+temporary index
+ ↓
+successful completion
+ ↓
+atomic replacement
 
-Before writing code, inspect the repository thoroughly.
-
-In particular inspect:
-
-- MainWindow.xaml
-- MainWindow.xaml.cs
-- Controls/
-- Features/
-- Services/
-- Shell/
-- Models/
-- existing PdfViewer implementation
-- existing search implementation
-- existing page navigation
-- existing theme resources
-- existing split-pane handling
-- existing document/session/tab handling
-
-There are already relevant systems in the repository.
-
-For example, the current search implementation has a SearchController and SearchService and already maintains page-specific PDF-space rectangles and temporary overlay highlights.
-
-Use these systems rather than writing parallel systems that will eventually conflict.
+rather than destroying the old index first.
 
 ==================================================
-30. ARCHITECTURE
+21. SCANNED/OCR PDFs
 ==================================================
 
-Keep responsibilities separated.
+Use Avalanche's existing OCR infrastructure.
 
-The exact class names are up to you after inspecting the repository, but conceptually I want:
+If a PDF has no text layer:
 
-AI UI
-  ↓
-AI Chat Controller / ViewModel
-  ↓
-Document Retrieval Service
-  ↓
-Document Index
-  ↓
-PDF text / coordinates
+- detect it
+- use existing OCR where appropriate
+- preserve OCR word positions
+- preserve page coordinates
+- make those OCR results available to the same indexing system
 
-and separately:
-
-AI Provider
-  ↓
-HTTP/local model
-
-and:
-
-AI Source Navigation
-  ↓
-Active PdfViewer
-  ↓
-Page navigation
-  ↓
-temporary single highlight
-
-Do not put the entire feature into MainWindow.xaml.cs.
-
-MainWindow is already substantial.
-
-Use the existing project's architectural patterns.
+The retrieval architecture should not care whether the source text came from native PDF text or OCR.
 
 ==================================================
-31. IMPORTANT UI IMPLEMENTATION DETAIL
+22. DO NOT BREAK EXISTING SEARCH
 ==================================================
 
-The AI panel should be an overlay over the existing MainContentGrid/document region.
+The existing normal PDF search must continue working exactly as before.
 
-Conceptually:
+Do not replace it.
 
-MainContentGrid
- ├── existing background
- ├── existing sidebar
- ├── existing SplitHost / PDF viewers
- └── AIChatOverlay   <-- NEW, high ZIndex, aligned right
+Do not make AI indexing interfere with normal search.
 
-NOT:
+Do not change existing search highlight behavior.
 
-MainContentGrid
- ├── sidebar
- ├── AI column
- └── PDF column
-
-The second approach is WRONG because it pushes/resizes the PDF.
-
-The AI overlay should cover the right side of the document view exactly like the blue region in my screenshot.
+AI highlighting must remain a separate transient overlay.
 
 ==================================================
-32. VISUAL POLISH
+23. DO NOT BREAK SPLIT VIEW
 ==================================================
 
-After implementing the functionality, inspect the running UI carefully.
+The AI must continue using Avalanche's ActiveViewer architecture.
 
-Fix:
+If split view is active:
 
-- clipping
-- incorrect margins
-- text overflow
-- buttons touching each other
-- bad scrollbar placement
-- panel extending outside the window
-- chat input becoming invisible
-- source buttons being too large
-- panel covering toolbar elements it should not cover
-- incorrect Z-order
-- bad behavior when the window is resized
-- bad behavior when maximized
-- bad behavior when the sidebar is on the left/right
-- bad behavior when split view is enabled
-- bad behavior at the minimum window size
+- retrieve against the active PDF
+- navigate the active viewer
+- highlight the active viewer
 
-The panel must resize gracefully with the window.
-
-The PDF must never move when opening/closing it.
+Do not accidentally operate on the other PDF pane.
 
 ==================================================
-33. TESTING
+24. DO NOT BREAK CONTINUOUS VIEW
 ==================================================
 
-Do not consider this finished merely because it compiles.
+The source navigation must work in Continuous mode.
 
-Test the actual workflow:
+If page 743 is not currently visible:
 
-1. Open a PDF.
-2. Open AI panel.
-3. Ask a question whose answer exists on a known page.
-4. Confirm AI retrieves relevant text.
-5. Confirm answer is generated.
-6. Confirm source page buttons appear.
-7. Click a source button.
-8. Confirm PDF navigates to the correct page.
-9. Confirm EXACTLY ONE blue temporary highlight appears.
-10. Confirm the highlight surrounds the relevant passage rather than individual words.
-11. Click another source.
-12. Confirm the old highlight disappears.
-13. Confirm only the new highlight exists.
-14. Close AI panel.
-15. Confirm highlight disappears.
-16. Reopen AI panel.
-17. Confirm chat state behaves correctly.
-18. Test Continuous view.
-19. Test split view.
-20. Test switching PDF tabs.
-21. Test a large PDF.
-22. Test a scanned/OCR PDF if possible.
-23. Resize the window.
-24. Move the existing sidebar from left to right.
-25. Confirm the AI overlay still behaves correctly.
+scroll/navigate to page 743.
+
+Wait for its page canvas.
+
+Then draw the ONE highlight.
+
+Do not assume that only the current page exists visually.
+
+Use Avalanche's existing per-page canvas architecture.
 
 ==================================================
-34. MOST IMPORTANT FUNCTIONAL REQUIREMENT
+25. DATABASE / STORAGE
 ==================================================
 
-The finished feature should feel like:
+Inspect Avalanche's current dependencies before adding new storage infrastructure.
 
-"I am talking to this PDF."
+Prefer a lightweight local solution.
 
-Not:
+The application is a desktop PDF reader.
 
-"I uploaded a PDF to a chatbot."
+I do NOT want to require:
 
-The PDF viewer remains the primary application.
+- a remote database
+- a Docker container
+- a cloud database
+- a separate server
 
-The AI is an integrated assistant that understands the current document and can take me directly to the evidence it used.
+Everything required for document indexing should work locally.
 
-The ideal interaction is:
+The AI model itself can be remote/local depending on the configured provider, but the document index should be local.
 
-User:
-"What were the author's main criticisms of the previous theory?"
+==================================================
+26. SECURITY
+==================================================
 
-AI:
-"The author identifies three main problems with the previous theory: ..."
+Do not store API keys in source code.
+
+Do not log API keys.
+
+Do not log entire private PDF contents unnecessarily.
+
+Keep API configuration separate from document indexes.
+
+If Avalanche has an existing settings/security mechanism, use it.
+
+==================================================
+27. UI: DO NOT REDESIGN IT
+==================================================
+
+The existing AI sidebar is NOT the focus of this task.
+
+Do not redesign it unless a small change is necessary for functionality.
+
+Keep:
+
+- right-side overlay
+- fixed overlay behavior
+- existing Avalanche styling
+- source buttons
+- chat interface
+
+The PDF must NOT move when the panel opens.
+
+Do not turn the sidebar into a layout column.
+
+==================================================
+28. SOURCE BUTTONS
+==================================================
+
+Continue displaying page-number buttons.
+
+Example:
+
+Sources
+[147] [153] [219]
+
+But each button should internally correspond to the actual source record.
+
+Do not simply store an integer page number.
+
+Internally it should know:
+
+DocumentId
+SourceId
+PageIndex
+PageNumber
+WordRange
+Coordinates
+
+When clicked, it uses that exact source.
+
+==================================================
+29. ANSWER QUALITY
+==================================================
+
+Update the system prompt sent to Nemotron.
+
+The model should be instructed:
+
+- Answer the user's question directly.
+- Use the supplied document evidence.
+- Do not invent information that is absent from the evidence.
+- If evidence is insufficient, say so.
+- Distinguish the author's claims from your own explanation.
+- Cite the supplied source IDs.
+- Do not invent page numbers.
+- Do not invent source IDs.
+- Do not fabricate quotations.
+- Prefer several supporting sources when appropriate.
+- Do not cite irrelevant passages merely because they contain similar words.
+
+The application should provide the model with the actual retrieved evidence.
+
+==================================================
+30. RETRIEVAL DEBUGGING
+==================================================
+
+Add a development/debug mechanism so retrieval quality can be inspected.
+
+For example, when enabled:
+
+Question:
+"How did the author describe X?"
+
+Retrieved:
+
+1. SOURCE_003 — Page 147 — score ...
+2. SOURCE_021 — Page 153 — score ...
+3. SOURCE_008 — Page 211 — score ...
+
+This should make it possible to determine whether bad answers are caused by:
+
+retrieval
+or
+the LLM.
+
+Do not make this ugly or necessarily expose it to normal users.
+
+A debug logging mode is sufficient.
+
+==================================================
+31. TEST WITH REAL QUESTIONS
+==================================================
+
+After implementing the new retrieval architecture, test it against the PDF.
+
+Use questions that test different retrieval behavior:
+
+A. Exact terminology
+"What does the paper call the age/gender gradient?"
+
+B. Semantic paraphrase
+"How does the author explain the relationship between age and sexual arousal?"
+
+C. Specific person
+"What does Bailey argue?"
+
+D. Specific section
+"What conclusions are reached in the section on nonoffender samples?"
+
+E. Cross-section question
+"How does the author connect the findings from the earlier section with the later discussion?"
+
+F. Page-specific question
+"What is discussed on page 978?"
+
+For each:
+
+- verify relevant chunks are retrieved
+- verify answer uses the evidence
+- verify source IDs are correct
+- verify page buttons are correct
+- verify clicking the source navigates correctly
+- verify ONE highlight appears
+
+==================================================
+32. BUILD AND VERIFY
+==================================================
+
+After making the changes:
+
+1. Build the project.
+2. Fix every compilation error.
+3. Fix warnings caused by your implementation where reasonable.
+4. Test opening a PDF.
+5. Test indexing.
+6. Test reopening the same PDF.
+7. Verify the index is reused.
+8. Test AI chat.
+9. Test source buttons.
+10. Test highlighting.
+11. Test Continuous view.
+12. Test split view.
+13. Test switching documents.
+14. Test a large PDF.
+15. Test a PDF with poor/no text extraction if possible.
+
+Do not stop after the code compiles.
+
+==================================================
+FINAL GOAL
+==================================================
+
+I want Avalanche to have a REAL document intelligence layer.
+
+The desired behavior is:
+
+I open a 1,000-page PDF.
+
+Avalanche indexes it once.
+
+I ask:
+
+"Why does the author reject the traditional explanation?"
+
+The system does:
+
+Question
+ ↓
+lexical search
++
+semantic search
+ ↓
+hybrid ranking
+ ↓
+best passages
+ ↓
+Nemotron 3 Ultra
+ ↓
+grounded answer
+ ↓
+structured source IDs
+
+The UI displays:
+
+"The author rejects the traditional explanation because..."
 
 Sources:
-[214] [216] [219]
 
-User clicks:
+[214] [227] [412]
 
-[216]
+I click [227].
 
-Avalanche automatically:
+Avalanche:
 
-- navigates to page 216
-- positions the PDF correctly
-- places ONE temporary blue rectangle over the relevant passage
-- leaves the PDF otherwise untouched
+- goes to page 227
+- scrolls the PDF to the relevant passage
+- draws ONE temporary blue rectangle around the entire passage
+- does not modify the PDF
+- removes any previous AI highlight
 
-The user can immediately read the actual source passage in the PDF.
+This is the standard the implementation should meet.
 
-==================================================
-35. FINAL IMPLEMENTATION RULE
-==================================================
+Do not add superficial AI features.
 
-Before making changes, inspect the existing code and determine the correct integration points.
-
-Do not make assumptions about how Avalanche works when the repository already contains the answer.
-
-Reuse existing:
-- page navigation
-- viewer state
-- ActiveViewer
-- page canvases
-- PDF coordinate conversion
-- PdfPig extraction
-- temporary highlighting concepts
-- theme resources
-- document/session handling
-
-Implement the feature cleanly rather than hacking it into unrelated code.
-
-After implementation, build the project and fix all compilation errors.
-
-Then test the feature and fix runtime/UI issues.
-
-Do not stop after creating the UI.
-
-The actual document retrieval, AI communication, page citations, page navigation, and single temporary passage highlighting must all work.
+Improve the retrieval architecture, source grounding, persistence, and exact source navigation.

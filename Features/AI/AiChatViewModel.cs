@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
@@ -12,27 +13,36 @@ using Avalanche.Services;
 namespace Avalanche.Features.AI
 {
     /// <summary>
-    /// ViewModel for the AI Chat sidebar.
+    /// ViewModel for the AI Chat sidebar with conversation memory and hybrid retrieval.
     /// </summary>
-    internal sealed class AiChatViewModel : INotifyPropertyChanged
+    public sealed class AiChatViewModel : INotifyPropertyChanged
     {
         private readonly IAiProvider _aiProvider;
-        private readonly AiProviderConfig _config;
+        private readonly IEmbeddingProvider _embeddingProvider;
+        private readonly HybridRetriever _retriever;
+        private readonly VectorIndex _vectorIndex;
+        private readonly AiProviderConfig _genConfig;
+        private readonly EmbeddingProviderConfig _embConfig;
         private readonly MainWindow _mainWindow;
         private readonly Func<string, string> _loc;
+        
         private DocumentIndex? _currentIndex;
         private string _currentDocumentId = "";
         private string _currentFilePath = "";
         private bool _isIndexing;
         private string _indexingStatus = "";
+        private double _indexingProgress = 0.0;
         private bool _isProcessing;
+        private readonly object _processingLock = new();
+        private int _maxHistoryMessages = 10;
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
+        public event Action? RequestClose;
 
         public bool IsIndexing
         {
             get => _isIndexing;
-            private set { _isIndexing = value; OnPropertyChanged(); }
+            private set { _isIndexing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); }
         }
 
         public string IndexingStatus
@@ -41,22 +51,45 @@ namespace Avalanche.Features.AI
             private set { _indexingStatus = value; OnPropertyChanged(); }
         }
 
+        public double IndexingProgress
+        {
+            get => _indexingProgress;
+            private set { _indexingProgress = value; OnPropertyChanged(); }
+        }
+
         public bool IsProcessing
         {
             get => _isProcessing;
             private set { _isProcessing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); }
         }
 
-        public bool CanSend => !IsProcessing && !string.IsNullOrWhiteSpace(CurrentInput);
+        public bool CanSend => !IsProcessing && !IsIndexing && !string.IsNullOrWhiteSpace(CurrentInput);
 
         public string CurrentInput { get; set; } = "";
 
-        public AiChatViewModel(MainWindow mainWindow, AiProviderConfig config, Func<string, string> loc)
+        public AiChatViewModel(
+            MainWindow mainWindow, 
+            AiProviderConfig genConfig, 
+            EmbeddingProviderConfig embConfig,
+            Func<string, string> loc)
         {
-            _mainWindow = mainWindow;
-            _config = config;
+            _mainWindow = mainWindow ?? throw new ArgumentNullException(nameof(mainWindow));
+            _genConfig = genConfig ?? throw new ArgumentNullException(nameof(genConfig));
+            _embConfig = embConfig ?? throw new ArgumentNullException(nameof(embConfig));
             _loc = loc ?? (k => k);
-            _aiProvider = AiProviderFactory.CreateProvider(config.ProviderType);
+
+            _aiProvider = AiProviderFactory.CreateProvider(genConfig.ProviderType);
+            _embeddingProvider = AiProviderFactory.CreateEmbeddingProvider(embConfig);
+            _vectorIndex = new VectorIndex(GetIndexDbPath());
+            _retriever = new HybridRetriever(_vectorIndex, _embeddingProvider);
+        }
+
+        private static string GetIndexDbPath()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var dir = Path.Combine(appData, "Avalanche", "AI");
+            Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "vector_index.db");
         }
 
         /// <summary>
@@ -64,12 +97,19 @@ namespace Avalanche.Features.AI
         /// </summary>
         public async Task InitializeForDocumentAsync(string filePath)
         {
-            if (_currentFilePath == filePath && _currentIndex != null)
-                return; // Already indexed for this document
+            if (string.IsNullOrEmpty(filePath)) return;
+
+            lock (_processingLock)
+            {
+                if (_currentFilePath == filePath && _currentIndex != null)
+                    return;
+            }
 
             _currentFilePath = filePath;
             _currentDocumentId = ComputeDocumentId(filePath);
-            Messages.Clear();
+
+            // Clear conversation for new document (or could preserve per-document history)
+            Application.Current.Dispatcher.Invoke(() => Messages.Clear());
 
             await IndexDocumentAsync(filePath);
         }
@@ -77,37 +117,58 @@ namespace Avalanche.Features.AI
         private string ComputeDocumentId(string filePath)
         {
             var info = new FileInfo(filePath);
-            return $"{info.FullName}_{info.Length}_{info.LastWriteTimeUtc.Ticks}";
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var input = $"{info.FullName}|{info.Length}|{info.LastWriteTimeUtc.Ticks}";
+            var hash = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+            return "doc_" + Convert.ToHexString(hash).Substring(0, 16);
         }
 
         private async Task IndexDocumentAsync(string filePath)
         {
             IsIndexing = true;
-            IndexingStatus = "Preparing document...";
+            IndexingStatus = _loc("Str_AiChatPreparing");
+            IndexingProgress = 0.0;
 
             try
             {
-                _currentIndex = await DocumentIndexer.CreateIndexAsync(filePath, _currentDocumentId);
-                IndexingStatus = "Ready";
+                var indexer = new DocumentIndexer(_embeddingProvider, _vectorIndex);
+                
+                var progress = new Progress<IndexingProgress>(p =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        IndexingStatus = p.Message;
+                        IndexingProgress = p.Progress;
+                    });
+                });
+
+                _currentIndex = await indexer.CreateOrLoadIndexAsync(filePath, progress);
+                IndexingStatus = _loc("Str_AiChatReady");
             }
             catch (Exception ex)
             {
-                IndexingStatus = $"Indexing failed: {ex.Message}";
+                IndexingStatus = $"{_loc("Str_AiChatIndexingFailed")}: {ex.Message}";
             }
             finally
             {
                 await Task.Delay(500);
-                IsIndexing = false;
+                Application.Current.Dispatcher.Invoke(() => IsIndexing = false);
             }
         }
 
         /// <summary>
-        /// Sends a user message and gets AI response.
+        /// Sends a user message and gets AI response with hybrid retrieval.
         /// </summary>
         public async Task SendMessageAsync(string userInput)
         {
             if (string.IsNullOrWhiteSpace(userInput) || IsProcessing || _currentIndex == null)
                 return;
+
+            lock (_processingLock)
+            {
+                if (IsProcessing) return;
+                IsProcessing = true;
+            }
 
             var input = userInput.Trim();
             CurrentInput = "";
@@ -120,7 +181,7 @@ namespace Avalanche.Features.AI
                 MessageRole = ChatMessage.Role.User,
                 Content = input
             };
-            Messages.Add(userMsg);
+            Application.Current.Dispatcher.Invoke(() => Messages.Add(userMsg));
 
             // Add loading assistant message
             var assistantMsg = new ChatMessage
@@ -129,14 +190,12 @@ namespace Avalanche.Features.AI
                 Content = "",
                 IsLoading = true
             };
-            Messages.Add(assistantMsg);
-
-            IsProcessing = true;
+            Application.Current.Dispatcher.Invoke(() => Messages.Add(assistantMsg));
 
             try
             {
-                // Retrieve relevant chunks
-                var retrieved = DocumentRetriever.Retrieve(_currentIndex, input, 5);
+                // Retrieve relevant chunks using hybrid search
+                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, input, _genConfig.MaxTokens / 500);
 
                 if (retrieved.Count == 0)
                 {
@@ -145,66 +204,122 @@ namespace Avalanche.Features.AI
                     return;
                 }
 
-                // Build system prompt
-                var systemPrompt = BuildSystemPrompt();
+                // Build system prompt with structured citation instructions
+                var systemPrompt = BuildSystemPrompt(retrieved);
 
-                // Get AI response - convert ObservableCollection to List
-                var messageList = Messages.Where(m => m.MessageRole != ChatMessage.Role.System).ToList();
+                // Prepare available sources for the model
+                var sourceRefs = BuildSourceReferences(retrieved);
+
+                // Get AI response
                 var response = await _aiProvider.GetChatCompletionAsync(
                     systemPrompt,
-                    messageList,
-                    retrieved.ConvertAll(r => r.Chunk),
-                    _config);
+                    GetRecentMessages(),
+                    retrieved,
+                    sourceRefs,
+                    _genConfig);
 
                 assistantMsg.Content = response.Answer;
                 assistantMsg.Sources = response.Sources;
                 assistantMsg.IsLoading = false;
+
+                // Scroll to bottom
+                Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+                {
+                    // Scroll logic would go here
+                });
             }
             catch (Exception ex)
             {
-                assistantMsg.Content = $"Error: {ex.Message}";
+                assistantMsg.Content = $"{_loc("Str_AiChatError")} {ex.Message}";
                 assistantMsg.Error = ex.Message;
                 assistantMsg.IsLoading = false;
             }
             finally
             {
-                IsProcessing = false;
+                lock (_processingLock)
+                {
+                    IsProcessing = false;
+                }
             }
         }
 
-        private string BuildSystemPrompt()
+        private string BuildSystemPrompt(List<RetrievedChunk> retrieved)
         {
-            return @"You are an AI assistant helping a user understand a PDF document. 
-Your task is to answer questions based ONLY on the provided document context.
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("You are an AI assistant helping a user understand a PDF document.");
+            sb.AppendLine("Answer ONLY using the provided document evidence.");
+            sb.AppendLine("If the evidence doesn't contain the answer, clearly state that.");
+            sb.AppendLine();
+            sb.AppendLine("RETRIEVED EVIDENCE:");
+            sb.AppendLine();
 
-RULES:
-1. Only use information from the provided document context.
-2. If the context doesn't contain the answer, clearly state that.
-3. Return your response as a JSON object with two fields:
-   - ""answer"": Your response text (can include markdown for formatting)
-   - ""sources"": Array of source objects, each with:
-     - ""page"": The page number (1-based) from the context
-     - ""quote"": Exact text from the document that supports your answer
-     - ""reason"": Brief explanation of why this source is relevant
+            for (int i = 0; i < retrieved.Count; i++)
+            {
+                var chunk = retrieved[i].Chunk;
+                sb.AppendLine($"--- SOURCE {i} (ID: {chunk.ChunkId}) ---");
+                sb.AppendLine($"Page: {chunk.PageNumber}");
+                if (!string.IsNullOrEmpty(chunk.SectionHeading))
+                    sb.AppendLine($"Section: {chunk.SectionHeading}");
+                sb.AppendLine($"Text: {chunk.Text}");
+                sb.AppendLine();
+            }
 
-Be concise but thorough. Use markdown formatting (bold, italics, lists) when helpful.";
+            sb.AppendLine("INSTRUCTIONS:");
+            sb.AppendLine("1. Answer based ONLY on the provided sources above.");
+            sb.AppendLine("2. If sources don't contain the answer, say: 'The document does not contain information about this.'");
+            sb.AppendLine("3. Return JSON with 'answer' and 'sources' fields.");
+            sb.AppendLine("4. Each source must include: 'sourceId' (use the SOURCE X ID above), 'page', 'quote' (exact text from source), 'reason'.");
+            sb.AppendLine("5. Use the EXACT sourceId from the evidence (e.g., 'SOURCE_0').");
+            sb.AppendLine("6. Do NOT invent page numbers or source IDs.");
+            sb.AppendLine("7. Cite multiple sources when appropriate.");
+            sb.AppendLine("8. Distinguish the document's claims from your explanation.");
+
+            return sb.ToString();
+        }
+
+        private string BuildSourceReferences(List<RetrievedChunk> retrieved)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("AVAILABLE SOURCES:");
+            sb.AppendLine();
+
+            for (int i = 0; i < retrieved.Count; i++)
+            {
+                var chunk = retrieved[i].Chunk;
+                sb.AppendLine($"SOURCE_{i}");
+                sb.AppendLine($"Page: {chunk.PageNumber}");
+                sb.AppendLine($"Text: {chunk.Text}");
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
+        }
+
+        private List<ChatMessage> GetRecentMessages()
+        {
+            return Messages
+                .Where(m => m.MessageRole != ChatMessage.Role.System)
+                .TakeLast(_maxHistoryMessages)
+                .ToList();
         }
 
         /// <summary>
-        /// Navigates to a source page and highlights the passage.
+        /// Navigates to a source using exact coordinates from retrieval.
         /// </summary>
         public void NavigateToSource(AiSource source)
         {
             if (source == null || _mainWindow == null) return;
 
-            // Convert 1-based page number to 0-based index
-            int pageIndex = source.PageNumber - 1;
+            // Use the exact source ID to find the chunk
+            if (string.IsNullOrEmpty(source.SourceId)) return;
 
-            // Use the existing navigation mechanism
+            var chunk = _currentIndex?.Chunks.FirstOrDefault(c => c.ChunkId == source.SourceId);
+            if (chunk == null) return;
+
+            // Navigate to the page and highlight using exact coordinates
             _mainWindow.Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
             {
-                // This will be implemented in MainWindow to handle AI source navigation
-                _mainWindow.NavigateToAiSource(pageIndex, source.Quote);
+                _mainWindow.NavigateToAiSource(chunk, source);
             });
         }
 
@@ -216,7 +331,7 @@ Be concise but thorough. Use markdown formatting (bold, italics, lists) when hel
             _currentIndex = null;
             _currentFilePath = "";
             _currentDocumentId = "";
-            Messages.Clear();
+            Application.Current.Dispatcher.Invoke(() => Messages.Clear());
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

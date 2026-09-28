@@ -847,7 +847,11 @@ namespace Avalanche
             if (_aiChatViewModel is null && _currentFile is not null)
             {
                 _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
-                _aiChatViewModel = new Features.AI.AiChatViewModel(this, _aiSettingsViewModel.ToConfig(), Loc);
+                _aiChatViewModel = new Features.AI.AiChatViewModel(
+                    this, 
+                    _aiSettingsViewModel.ToGenConfig(), 
+                    _aiSettingsViewModel.ToEmbConfig(), 
+                    Loc);
                 AiChatOverlay.DataContext = _aiChatViewModel;
             }
 
@@ -905,15 +909,19 @@ namespace Avalanche
             if (sender is not Button btn || btn.Tag is not Features.AI.AiSource source)
                 return;
 
-            NavigateToAiSource(source.PageNumber - 1, source.Quote);
+            // Use the new chunk-based navigation with exact coordinates
+            _aiChatViewModel?.NavigateToSource(source);
         }
 
         /// <summary>
-        /// Navigates to a page and highlights the AI source passage.
+        /// Navigates to a page and highlights the AI source passage using exact coordinates from retrieval.
         /// </summary>
-        internal void NavigateToAiSource(int pageIndex, string quote)
+        internal void NavigateToAiSource(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
         {
-            if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount)
+            if (_doc is null || chunk == null) return;
+
+            int pageIndex = chunk.PageIndex;
+            if (pageIndex < 0 || pageIndex >= _doc.PageCount)
                 return;
 
             // Clear any existing AI highlight
@@ -922,120 +930,53 @@ namespace Avalanche
             // Navigate to the page
             PageList.SelectedIndex = pageIndex;
 
-            // Wait for the page to render, then highlight
+            // Wait for the page to render, then highlight using exact coordinates
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
             {
-                HighlightAiSourceOnPage(pageIndex, quote);
+                HighlightAiSourceOnPage(chunk, source);
             });
         }
 
-        private void HighlightAiSourceOnPage(int pageIndex, string quote)
+        private void HighlightAiSourceOnPage(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
         {
             if (_doc is null) return;
 
             var activeViewer = ActiveViewer;
             if (activeViewer is null) return;
 
-            // Get the canvas for the page
+            int pageIndex = chunk.PageIndex;
             var canvas = activeViewer.GetCanvasForPage(pageIndex);
             if (canvas is null) return;
 
-            // Use existing search highlighting logic to find and highlight the quote
-            var highlightRect = FindPassageRect(pageIndex, quote);
-            if (highlightRect.HasValue)
+            // Use exact coordinates from the retrieved chunk
+            var coords = chunk.PdfCoordinates;
+            if (coords == null || coords.Count == 0)
             {
-                var (left, bottom, right, top) = highlightRect.Value;
-                DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer, pageIndex);
-            }
-            else
-            {
-                // Could not locate exact passage - show a subtle indicator
                 SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
+                return;
             }
-        }
 
-        private (double left, double bottom, double right, double top)? FindPassageRect(int pageIndex, string quote)
-        {
-            if (_doc is null || string.IsNullOrWhiteSpace(quote)) return null;
-
-            try
+            // Find the coordinate for this specific page
+            int pageIdxInChunk = chunk.PageIndices.IndexOf(pageIndex);
+            if (pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count)
             {
-                var filePath = _currentFile ?? _originalFile;
-                if (string.IsNullOrEmpty(filePath)) return null;
-
-                using var pdfDoc = PdfPigDoc.Open(filePath);
-                if (pageIndex >= pdfDoc.NumberOfPages) return null;
-
-                var page = pdfDoc.GetPage(pageIndex + 1);
-                var words = page.GetWords().ToList();
-
-                // Normalize quote for matching
-                var normalizedQuote = quote.Replace("\n", " ").Replace("\r", " ").Trim();
-                while (normalizedQuote.Contains("  ")) normalizedQuote = normalizedQuote.Replace("  ", " ");
-
-                // Search for the quote in the page text
-                var pageText = string.Join(" ", words.Select(w => w.Text));
-                var index = pageText.IndexOf(normalizedQuote, StringComparison.OrdinalIgnoreCase);
-
-                if (index < 0)
-                {
-                    // Try fuzzy matching - search for key phrases
-                    var phrases = normalizedQuote.Split(new[] { ". ", "? ", "! ", ", " }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var phrase in phrases)
-                    {
-                        if (phrase.Length < 10) continue;
-                        var phraseIndex = pageText.IndexOf(phrase.Trim(), StringComparison.OrdinalIgnoreCase);
-                        if (phraseIndex >= 0)
-                        {
-                            index = phraseIndex;
-                            break;
-                        }
-                    }
-                }
-
-                if (index < 0) return null;
-
-                // Find the word range that corresponds to this text position
-                int charPos = 0;
-                int startWord = -1, endWord = -1;
-                for (int i = 0; i < words.Count; i++)
-                {
-                    var wordText = words[i].Text;
-                    int wordEnd = charPos + wordText.Length + 1; // +1 for space
-
-                    if (startWord == -1 && charPos + wordText.Length > index)
-                        startWord = i;
-
-                    if (endWord == -1 && wordEnd > index + Math.Min(normalizedQuote.Length, 100))
-                        endWord = i;
-
-                    charPos = wordEnd;
-                }
-
-                if (startWord == -1) startWord = 0;
-                if (endWord == -1) endWord = words.Count - 1;
-
-                // Calculate bounding box
-                double minX = double.MaxValue, minY = double.MaxValue;
-                double maxX = double.MinValue, maxY = double.MinValue;
-
-                for (int i = startWord; i <= endWord && i < words.Count; i++)
-                {
-                    var bb = words[i].BoundingBox;
-                    minX = Math.Min(minX, bb.Left);
-                    minY = Math.Min(minY, bb.Bottom);
-                    maxX = Math.Max(maxX, bb.Right);
-                    maxY = Math.Max(maxY, bb.Top);
-                }
-
-                if (minX == double.MaxValue) return null;
-
-                return (minX, minY, maxX, maxY);
+                SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
+                return;
             }
-            catch
+
+            var pdfCoords = coords[pageIdxInChunk];
+            if (pdfCoords.Length < 4)
             {
-                return null;
+                SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
+                return;
             }
+
+            double left = pdfCoords[0];
+            double bottom = pdfCoords[1];
+            double right = pdfCoords[2];
+            double top = pdfCoords[3];
+
+            DrawAiSourceHighlight(canvas, left, bottom, right, top, activeViewer, pageIndex);
         }
 
         private void DrawAiSourceHighlight(Canvas canvas, double left, double bottom, double right, double top, Controls.PdfViewer viewer, int pageIndex)
@@ -1076,6 +1017,7 @@ namespace Avalanche
             double cx = left * sx - pad;
             double cy = renderH - (top * sy) - pad;
 
+            // ONE rectangle only - combine all lines into a single bounding rectangle
             var rect = new Rectangle
             {
                 Fill = new SolidColorBrush(Color.FromArgb(80, 0, 122, 255)),

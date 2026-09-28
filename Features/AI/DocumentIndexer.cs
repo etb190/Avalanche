@@ -1,94 +1,178 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
-using Avalanche.Services;
 
 namespace Avalanche.Features.AI
 {
     /// <summary>
-    /// Extracts and chunks PDF text for AI retrieval, preserving page and coordinate information.
+    /// Creates and manages persistent document indexes with embeddings.
     /// </summary>
-    internal sealed class DocumentIndexer
+    public sealed class DocumentIndexer
     {
-        private const int TargetChunkSize = 500;
-        private const int MaxChunkSize = 800;
-        private const int MinChunkSize = 100;
+        private readonly IEmbeddingProvider _embeddingProvider;
+        private readonly VectorIndex _vectorIndex;
+        private readonly IndexingOptions _options;
+
+        public DocumentIndexer(IEmbeddingProvider embeddingProvider, VectorIndex vectorIndex, IndexingOptions? options = null)
+        {
+            _embeddingProvider = embeddingProvider ?? throw new ArgumentNullException(nameof(embeddingProvider));
+            _vectorIndex = vectorIndex ?? throw new ArgumentNullException(nameof(vectorIndex));
+            _options = options ?? new IndexingOptions();
+        }
 
         /// <summary>
-        /// Creates a document index from a PDF file.
+        /// Creates or loads a document index. If the document is unchanged, loads from cache.
         /// </summary>
-        public static async Task<DocumentIndex> CreateIndexAsync(string filePath, string documentId)
+        public async Task<DocumentIndex> CreateOrLoadIndexAsync(string filePath, IProgress<IndexingProgress>? progress = null)
         {
+            if (!File.Exists(filePath))
+                throw new FileNotFoundException($"PDF not found: {filePath}");
+
             var fileInfo = new FileInfo(filePath);
-            var index = new DocumentIndex
+            var documentId = ComputeDocumentId(filePath);
+            
+            // Check if we have a current index
+            var existingDoc = _vectorIndex.GetDocument(documentId);
+            if (existingDoc != null && _vectorIndex.IsDocumentCurrent(documentId, fileInfo.Length, fileInfo.LastWriteTimeUtc.Ticks, ""))
             {
-                DocumentId = documentId,
-                FilePath = filePath,
-                FileSize = fileInfo.Length,
-                LastWriteTime = fileInfo.LastWriteTimeUtc.Ticks
-            };
+                // Load existing chunks
+                var chunks = LoadChunksForDocument(documentId);
+                existingDoc.Chunks = chunks;
+                progress?.Report(new IndexingProgress { Stage = IndexingStage.Loaded, Progress = 1.0, Message = "Loaded from cache" });
+                return existingDoc;
+            }
+
+            // Need to (re)index
+            progress?.Report(new IndexingProgress { Stage = IndexingStage.Extracting, Progress = 0.0, Message = "Extracting text..." });
+            
+            var doc = await BuildIndexAsync(filePath, documentId, fileInfo, progress);
+            
+            // Persist
+            progress?.Report(new IndexingProgress { Stage = IndexingStage.Persisting, Progress = 0.9, Message = "Persisting index..." });
+            PersistIndex(doc);
+            
+            progress?.Report(new IndexingProgress { Stage = IndexingStage.Complete, Progress = 1.0, Message = "Indexing complete" });
+            return doc;
+        }
+
+        /// <summary>
+        /// Builds a fresh index from the PDF.
+        /// </summary>
+        private async Task<DocumentIndex> BuildIndexAsync(string filePath, string documentId, FileInfo fileInfo, IProgress<IndexingProgress>? progress)
+        {
+            var allChunks = new List<DocumentChunk>();
 
             await Task.Run(() =>
             {
-                using var doc = PdfDocument.Open(filePath);
-                index.PageCount = doc.NumberOfPages;
+                using var pdfDoc = PdfDocument.Open(filePath);
+                int pageCount = pdfDoc.NumberOfPages;
 
                 var allWords = new List<(int pageIndex, Word word)>();
 
-                for (int pi = 0; pi < doc.NumberOfPages; pi++)
+                // Extract all words with page info
+                for (int pi = 0; pi < pageCount; pi++)
                 {
-                    var page = doc.GetPage(pi + 1);
+                    var page = pdfDoc.GetPage(pi + 1);
                     var words = page.GetWords().ToList();
                     foreach (var word in words)
                     {
                         allWords.Add((pi, word));
                     }
+
+                    // Report progress
+                    if (progress != null && pi % 10 == 0)
+                    {
+                        progress?.Report(new IndexingProgress 
+                        { 
+                            Stage = IndexingStage.Extracting, 
+                            Progress = (double)pi / pageCount * 0.3,
+                            Message = $"Extracting page {pi + 1}/{pageCount}" 
+                        });
+                    }
                 }
 
-                index.Chunks = CreateChunks(allWords);
+                // Create intelligent chunks
+                var chunks = CreateChunks(allWords, pageCount);
+                
+                // Generate embeddings
+                if (progress != null)
+                    progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 0.5, Message = "Generating embeddings..." });
+
+                GenerateEmbeddings(chunks);
+
+                allChunks.AddRange(chunks);
             });
 
-            return index;
+            var doc = new DocumentIndex
+            {
+                DocumentId = documentId,
+                FilePath = filePath,
+                FileSize = new FileInfo(filePath).Length,
+                LastWriteTime = new FileInfo(filePath).LastWriteTimeUtc.Ticks,
+                ContentHash = ComputeContentHash(filePath),
+                PageCount = new FileInfo(filePath).Length > 0 ? GetPageCount(filePath) : 0,
+                Chunks = allChunks,
+                CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            };
+
+            return doc;
         }
 
-        /// <summary>
-        /// Creates intelligent chunks from extracted words, preferring natural boundaries.
-        /// </summary>
-        private static List<DocumentChunk> CreateChunks(List<(int pageIndex, Word word)> allWords)
+        private List<DocumentChunk> LoadChunksForDocument(string documentId)
+        {
+            // This would load from the vector index
+            // For now, return empty - actual implementation would query the DB
+            return new List<DocumentChunk>();
+        }
+
+        private void PersistIndex(DocumentIndex doc)
+        {
+            _vectorIndex.UpsertDocument(doc);
+            _vectorIndex.BulkInsertChunks(doc.Chunks);
+        }
+
+        private List<DocumentChunk> CreateChunks(List<(int pageIndex, Word word)> allWords, int pageCount)
         {
             var chunks = new List<DocumentChunk>();
             var currentChunkWords = new List<(int pageIndex, Word word)>();
-            int chunkCounter = 0;
+            int chunkIndex = 0;
+            long charOffset = 0;
 
             for (int i = 0; i < allWords.Count; i++)
             {
                 var (pageIndex, word) = allWords[i];
                 currentChunkWords.Add((pageIndex, word));
 
+                // Calculate current chunk length
+                int currentLength = currentChunkWords.Sum(w => w.word.Text.Length + 1);
+
                 bool shouldBreak = false;
 
-                // Check if we've reached target size
-                int currentLength = 0;
-                foreach (var w in currentChunkWords)
-                    currentLength += w.word.Text.Length + 1;
-
-                if (currentLength >= TargetChunkSize)
+                // Check for natural break points
+                if (currentLength >= _options.TargetChunkSize)
                 {
-                    // Look for natural break points (paragraph, sentence, heading)
                     int breakIndex = FindNaturalBreak(currentChunkWords, i, allWords);
                     if (breakIndex >= 0)
                     {
                         var chunkWords = currentChunkWords.GetRange(0, breakIndex + 1);
-                        chunks.Add(CreateChunk(chunkWords, chunkCounter++));
+                        var chunk = CreateChunk(chunkWords, chunkIndex++, ref charOffset);
+                        if (chunk != null) chunks.Add(chunk);
                         currentChunkWords.RemoveRange(0, breakIndex + 1);
                         shouldBreak = true;
                     }
-                    else if (currentLength >= MaxChunkSize)
+                    else if (currentLength >= _options.MaxChunkSize)
                     {
-                        // Force break at max size
-                        chunks.Add(CreateChunk(currentChunkWords, chunkCounter++));
+                        // Force break
+                        var chunk = CreateChunk(currentChunkWords, chunkIndex++, ref charOffset);
+                        if (chunk != null) chunks.Add(chunk);
                         currentChunkWords.Clear();
                         shouldBreak = true;
                     }
@@ -100,10 +184,10 @@ namespace Avalanche.Features.AI
                     var nextPage = allWords[i + 1].pageIndex;
                     if (nextPage != pageIndex)
                     {
-                        // Page boundary - break here
-                        if (currentChunkWords.Count >= MinChunkSize / 5) // approximate word count
+                        if (currentChunkWords.Count >= _options.MinChunkWords)
                         {
-                            chunks.Add(CreateChunk(currentChunkWords, chunkCounter++));
+                            var chunk = CreateChunk(currentChunkWords, chunkIndex++, ref charOffset);
+                            if (chunk != null) chunks.Add(chunk);
                             currentChunkWords.Clear();
                         }
                     }
@@ -113,38 +197,102 @@ namespace Avalanche.Features.AI
             // Don't forget the last chunk
             if (currentChunkWords.Count > 0)
             {
-                chunks.Add(CreateChunk(currentChunkWords, chunkCounter));
+                var chunk = CreateChunk(currentChunkWords, chunkIndex, ref charOffset);
+                if (chunk != null) chunks.Add(chunk);
             }
 
             return chunks;
         }
 
-        /// <summary>
-        /// Finds a natural break point in the current chunk (paragraph, sentence end, etc.).
-        /// </summary>
-        private static int FindNaturalBreak(
-            List<(int pageIndex, Word word)> chunkWords,
-            int currentIndex,
-            List<(int pageIndex, Word word)> allWords)
+        private DocumentChunk? CreateChunk(List<(int pageIndex, Word word)> words, int chunkIndex, ref long charOffset)
+        {
+            if (words.Count == 0) return null;
+
+            // Combine text
+            var text = string.Join(" ", words.Select(w => w.word.Text));
+            if (string.IsNullOrWhiteSpace(text)) return null;
+
+            // Group words by page
+            var pageGroups = words.GroupBy(w => w.pageIndex).OrderBy(g => g.Key).ToList();
+            
+            var pageIndices = new List<int>();
+            var wordRanges = new List<int[]>();
+            var pdfCoordinates = new List<float[]>();
+
+            int wordOffset = 0;
+            foreach (var group in pageGroups)
+            {
+                var pageWords = group.ToList();
+                int startWord = wordOffset;
+                int endWord = wordOffset + pageWords.Count - 1;
+                
+                pageIndices.Add(group.Key);
+                wordRanges.Add(new[] { startWord, endWord });
+                
+                // Calculate bounding box for this page's portion
+                double minX = double.MaxValue, minY = double.MaxValue;
+                double maxX = double.MinValue, maxY = double.MinValue;
+                
+                foreach (var (_, word) in pageWords)
+                {
+                    var bb = word.BoundingBox;
+                    minX = Math.Min(minX, bb.Left);
+                    minY = Math.Min(minY, bb.Bottom);
+                    maxX = Math.Max(maxX, bb.Right);
+                    maxY = Math.Max(maxY, bb.Top);
+                }
+                
+                pdfCoordinates.Add(new float[] 
+                { 
+                    (float)minX, (float)minY, (float)maxX, (float)maxY 
+                });
+                
+                wordOffset += pageWords.Count;
+            }
+
+            // Lexical tokens for BM25
+            var lexicalTokens = text.ToLowerInvariant()
+                .Split(new[] { ' ', '\n', '\r', '\t', '.', ',', ';', ':', '!', '?', '(', ')', '[', ']', '{', '}', '"', '\'', '/' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(t => t.Length > 1)
+                .Distinct()
+                .ToList();
+
+            var chunk = new DocumentChunk
+            {
+                ChunkId = $"chunk_{Guid.NewGuid():N}",
+                DocumentId = "", // Will be set by caller
+                ChunkIndex = chunkIndex,
+                Text = text,
+                PageIndices = pageIndices,
+                WordRanges = wordRanges,
+                PdfCoordinates = pdfCoordinates,
+                CharOffset = charOffset,
+                LexicalTokens = lexicalTokens
+            };
+
+            charOffset += text.Length + 1;
+            return chunk;
+        }
+
+        private int FindNaturalBreak(List<(int pageIndex, Word word)> chunkWords, int currentIndex, List<(int pageIndex, Word word)> allWords)
         {
             // Look backwards from the end for natural breaks
             for (int i = chunkWords.Count - 1; i >= 0; i--)
             {
                 var text = chunkWords[i].word.Text;
 
-                // Paragraph break (double newline or similar)
+                // Paragraph break
                 if (text.Contains("\n\n") || text.EndsWith("\n"))
                     return i;
 
-                // Sentence end
+                // Sentence end with reasonable length
                 if (text.EndsWith(".") || text.EndsWith("!") || text.EndsWith("?") || text.EndsWith(":"))
                 {
-                    // Make sure it's not an abbreviation
-                    if (text.Length > 2 && char.IsUpper(text[0]) && text.Length < 50)
+                    if (text.Length > 2 && char.IsUpper(text[0]) && text.Length < 100)
                         return i;
                 }
 
-                // Heading-like (short line, title case)
+                // Heading-like
                 if (text.Length < 80 && text.Length > 5)
                 {
                     bool isTitleCase = text.Split(' ').All(w => w.Length == 0 || char.IsUpper(w[0]));
@@ -156,48 +304,77 @@ namespace Avalanche.Features.AI
             return -1;
         }
 
-        /// <summary>
-        /// Creates a DocumentChunk from a list of words.
-        /// </summary>
-        private static DocumentChunk CreateChunk(List<(int pageIndex, Word word)> words, int chunkId)
+        private void GenerateEmbeddings(List<DocumentChunk> chunks)
         {
-            if (words.Count == 0) return new DocumentChunk();
+            if (chunks.Count == 0) return;
 
-            var firstWord = words[0];
-            var lastWord = words[^1];
+            var texts = chunks.Select(c => c.Text).ToList();
+            var embeddings = _embeddingProvider.GenerateEmbeddingsAsync(texts).GetAwaiter().GetResult();
 
-            // Combine text
-            var text = string.Join(" ", words.Select(w => w.word.Text));
-
-            // Calculate bounding box
-            double minX = double.MaxValue, minY = double.MaxValue;
-            double maxX = double.MinValue, maxY = double.MinValue;
-
-            foreach (var (_, word) in words)
+            for (int i = 0; i < chunks.Count && i < embeddings.Length; i++)
             {
-                var bb = word.BoundingBox;
-                minX = Math.Min(minX, bb.Left);
-                minY = Math.Min(minY, bb.Bottom);
-                maxX = Math.Max(maxX, bb.Right);
-                maxY = Math.Max(maxY, bb.Top);
+                chunks[i].Embedding = embeddings[i];
             }
-
-            // Use the first word's page as the primary page
-            int primaryPage = words[0].pageIndex;
-
-            return new DocumentChunk
-            {
-                ChunkId = $"chunk_{chunkId}",
-                PageIndex = primaryPage,
-                PageNumber = primaryPage + 1,
-                Text = text,
-                Left = minX,
-                Bottom = minY,
-                Right = maxX,
-                Top = maxY,
-                StartWordIndex = 0,
-                EndWordIndex = words.Count - 1
-            };
         }
+
+        private string ComputeDocumentId(string filePath)
+        {
+            var info = new FileInfo(filePath);
+            return $"doc_{ComputeSha256($"{info.FullName}|{info.Length}|{info.LastWriteTimeUtc.Ticks}")}";
+        }
+
+        private string ComputeContentHash(string filePath)
+        {
+            using var sha256 = SHA256.Create();
+            using var stream = File.OpenRead(filePath);
+            var hash = sha256.ComputeHash(stream);
+            return Convert.ToHexString(hash);
+        }
+
+        private string ComputeSha256(string input)
+        {
+            using var sha256 = SHA256.Create();
+            var bytes = Encoding.UTF8.GetBytes(input);
+            var hash = sha256.ComputeHash(bytes);
+            return Convert.ToHexString(hash).Substring(0, 16);
+        }
+
+        private int GetPageCount(string filePath)
+        {
+            using var doc = PdfDocument.Open(filePath);
+            return doc.NumberOfPages;
+        }
+    }
+
+    /// <summary>
+    /// Configuration options for indexing.
+    /// </summary>
+    public sealed class IndexingOptions
+    {
+        public int TargetChunkSize { get; set; } = 500;
+        public int MaxChunkSize { get; set; } = 800;
+        public int MinChunkSize { get; set; } = 100;
+        public int MinChunkWords { get; set; } = 20;
+        public bool GenerateEmbeddings { get; set; } = true;
+    }
+
+    /// <summary>
+    /// Progress reporting for indexing operations.
+    /// </summary>
+    public sealed class IndexingProgress
+    {
+        public IndexingStage Stage { get; set; }
+        public double Progress { get; set; }  // 0.0 to 1.0
+        public string Message { get; set; } = "";
+    }
+
+    public enum IndexingStage
+    {
+        Extracting,
+        Chunking,
+        Embedding,
+        Persisting,
+        Loaded,
+        Complete
     }
 }

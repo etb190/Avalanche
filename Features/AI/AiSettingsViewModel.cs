@@ -6,50 +6,105 @@ namespace Avalanche.Features.AI
     /// <summary>
     /// Settings for AI provider configuration.
     /// </summary>
-    internal sealed class AiSettingsViewModel : INotifyPropertyChanged
+    public sealed class AiSettingsViewModel : INotifyPropertyChanged
     {
-        private string _providerType = "OpenAICompatible";
-        private string _baseUrl = "https://api.openai.com/v1";
-        private string _apiKey = "";
-        private string _model = "gpt-4o-mini";
-        private double _temperature = 0.1;
-        private int _maxTokens = 2000;
+        // Generation provider settings
+        private string _genProviderType = "OpenAICompatible";
+        private string _genBaseUrl = "https://api.openai.com/v1";
+        private string _genApiKey = "";
+        private string _genModel = "gpt-4o-mini";
+        private double _genTemperature = 0.1;
+        private int _genMaxTokens = 2000;
+
+        // Embedding provider settings
+        private string _embProviderType = "OpenAICompatible";
+        private string _embBaseUrl = "https://api.openai.com/v1";
+        private string _embApiKey = "";
+        private string _embModel = "text-embedding-3-small";
+        private int _embDimension = 1536;
+        private int _embMaxTokens = 8191;
+        private int _embBatchSize = 100;
+
         private bool _isEnabled = false;
 
-        public string ProviderType
+        // Generation
+        public string GenProviderType
         {
-            get => _providerType;
-            set { _providerType = value; OnPropertyChanged(); }
+            get => _genProviderType;
+            set { _genProviderType = value; OnPropertyChanged(); }
         }
 
-        public string BaseUrl
+        public string GenBaseUrl
         {
-            get => _baseUrl;
-            set { _baseUrl = value; OnPropertyChanged(); }
+            get => _genBaseUrl;
+            set { _genBaseUrl = value; OnPropertyChanged(); }
         }
 
-        public string ApiKey
+        public string GenApiKey
         {
-            get => _apiKey;
-            set { _apiKey = value; OnPropertyChanged(); }
+            get => _genApiKey;
+            set { _genApiKey = value; OnPropertyChanged(); }
         }
 
-        public string Model
+        public string GenModel
         {
-            get => _model;
-            set { _model = value; OnPropertyChanged(); }
+            get => _genModel;
+            set { _genModel = value; OnPropertyChanged(); }
         }
 
-        public double Temperature
+        public double GenTemperature
         {
-            get => _temperature;
-            set { _temperature = value; OnPropertyChanged(); }
+            get => _genTemperature;
+            set { _genTemperature = value; OnPropertyChanged(); }
         }
 
-        public int MaxTokens
+        public int GenMaxTokens
         {
-            get => _maxTokens;
-            set { _maxTokens = value; OnPropertyChanged(); }
+            get => _genMaxTokens;
+            set { _genMaxTokens = value; OnPropertyChanged(); }
+        }
+
+        // Embedding
+        public string EmbProviderType
+        {
+            get => _embProviderType;
+            set { _embProviderType = value; OnPropertyChanged(); }
+        }
+
+        public string EmbBaseUrl
+        {
+            get => _embBaseUrl;
+            set { _embBaseUrl = value; OnPropertyChanged(); }
+        }
+
+        public string EmbApiKey
+        {
+            get => _embApiKey;
+            set { _embApiKey = value; OnPropertyChanged(); }
+        }
+
+        public string EmbModel
+        {
+            get => _embModel;
+            set { _embModel = value; OnPropertyChanged(); }
+        }
+
+        public int EmbDimension
+        {
+            get => _embDimension;
+            set { _embDimension = value; OnPropertyChanged(); }
+        }
+
+        public int EmbMaxTokens
+        {
+            get => _embMaxTokens;
+            set { _embMaxTokens = value; OnPropertyChanged(); }
+        }
+
+        public int EmbBatchSize
+        {
+            get => _embBatchSize;
+            set { _embBatchSize = value; OnPropertyChanged(); }
         }
 
         public bool IsEnabled
@@ -58,27 +113,52 @@ namespace Avalanche.Features.AI
             set { _isEnabled = value; OnPropertyChanged(); }
         }
 
-        public AiProviderConfig ToConfig()
+        public AiProviderConfig ToGenConfig()
         {
             return new AiProviderConfig
             {
-                ProviderType = ProviderType,
-                BaseUrl = BaseUrl,
-                ApiKey = ApiKey,
-                Model = Model,
-                Temperature = Temperature,
-                MaxTokens = MaxTokens
+                ProviderType = GenProviderType,
+                BaseUrl = GenBaseUrl,
+                ApiKey = GenApiKey,
+                Model = GenModel,
+                Temperature = GenTemperature,
+                MaxTokens = GenMaxTokens
             };
         }
 
-        public void LoadFromConfig(AiProviderConfig config)
+        public EmbeddingProviderConfig ToEmbConfig()
         {
-            ProviderType = config.ProviderType;
-            BaseUrl = config.BaseUrl;
-            ApiKey = config.ApiKey;
-            Model = config.Model;
-            Temperature = config.Temperature;
-            MaxTokens = config.MaxTokens;
+            return new EmbeddingProviderConfig
+            {
+                ProviderType = EmbProviderType,
+                BaseUrl = EmbBaseUrl,
+                ApiKey = EmbApiKey,
+                Model = EmbModel,
+                Dimension = EmbDimension,
+                MaxTokens = EmbMaxTokens,
+                BatchSize = EmbBatchSize
+            };
+        }
+
+        public void LoadFromGenConfig(AiProviderConfig config)
+        {
+            GenProviderType = config.ProviderType;
+            GenBaseUrl = config.BaseUrl;
+            GenApiKey = config.ApiKey;
+            GenModel = config.Model;
+            GenTemperature = config.Temperature;
+            GenMaxTokens = config.MaxTokens;
+        }
+
+        public void LoadFromEmbConfig(EmbeddingProviderConfig config)
+        {
+            EmbProviderType = config.ProviderType;
+            EmbBaseUrl = config.BaseUrl;
+            EmbApiKey = config.ApiKey;
+            EmbModel = config.Model;
+            EmbDimension = config.Dimension;
+            EmbMaxTokens = config.MaxTokens;
+            EmbBatchSize = config.BatchSize;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

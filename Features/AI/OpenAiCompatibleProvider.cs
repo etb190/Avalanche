@@ -11,9 +11,9 @@ namespace Avalanche.Features.AI
     /// <summary>
     /// OpenAI-compatible API provider (supports OpenAI, local servers like Ollama, LM Studio, etc.).
     /// </summary>
-    internal sealed class OpenAiCompatibleProvider : IAiProvider
+    public sealed class OpenAiCompatibleProvider : IAiProvider
     {
-        private static readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+        private readonly HttpClient _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
         private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -26,7 +26,20 @@ namespace Avalanche.Features.AI
             List<DocumentChunk> contextChunks,
             AiProviderConfig config)
         {
-            var requestBody = BuildRequest(systemPrompt, messages, contextChunks, config);
+            return await GetChatCompletionAsync(systemPrompt, messages, contextChunks, "", config);
+        }
+
+        /// <summary>
+        /// Gets a chat completion with structured output and source references.
+        /// </summary>
+        public async Task<AiResponse> GetChatCompletionAsync(
+            string systemPrompt,
+            List<ChatMessage> messages,
+            List<DocumentChunk> contextChunks,
+            string sourceReferences,
+            AiProviderConfig config)
+        {
+            var requestBody = BuildRequest(systemPrompt, messages, contextChunks, sourceReferences, config);
 
             var json = JsonSerializer.Serialize(requestBody, _jsonOptions);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -70,17 +83,17 @@ namespace Avalanche.Features.AI
             string systemPrompt,
             List<ChatMessage> messages,
             List<DocumentChunk> contextChunks,
+            string sourceReferences,
             AiProviderConfig config)
         {
-            var contextText = BuildContextText(contextChunks);
-            var fullSystemPrompt = systemPrompt + "\n\n" + contextText;
+            var fullSystemPrompt = systemPrompt + "\n\n" + sourceReferences;
 
             var requestMessages = new List<object>
             {
                 new { role = "system", content = fullSystemPrompt }
             };
 
-            // Add conversation history (limit to last 10 messages to control token usage)
+            // Add conversation history (limit to last N messages to control token usage)
             var recentMessages = messages.Where(m => m.MessageRole != ChatMessage.Role.System).TakeLast(10);
             foreach (var msg in recentMessages)
             {
@@ -95,33 +108,6 @@ namespace Avalanche.Features.AI
                 max_tokens = config.MaxTokens,
                 response_format = new { type = "json_object" }
             };
-        }
-
-        private string BuildContextText(List<DocumentChunk> chunks)
-        {
-            if (chunks == null || chunks.Count == 0)
-                return "No document context available.";
-
-            var sb = new StringBuilder();
-            sb.AppendLine("DOCUMENT CONTEXT (relevant passages from the PDF):");
-            sb.AppendLine();
-
-            for (int i = 0; i < chunks.Count; i++)
-            {
-                var chunk = chunks[i];
-                sb.AppendLine($"[Source {i + 1} - Page {chunk.PageNumber}]");
-                sb.AppendLine(chunk.Text);
-                sb.AppendLine();
-            }
-
-            sb.AppendLine("INSTRUCTIONS:");
-            sb.AppendLine("- Answer based ONLY on the provided document context.");
-            sb.AppendLine("- If the context doesn't contain the answer, say so clearly.");
-            sb.AppendLine("- Provide structured output as JSON with 'answer' and 'sources' fields.");
-            sb.AppendLine("- Each source must include: page (number), quote (exact text from context), reason (why this supports the answer).");
-            sb.AppendLine("- Use the exact page numbers provided in the context.");
-
-            return sb.ToString();
         }
 
         private AiResponse ParseResponse(string json)
@@ -160,7 +146,9 @@ namespace Avalanche.Features.AI
                     {
                         sources.Add(new AiSource
                         {
+                            SourceId = src.TryGetProperty("sourceId", out var sid) ? sid.GetString() ?? "" : "",
                             PageNumber = src.TryGetProperty("page", out var p) ? p.GetInt32() : 0,
+                            PageIndex = src.TryGetProperty("page", out var pi) ? pi.GetInt32() - 1 : -1,
                             Quote = src.TryGetProperty("quote", out var q) ? q.GetString() ?? "" : "",
                             Reason = src.TryGetProperty("reason", out var r) ? r.GetString() ?? "" : ""
                         });
@@ -173,6 +161,11 @@ namespace Avalanche.Features.AI
             {
                 return new AiResponse { Answer = content, Sources = new List<AiSource>() };
             }
+        }
+
+        public void Dispose()
+        {
+            _httpClient?.Dispose();
         }
     }
 }
