@@ -1043,7 +1043,7 @@ namespace Avalanche
             double pdfW = chunk.PageWidth;
             double pdfH = chunk.PageHeight;
             int pageRotation = chunk.PageRotation;
-            float[] cropBox = chunk.CropBox;
+            float[]? cropBox = chunk.CropBox;
 
             if (pdfW <= 0 || pdfH <= 0) return;
 

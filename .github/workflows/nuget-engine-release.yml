@@ -32,7 +32,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -65,7 +65,7 @@ jobs:
           }
           "version=$version" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -79,7 +79,7 @@ jobs:
         run: dotnet pack engine/Avalanche.Engine/Avalanche.Engine.csproj -c Release --no-restore -o artifacts/nuget
 
       - name: Preserve packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: engine-${{ steps.release.outputs.version }}
           path: artifacts/nuget/*

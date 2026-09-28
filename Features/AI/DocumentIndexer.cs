@@ -233,34 +233,19 @@ namespace Avalanche.Features.AI
                 // threw "Type provided must be an Enum." on the first chunk of
                 // every index build, so no document could ever be indexed.
                 pageRotation = page.Rotation.Value;
-                var crop = page.CropBox;
-                // CropBox type may vary - use reflection or fallback to page dimensions
-                try
+                var cropBounds = page.CropBox.Bounds;
+                // PdfPig's Page.CropBox is a CropBox wrapper whose only member is Bounds
+                // (a Core PdfRectangle exposing double Left/Bottom/Right/Top). Use the typed
+                // API directly: the previous reflection looked those properties up on the
+                // wrapper itself, found none, and every chunk silently fell back to the
+                // full-page box instead of the real crop box.
+                cropBox = new float[]
                 {
-                    var cropType = crop.GetType();
-                    var leftProp = cropType.GetProperty("Left");
-                    var bottomProp = cropType.GetProperty("Bottom");
-                    var rightProp = cropType.GetProperty("Right");
-                    var topProp = cropType.GetProperty("Top");
-                    if (leftProp != null && bottomProp != null && rightProp != null && topProp != null)
-                    {
-                        cropBox = new float[]
-                        {
-                            (float)leftProp.GetValue(crop),
-                            (float)bottomProp.GetValue(crop),
-                            (float)rightProp.GetValue(crop),
-                            (float)topProp.GetValue(crop)
-                        };
-                    }
-                    else
-                    {
-                        cropBox = new float[] { 0, 0, pageWidth, pageHeight };
-                    }
-                }
-                catch
-                {
-                    cropBox = new float[] { 0, 0, pageWidth, pageHeight };
-                }
+                    (float)cropBounds.Left,
+                    (float)cropBounds.Bottom,
+                    (float)cropBounds.Right,
+                    (float)cropBounds.Top
+                };
             }
 
             int wordOffset = 0;
