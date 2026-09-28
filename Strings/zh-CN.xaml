@@ -1034,6 +1034,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_About_Aka">别名</sys:String>
     <sys:String x:Key="Str_Btn_Run">运行</sys:String>
     <!-- AI Chat -->
+    <sys:String x:Key="Str_Lbl_AiChat">AI Chat</sys:String>
+    <sys:String x:Key="Str_TT_AiChat">AI Chat Assistant (Ctrl+Shift+A)</sys:String>
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>

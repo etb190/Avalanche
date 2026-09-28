@@ -1050,6 +1050,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_About_Aka">CÒN GỌI LÀ</sys:String>
     <sys:String x:Key="Str_Btn_Run">Chạy</sys:String>
     <!-- AI Chat -->
+    <sys:String x:Key="Str_Lbl_AiChat">AI Chat</sys:String>
+    <sys:String x:Key="Str_TT_AiChat">AI Chat Assistant (Ctrl+Shift+A)</sys:String>
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Ctrl+Enter to send)</sys:String>

@@ -1043,5 +1043,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiChatNoMatches">আপনার প্রশ্নের জন্য নথিতে কোনো প্রাসঙ্গিক অংশ পাওয়া যায়নি।</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">এই পৃষ্ঠায় উদ্ধৃত অংশটি খুঁজে পাওয়া যায়নি।</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">পৃষ্ঠা {0} — উদ্ধৃত অংশ দেখান</sys:String>
+    <sys:String x:Key="Str_Lbl_AiChat">AI চ্যাট</sys:String>
+    <sys:String x:Key="Str_TT_AiChat">AI চ্যাট সহায়ক (Ctrl+Shift+A)</sys:String>
 
 </ResourceDictionary>
