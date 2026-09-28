@@ -1,3 +1,4 @@
+using Avalanche.Features.AI;
 using UglyToad.PdfPig;
 
 namespace Avalanche.Services
@@ -105,12 +106,20 @@ namespace Avalanche.Services
         /// sensible matched.
         /// </summary>
         internal static PassageMatch? LocatePassage(UglyToad.PdfPig.Content.Page page, string needle)
-            => LocatePassageWords(page.GetWords().ToList(), needle);
+            => LocatePassageWords(page.GetWords().Select(ToPassageWord).ToList(), needle);
 
         /// <summary>
         /// Tries each needle in order against one page, opening the file once. Returns the
         /// first match - callers pass candidates most-faithful-first (chunk page slice,
         /// model quote, prefix/suffix windows).
+        ///
+        /// Two passes over the same open document: first the raw content-stream word
+        /// order (single-column files, and everything the AI highlighter matched before
+        /// column-aware chunking existed), then - only when nothing matched - the page's
+        /// words rebuilt in the same column-aware reading order the AI indexer chunks
+        /// with. Chunk page slices are cut from that reading order, so on multi-column
+        /// pages they cannot appear contiguously in content-stream order and only this
+        /// second pass can find them.
         /// </summary>
         internal static PassageMatch? LocatePassageInFile(string filePath, int pageIndex, IEnumerable<string> needles)
         {
@@ -119,12 +128,32 @@ namespace Avalanche.Services
             {
                 using var doc = PdfDocument.Open(filePath);
                 if (pageIndex < 0 || pageIndex >= doc.NumberOfPages) return null;
-                var words = doc.GetPage(pageIndex + 1).GetWords().ToList();
+                var page = doc.GetPage(pageIndex + 1);
+                var words = page.GetWords().Select(ToPassageWord).ToList();
                 if (words.Count == 0) return null;
-                foreach (var needle in needles)
+
+                var active = needles.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+                foreach (var needle in active)
                 {
-                    if (string.IsNullOrWhiteSpace(needle)) continue;
                     var match = LocatePassageWords(words, needle);
+                    if (match is not null) return match;
+                }
+
+                // Reading-order retry. The stream builder emits every word exactly
+                // once, so any needle that exists on the page is findable here.
+                var raw = page.GetWords()
+                    .Select(w => new IndexedWord(w.Text, w.BoundingBox.Left, w.BoundingBox.Bottom,
+                        w.BoundingBox.Right, w.BoundingBox.Top))
+                    .ToList();
+                var stream = PageWordStreamBuilder.Build(raw, page.Width, page.Height);
+                if (stream.Words.Count == 0) return null;
+                var ordered = stream.Words
+                    .Select(w => new PassageWord(w.Text, w.Left, w.Bottom, w.Right, w.Top))
+                    .ToList();
+
+                foreach (var needle in active)
+                {
+                    var match = LocatePassageWords(ordered, needle);
                     if (match is not null) return match;
                 }
             }
@@ -132,7 +161,14 @@ namespace Avalanche.Services
             return null;
         }
 
-        private static PassageMatch? LocatePassageWords(List<UglyToad.PdfPig.Content.Word> words, string needle)
+        /// <summary>Text plus PDF-space box the passage locator works on - lets PdfPig
+        /// words and reading-order IndexedWords share one matching core.</summary>
+        private readonly record struct PassageWord(string Text, double Left, double Bottom, double Right, double Top);
+
+        private static PassageWord ToPassageWord(UglyToad.PdfPig.Content.Word w)
+            => new(w.Text, w.BoundingBox.Left, w.BoundingBox.Bottom, w.BoundingBox.Right, w.BoundingBox.Top);
+
+        private static PassageMatch? LocatePassageWords(List<PassageWord> words, string needle)
         {
             if (words.Count == 0 || string.IsNullOrWhiteSpace(needle)) return null;
 
@@ -242,17 +278,17 @@ namespace Avalanche.Services
         /// <summary>Groups the matched words into visual lines (vertical-band overlap, the
         /// same rule TextRunService uses), splits lines on wide gaps (column gutters,
         /// table seams) and unions each segment into one rect.</summary>
-        private static PassageMatch? BuildLineRects(List<UglyToad.PdfPig.Content.Word> words, int start, int count)
+        private static PassageMatch? BuildLineRects(List<PassageWord> words, int start, int count)
         {
             if (start < 0 || count <= 0 || start + count > words.Count) return null;
 
             var match = new PassageMatch { MatchedWords = count };
             var sel = words.Skip(start).Take(count).ToList();
 
-            var lines = new List<(double Top, double Bottom, List<UglyToad.PdfPig.Content.Word> Words)>();
+            var lines = new List<(double Top, double Bottom, List<PassageWord> Words)>();
             foreach (var w in sel)
             {
-                double t = w.BoundingBox.Top, b = w.BoundingBox.Bottom;
+                double t = w.Top, b = w.Bottom;
                 int found = -1;
                 for (int i = 0; i < lines.Count; i++)
                 {
@@ -261,7 +297,7 @@ namespace Avalanche.Services
                     if (minH > 0 && overlap >= minH * 0.5) { found = i; break; }
                 }
                 if (found < 0)
-                    lines.Add((t, b, new List<UglyToad.PdfPig.Content.Word> { w }));
+                    lines.Add((t, b, new List<PassageWord> { w }));
                 else
                 {
                     var (lt, lb, lw) = lines[found];
@@ -277,23 +313,22 @@ namespace Avalanche.Services
 
             foreach (var (_, _, ws) in lines)
             {
-                var ordered = ws.OrderBy(w => w.BoundingBox.Left).ToList();
+                var ordered = ws.OrderBy(w => w.Left).ToList();
                 int segStart = 0;
                 for (int i = 1; i <= ordered.Count; i++)
                 {
                     bool flush = i == ordered.Count;
                     if (!flush)
-                        flush = ordered[i].BoundingBox.Left - ordered[i - 1].BoundingBox.Right > gapT;
+                        flush = ordered[i].Left - ordered[i - 1].Right > gapT;
                     if (!flush) continue;
 
                     double l = double.MaxValue, b = double.MaxValue, r = double.MinValue, t = double.MinValue;
                     for (int k = segStart; k < i; k++)
                     {
-                        var bb = ordered[k].BoundingBox;
-                        l = Math.Min(l, bb.Left);
-                        b = Math.Min(b, bb.Bottom);
-                        r = Math.Max(r, bb.Right);
-                        t = Math.Max(t, bb.Top);
+                        l = Math.Min(l, ordered[k].Left);
+                        b = Math.Min(b, ordered[k].Bottom);
+                        r = Math.Max(r, ordered[k].Right);
+                        t = Math.Max(t, ordered[k].Top);
                     }
                     match.LineRects.Add((l, b, r, t));
                     segStart = i;
@@ -303,10 +338,10 @@ namespace Avalanche.Services
             return match.LineRects.Count > 0 ? match : null;
         }
 
-        private static double MedianWordHeight(List<UglyToad.PdfPig.Content.Word> words)
+        private static double MedianWordHeight(List<PassageWord> words)
         {
             var hs = words
-                .Select(w => w.BoundingBox.Top - w.BoundingBox.Bottom)
+                .Select(w => w.Top - w.Bottom)
                 .Where(h => h > 0)
                 .OrderBy(h => h)
                 .ToList();

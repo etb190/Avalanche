@@ -1019,11 +1019,12 @@ namespace Avalanche
             _aiHighlight = (pageIndex, chunk, source);
             _aiHighlightRects = null;
 
-            // The cited passage is located among the page's real words and
-            // painted as ONE translucent rectangle around it, in the citation's
-            // own light blue. The page slice of the chunk itself is the primary
-            // needle (the whole evidence the citation refers to), the model's quote and
-            // prefix/suffix windows are fallbacks for drifted indexes.
+            // The cited passage is located among the page's real words and painted
+            // as one translucent band per line, in the citation's own light blue -
+            // the same highlighter look as the selection quads. The page slice of the
+            // chunk itself is the primary needle (the evidence the citation refers
+            // to), the model's quote and prefix/suffix windows are fallbacks for
+            // indexes that drifted from the file on disk.
             if (DrawAiHighlightForPage(activeViewer, pageIndex, canvas, chunk, source)) return;
 
             // Nothing matchable (stale index, scanned page): paint the chunk's stored
@@ -1049,13 +1050,11 @@ namespace Avalanche
             if (string.IsNullOrEmpty(_currentFile)) return false;
 
             string? slice = ChunkPageSliceForPage(chunk, pageIndex);
-            // The model's quote only earns a needle slot when it was verified
-            // against the cited chunk's text (ResolveSources); an invented
-            // quote would otherwise highlight whatever passage happens to
-            // contain it instead of the cited evidence.
-            string? quote = source?.QuoteVerified == true && !string.IsNullOrWhiteSpace(source.Quote)
-                ? source.Quote
-                : null;
+            // The chunk's page slice is the primary needle; the model's quote and the
+            // prefix/suffix windows below are fallbacks for indexes that drifted from
+            // the file on disk. Every candidate is located against the page's real
+            // words, so a quote can only ever paint text that actually exists here.
+            string? quote = string.IsNullOrWhiteSpace(source?.Quote) ? null : source!.Quote;
 
             var match = Services.SearchService.LocatePassageInFile(
                 _currentFile!, pageIndex, CandidateAiNeedles(slice, quote));
@@ -1113,13 +1112,12 @@ namespace Avalanche
         }
 
         /// <summary>
-        /// Fills ONE translucent rectangle around the cited passage (the union
-        /// of the PDF-space line rects the locator returned) in the AI
-        /// citation's own light blue - ai.txt's "exactly ONE blue rectangle"
-        /// contract. The conversion is the proven search-highlight one
-        /// (Shell/Search AddSearchHighlight): scale by the engine's effective
-        /// page size against the canvas render dims and flip Y for PDF's
-        /// bottom-left origin.
+        /// Fills one translucent rect per PDF-space line rect with the AI citation's
+        /// own light blue. The conversion is the proven search-highlight one (Shell/Search
+        /// AddSearchHighlight): scale by the engine's effective page size against the
+        /// canvas render dims, flip Y for PDF's bottom-left origin, and pad 12% of the
+        /// band height so the highlight wraps the glyphs without spilling into the next
+        /// line (the selection quads use the same padding).
         /// </summary>
         private bool TryDrawAiHighlightRects(Canvas canvas,
             List<(double Left, double Bottom, double Right, double Top)> pdfRects,
@@ -1163,40 +1161,27 @@ namespace Avalanche
             var fill = new SolidColorBrush(AiHighlightColor);
             fill.Freeze();
 
-            // ONE rectangle for the whole cited passage (union of the
-            // located line rects), per ai.txt: "exactly ONE blue rectangle
-            // appears around the cited passage, the previous one
-            // disappears". It can never be an unrelated match: the union
-            // spans only the words the locator attributed to this citation.
-            double uL = double.MaxValue, uB = double.MaxValue, uR = double.MinValue, uT = double.MinValue;
-            var bandHeights = new List<double>();
+            // One band per located line: the highlight hugs the words it names,
+            // exactly like the user's own Highlight tool - never a box floating
+            // over the whole block.
             foreach (var (left, bottom, right, top) in pdfRects)
             {
-                uL = Math.Min(uL, left);
-                uB = Math.Min(uB, bottom);
-                uR = Math.Max(uR, right);
-                uT = Math.Max(uT, top);
-                if (top > bottom) bandHeights.Add(top - bottom);
+                double cw = (right - left) * sx;
+                double ch = (top - bottom) * sy;
+                if (cw <= 0 || ch <= 0) continue;
+                double pad = ch * 0.12;
+                var rect = new Rectangle
+                {
+                    Fill = fill,
+                    Width = cw + pad * 2,
+                    Height = ch + pad * 2,
+                    IsHitTestVisible = false,
+                    Tag = "AiSourceHighlight"
+                };
+                Canvas.SetLeft(rect, left * sx - pad);
+                Canvas.SetTop(rect, renderH - (top * sy) - pad);
+                canvas.Children.Add(rect);
             }
-            if (uR <= uL || uT <= uB) return false;
-
-            // Pad by a fraction of ONE line height (not of the whole block),
-            // so a multi-line passage wraps its glyphs without spilling.
-            bandHeights.Sort();
-            double lineH = bandHeights.Count > 0 ? bandHeights[bandHeights.Count / 2] : (uT - uB);
-            double ch2 = (uT - uB) * sy;
-            double pad2 = Math.Min(lineH * sy * 0.12, ch2 * 0.25);
-            var rect = new Rectangle
-            {
-                Fill = fill,
-                Width = (uR - uL) * sx + pad2 * 2,
-                Height = ch2 + pad2 * 2,
-                IsHitTestVisible = false,
-                Tag = "AiSourceHighlight"
-            };
-            Canvas.SetLeft(rect, uL * sx - pad2);
-            Canvas.SetTop(rect, renderH - (uT * sy) - pad2);
-            canvas.Children.Add(rect);
             return true;
         }
 
