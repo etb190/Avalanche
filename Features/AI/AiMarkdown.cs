@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
 
@@ -39,12 +42,20 @@ namespace Avalanche.Features.AI
         private static readonly DependencyProperty LinkHookProperty = DependencyProperty.RegisterAttached(
             "LinkHook", typeof(bool), typeof(AiMarkdown), new PropertyMetadata(false));
 
+        /// <summary>
+        /// Raised when a numbered citation footnote rendered inside an answer
+        /// bubble is clicked. Carries the bubble's message (whose Sources list
+        /// resolves the marker) and the cited AiSource. The chat view model
+        /// subscribes once and navigates the PDF viewer to the cited passage.
+        /// </summary>
+        public static event Action<ChatMessage, AiSource>? CitationClicked;
+
         private static void OnTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not RichTextBox rtb)
                 return;
 
-            EnsureLinkHandler(rtb);
+            EnsureHandlers(rtb);
 
             var text = e.NewValue as string ?? string.Empty;
 
@@ -89,13 +100,32 @@ namespace Avalanche.Features.AI
 
         // ---------- hyperlink navigation ----------
 
-        private static void EnsureLinkHandler(RichTextBox rtb)
+        private static void EnsureHandlers(RichTextBox rtb)
         {
             if ((bool)rtb.GetValue(LinkHookProperty))
                 return;
             rtb.SetValue(LinkHookProperty, true);
             // RequestNavigate bubbles from the Hyperlink inlines up to the box.
             rtb.AddHandler(Hyperlink.RequestNavigateEvent, new RequestNavigateEventHandler(OnLinkNavigate));
+            // Citation footnotes are Buttons embedded via InlineUIContainer;
+            // their Click bubbles up here where the box's DataContext (the
+            // ChatMessage) resolves the clicked SOURCE_n back to its AiSource.
+            rtb.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(OnCitationClick));
+        }
+
+        private static void OnCitationClick(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is not Button { Tag: string sourceId })
+                return;
+            if (sender is not RichTextBox rtb || rtb.DataContext is not ChatMessage msg)
+                return;
+
+            var source = FindSource(msg.Sources, AiCitations.ParseSourceId(sourceId));
+            if (source is null)
+                return; // unknown citation id: nothing trustworthy to show
+
+            CitationClicked?.Invoke(msg, source);
+            e.Handled = true;
         }
 
         private static void OnLinkNavigate(object sender, RequestNavigateEventArgs e)
@@ -127,6 +157,10 @@ namespace Avalanche.Features.AI
             doc.SetResourceReference(TextElement.ForegroundProperty, "TextBrush");
             doc.SetResourceReference(TextElement.FontFamilyProperty, "UiFont");
             doc.FontSize = rtb is not null && rtb.FontSize > 0 ? rtb.FontSize : 12.0;
+
+            // Citation footnotes resolve against the bubble's own message so
+            // each circle knows its page/quote (tooltip) and its click target.
+            IReadOnlyList<AiSource> sources = (rtb?.DataContext as ChatMessage)?.Sources ?? new List<AiSource>();
 
             var lines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
             bool inFence = false;
@@ -176,14 +210,14 @@ namespace Avalanche.Features.AI
                     var bullet = BulletRx.Match(line);
                     if (bullet.Success)
                     {
-                        AddListParagraph(doc, "\u2022\u00A0", bullet.Groups[1].Value, parseMarkdown);
+                        AddListParagraph(doc, "\u2022\u00A0", bullet.Groups[1].Value, parseMarkdown, sources);
                         continue;
                     }
 
                     var numbered = NumberedRx.Match(line);
                     if (numbered.Success)
                     {
-                        AddListParagraph(doc, numbered.Groups[1].Value + ".\u00A0", numbered.Groups[2].Value, parseMarkdown);
+                        AddListParagraph(doc, numbered.Groups[1].Value + ".\u00A0", numbered.Groups[2].Value, parseMarkdown, sources);
                         continue;
                     }
 
@@ -195,7 +229,7 @@ namespace Avalanche.Features.AI
                     }
                 }
 
-                AddBody(doc, line, parseMarkdown);
+                AddBody(doc, line, parseMarkdown, sources);
             }
 
             if (inFence && fence.Count > 0)
@@ -207,11 +241,11 @@ namespace Avalanche.Features.AI
             return doc;
         }
 
-        private static void AddBody(FlowDocument doc, string line, bool parse)
+        private static void AddBody(FlowDocument doc, string line, bool parse, IReadOnlyList<AiSource> sources)
         {
             var p = new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
             if (parse)
-                AddInlines(p.Inlines, line);
+                AddInlines(p.Inlines, line, sources);
             else
                 p.Inlines.Add(new Run(line));
             doc.Blocks.Add(p);
@@ -230,7 +264,7 @@ namespace Avalanche.Features.AI
             doc.Blocks.Add(p);
         }
 
-        private static void AddListParagraph(FlowDocument doc, string marker, string content, bool parse)
+        private static void AddListParagraph(FlowDocument doc, string marker, string content, bool parse, IReadOnlyList<AiSource> sources)
         {
             // Hanging indent: marker hangs into the 12px left margin so wrapped
             // lines align under the text, not under the marker.
@@ -239,7 +273,7 @@ namespace Avalanche.Features.AI
             mark.SetResourceReference(TextElement.ForegroundProperty, "MutedTextBrush");
             p.Inlines.Add(mark);
             if (parse)
-                AddInlines(p.Inlines, content);
+                AddInlines(p.Inlines, content, sources);
             else
                 p.Inlines.Add(new Run(content));
             doc.Blocks.Add(p);
@@ -301,7 +335,30 @@ namespace Avalanche.Features.AI
             });
         }
 
-        private static void AddInlines(InlineCollection inlines, string text)
+        /// <summary>
+        /// Splits the line into markdown-styled runs and citation footnotes.
+        /// Citation markers ([SOURCE_3], \u3010SOURCE_3\u3011, [3], bare SOURCE_3)
+        /// become small numbered circle buttons that navigate the PDF viewer to
+        /// the cited passage when clicked.
+        /// </summary>
+        private static void AddInlines(InlineCollection inlines, string text, IReadOnlyList<AiSource> sources)
+        {
+            int pos = 0;
+            foreach (Match m in AiCitations.InlineRx.Matches(text))
+            {
+                int number = AiCitations.MatchToNumber(m);
+                if (number < 1)
+                    continue; // degenerate match: keep the raw text instead
+                if (m.Index > pos)
+                    AddMarkdownInlines(inlines, text.Substring(pos, m.Index - pos));
+                inlines.Add(MakeCitation(number, sources));
+                pos = m.Index + m.Length;
+            }
+            if (pos < text.Length)
+                AddMarkdownInlines(inlines, text.Substring(pos));
+        }
+
+        private static void AddMarkdownInlines(InlineCollection inlines, string text)
         {
             int pos = 0;
             foreach (Match m in InlineRx.Matches(text))
@@ -414,6 +471,10 @@ namespace Avalanche.Features.AI
                             s.FontSize > 0 ? s.FontSize : size,
                             weight, style);
                         break;
+                    case InlineUIContainer c when c.Child is FrameworkElement fe:
+                        // Embedded citation footnotes contribute their fixed box.
+                        w = (fe.Width > 0 ? fe.Width : 0) + fe.Margin.Left + fe.Margin.Right;
+                        break;
                     case LineBreak:
                         // A block measures as its longest line, not the sum.
                         if (lineW > maxW)
@@ -457,5 +518,182 @@ namespace Avalanche.Features.AI
                 return text.Length * size * 0.6;
             }
         }
+
+        // ---------- citation footnotes ----------
+
+        /// <summary>
+        /// Builds the small numbered circle that replaces an inline citation
+        /// marker. Known citations are live buttons; a citation whose SOURCE_n
+        /// the model never backed up in 'sources' renders as a visibly muted,
+        /// inert circle so the raw marker never leaks into the chat again.
+        /// </summary>
+        private static Inline MakeCitation(int number, IReadOnlyList<AiSource> sources)
+        {
+            var source = FindSource(sources, number);
+            var btn = new Button
+            {
+                Content = number.ToString(CultureInfo.InvariantCulture),
+                Tag = AiCitations.FormatId(number),
+                Focusable = false,
+                IsTabStop = false,
+                Cursor = Cursors.Hand,
+                FontSize = 9.5,
+                FontWeight = FontWeights.SemiBold,
+                Width = 16,
+                Height = 16,
+                Padding = new Thickness(0),
+                Margin = new Thickness(3, 0, 3, 0),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Template = CreateCitationTemplate()
+            };
+            btn.SetValue(AutomationProperties.NameProperty, $"Source {number}");
+            if (source is not null)
+                btn.ToolTip = BuildCitationTooltip(source);
+
+            return new InlineUIContainer(btn) { BaselineAlignment = BaselineAlignment.TextBottom };
+        }
+
+        /// <summary>
+        /// Circle skin for citation footnotes. Uses a frozen neutral tint of
+        /// TextBrush (same recipe as the bubbles/avatars) instead of the accent
+        /// brush: accent overlays swap PrimaryBrush per theme family but not
+        /// OnPrimaryBrush, so accent-filled chips could end up with unreadable
+        /// text. Foreground is intentionally unset so it inherits the live
+        /// TextBrush through the document.
+        /// </summary>
+        private static ControlTemplate CreateCitationTemplate()
+        {
+            var template = new ControlTemplate(typeof(Button));
+
+            var border = new FrameworkElementFactory(typeof(Border));
+            border.Name = "bd";
+            border.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
+            border.SetValue(Border.BackgroundProperty,
+                AiBrushHelpers.ThemedTint("TextBrush", 0.14,
+                    new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88))));
+            border.SetValue(Border.BorderThicknessProperty, new Thickness(1));
+            border.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+
+            var presenter = new FrameworkElementFactory(typeof(ContentPresenter));
+            presenter.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            presenter.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            border.AppendChild(presenter);
+            template.VisualTree = border;
+
+            var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            hover.Setters.Add(new Setter(UIElement.OpacityProperty, 0.75, "bd"));
+            template.Triggers.Add(hover);
+
+            var pressed = new Trigger { Property = Button.IsPressedProperty, Value = true };
+            pressed.Setters.Add(new Setter(UIElement.OpacityProperty, 0.55, "bd"));
+            template.Triggers.Add(pressed);
+
+            var disabled = new Trigger { Property = UIElement.IsEnabledProperty, Value = false };
+            disabled.Setters.Add(new Setter(UIElement.OpacityProperty, 0.38, "bd"));
+            template.Triggers.Add(disabled);
+
+            return template;
+        }
+
+        private static string? BuildCitationTooltip(AiSource source)
+        {
+            var quote = !string.IsNullOrWhiteSpace(source.Quote) ? source.Quote : source.Reason;
+            if (string.IsNullOrWhiteSpace(quote))
+                return source.PageNumber > 0 ? $"Page {source.PageNumber}" : null;
+
+            quote = quote.Trim();
+            if (quote.Length > 180)
+                quote = quote.Substring(0, 180) + "\u2026";
+            return source.PageNumber > 0 ? $"Page {source.PageNumber}: {quote}" : quote;
+        }
+
+        private static AiSource? FindSource(IReadOnlyList<AiSource> sources, int number)
+        {
+            if (number < 1)
+                return null;
+            var id = AiCitations.FormatId(number);
+            for (int i = 0; i < sources.Count; i++)
+            {
+                if (string.Equals(sources[i].SourceId, id, StringComparison.OrdinalIgnoreCase))
+                    return sources[i];
+            }
+            return null;
+        }
+    }
+}
+
+/// <summary>
+/// Parsing helpers for inline SOURCE_n citation markers. The model is told to
+/// emit "[SOURCE_n]", but models drift: these patterns also accept full-width
+/// variants (\u3010SOURCE_3\u3011, \uFF3B3\uFF3D) and bare SOURCE_3 tokens so the
+/// footnote circles still render instead of leaking raw markers into the chat.
+/// </summary>
+internal static class AiCitations
+{
+    private const string Open = @"[\[\uFF3B\u3010]";
+    private const string Close = @"[\]\uFF3D\u3011]";
+    private const string Digits = @"[\d\uFF10-\uFF19]{1,3}";
+
+    // [SOURCE_3] / \u3010SOURCE_3\u3011 / [3] / \u30103\u3011 (the bare-number form must
+    // not swallow markdown links like [3](https://...), hence the lookahead) /
+    // bare SOURCE_3 tokens inside prose.
+    internal static readonly Regex InlineRx = new(
+        Open + @"\s*SOURCE[\s_\-]*(?<s>" + Digits + @")\s*" + Close +
+        @"|" + Open + @"\s*(?<p>" + Digits + @")\s*" + Close + @"(?!\s*\()" +
+        @"|\bSOURCE[\s_\-]*(?<b>" + Digits + @")(?![\w\uFF10-\uFF19\-])",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Same vocabulary for the ids inside 'sources' ("SOURCE_3", "source 3",
+    // "[3]", "\u3010SOURCE_3\u3011", "3").
+    private static readonly Regex IdRx = new(
+        @"^" + Open + @"?\s*SOURCE[\s_\-]*(?<s>" + Digits + @")\s*" + Close + @"?$" +
+        @"|^(?<p>" + Digits + @")$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>Extracts the 1-based citation number from a matched marker, or -1.</summary>
+    internal static int MatchToNumber(Match m)
+    {
+        foreach (var name in new[] { "s", "p", "b" })
+        {
+            var g = m.Groups[name];
+            if (g.Success)
+            {
+                int v = ParseDigits(g.Value);
+                if (v >= 1)
+                    return v;
+            }
+        }
+        return -1;
+    }
+
+    /// <summary>Parses any SOURCE_n id spelling to its 1-based number, or -1 when unknown.</summary>
+    internal static int ParseSourceId(string? sourceId)
+    {
+        if (string.IsNullOrWhiteSpace(sourceId))
+            return -1;
+        var m = IdRx.Match(sourceId.Trim());
+        return m.Success ? MatchToNumber(m) : -1;
+    }
+
+    internal static string FormatId(int number) => "SOURCE_" + number.ToString(CultureInfo.InvariantCulture);
+
+    private static int ParseDigits(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return -1;
+        int value = 0;
+        foreach (var ch in text.Trim())
+        {
+            int d = ch >= '\uFF10' && ch <= '\uFF19' ? ch - '\uFF10'
+                  : ch >= '0' && ch <= '9' ? ch - '0'
+                  : -1;
+            if (d < 0)
+                return -1;
+            value = value * 10 + d;
+        }
+        return value > 999 ? -1 : value;
     }
 }

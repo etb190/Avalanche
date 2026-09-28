@@ -95,6 +95,19 @@ namespace Avalanche.Features.AI
             _vectorIndex = new VectorIndex(GetIndexDbPath());
             _retriever = new HybridRetriever(_vectorIndex, _retrievalOptions);
             _indexer = new DocumentIndexer(_vectorIndex);
+
+            // Inline citation footnotes inside answer bubbles route their
+            // clicks through this bridge into this conversation's navigation.
+            AiMarkdown.CitationClicked += OnInlineCitationClicked;
+        }
+
+        private void OnInlineCitationClicked(ChatMessage message, AiSource source)
+        {
+            if (message is null || source is null)
+                return;
+            if (!Messages.Contains(message))
+                return; // a bubble from another conversation/viewmodel instance
+            NavigateToSource(source);
         }
 
         private static string GetIndexDbPath()
@@ -350,8 +363,13 @@ namespace Avalanche.Features.AI
                     sourceRefs,
                     _genConfig);
 
-                assistantMsg.Content = response.Answer;
-                assistantMsg.Sources = response.Sources;
+                // Resolve each returned sourceId through THIS reply's evidence
+                // list before anything binds to Sources: the chip row and the
+                // inline footnote circles both read this list while rendering.
+                ResolveSources(response.Sources, retrieved);
+
+                assistantMsg.Sources = response.Sources; // chip row binds on this change
+                assistantMsg.Content = response.Answer;  // markdown rebuild sees the sources
                 assistantMsg.IsLoading = false;
 
                 // Scroll to bottom - fire-and-forget UI update
@@ -375,6 +393,36 @@ namespace Avalanche.Features.AI
             }
         }
 
+        /// <summary>
+        /// Maps each SOURCE_n id the model returned back to the n-th chunk of
+        /// this reply's retrieved evidence, fills the exact page data from that
+        /// chunk (never from model-supplied numbers) and drops invented or
+        /// out-of-range ids so every citation button points at real evidence.
+        /// </summary>
+        private static void ResolveSources(List<AiSource> sources, List<RetrievedChunk> retrieved)
+        {
+            if (sources.Count == 0)
+                return;
+
+            var kept = new List<AiSource>(sources.Count);
+            foreach (var src in sources)
+            {
+                int n = AiCitations.ParseSourceId(src.SourceId);
+                if (n < 1 || n > retrieved.Count)
+                    continue; // invented/unknown id: drop it rather than guess
+
+                var chunk = retrieved[n - 1].Chunk;
+                src.SourceId = AiCitations.FormatId(n); // normalize spelling ("source_3" -> "SOURCE_3")
+                src.ResolvedChunk = chunk;
+                src.PageIndex = chunk.PageIndex;
+                src.PageNumber = chunk.PageNumber;
+                kept.Add(src);
+            }
+
+            sources.Clear();
+            sources.AddRange(kept);
+        }
+
         private string BuildSystemPrompt(List<RetrievedChunk> retrieved)
         {
             var sb = new System.Text.StringBuilder();
@@ -385,6 +433,10 @@ namespace Avalanche.Features.AI
             sb.AppendLine("Cite only the given SOURCE_n IDs; never invent IDs, page numbers or quotes.");
             sb.AppendLine("Quotes must be copied exactly from the cited source.");
             sb.AppendLine("Prefer several supporting sources; do not cite passages merely because they share words.");
+            sb.AppendLine("Inline citations: right after each claim, append the supporting source's marker in the exact form [SOURCE_n] using plain ASCII square brackets.");
+            sb.AppendLine("Example: 'The trial lasted twelve weeks. [SOURCE_2]'.");
+            sb.AppendLine("Use [SOURCE_n] only - never full-width brackets like \u3010SOURCE_n\u3011, never (SOURCE_n).");
+            sb.AppendLine("Every source listed in 'sources' must also appear as an inline [SOURCE_n] marker in the answer.");
             sb.AppendLine();
             sb.AppendLine("EVIDENCE FORMAT:");
             sb.AppendLine("[SOURCE_1] Page 147 (section: ...)");
@@ -411,7 +463,7 @@ namespace Avalanche.Features.AI
             sb.AppendLine("7. Cite multiple sources when appropriate.");
             sb.AppendLine("8. Distinguish the document's claims from your explanation.");
             sb.AppendLine("Output ONLY a JSON object:");
-            sb.AppendLine("{\"answer\": \"<markdown>\", \"sources\": [{\"sourceId\": \"SOURCE_2\", \"quote\": \"<exact text from that source>\", \"reason\": \"<why it supports the answer>\"}]}");
+            sb.AppendLine("{\"answer\": \"The fee doubles after the first year. [SOURCE_1]\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text from that source>\", \"reason\": \"<why it supports the answer>\"}]}");
             sb.AppendLine("(Do not ask the model for page numbers; the app derives them from sourceId.)");
 
             return sb.ToString();
@@ -446,30 +498,19 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
-        /// Navigates to a source using exact coordinates from retrieval.
+        /// Navigates to a source using the chunk that was resolved from THIS
+        /// reply's retrieved evidence when the response was parsed.
         /// </summary>
         public void NavigateToSource(AiSource source)
         {
             if (source == null || _mainWindow == null) return;
 
-            // Use the exact source ID to find the chunk
-            // SourceId format: "SOURCE_1", "SOURCE_2", etc. (1-based)
-            if (string.IsNullOrEmpty(source.SourceId)) return;
-
-            int sourceIndex;
-            if (!source.SourceId.StartsWith("SOURCE_", StringComparison.OrdinalIgnoreCase) ||
-                !int.TryParse(source.SourceId.Substring(7), out sourceIndex) ||
-                sourceIndex < 1)
-            {
-                return;
-            }
-
-            // The source index is 1-based in the prompt, convert to 0-based
-            int chunkIndex = sourceIndex - 1;
-            if (_currentIndex == null || chunkIndex >= _currentIndex.Chunks.Count)
-                return;
-
-            var chunk = _currentIndex.Chunks[chunkIndex];
+            // SOURCE_n refers to the n-th chunk of this reply's evidence list,
+            // not to the document's global chunk list; that mapping was captured
+            // in ResolvedChunk at parse time. Without it there is no trustworthy
+            // location to show, so an unresolved citation stays inert.
+            var chunk = source.ResolvedChunk;
+            if (chunk == null) return;
 
             // Navigate to the page and highlight using exact coordinates
             _mainWindow.Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>

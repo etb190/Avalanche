@@ -2844,7 +2844,7 @@
                                                             Style="{StaticResource OutlineButton}"
                                                             FontSize="11" Padding="6,2" Margin="0,0,4,4"
                                                             VerticalAlignment="Center"
-                                                            ToolTip="{Binding Quote, StringFormat='Page {0}: {1}'}"
+                                                            ToolTip="{Binding Reason}"
                                                             Tag="{Binding}"
                                                             Click="AiSourceButton_Click"/>
                                                 </DataTemplate>

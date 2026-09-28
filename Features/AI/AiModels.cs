@@ -117,7 +117,19 @@ namespace Avalanche.Features.AI
             get => _content; 
             set { _content = value; OnPropertyChanged(); }
         }
-        public List<AiSource> Sources { get; set; } = new();
+        private List<AiSource> _sources = new();
+
+        /// <summary>
+        /// Raises change notifications: the sources chip row under a bubble
+        /// binds when the template materializes (long before the reply fills
+        /// this list), so it must observe later replacements too.
+        /// </summary>
+        public List<AiSource> Sources
+        {
+            get => _sources;
+            set { _sources = value ?? new List<AiSource>(); OnPropertyChanged(); }
+        }
+
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         private bool _isLoading;
         public bool IsLoading 
