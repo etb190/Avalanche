@@ -241,22 +241,32 @@ if (pageGroups.Count > 0)
                 pageHeight = (float)page.Height;
                 pageRotation = (int)page.Rotation; // PageRotationDegrees enum casts to int directly
                 var crop = page.CropBox;
-                // CropBox may be a PdfRectangle - try different property access patterns
+                // CropBox type may vary - use reflection or fallback to page dimensions
                 try
                 {
-                    cropBox = new float[] { (float)crop.Left, (float)crop.Bottom, (float)crop.Right, (float)crop.Top };
-                }
-                catch
-                {
-                    // Fallback: try alternative property names
-                    try
+                    var cropType = crop.GetType();
+                    var leftProp = cropType.GetProperty("Left");
+                    var bottomProp = cropType.GetProperty("Bottom");
+                    var rightProp = cropType.GetProperty("Right");
+                    var topProp = cropType.GetProperty("Top");
+                    if (leftProp != null && bottomProp != null && rightProp != null && topProp != null)
                     {
-                        cropBox = new float[] { (float)crop.X, (float)crop.Y, (float)crop.Right, (float)crop.Top };
+                        cropBox = new float[] 
+                        { 
+                            (float)leftProp.GetValue(crop), 
+                            (float)bottomProp.GetValue(crop), 
+                            (float)rightProp.GetValue(crop), 
+                            (float)topProp.GetValue(crop) 
+                        };
                     }
-                    catch
+                    else
                     {
                         cropBox = new float[] { 0, 0, pageWidth, pageHeight };
                     }
+                }
+                catch
+                {
+                    cropBox = new float[] { 0, 0, pageWidth, pageHeight };
                 }
             }
 
