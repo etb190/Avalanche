@@ -1029,4 +1029,19 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_PasswordProtected">“{0}” পাসওয়ার্ড দিয়ে সুরক্ষিত।</sys:String>
     <sys:String x:Key="Str_About_Aka">অন্য নাম</sys:String>
     <sys:String x:Key="Str_Btn_Run">চালু করুন</sys:String>
+
+    <!-- ── AI Chat ────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_AiChatTitle">AI সহায়ক</sys:String>
+    <sys:String x:Key="Str_AiChatClose">AI সহায়ক বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_AiChatInputTip">এই PDF-র সম্পর্কে জিজ্ঞাসা করুন... (Ctrl+Enter দিয়ে পাঠান)</sys:String>
+    <sys:String x:Key="Str_AiChatSendTip">পাঠান (Ctrl+Enter)</sys:String>
+    <sys:String x:Key="Str_AiChatPreparing">নথি প্রস্তুত করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_AiChatReady">প্রস্তুত</sys:String>
+    <sys:String x:Key="Str_AiChatIndexingFailed">ইন্ডেক্সিং ব্যর্থ</sys:String>
+    <sys:String x:Key="Str_AiChatNoProvider">কোনো AI প্রদানকারী কনফিগার করা নেই। সেটিংস খোলেন API কী যোগ করতে।</sys:String>
+    <sys:String x:Key="Str_AiChatError">AI সেবার সাথে যোগাযোগে ত্রুটি।</sys:String>
+    <sys:String x:Key="Str_AiChatNoMatches">আপনার প্রশ্নের জন্য নথিতে কোনো প্রাসঙ্গিক অংশ পাওয়া যায়নি।</sys:String>
+    <sys:String x:Key="Str_AiChatSourceNavigateFailed">এই পৃষ্ঠায় উদ্ধৃত অংশটি খুঁজে পাওয়া যায়নি।</sys:String>
+    <sys:String x:Key="Str_AiChatSourceTip">পৃষ্ঠা {0} — উদ্ধৃত অংশ দেখান</sys:String>
+
 </ResourceDictionary>

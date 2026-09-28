@@ -19,6 +19,7 @@ namespace Avalanche.Features.AI
         private readonly IAiProvider _aiProvider;
         private readonly AiProviderConfig _config;
         private readonly MainWindow _mainWindow;
+        private readonly Func<string, string> _loc;
         private DocumentIndex? _currentIndex;
         private string _currentDocumentId = "";
         private string _currentFilePath = "";
@@ -51,10 +52,11 @@ namespace Avalanche.Features.AI
 
         public string CurrentInput { get; set; } = "";
 
-        public AiChatViewModel(MainWindow mainWindow, AiProviderConfig config)
+        public AiChatViewModel(MainWindow mainWindow, AiProviderConfig config, Func<string, string> loc)
         {
             _mainWindow = mainWindow;
             _config = config;
+            _loc = loc ?? (k => k);
             _aiProvider = AiProviderFactory.CreateProvider(config.ProviderType);
         }
 
@@ -139,7 +141,7 @@ namespace Avalanche.Features.AI
 
                 if (retrieved.Count == 0)
                 {
-                    assistantMsg.Content = "I couldn't find any relevant passages in the document for your question.";
+                    assistantMsg.Content = _loc("Str_AiChatNoMatches");
                     assistantMsg.IsLoading = false;
                     return;
                 }

@@ -847,7 +847,7 @@ namespace Avalanche
             if (_aiChatViewModel is null && _currentFile is not null)
             {
                 _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
-                _aiChatViewModel = new Features.AI.AiChatViewModel(this, _aiSettingsViewModel.ToConfig());
+                _aiChatViewModel = new Features.AI.AiChatViewModel(this, _aiSettingsViewModel.ToConfig(), Loc);
                 AiChatOverlay.DataContext = _aiChatViewModel;
 
                 // Subscribe to close request
