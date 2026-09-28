@@ -849,9 +849,6 @@ namespace Avalanche
                 _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
                 _aiChatViewModel = new Features.AI.AiChatViewModel(this, _aiSettingsViewModel.ToConfig(), Loc);
                 AiChatOverlay.DataContext = _aiChatViewModel;
-
-                // Subscribe to close request
-                _aiChatViewModel.RequestClose += CloseAiChat;
             }
 
             // Initialize for current document
