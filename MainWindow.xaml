@@ -2714,7 +2714,7 @@
             <Border x:Name="AiChatOverlay" Grid.Column="2" Grid.Row="1" Panel.ZIndex="200"
                     HorizontalAlignment="Right" VerticalAlignment="Stretch"
                     Width="380" Visibility="Collapsed"
-                    Background="{DynamicResource SidebarPaneBrush}"
+                    Background="{DynamicResource PaneBrush}"
                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1,0,0,0"
                     CornerRadius="{DynamicResource RadCard}"
                     Effect="{DynamicResource PaneShadowEffect}">
@@ -2753,7 +2753,7 @@
                     <!-- Conversation Area -->
                     <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                  Background="{DynamicResource SidebarPaneBrush}" FocusVisualStyle="{x:Null}"
+                                  Background="{DynamicResource PaneBrush}" FocusVisualStyle="{x:Null}"
                                   Padding="8,8,8,0">
                         <ItemsControl x:Name="AiChatMessages" ItemsSource="{Binding Messages}">
                             <ItemsControl.ItemTemplate>
@@ -2863,7 +2863,10 @@
                                         <DataTrigger Binding="{Binding MessageRole}" Value="{x:Static ai:ChatMessage+Role.User}">
                                             <Setter TargetName="AvatarEllipse" Property="Grid.Column" Value="2"/>
                                             <Setter TargetName="AvatarText" Property="Grid.Column" Value="2"/>
-                                            <Setter TargetName="MessageBorder" Property="Grid.Column" Value="0"/>
+                                            <Setter TargetName="MessageBorder" Property="Grid.Column" Value="1"/>
+                                            <!-- Keep the bubble in the star-width column, right-aligned; column 0
+                                                 is Auto-sized so a wrapping bubble there overflows and gets clipped. -->
+                                            <Setter TargetName="MessageBorder" Property="HorizontalAlignment" Value="Right"/>
                                             <Setter TargetName="AvatarEllipse" Property="Margin" Value="8,2,0,0"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>

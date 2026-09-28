@@ -38,6 +38,7 @@ namespace Avalanche.Features.AI
         private readonly object _processingLock = new();
         private int _maxHistoryMessages = 10;
         private string? _pendingUserInput;  // Queue message if indexing not complete
+        private ChatMessage? _pendingPlaceholder;  // "Preparing..." bubble shown while a queued message waits
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
@@ -167,7 +168,11 @@ namespace Avalanche.Features.AI
                 {
                     var pendingInput = _pendingUserInput;
                     _pendingUserInput = null;
-                    _ = SendMessageAsync(pendingInput);
+                    var placeholder = _pendingPlaceholder;
+                    _pendingPlaceholder = null;
+                    if (placeholder is not null)
+                        Application.Current.Dispatcher.Invoke(() => Messages.Remove(placeholder));
+                    _ = GenerateReplyAsync(pendingInput);
                 }
             }
             catch (Exception ex)
@@ -183,54 +188,90 @@ namespace Avalanche.Features.AI
 
         /// <summary>
         /// Sends a user message and gets AI response with hybrid retrieval.
+        /// The user's message is added to the conversation immediately so typed
+        /// text can never vanish; if the document is still being indexed the
+        /// reply is deferred and a "preparing" bubble acknowledges the message.
         /// </summary>
         public async Task SendMessageAsync(string userInput)
         {
             if (string.IsNullOrWhiteSpace(userInput) || IsProcessing)
                 return;
 
-            // If indexing not complete, queue the message and send when ready
-            if (_currentIndex == null)
-            {
-                if (IsIndexing)
-                {
-                    _pendingUserInput = userInput.Trim();
-                    CurrentInput = "";
-                    OnPropertyChanged(nameof(CurrentInput));
-                    OnPropertyChanged(nameof(CanSend));
-                    return;
-                }
-                else
-                {
-                    // Not indexing and no index - shouldn't happen, but guard anyway
-                    return;
-                }
-            }
-
-            lock (_processingLock)
-            {
-                if (IsProcessing) return;
-                IsProcessing = true;
-            }
-
             var input = userInput.Trim();
-            CurrentInput = "";
-            OnPropertyChanged(nameof(CurrentInput));
-            OnPropertyChanged(nameof(CanSend));
 
-            // Add user message
+            // Always echo the user's message into the conversation right away.
+            // Previously the message was queued or dropped silently while the
+            // index was building, which looked like the sent text disappeared.
             var userMsg = new ChatMessage
             {
                 MessageRole = ChatMessage.Role.User,
                 Content = input
             };
             Application.Current.Dispatcher.Invoke(() => Messages.Add(userMsg));
+            ClearInput();
+
+            // If indexing not complete, defer the AI reply until the index is ready
+            if (_currentIndex == null)
+            {
+                if (IsIndexing)
+                {
+                    _pendingUserInput = input;
+                    _pendingPlaceholder = new ChatMessage
+                    {
+                        MessageRole = ChatMessage.Role.Assistant,
+                        Content = _loc("Str_AiChatPreparing"),
+                        IsLoading = true
+                    };
+                    Application.Current.Dispatcher.Invoke(() => Messages.Add(_pendingPlaceholder));
+                    return;
+                }
+
+                // No index and not indexing (e.g. indexing failed): surface the
+                // problem to the user instead of silently dropping the message.
+                Application.Current.Dispatcher.Invoke(() => Messages.Add(new ChatMessage
+                {
+                    MessageRole = ChatMessage.Role.Assistant,
+                    Content = _loc("Str_AiChatIndexingFailed"),
+                    Error = _loc("Str_AiChatIndexingFailed")
+                }));
+                return;
+            }
+
+            await GenerateReplyAsync(input);
+        }
+
+        private void ClearInput()
+        {
+            CurrentInput = "";
+            OnPropertyChanged(nameof(CurrentInput));
+            OnPropertyChanged(nameof(CanSend));
+        }
+
+        /// <summary>
+        /// Runs retrieval and generation for an already-displayed user message.
+        /// Waits for any in-flight reply so messages are answered in order and
+        /// none are dropped.
+        /// </summary>
+        private async Task GenerateReplyAsync(string input)
+        {
+            while (true)
+            {
+                lock (_processingLock)
+                {
+                    if (!IsProcessing)
+                    {
+                        IsProcessing = true;
+                        break;
+                    }
+                }
+                await Task.Delay(100);
+            }
 
             // Add loading assistant message
             var assistantMsg = new ChatMessage
             {
                 MessageRole = ChatMessage.Role.Assistant,
-                Content = "",
+                Content = _loc("Str_AiChatPreparing"),
                 IsLoading = true
             };
             Application.Current.Dispatcher.Invoke(() => Messages.Add(assistantMsg));
@@ -349,7 +390,9 @@ namespace Avalanche.Features.AI
         private List<ChatMessage> GetRecentMessages()
         {
             return Messages
-                .Where(m => m.MessageRole != ChatMessage.Role.System)
+                .Where(m => m.MessageRole != ChatMessage.Role.System
+                            && !m.IsLoading
+                            && string.IsNullOrWhiteSpace(m.Error))
                 .TakeLast(_maxHistoryMessages)
                 .ToList();
         }
@@ -396,6 +439,7 @@ namespace Avalanche.Features.AI
             _currentFilePath = "";
             _currentDocumentId = "";
             _pendingUserInput = null;
+            _pendingPlaceholder = null;
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
         }
 

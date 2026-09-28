@@ -877,7 +877,10 @@ namespace Avalanche
 
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)
         {
-            if (_aiChatViewModel is null || string.IsNullOrWhiteSpace(_aiChatViewModel.CurrentInput))
+            // Guard with CanSend (not just non-empty input): Ctrl+Enter reaches this
+            // handler even while the send button is disabled, and previously the
+            // captured text was dropped when a reply was still being generated.
+            if (_aiChatViewModel is null || !_aiChatViewModel.CanSend)
                 return;
 
             var input = _aiChatViewModel.CurrentInput;

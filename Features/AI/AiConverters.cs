@@ -9,26 +9,44 @@ namespace Avalanche
 {
     /// <summary>
     /// Converts ChatMessage.Role to a brush for the avatar background.
+    /// Colors are derived from the live theme so avatars stay visible in
+    /// light, dark and specialty themes (hardcoded colors vanished on some).
     /// </summary>
     internal sealed class AiRoleToBrushConverter : IValueConverter
     {
-        private static readonly SolidColorBrush UserBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
-        private static readonly SolidColorBrush AssistantBrush = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
-        private static readonly SolidColorBrush SystemBrush = new SolidColorBrush(Color.FromRgb(0x6A, 0x6A, 0x6A));
+        private static readonly SolidColorBrush UserFallback = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x3A));
+        private static readonly SolidColorBrush AssistantFallback = new SolidColorBrush(Color.FromRgb(0x00, 0x7A, 0xCC));
+        private static readonly SolidColorBrush SystemFallback = new SolidColorBrush(Color.FromRgb(0x6A, 0x6A, 0x6A));
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value switch
             {
-                ChatMessage.Role.User => UserBrush,
-                ChatMessage.Role.Assistant => AssistantBrush,
-                ChatMessage.Role.System => SystemBrush,
-                _ => UserBrush
+                ChatMessage.Role.User => AiBrushHelpers.ThemedTint("TextBrush", 0.12, UserFallback),
+                ChatMessage.Role.Assistant => AiBrushHelpers.ThemedTint("PrimaryBrush", 0.25, AssistantFallback),
+                ChatMessage.Role.System => AiBrushHelpers.ThemedTint("MutedTextBrush", 0.20, SystemFallback),
+                _ => AiBrushHelpers.ThemedTint("TextBrush", 0.12, UserFallback)
             };
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// Builds a translucent tint of a live themed brush so bubbles pick up the
+    /// current theme while the themed text color stays readable on top of them.
+    /// </summary>
+    internal static class AiBrushHelpers
+    {
+        internal static SolidColorBrush ThemedTint(string resourceKey, double alpha, SolidColorBrush fallback)
+        {
+            var source = Application.Current?.TryFindResource(resourceKey) as SolidColorBrush;
+            var c = source?.Color ?? fallback.Color;
+            var brush = new SolidColorBrush(Color.FromArgb((byte)(255 * alpha), c.R, c.G, c.B));
+            brush.Freeze();
+            return brush;
+        }
     }
 
     /// <summary>
@@ -38,12 +56,15 @@ namespace Avalanche
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            // NOTE: XML character entities (&#xE77B; style) are only decoded by the
+            // XAML parser, not at runtime - returning them from a converter rendered
+            // the literal text "&#xE77B;" instead of the glyph. Use real characters.
             return value switch
             {
-                ChatMessage.Role.User => "&#xE77B;",      // Person
-                ChatMessage.Role.Assistant => "&#xE8A5;", // Bot/AI
-                ChatMessage.Role.System => "&#xE713;",    // Info
-                _ => "&#xE77B;"
+                ChatMessage.Role.User => "\uE77B",      // Person
+                ChatMessage.Role.Assistant => "\uE8A5", // Bot/AI
+                ChatMessage.Role.System => "\uE713",    // Info
+                _ => "\uE77B"
             };
         }
 
@@ -53,21 +74,24 @@ namespace Avalanche
 
     /// <summary>
     /// Converts ChatMessage.Role to a background brush for the message bubble.
+    /// Backgrounds are translucent tints of the live theme brushes so the
+    /// themed text color stays readable in light and dark themes (the previous
+    /// hardcoded dark bubbles made near-black light-theme text invisible).
     /// </summary>
     internal sealed class AiRoleToBgConverter : IValueConverter
     {
-        private static readonly SolidColorBrush UserBg = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x2D));
-        private static readonly SolidColorBrush AssistantBg = new SolidColorBrush(Color.FromRgb(0x1A, 0x3A, 0x5C));
-        private static readonly SolidColorBrush SystemBg = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A));
+        private static readonly SolidColorBrush UserFallback = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x2D));
+        private static readonly SolidColorBrush AssistantFallback = new SolidColorBrush(Color.FromRgb(0x1A, 0x3A, 0x5C));
+        private static readonly SolidColorBrush SystemFallback = new SolidColorBrush(Color.FromRgb(0x2A, 0x2A, 0x2A));
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             return value switch
             {
-                ChatMessage.Role.User => UserBg,
-                ChatMessage.Role.Assistant => AssistantBg,
-                ChatMessage.Role.System => SystemBg,
-                _ => UserBg
+                ChatMessage.Role.User => AiBrushHelpers.ThemedTint("PrimaryBrush", 0.14, UserFallback),
+                ChatMessage.Role.Assistant => AiBrushHelpers.ThemedTint("TextBrush", 0.07, AssistantFallback),
+                ChatMessage.Role.System => AiBrushHelpers.ThemedTint("TextBrush", 0.07, SystemFallback),
+                _ => AiBrushHelpers.ThemedTint("PrimaryBrush", 0.14, UserFallback)
             };
         }
 
