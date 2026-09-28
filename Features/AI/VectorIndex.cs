@@ -319,7 +319,7 @@ namespace Avalanche.Features.AI
                     LexicalTokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(reader.GetString(9)) ?? new()
                 };
 
-                float score = 1.0f / (1.0f + reader.GetDouble(10)); // BM25 rank -> similarity
+                float score = (float)(1.0 / (1.0 + reader.GetDouble(10))); // BM25 rank -> similarity
                 results.Add(new RetrievedChunk { Chunk = chunk, Score = score });
             }
 
@@ -340,7 +340,7 @@ namespace Avalanche.Features.AI
             NormalizeScores(semanticResults);
 
             // Merge by chunk ID
-            var merged = new Dictionary<string, (RetrievedChunk chunk, float lexicalScore, float semanticScore)>();
+            var merged = new Dictionary<string, (DocumentChunk chunk, float lexicalScore, float semanticScore)>();
 
             foreach (var r in lexicalResults)
             {

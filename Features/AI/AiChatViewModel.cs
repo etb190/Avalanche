@@ -37,7 +37,6 @@ namespace Avalanche.Features.AI
         private int _maxHistoryMessages = 10;
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
-        public event Action? RequestClose;
 
         public bool IsIndexing
         {
@@ -222,8 +221,8 @@ namespace Avalanche.Features.AI
                 assistantMsg.Sources = response.Sources;
                 assistantMsg.IsLoading = false;
 
-                // Scroll to bottom
-                Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+                // Scroll to bottom - fire-and-forget UI update
+                _ = Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
                 {
                     // Scroll logic would go here
                 });

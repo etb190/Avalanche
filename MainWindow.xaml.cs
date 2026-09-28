@@ -884,8 +884,8 @@ namespace Avalanche
             _aiChatViewModel.CurrentInput = "";
             await _aiChatViewModel.SendMessageAsync(input);
 
-            // Scroll to bottom
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
+            // Scroll to bottom - fire-and-forget UI update
+            _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
             {
                 AiChatScrollViewer?.ScrollToBottom();
             });

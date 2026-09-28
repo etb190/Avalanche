@@ -23,7 +23,7 @@ namespace Avalanche.Features.AI
 
             foreach (var chunk in index.Chunks)
             {
-                double score = CalculateScore(chunk.Text, queryTerms);
+                float score = (float)CalculateScore(chunk.Text, queryTerms);
                 if (score > 0)
                 {
                     scoredChunks.Add(new RetrievedChunk { Chunk = chunk, Score = score });
