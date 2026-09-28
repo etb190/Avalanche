@@ -1052,22 +1052,22 @@ namespace Avalanche
             {
                 // Rotation is in degrees (0, 90, 180, 270)
                 // The coordinates need to be transformed
-                double cx = left;
-                double cy = bottom;
+                double tempCx = left;
+                double tempCy = bottom;
                 
                 switch (pageRotation)
                 {
                     case 90:
-                        left = cy;
-                        bottom = pdfW - cx - (right - left);
+                        left = tempCy;
+                        bottom = pdfW - tempCx - (right - left);
                         break;
                     case 180:
-                        left = pdfW - cx - (right - left);
-                        bottom = pdfH - cy - (top - bottom);
+                        left = pdfW - tempCx - (right - left);
+                        bottom = pdfH - tempCy - (top - bottom);
                         break;
                     case 270:
-                        left = pdfH - cy - (top - bottom);
-                        bottom = cx;
+                        left = pdfH - tempCy - (top - bottom);
+                        bottom = tempCx;
                         break;
                 }
             }

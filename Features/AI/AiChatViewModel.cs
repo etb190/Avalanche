@@ -26,6 +26,7 @@ namespace Avalanche.Features.AI
         private readonly EmbeddingProviderConfig _embConfig;
         private readonly MainWindow _mainWindow;
         private readonly Func<string, string> _loc;
+        private readonly RetrievalOptions _retrievalOptions;
         
         private DocumentIndex? _currentIndex;
         private string _currentDocumentId = "";

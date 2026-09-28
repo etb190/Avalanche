@@ -112,7 +112,7 @@ namespace Avalanche.Features.AI
 
                 // Note: We need to call the async method, but we're in Task.Run
                 // For now, use GetAwaiter().GetResult() but in the future this should be fully async
-                GenerateEmbeddings(chunks);
+                GenerateEmbeddingsAsync(chunks, _embConfig).GetAwaiter().GetResult();
                 
                 allChunks.AddRange(chunks);
             });
@@ -180,7 +180,7 @@ namespace Avalanche.Features.AI
                     else if (currentLength >= _options.MaxChunkSize)
                     {
                         // Force break
-                        var chunk = CreateChunk(currentChunkWords, chunkIndex++, ref charOffset);
+                        var chunk = CreateChunk(currentChunkWords, chunkIndex++, ref charOffset, pdfDoc);
                         if (chunk != null) chunks.Add(chunk);
                         currentChunkWords.Clear();
                         shouldBreak = true;
@@ -237,9 +237,9 @@ namespace Avalanche.Features.AI
             {
                 var firstPageIndex = pageGroups[0].Key;
                 var page = pdfDoc.GetPage(firstPageIndex + 1);
-                pageWidth = page.Width;
-                pageHeight = page.Height;
-                pageRotation = page.Rotation;
+                pageWidth = (float)page.Width;
+                pageHeight = (float)page.Height;
+                pageRotation = (int)page.Rotation;
                 var crop = page.CropBox;
                 cropBox = new float[] { (float)crop.Left, (float)crop.Bottom, (float)crop.Right, (float)crop.Top };
             }

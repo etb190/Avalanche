@@ -321,8 +321,8 @@ namespace Avalanche.Features.AI
             try
             {
                 using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                var baseUrl = baseUrl.Replace("/v1", "");
-                var response = await client.GetAsync($"{baseUrl.TrimEnd('/')}/api/version");
+                var ollamaUrl = baseUrl.Replace("/v1", "");
+                var response = await client.GetAsync($"{ollamaUrl.TrimEnd('/')}/api/version");
                 return response.IsSuccessStatusCode;
             }
             catch
