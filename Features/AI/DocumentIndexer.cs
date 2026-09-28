@@ -239,7 +239,7 @@ namespace Avalanche.Features.AI
                 var page = pdfDoc.GetPage(firstPageIndex + 1);
                 pageWidth = (float)page.Width;
                 pageHeight = (float)page.Height;
-                pageRotation = (int)page.Rotation;
+                pageRotation = (int)page.Rotation.Degrees; // PageRotationDegrees enum to int
                 var crop = page.CropBox;
                 cropBox = new float[] { (float)crop.Left, (float)crop.Bottom, (float)crop.Right, (float)crop.Top };
             }

@@ -340,7 +340,8 @@ namespace Avalanche.Features.AI
                     "Reply with just 'OK'",
                     new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = "test" } },
                     new List<DocumentChunk>(),
-                    "");
+                    "",
+                    config);
                 return !string.IsNullOrEmpty(response.Answer);
             }
             catch
