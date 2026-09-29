@@ -912,6 +912,44 @@ namespace Avalanche
             _aiChatViewModel?.CancelReply();
         }
 
+        // ---- AI settings overlay (F1) -------------------------------------
+
+        private void AiChatSettingsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (AiSettingsOverlay is null) return;
+            if (AiSettingsOverlay.Visibility == Visibility.Visible)
+            {
+                CloseAiSettings();
+                return;
+            }
+
+            if (_aiSettingsViewModel is not null)
+            {
+                _aiSettingsViewModel.Load();
+                AiSettingsOverlay.DataContext = _aiSettingsViewModel;
+                AiSettingsOverlay.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void AiSettingsCloseBtn_Click(object sender, RoutedEventArgs e) => CloseAiSettings();
+
+        private void CloseAiSettings()
+        {
+            if (AiSettingsOverlay is null) return;
+            AiSettingsOverlay.Visibility = Visibility.Collapsed;
+            _aiSettingsViewModel?.Save(); // persist on close
+        }
+
+        private void AiTestConnectionBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _ = _aiSettingsViewModel?.TestConnectionAsync(Loc);
+        }
+
+        private void AiOllamaPresetBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _aiSettingsViewModel?.ApplyOllamaPreset();
+        }
+
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)
         {
             // Guard with CanSend (not just non-empty input): Enter reaches this

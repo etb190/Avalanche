@@ -1073,6 +1073,22 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_AiErrorUsageLimit">Cloud usage limit reached for your Ollama account.</sys:String>
     <sys:String x:Key="Str_AiErrorCutOff">Answer was cut off; try a shorter question or raise the token limit.</sys:String>
 
+    <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
+    <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
+    <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
+    <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
+    <sys:String x:Key="Str_AiTestEmbOk">Embedding model responds</sys:String>
+    <sys:String x:Key="Str_AiTestChatFail">Chat model failed</sys:String>
+    <sys:String x:Key="Str_AiTestChatOk">Chat model responds</sys:String>
+    <sys:String x:Key="Str_AiTestOllamaFail">Ollama not reachable</sys:String>
+    <sys:String x:Key="Str_AiTestOllamaOk">Ollama reachable</sys:String>
+    <sys:String x:Key="Str_AiIdxEmbedding">Embedding {0}/{1} passages…</sys:String>
+    <sys:String x:Key="Str_AiIdxComplete">Indexing complete</sys:String>
+    <sys:String x:Key="Str_AiIdxPersisting">Persisting index…</sys:String>
+    <sys:String x:Key="Str_AiIdxLoaded">Loaded from cache</sys:String>
+    <sys:String x:Key="Str_AiIdxExtractPage">Extracting page {0}/{1}</sys:String>
+    <sys:String x:Key="Str_AiIdxExtracting">Extracting text…</sys:String>
     <sys:String x:Key="Str_AiChatSourceApproximate">Approximate location — the quote was matched with fuzzy repair.</sys:String>
     <sys:String x:Key="Str_AiChatPartialTextLayer">{0} page(s) have no text layer and are not searchable.</sys:String>
     <sys:String x:Key="Str_AiChatEmbeddingsUnavailable">Semantic search is unavailable right now — using keyword search only.</sys:String>

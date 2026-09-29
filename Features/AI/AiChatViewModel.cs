@@ -237,7 +237,10 @@ namespace Avalanche.Features.AI
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        IndexingStatus = p.Message;
+                        // The indexer's English Message is diagnostics-only;
+                        // the panel shows the STAGE localized, with counters
+                        // (F3) - hardcoded progress text never reaches users.
+                        IndexingStatus = LocalizeIndexingStage(p);
                         IndexingProgress = p.Progress;
                     });
                 });
@@ -387,6 +390,17 @@ namespace Avalanche.Features.AI
         /// (scanned document, password protection) get their own friendly
         /// message instead of leaking raw PdfPig exception text.
         /// </summary>
+        private string LocalizeIndexingStage(IndexingProgress p) => p.Stage switch
+        {
+            IndexingStage.Loaded => _loc("Str_AiIdxLoaded"),
+            IndexingStage.Persisting => _loc("Str_AiIdxPersisting"),
+            IndexingStage.Complete => _loc("Str_AiIdxComplete"),
+            IndexingStage.Embedding => string.Format(_loc("Str_AiIdxEmbedding"), p.Done, p.Total),
+            IndexingStage.Extracting when p.Total > 0 => string.Format(_loc("Str_AiIdxExtractPage"), p.Done, p.Total),
+            IndexingStage.Extracting => _loc("Str_AiIdxExtracting"),
+            _ => _loc("Str_AiChatPreparing")
+        };
+
         private string DescribeIndexingFailure(Exception ex)
         {
             if (ex is AiIndexingException aix)

@@ -211,29 +211,42 @@ namespace Avalanche.Features.AI
             {
                 var genConfig = ToGenConfig();
 
-                var genProvider = AiProviderFactory.CreateProvider(genConfig.ProviderType);
-
                 var results = new System.Text.StringBuilder();
                 bool allOk = true;
 
-                // Test 1: Ollama reachable
+                // Test 1: Ollama reachable (native /api/version)
                 ConnectionStatus = loc("Str_AiTestOllamaReachable");
                 bool ollamaReachable = await TestOllamaReachableAsync(GenBaseUrl);
-                results.AppendLine(ollamaReachable ? "✓ Ollama reachable" : "✗ Ollama not reachable");
-                if (!ollamaReachable) allOk = false;
+                results.AppendLine(ollamaReachable ? "✓ " + loc("Str_AiTestOllamaOk") : "✗ " + loc("Str_AiTestOllamaFail"));
+                allOk &= ollamaReachable;
 
-                // Test 2: Chat model
-                ConnectionStatus = loc("Str_AiTestChatModel");
-                bool chatOk = await TestChatModelAsync(genConfig, loc);
-                results.AppendLine(chatOk ? "✓ Chat model responds" : "✗ Chat model failed");
-                if (!chatOk) allOk = false;
+                // Test 2: chat model answers a tiny request (only over a
+                // reachable server - and with typed errors, only a REAL reply
+                // passes; cut-off/bad responses fail with their category).
+                bool chatOk = false;
+                if (ollamaReachable)
+                {
+                    ConnectionStatus = loc("Str_AiTestChatModel");
+                    chatOk = await TestChatModelAsync(genConfig);
+                }
+                results.AppendLine(chatOk ? "✓ " + loc("Str_AiTestChatOk") : "✗ " + loc("Str_AiTestChatFail"));
+                allOk &= chatOk;
 
-                ConnectionStatus = allOk ? loc("Str_AiTestAllPassed") : loc("Str_AiTestSomeFailed");
-                ConnectionStatus += "\n\n" + results.ToString();
+                // Test 3: embedding model returns a vector (previously missing
+                // entirely - Str_AiTestEmbeddingModel existed but was unused).
+                ConnectionStatus = loc("Str_AiTestEmbeddingModel");
+                bool embOk = await TestEmbeddingModelAsync(genConfig);
+                results.AppendLine(embOk ? "✓ " + loc("Str_AiTestEmbOk") : "✗ " + loc("Str_AiTestEmbFail"));
+                allOk &= embOk;
+
+                ConnectionStatus = (allOk ? loc("Str_AiTestAllPassed") : loc("Str_AiTestSomeFailed"))
+                                   + "\n\n" + results.ToString();
             }
-            catch (Exception ex)
+            catch
             {
-                ConnectionStatus = $"{loc("Str_AiTestError")}: {ex.Message}";
+                // No exception details in the UI (B3): the per-check lines
+                // above carry the outcome; raw error text stays out.
+                ConnectionStatus = loc("Str_AiTestError");
             }
             finally
             {
@@ -246,8 +259,10 @@ namespace Avalanche.Features.AI
             try
             {
                 using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-                var ollamaUrl = baseUrl.Replace("/v1", "");
-                var response = await client.GetAsync($"{ollamaUrl.TrimEnd('/')}/api/version");
+                var ollamaUrl = baseUrl.TrimEnd('/');
+                if (ollamaUrl.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
+                    ollamaUrl = ollamaUrl[..^3]; // strip only a TRAILING /v1 (a base URL containing /v1 elsewhere must survive)
+                var response = await client.GetAsync($"{ollamaUrl}/api/version");
                 return response.IsSuccessStatusCode;
             }
             catch
@@ -256,22 +271,94 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private async Task<bool> TestChatModelAsync(AiProviderConfig config, Func<string, string> loc)
+        private async Task<bool> TestChatModelAsync(AiProviderConfig config)
         {
             try
             {
                 var provider = AiProviderFactory.CreateProvider(config.ProviderType);
-                var response = await provider.GetChatCompletionAsync(
-                    loc("Str_AiTestChatPrompt"),
-                    new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = loc("Str_AiTestChatContent") } },
-                    new List<DocumentChunk>(),
-                    "",
-                    config);
-                return !string.IsNullOrEmpty(response.Answer);
+                try
+                {
+                    var response = await provider.GetChatCompletionAsync(
+                        "Reply with just OK.",
+                        new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = "test" } },
+                        new List<DocumentChunk>(),
+                        "",
+                        config);
+                    return !string.IsNullOrWhiteSpace(response.Answer);
+                }
+                finally
+                {
+                    (provider as IDisposable)?.Dispose();
+                }
             }
             catch
             {
                 return false;
+            }
+        }
+
+        private static async Task<bool> TestEmbeddingModelAsync(AiProviderConfig config)
+        {
+            var client = new OllamaEmbeddingClient(() => config);
+            try
+            {
+                var vector = await client.GenerateEmbeddingAsync("connection test");
+                return vector is { Length: > 0 };
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                client.Dispose();
+            }
+        }
+
+        // ---- Persistence (F1): JSON in %LocalAppData%\Avalanche\AI --------
+
+        private static string SettingsPath()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var dir = System.IO.Path.Combine(appData, "Avalanche", "AI");
+            System.IO.Directory.CreateDirectory(dir);
+            return System.IO.Path.Combine(dir, "settings.json");
+        }
+
+        private bool _loaded;
+
+        /// <summary>Loads persisted settings once; values already set by the
+        /// caller (defaults) are replaced only when a file exists.</summary>
+        public void Load()
+        {
+            if (_loaded) return;
+            _loaded = true;
+            try
+            {
+                var path = SettingsPath();
+                if (!System.IO.File.Exists(path)) return;
+                var json = System.IO.File.ReadAllText(path);
+                var config = System.Text.Json.JsonSerializer.Deserialize<AiProviderConfig>(json);
+                if (config is not null)
+                    LoadFromGenConfig(config);
+            }
+            catch
+            {
+                // Corrupt settings fall back to defaults; never block the panel.
+            }
+        }
+
+        public void Save()
+        {
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(ToGenConfig(),
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                System.IO.File.WriteAllText(SettingsPath(), json);
+            }
+            catch
+            {
+                // Best-effort persistence; a read-only disk must not crash the panel.
             }
         }
 

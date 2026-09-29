@@ -2764,6 +2764,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ctrl:RobotIcon Grid.Column="0" Width="16" Height="16"
                                             Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -2773,12 +2774,16 @@
                             <!-- New chat: sweeps the conversation (document index kept)
                                  so the next question starts clean. Disabled while a
                                  reply is streaming (CanStartNewChat). -->
-                            <Button Grid.Column="2" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="2" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
+                                    ToolTip="{DynamicResource Str_AiSettingsOpen}" Click="AiChatSettingsBtn_Click"
+                                    Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
+                                    Foreground="{DynamicResource MutedTextBrush}"/>
+                            <Button Grid.Column="3" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatNewChat}" Click="AiChatNewChatBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     IsEnabled="{Binding CanStartNewChat}"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="3" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="4" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
@@ -2850,6 +2855,17 @@
                                                          VerticalScrollBarVisibility="Disabled"
                                                          HorizontalScrollBarVisibility="Disabled"
                                                          ai:AiMarkdown.Text="{Binding Content}">
+                                                <!-- While the reply is loading the spinner row already shows the
+                                                     status text - showing the same Content twice looked broken (F4). -->
+                                                <RichTextBox.Style>
+                                                    <Style TargetType="RichTextBox">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </RichTextBox.Style>
                                                 <RichTextBox.ContextMenu>
                                                     <ContextMenu>
                                                         <MenuItem Header="{DynamicResource Str_Ctx_Copy}"
@@ -2885,22 +2901,23 @@
                                                         </EventTrigger>
                                                     </Border.Triggers>
                                                 </Border>
-                                                <TextBlock Text="{Binding Content, FallbackValue=Searching document...}"
+                                                <TextBlock Text="{Binding Content, FallbackValue={x:Null}}"
                                                            FontFamily="{DynamicResource UiFont}" FontSize="12"
                                                            Foreground="{DynamicResource MutedTextBrush}"
                                                            VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Border>
 
-                                        <!-- Error -->
-                                        <Border Grid.Row="1" Grid.Column="1"
-                                                Visibility="{Binding Error, Converter={StaticResource StringToVisibilityConverter}}"
-                                                Margin="0,6,0,0" Padding="10,6" Background="#3D1A1A"
-                                                CornerRadius="8" BorderBrush="#8B0000" BorderThickness="1">
-                                            <TextBlock Text="{Binding Error}"
-                                                       FontFamily="{DynamicResource UiFont}" FontSize="12"
-                                                       Foreground="#FF6B6B" TextWrapping="Wrap"/>
-                                        </Border>
+                                            <!-- Error (theme-aware: DangerRed is defined in every palette) -->
+                                            <Border Grid.Row="1" Grid.Column="1"
+                                                    Visibility="{Binding Error, Converter={StaticResource StringToVisibilityConverter}}"
+                                                    Margin="0,6,0,0" Padding="10,6"
+                                                    Background="{DynamicResource PaneBrush}"
+                                                    CornerRadius="8" BorderBrush="{DynamicResource DangerRed}" BorderThickness="1">
+                                                <TextBlock Text="{Binding Error}"
+                                                           FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                                           Foreground="{DynamicResource DangerRed}" TextWrapping="Wrap"/>
+                                            </Border>
                                     </Grid>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding MessageRole}" Value="{x:Static ai:ChatMessage+Role.User}">
@@ -2991,6 +3008,79 @@
                                     IsEnabled="{Binding CanSend}"
                                     ToolTip="{DynamicResource Str_AiChatSendTip}"/>
                         </Grid>
+                    </Border>
+
+                    <!-- AI settings overlay (F1): minimal panel over the conversation.
+                         Fields bind to AiSettingsViewModel; persisted to
+                         %LocalAppData%\Avalanche\AI\settings.json. -->
+                    <Border x:Name="AiSettingsOverlay" Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="60"
+                            Background="{DynamicResource SidebarPaneBrush}"
+                            Visibility="Collapsed" Padding="12,8">
+                        <Border.Resources>
+                            <Style x:Key="AiSettingsLabel" TargetType="TextBlock">
+                                <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
+                                <Setter Property="FontSize" Value="11"/>
+                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+                                <Setter Property="Margin" Value="0,6,0,2"/>
+                            </Style>
+                            <Style x:Key="AiSettingsBox" TargetType="TextBox">
+                                <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
+                                <Setter Property="FontSize" Value="11"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Padding" Value="6,3"/>
+                            </Style>
+                        </Border.Resources>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsOpen}" FontWeight="SemiBold"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsCloudWarning}" TextWrapping="Wrap"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           Foreground="{DynamicResource DangerRed}" Margin="0,0,0,8"
+                                           Visibility="{Binding ShowCloudWarning, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsChatBaseUrl}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsChatModel}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding GenModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsEmbModel}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding EmbeddingModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsChatTemperature}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding GenTemperature, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsChatMaxTokens}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding GenMaxTokens, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsChatReasoningEffort}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding GenReasoningEffort, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsTopK}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding TopK, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsEvidenceBudget}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding EvidenceCharBudget, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsEmbDocPrefix}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding EmbeddingDocumentPrefix, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiSettingsEmbQueryPrefix}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox Text="{Binding EmbeddingQueryPrefix, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
+                                    <Button Content="{DynamicResource Str_AiSettingsTestConnection}"
+                                            Click="AiTestConnectionBtn_Click" Margin="0,0,8,0" Padding="10,4"
+                                            Style="{StaticResource ToolbarButton}" FontSize="11"
+                                            FontFamily="{DynamicResource UiFont}"/>
+                                    <Button Content="{DynamicResource Str_AiSettingsOllamaPreset}"
+                                            Click="AiOllamaPresetBtn_Click" Padding="10,4"
+                                            Style="{StaticResource ToolbarButton}" FontSize="11"
+                                            FontFamily="{DynamicResource UiFont}"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding ConnectionStatus}" TextWrapping="Wrap"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           Foreground="{DynamicResource MutedTextBrush}" Margin="0,4,0,10"/>
+                                <Button Content="{DynamicResource Str_AiSettingsClose}"
+                                        Click="AiSettingsCloseBtn_Click" Padding="10,4" HorizontalAlignment="Left"
+                                        Style="{StaticResource ToolbarButton}" FontSize="11"
+                                        FontFamily="{DynamicResource UiFont}"/>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Border>
                 </Grid>
             </Border>

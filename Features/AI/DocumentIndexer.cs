@@ -160,7 +160,7 @@ namespace Avalanche.Features.AI
                 && state.ChunkCount == doc.Chunks.Count
                 && state.PrefixKey == prefixKey)
             {
-                progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 1.0, Message = "Embeddings up to date" });
+                progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 1.0, Done = 1, Total = 1, Message = "Embeddings up to date" });
                 return;
             }
 
@@ -229,7 +229,9 @@ namespace Avalanche.Features.AI
                 {
                     Stage = IndexingStage.Embedding,
                     Progress = (double)done / total,
-                    Message = $"Embedding {done}/{total} passages..."
+                    Message = $"Embedding {done}/{total} passages...",
+                    Done = done,
+                    Total = total
                 });
             }
 
@@ -332,7 +334,9 @@ namespace Avalanche.Features.AI
                         {
                             Stage = IndexingStage.Extracting,
                             Progress = (double)pi / pageCount * 0.9,
-                            Message = $"Extracting page {pi + 1}/{pageCount}"
+                            Message = $"Extracting page {pi + 1}/{pageCount}",
+                            Done = pi + 1,
+                            Total = pageCount
                         });
                     }
                 }
@@ -515,7 +519,9 @@ namespace Avalanche.Features.AI
     {
         public IndexingStage Stage { get; set; }
         public double Progress { get; set; }  // 0.0 to 1.0
-        public string Message { get; set; } = "";
+        public string Message { get; set; } = "";  // diagnostics/log only - the UI localizes from Stage
+        public int Done { get; set; }          // stage-specific counter (page k of n, embedding j of k)
+        public int Total { get; set; }
     }
 
     public enum IndexingStage
