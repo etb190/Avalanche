@@ -172,9 +172,19 @@ public sealed class RetrievalQueryTests
     [Fact]
     public void ShortStandaloneQuestion_IsNotWidened()
     {
-        // 3+ content terms: a complete question, no previous-topic bleed (D5).
+        // 3+ content terms (prophecy, neferti, exactly): a complete question,
+        // no previous-topic bleed (D5). Note "What is the Prophecy of
+        // Neferti?" (2 content terms) IS widened by design.
+        var q = AiChatText.BuildRetrievalQuery("What is the Prophecy of Neferti about exactly?", "Who built the pyramids?");
+        Assert.Equal("What is the Prophecy of Neferti about exactly?", q);
+    }
+
+    [Fact]
+    public void TwoContentTermQuestion_IsWidened()
+    {
         var q = AiChatText.BuildRetrievalQuery("What is the Prophecy of Neferti?", "Who built the pyramids?");
-        Assert.Equal("What is the Prophecy of Neferti?", q);
+        Assert.StartsWith("Who built the pyramids?", q);
+        Assert.EndsWith("What is the Prophecy of Neferti?", q);
     }
 
     [Fact]
@@ -189,9 +199,9 @@ public sealed class RetrievalQueryTests
     public void LongPreviousQuestion_DoesNotCutTheCurrentOne()
     {
         var prev = new string('a', 500);
-        var input = "What is the Prophecy of Neferti?";
+        var input = "What is the Prophecy of Neferti about exactly?";
         var q = AiChatText.BuildRetrievalQuery(input, prev);
-        Assert.EndsWith(input, q);                       // the current question survives
+        Assert.EndsWith(input, q);                       // the current question survives intact
         Assert.True(q.Length <= 400);
     }
 

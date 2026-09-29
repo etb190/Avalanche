@@ -54,10 +54,12 @@ internal static class AiCitations
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     // Same vocabulary for the ids inside 'sources' ("SOURCE_3", "source 3",
-    // "[3]", "【SOURCE_3】", "3").
+    // "[3]", "【SOURCE_3】", "3") - the bracketed bare-digit form is accepted
+    // here even though InlineRx needs a word boundary: inside 'sources' the
+    // id is the whole field, not prose.
     private static readonly Regex IdRx = new(
         @"^" + Open + @"?\s*SOURCE[\s_\-]*(?<s>" + Digits + @")\s*" + Close + @"?$" +
-        @"|^(?<p>" + Digits + @")$",
+        @"|^" + Open + @"?\s*(?<p>" + Digits + @")\s*" + Close + @"?$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>Extracts the citation number from a matched marker, or -1.

@@ -227,7 +227,7 @@ namespace Avalanche.Features.AI
                 if (ollamaReachable)
                 {
                     ConnectionStatus = loc("Str_AiTestChatModel");
-                    chatOk = await TestChatModelAsync(genConfig);
+                    chatOk = await TestChatModelAsync(genConfig, loc);
                 }
                 results.AppendLine(chatOk ? "✓ " + loc("Str_AiTestChatOk") : "✗ " + loc("Str_AiTestChatFail"));
                 allOk &= chatOk;
@@ -271,7 +271,7 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private async Task<bool> TestChatModelAsync(AiProviderConfig config)
+        private async Task<bool> TestChatModelAsync(AiProviderConfig config, Func<string, string> loc)
         {
             try
             {
@@ -279,8 +279,8 @@ namespace Avalanche.Features.AI
                 try
                 {
                     var response = await provider.GetChatCompletionAsync(
-                        "Reply with just OK.",
-                        new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = "test" } },
+                        loc("Str_AiTestChatPrompt"),
+                        new List<ChatMessage> { new ChatMessage { MessageRole = ChatMessage.Role.User, Content = loc("Str_AiTestChatContent") } },
                         new List<DocumentChunk>(),
                         "",
                         config);
