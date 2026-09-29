@@ -1042,6 +1042,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_AiChat">AI Chat Assistant (Ctrl+Shift+A)</sys:String>
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
+    <sys:String x:Key="Str_AiChatNewChat">Nowy czat</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Enter to send, Ctrl+Enter for a new line)</sys:String>
     <sys:String x:Key="Str_AiChatSendTip">Send (Enter)</sys:String>
     <sys:String x:Key="Str_AiChatPreparing">Preparing document...</sys:String>

@@ -37,7 +37,7 @@ namespace Avalanche
             if (!KeyboardShortcutsEnabled)
             {
                 e.Handled = ShortcutTogglePolicy.SuppressWhenDisabled(
-                    e.Key, e.OriginalSource is TextBox or PasswordBox, e.SystemKey);
+                    e.Key, e.OriginalSource is TextBox or PasswordBox or RichTextBox, e.SystemKey);
                 return;
             }
 
@@ -77,6 +77,11 @@ namespace Avalanche
             // shortcut chain even while a form field or typewriter box owns keyboard focus.
             bool editableTextFocused =
                 e.OriginalSource is TextBox tbSrc && !tbSrc.IsReadOnly
+                // AI chat bubbles are read-only RichTextBoxes: not editors, but
+                // Ctrl+C / Ctrl+A must reach them. Previously only TextBox counted,
+                // so the app-level Ctrl+C branch copied page text and swallowed
+                // the gesture - copy simply did nothing inside the AI panel.
+                || e.OriginalSource is RichTextBox
                 || _activeTextBox is not null && _activeTextBox.IsFocused;
             if (editableTextFocused && e.Key == Key.Escape
                 && Keyboard.Modifiers == ModifierKeys.None)

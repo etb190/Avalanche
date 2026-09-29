@@ -1676,6 +1676,11 @@
                      ApplySidebarSide, keeps working unchanged. -->
                 <ColumnDefinition Width="0"/>
                 <ColumnDefinition x:Name="DocCol" Width="*"/>
+                <!-- Docked assistant panel column (index 3): Auto so it collapses to
+                     zero width while the panel is Collapsed and takes exactly the
+                     panel's Width while it is open, pushing the document narrower
+                     exactly like the pages/outline sidebar does. -->
+                <ColumnDefinition x:Name="AiCol" Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>   <!-- row 0: tab strip (above the document only) -->
@@ -1687,7 +1692,7 @@
                  window once the pane stopped running edge to edge. First child, spanning every
                  column and row, so the sidebar and the card both paint over it and only the exposed
                  surface shows through - and the card's shadow lands on texture, not flat paint. -->
-            <Border Grid.ColumnSpan="3" Grid.RowSpan="2" IsHitTestVisible="False"
+            <Border Grid.ColumnSpan="4" Grid.RowSpan="2" IsHitTestVisible="False"
                     Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
 
             <!-- Sidebar column: inner grid splits content from permanent toggle strip. The toggle
@@ -2711,18 +2716,19 @@
                 </Popup>
             </Grid>
 
-            <!-- AI Chat Overlay - anchored to right side of document area, high ZIndex -->
-            <!-- This is an OVERLAY that covers the right portion of the document view without pushing/resizing it -->
-            <Border x:Name="AiChatOverlay" Grid.Column="2" Grid.Row="1" Panel.ZIndex="200"
-                    HorizontalAlignment="Right" VerticalAlignment="Stretch"
+            <!-- AI assistant panel - a DOCKED sidebar, not an overlay. It lives in
+                 its own column (index 3) spanning both content rows: the top edge
+                 sits directly under the toolbar and the document card (tabs
+                 included) is pushed narrower instead of being covered - the same
+                 relationship as the pages/outline sidebar. SidebarPaneBrush is
+                 transparent outside 98SE, so the shared grain border and window
+                 surface show through exactly like the pages rail; the removed
+                 shadow/clip/z-lift stop it reading as a card floating over chrome. -->
+            <Border x:Name="AiChatOverlay" Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
+                    VerticalAlignment="Stretch"
                     Width="380" Visibility="Collapsed"
-                    Background="{DynamicResource BackgroundBrush}"
-                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1,0,0,0"
-                    CornerRadius="0"
-                    Effect="{DynamicResource PaneShadowEffect}">
-                <Border.Clip>
-                    <RectangleGeometry Rect="0,0,380,10000" RadiusX="0" RadiusY="0"/>
-                </Border.Clip>
+                    Background="{DynamicResource SidebarPaneBrush}"
+                    BorderThickness="0">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- Header -->
@@ -2730,20 +2736,20 @@
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
-                    <!-- Same treatment as the toolbar header: BackgroundBrush + grain,
-                         so the assistant panel reads as chrome docked under the toolbar
-                         instead of a gray floating card. First child -> paints behind. -->
-                    <Border Grid.RowSpan="4" IsHitTestVisible="False"
-                            Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
+                    <!-- Edge bevels, the pages/outline sidebar's SidebarBorder
+                         treatment: directional bevels on 98SE, transparent elsewhere.
+                         Hit-test transparent, above the (transparent) strips. -->
+                    <Control Grid.RowSpan="4" Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
 
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
-                            Background="{DynamicResource BackgroundBrush}" CornerRadius="0"
+                            Background="Transparent" CornerRadius="0"
                             Padding="12,5">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ctrl:RobotIcon Grid.Column="0" Width="16" Height="16"
@@ -2751,7 +2757,15 @@
                             <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiChatTitle}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
-                            <Button Grid.Column="2" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
+                            <!-- New chat: sweeps the conversation (document index kept)
+                                 so the next question starts clean. Disabled while a
+                                 reply is streaming (CanStartNewChat). -->
+                            <Button Grid.Column="2" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
+                                    ToolTip="{DynamicResource Str_AiChatNewChat}" Click="AiChatNewChatBtn_Click"
+                                    Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
+                                    IsEnabled="{Binding CanStartNewChat}"
+                                    Foreground="{DynamicResource MutedTextBrush}"/>
+                            <Button Grid.Column="3" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
@@ -2761,7 +2775,7 @@
                     <!-- Conversation Area -->
                     <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                  Background="{DynamicResource BackgroundBrush}" FocusVisualStyle="{x:Null}"
+                                  Background="Transparent" FocusVisualStyle="{x:Null}"
                                   Padding="8,8,8,0">
                         <ItemsControl x:Name="AiChatMessages" ItemsSource="{Binding Messages}">
                             <ItemsControl.ItemTemplate>
@@ -2900,7 +2914,7 @@
                          slow or stuck index build looked like an endless "Preparing
                          document..." wait. -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
-                            Background="{DynamicResource BackgroundBrush}" Padding="12,5"
+                            Background="Transparent" Padding="12,5"
                             Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -2918,7 +2932,7 @@
 
                     <!-- Input Area -->
                     <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
-                            Background="{DynamicResource BackgroundBrush}" CornerRadius="0"
+                            Background="Transparent" CornerRadius="0"
                             Padding="8">
                         <Grid>
                             <Grid.ColumnDefinitions>

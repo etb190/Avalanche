@@ -66,8 +66,12 @@ namespace Avalanche.Features.AI
         public bool IsProcessing
         {
             get => _isProcessing;
-            private set { _isProcessing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); }
+            private set { _isProcessing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); OnPropertyChanged(nameof(CanStartNewChat)); }
         }
+
+        /// <summary>Gate for the New-chat button: a fresh conversation cannot
+        /// be swept out from under a reply that is still streaming.</summary>
+        public bool CanStartNewChat => !IsProcessing;
 
         public bool CanSend => !IsProcessing && !string.IsNullOrWhiteSpace(CurrentInput);
 
@@ -659,6 +663,26 @@ namespace Avalanche.Features.AI
                 _pendingPlaceholder = null;
             }
             Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+        }
+
+        /// <summary>
+        /// Starts a fresh conversation: clears bubbles, the input box and any
+        /// deferred reply without dropping the document index, so the next
+        /// question answers immediately (no re-index wait). The New-chat
+        /// button is disabled (CanStartNewChat) while a reply is streaming.
+        /// </summary>
+        public void StartNewChat()
+        {
+            lock (_processingLock)
+            {
+                _pendingUserInput = null;
+                _pendingPlaceholder = null;
+            }
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                ClearInput();
+            });
         }
 
         /// <summary>

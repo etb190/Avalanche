@@ -825,6 +825,15 @@ namespace Avalanche
             CloseAiChat();
         }
 
+        private void AiChatNewChatBtn_Click(object sender, RoutedEventArgs e)
+        {
+            // Fresh conversation: sweep bubbles, any deferred reply and the
+            // citation highlight. The document index is deliberately KEPT so
+            // the next question answers immediately instead of re-indexing.
+            ClearAiSourceHighlight();
+            _aiChatViewModel?.StartNewChat();
+        }
+
         private void ToggleAiChat()
         {
             if (AiChatOverlay is null) return;
