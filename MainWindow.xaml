@@ -2721,28 +2721,20 @@
                 </Popup>
             </Grid>
 
-            <!-- AI assistant panel - a FLOATING OVERLAY, not a docked column. It
-                 spans ALL FOUR columns of this grid and right-aligns inside that
-                 full-width slot, so its right edge pins to the grid edge and the
-                 380px body hangs over the content WITHOUT occupying layout
-                 space: the pages keep the exact position they have while the
-                 panel is closed, and the slide animation rides the
-                 TranslateTransform below. (It used to anchor into the zero-width
-                 AiCol column - a zero-width slot measures its children to zero,
-                 so the panel laid out zero pixels wide and was invisible. A
-                 full-width slot is never narrower than the panel, so Width=380
-                 plus Right alignment is exact.) RowSpan=2 keeps the top edge
-                 flush under the toolbar. Background: the panel hangs over the
-                 document card now, so it can NOT let the surface show through
-                 (that was the docked trick) - instead it paints the toolbar
-                 header's exact recipe itself: BackgroundBrush base + the
-                 shared grain at GrainOpacity, i.e. the same dark
-                 semitransparent grain as the header and the pages/outline
-                 rail. ZIndex 200 puts the overlay above the comparison bar
-                 (100) and the sidebar splitter (50), exactly like the
-                 pre-dock overlay. The left column reconstructs the docked
-                 boundary (card edge hairline + 8px gutter + card shadow), so
-                 the panel reads exactly like the approved 10405ae pane. -->
+            <!-- AI assistant panel - the pages/outline rail container, copied
+                 1:1 and parked on the right as a floating overlay. The inner
+                 Border copies SidebarBorder property for property (same
+                 SidebarPanelMargin, same SidebarPaneBrush, same zero border,
+                 same PaneBevelOverlay bevel in its grid) - only the content
+                 inside differs. The rail normally floats on the bare window
+                 surface; this overlay hangs over the document card, so the
+                 outer Border replicates that surface (BackgroundBrush + the
+                 shared grain) for the transparent rail copy to float on -
+                 nothing of the card shows through. Geometry: spans all four
+                 columns (a zero-width anchor slot measures children to zero -
+                 been there), right-aligns, occupies no layout space so the
+                 pages never move, ZIndex 200 above the comparison bar and
+                 splitter; the TranslateTransform drives the open/close slide. -->
             <Border x:Name="AiChatOverlay" Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="0" Grid.RowSpan="2"
                     Panel.ZIndex="200"
                     HorizontalAlignment="Right"
@@ -2754,50 +2746,28 @@
                     <TranslateTransform x:Name="AiPanelShift"/>
                 </Border.RenderTransform>
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="8"/>   <!-- reconstructed card gutter -->
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <!-- The 10405ae docked boundary, rebuilt: the card ended with a
-                         hairline edge, then the 8px window gutter (surface + grain)
-                         darkened by the card's own drop shadow. The overlay covers
-                         the card instead of sitting beside it, so this strip fakes
-                         that exact edge - left to right: CardBorderBrush hairline,
-                         BackgroundBrush + grain, the shadow fading rightward. -->
-                    <Border Grid.Column="0" Background="{DynamicResource BackgroundBrush}">
+                    <!-- The window surface, replicated: BackgroundBrush base +
+                         the shared grain - exactly what the real rail floats on. -->
+                    <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
+                            Background="{StaticResource GrainBrushShared}"/>
+                    <!-- SidebarBorder, copied 1:1 (Margin / Background / Border /
+                         bevel identical; only the right-click handler and the
+                         page list are not carried over). On Dark/Light
+                         SidebarPaneBrush is transparent, so this shows the
+                         replicated surface above - the same view the real rail
+                         has of the real surface. -->
+                    <Border Margin="{DynamicResource SidebarPanelMargin}"
+                            Background="{DynamicResource SidebarPaneBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,0">
                         <Grid>
-                            <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                                    Background="{StaticResource GrainBrushShared}"/>
-                            <Border IsHitTestVisible="False">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                        <GradientStop Color="#4D000000" Offset="0"/>
-                                        <GradientStop Color="#00000000" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.Background>
-                            </Border>
-                            <Border IsHitTestVisible="False" HorizontalAlignment="Left" Width="1"
-                                    Background="{DynamicResource CardBorderBrush}"/>
-                        </Grid>
-                    </Border>
-                    <Grid Grid.Column="1">
+                            <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
+                            <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- Header -->
                         <RowDefinition Height="*"/>      <!-- Conversation -->
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
-                    <!-- The toolbar header's grain, replicated 1:1: this overlay
-                         hangs over the document card, so it paints its own copy of
-                         the shared grain instead of relying on what is beneath it.
-                         First child, under the (transparent) strips and bevel. -->
-                    <Border Grid.RowSpan="4" IsHitTestVisible="False"
-                            Opacity="{DynamicResource GrainOpacity}"
-                            Background="{StaticResource GrainBrushShared}"/>
-                    <!-- Edge bevels, the pages/outline sidebar's SidebarBorder
-                         treatment: directional bevels on 98SE, transparent elsewhere.
-                         Hit-test transparent, above the (transparent) strips. -->
-                    <Control Grid.RowSpan="4" Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
 
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
@@ -3020,7 +2990,9 @@
                                     ToolTip="{DynamicResource Str_AiChatSendTip}"/>
                         </Grid>
                     </Border>
-                    </Grid>
+                        </Grid>
+                        </Grid>
+                    </Border>
                 </Grid>
             </Border>
 
