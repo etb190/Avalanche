@@ -351,7 +351,7 @@ namespace Avalanche.Features.AI
             foreach (Match m in AiCitations.InlineRx.Matches(text))
             {
                 int number = AiCitations.MatchToNumber(m);
-                if (number < 1)
+                if (number < 0)
                     continue; // degenerate match: keep the raw text instead
                 if (m.Index > pos)
                     AddMarkdownInlines(inlines, text.Substring(pos, m.Index - pos));
@@ -630,7 +630,7 @@ namespace Avalanche.Features.AI
 
         private static AiSource? FindSource(IReadOnlyList<AiSource> sources, int number)
         {
-            if (number < 1)
+            if (number < 0)
                 return null;
             var id = AiCitations.FormatId(number);
             for (int i = 0; i < sources.Count; i++)
@@ -699,7 +699,12 @@ internal static class AiCitations
         @"|^(?<p>" + Digits + @")$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    /// <summary>Extracts the 1-based citation number from a matched marker, or -1.</summary>
+    /// <summary>Extracts the citation number from a matched marker, or -1.
+    /// Explicit SOURCE_n markers (bracketed or bare) accept n = 0: some models
+    /// number their evidence 0-based even though the prompt asks for 1-based,
+    /// and rejecting 0 made every one of their citations unusable. The bare
+    /// bracketed-number form still requires 1 - "[0]" is too easily literal
+    /// text (array indexes) to promote into a citation.</summary>
     internal static int MatchToNumber(Match m)
     {
         foreach (var name in new[] { "s", "p", "b" })
@@ -710,6 +715,8 @@ internal static class AiCitations
                 int v = ParseDigits(g.Value);
                 if (v >= 1)
                     return v;
+                if (v == 0 && name != "p")
+                    return 0;
             }
         }
         return -1;

@@ -948,11 +948,28 @@ namespace Avalanche
         /// </summary>
         internal void NavigateToAiSource(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
         {
-            if (_doc is null || chunk == null) return;
+            if (_doc is null || chunk == null)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"navigate BAIL: no document={_doc is null} or null chunk");
+                return;
+            }
 
             int pageIndex = chunk.PageIndex;
             if (pageIndex < 0 || pageIndex >= _doc.PageCount)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"navigate BAIL: pageIndex {pageIndex} out of range (pages {_doc.PageCount}) " +
+                    $"chunk#{chunk.ChunkIndex} PageIndices=[{string.Join(',', chunk.PageIndices)}]");
                 return;
+            }
+
+            Avalanche.Services.AiHighlightLog.Log(
+                $"navigate: chunk#{chunk.ChunkIndex} page={pageIndex} " +
+                $"PageIndices=[{string.Join(',', chunk.PageIndices)}] WordRanges={chunk.WordRanges.Count} " +
+                $"PdfCoords={chunk.PdfCoordinates.Count} PageSizes={chunk.PageSizes.Count} " +
+                $"textLen={chunk.Text?.Length ?? 0} source={source.SourceId} " +
+                $"quoteLen={source.Quote?.Length ?? 0} quoteVerified={source.QuoteVerified}");
 
             // Clear any existing AI highlight
             ClearAiSourceHighlight();
@@ -967,27 +984,40 @@ namespace Avalanche
 
         private async void WaitForCanvasAndHighlight(Features.AI.DocumentChunk chunk, Features.AI.AiSource source, int pageIndex, int attempt)
         {
-            const int maxAttempts = 20; // ~2 seconds with 100ms intervals
+            const int maxAttempts = 60; // ~6 seconds with 100ms intervals; big documents
+                                        // can take a while to mount and render a far page
             const int delayMs = 100;
 
             var activeViewer = ActiveViewer;
-            if (activeViewer is null) return;
+            if (activeViewer is null)
+            {
+                Avalanche.Services.AiHighlightLog.Log($"wait attempt {attempt}: no active viewer");
+                return;
+            }
 
             var canvas = activeViewer.GetCanvasForPage(pageIndex);
             if (canvas is null || activeViewer.GetRenderDimensions(pageIndex) is null)
             {
                 if (attempt < maxAttempts)
                 {
+                    if (attempt == 0 || attempt == maxAttempts - 1)
+                        Avalanche.Services.AiHighlightLog.Log(
+                            $"wait attempt {attempt}: canvas={(canvas is not null)} " +
+                            $"dims={(activeViewer.GetRenderDimensions(pageIndex) is not null)} page={pageIndex}");
                     await Task.Delay(delayMs);
                     WaitForCanvasAndHighlight(chunk, source, pageIndex, attempt + 1);
                 }
                 else
                 {
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"wait GAVE UP after {maxAttempts} attempts: page {pageIndex} never got canvas + render dims");
                     SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
                 }
                 return;
             }
 
+            if (attempt > 0)
+                Avalanche.Services.AiHighlightLog.Log($"wait attempt {attempt}: ready, highlighting page {pageIndex}");
             HighlightAiSourceOnPage(chunk, source);
         }
 
@@ -1007,14 +1037,40 @@ namespace Avalanche
 
         private void HighlightAiSourceOnPage(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
         {
-            if (_doc is null) return;
+            try
+            {
+                HighlightAiSourceOnPageCore(chunk, source);
+            }
+            catch (Exception ex)
+            {
+                // A highlight must never take the citation click down with it.
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"highlight EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        private void HighlightAiSourceOnPageCore(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
+        {
+            if (_doc is null)
+            {
+                Avalanche.Services.AiHighlightLog.Log("highlight BAIL: no document");
+                return;
+            }
 
             var activeViewer = ActiveViewer;
-            if (activeViewer is null) return;
+            if (activeViewer is null)
+            {
+                Avalanche.Services.AiHighlightLog.Log("highlight BAIL: no active viewer");
+                return;
+            }
 
             int pageIndex = chunk.PageIndex;
             var canvas = activeViewer.GetCanvasForPage(pageIndex);
-            if (canvas is null) return;
+            if (canvas is null)
+            {
+                Avalanche.Services.AiHighlightLog.Log($"highlight BAIL: no canvas for page {pageIndex}");
+                return;
+            }
 
             _aiHighlight = (pageIndex, chunk, source);
             _aiHighlightRects = null;
@@ -1031,6 +1087,9 @@ namespace Avalanche
             // bounding box rather than giving up, so the user still lands on the region.
             if (DrawAiSourceBBoxHighlight(chunk, activeViewer, pageIndex, canvas)) return;
 
+            Avalanche.Services.AiHighlightLog.Log(
+                $"highlight FAILED: page {pageIndex} - no needle matched and no usable bbox " +
+                $"(PdfCoords={chunk.PdfCoordinates.Count})");
             SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
         }
 
@@ -1047,7 +1106,11 @@ namespace Avalanche
             if (_aiHighlightRects is { Count: > 0 })
                 return TryDrawAiHighlightRects(canvas, _aiHighlightRects, viewer, pageIndex, chunk);
 
-            if (string.IsNullOrEmpty(_currentFile)) return false;
+            if (string.IsNullOrEmpty(_currentFile))
+            {
+                Avalanche.Services.AiHighlightLog.Log("locate BAIL: _currentFile empty");
+                return false;
+            }
 
             string? slice = ChunkPageSliceForPage(chunk, pageIndex);
             // The chunk's page slice is the primary needle; the model's quote and the
@@ -1056,10 +1119,20 @@ namespace Avalanche
             // words, so a quote can only ever paint text that actually exists here.
             string? quote = string.IsNullOrWhiteSpace(source?.Quote) ? null : source!.Quote;
 
+            Avalanche.Services.AiHighlightLog.Log(
+                $"locate: page={pageIndex} " +
+                $"slice={(slice is null ? "null" : $"{slice.Length}ch '{TruncLog(slice)}'")} " +
+                $"quote={(quote is null ? "null" : $"{quote.Length}ch '{TruncLog(quote)}'")}");
+
             var match = Services.SearchService.LocatePassageInFile(
                 _currentFile!, pageIndex, CandidateAiNeedles(slice, quote));
-            if (match is null || match.LineRects.Count == 0) return false;
+            if (match is null || match.LineRects.Count == 0)
+            {
+                Avalanche.Services.AiHighlightLog.Log("locate: NO MATCH for any needle");
+                return false;
+            }
 
+            Avalanche.Services.AiHighlightLog.Log($"locate: MATCH, {match.LineRects.Count} line rect(s)");
             _aiHighlightRects = match.LineRects;
             return TryDrawAiHighlightRects(canvas, match.LineRects, viewer, pageIndex, chunk);
         }
@@ -1087,6 +1160,10 @@ namespace Avalanche
                 ? string.Join(' ', words.Take(maxWords))
                 : string.Join(' ', words.Skip(words.Length - maxWords));
         }
+
+        /// <summary>First 60 characters of a needle for the diagnostics log.</summary>
+        private static string TruncLog(string s)
+            => s.Length <= 60 ? s : s[..60] + "...";
 
         /// <summary>
         /// The chunk's text restricted to one page. CreateChunk stores an inclusive
@@ -1164,6 +1241,7 @@ namespace Avalanche
             // One band per located line: the highlight hugs the words it names,
             // exactly like the user's own Highlight tool - never a box floating
             // over the whole block.
+            int added = 0;
             foreach (var (left, bottom, right, top) in pdfRects)
             {
                 double cw = (right - left) * sx;
@@ -1181,8 +1259,15 @@ namespace Avalanche
                 Canvas.SetLeft(rect, left * sx - pad);
                 Canvas.SetTop(rect, renderH - (top * sy) - pad);
                 canvas.Children.Add(rect);
+                added++;
             }
-            return true;
+
+            Avalanche.Services.AiHighlightLog.Log(
+                $"draw: page={pageIndex} pdfDims={pdfW:0.#}x{pdfH:0.#} render={renderW:0.#}x{renderH:0.#} " +
+                $"scale={sx:0.###}/{sy:0.###} rectsIn={pdfRects.Count} rectsDrawn={added}");
+            // Zero drawn bands means nothing is visible: report failure so the
+            // caller can fall back to the chunk bbox instead of faking success.
+            return added > 0;
         }
 
         /// <summary>
@@ -1197,7 +1282,12 @@ namespace Avalanche
             int pageIdxInChunk = chunk.PageIndices.IndexOf(pageIndex);
             if (coords == null || pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count
                 || coords[pageIdxInChunk] is not { } pdfCoords || pdfCoords.Length < 4)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"bbox BAIL: page {pageIndex} not covered by chunk " +
+                    $"(PageIndices=[{string.Join(',', chunk.PageIndices)}], PdfCoords={coords?.Count ?? 0})");
                 return false;
+            }
 
             var pdfRect = new List<(double Left, double Bottom, double Right, double Top)>
                 { ((double)pdfCoords[0], (double)pdfCoords[1], (double)pdfCoords[2], (double)pdfCoords[3]) };

@@ -124,9 +124,21 @@ namespace Avalanche.Features.AI
         private void OnInlineCitationClicked(ChatMessage message, AiSource source)
         {
             if (message is null || source is null)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"citation click: null message={message is null} source={source is null}");
                 return;
+            }
             if (!Messages.Contains(message))
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    "citation click: bubble not in current conversation - ignored");
                 return; // a bubble from another conversation/viewmodel instance
+            }
+            Avalanche.Services.AiHighlightLog.Log(
+                $"citation click: {source.SourceId} " +
+                $"resolved={(source.ResolvedChunk is not null ? "yes" : "NO")} " +
+                $"quote={source.Quote?.Length ?? 0}ch");
             NavigateToSource(source);
         }
 
@@ -402,6 +414,12 @@ namespace Avalanche.Features.AI
                 var retrievalQuery = BuildRetrievalQuery(input);
                 var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, retrievalQuery, _retrievalOptions.TopK);
 
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"retrieve: '{TruncLog(retrievalQuery)}' -> {retrieved.Count} chunk(s)" +
+                    (retrieved.Count > 0
+                        ? $"; top: {string.Join("; ", retrieved.Take(3).Select(r => $"p{r.Chunk.PageNumber} score={r.Score:0.00} len={r.Chunk.Text?.Length ?? 0}"))}"
+                        : " - the reply cannot cite anything"));
+
                 if (retrieved.Count == 0)
                 {
                     assistantMsg.Content = _loc("Str_AiChatNoMatches");
@@ -463,17 +481,43 @@ namespace Avalanche.Features.AI
         private static void ResolveSources(List<AiSource> sources, List<RetrievedChunk> retrieved)
         {
             if (sources.Count == 0)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    "resolve: model returned NO sources - inline citation markers stay inert");
                 return;
+            }
+
+            // Some models number the evidence 0-based (SOURCE_0..SOURCE_{k-1})
+            // even though the prompt asks for 1-based. With strict 1-based
+            // parsing every one of their ids failed to resolve and the whole
+            // reply's citations went inert. When EVERY returned id is a valid
+            // 0-based index and at least one is 0, treat the set as 0-based -
+            // the only interpretation that yields usable citations.
+            int offset = 0;
+            var parsedIds = sources.Select(s => AiCitations.ParseSourceId(s.SourceId)).ToList();
+            if (retrieved.Count > 0 && parsedIds.Count > 0
+                && parsedIds.All(v => v >= 0 && v < retrieved.Count)
+                && parsedIds.Any(v => v == 0))
+            {
+                offset = 1;
+                Avalanche.Services.AiHighlightLog.Log(
+                    "resolve: model numbered sources 0-based - shifting ids up by one");
+            }
 
             var kept = new List<AiSource>(sources.Count);
             foreach (var src in sources)
             {
-                int n = AiCitations.ParseSourceId(src.SourceId);
+                int n = AiCitations.ParseSourceId(src.SourceId) + offset;
                 if (n < 1 || n > retrieved.Count)
                     continue; // invented/unknown id: drop it rather than guess
 
                 var chunk = retrieved[n - 1].Chunk;
-                src.SourceId = AiCitations.FormatId(n); // normalize spelling ("source_3" -> "SOURCE_3")
+                // Keep the model's own spelling when it numbered 0-based: the
+                // inline markers and click tags carry SOURCE_0-style ids and
+                // must keep resolving to this source.
+                src.SourceId = offset == 1
+                    ? AiCitations.FormatId(n - offset)
+                    : AiCitations.FormatId(n); // normalize spelling ("source_3" -> "SOURCE_3")
                 src.ResolvedChunk = chunk;
                 src.PageIndex = chunk.PageIndex;
                 src.PageNumber = chunk.PageNumber;
@@ -483,8 +527,15 @@ namespace Avalanche.Features.AI
                 kept.Add(src);
             }
 
+            int dropped = sources.Count - kept.Count;
+            int verified = kept.Count(s => s.QuoteVerified);
             sources.Clear();
             sources.AddRange(kept);
+
+            Avalanche.Services.AiHighlightLog.Log(
+                $"resolve: model sent {kept.Count + dropped} id(s), kept {kept.Count} " +
+                $"(dropped {dropped}), quotes verified {verified}/{kept.Count}" +
+                (kept.Count == 0 ? " - all ids invented/out of range, citations inert" : ""));
         }
 
         private string BuildSystemPrompt(List<RetrievedChunk> retrieved)
@@ -561,6 +612,10 @@ namespace Avalanche.Features.AI
                 .ToList();
         }
 
+        /// <summary>First 60 characters of a query for the diagnostics log.</summary>
+        private static string TruncLog(string s)
+            => s.Length <= 60 ? s : s[..60] + "...";
+
         /// <summary>
         /// Navigates to a source using the chunk that was resolved from THIS
         /// reply's retrieved evidence when the response was parsed.
@@ -574,7 +629,12 @@ namespace Avalanche.Features.AI
             // in ResolvedChunk at parse time. Without it there is no trustworthy
             // location to show, so an unresolved citation stays inert.
             var chunk = source.ResolvedChunk;
-            if (chunk == null) return;
+            if (chunk == null)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"navigate BAIL: source {source.SourceId} has no ResolvedChunk (unresolved or dropped)");
+                return;
+            }
 
             // Navigate to the page and highlight using exact coordinates
             _mainWindow.Dispatcher.BeginInvoke(DispatcherPriority.Normal, () =>
