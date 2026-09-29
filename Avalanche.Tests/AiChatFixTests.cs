@@ -299,7 +299,7 @@ public sealed class QuoteLocatorTests
     }
 }
 
-public sealed class EmbeddingStateTests
+public sealed class EmbeddingStateTests : IDisposable
 {
     private readonly string _dir = System.IO.Path.Combine(
         System.IO.Path.GetTempPath(), "avalanche_embtests_" + Guid.NewGuid().ToString("N"));

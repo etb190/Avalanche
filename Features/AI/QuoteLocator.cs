@@ -103,7 +103,7 @@ namespace Avalanche.Features.AI
             return Unlocated(chunk);
         }
 
-        private static QuoteHit Unlocated(DocumentChunk chunk) => new()
+        private static QuoteHit Unlocated(DocumentChunk? chunk) => new()
         {
             State = AiQuoteLocation.Unlocated,
             PageIndex = chunk?.PageIndices.Count > 0 ? chunk.PageIndices[0] : -1,

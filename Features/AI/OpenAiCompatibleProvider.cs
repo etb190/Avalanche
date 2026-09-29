@@ -181,7 +181,7 @@ namespace Avalanche.Features.AI
                 {
                     throw new AiProviderException(AiErrorCategory.OllamaNotRunning, config.Model, null, hre);
                 }
-                catch (OperationCanceledException oce) when (cancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
                     throw; // caller cancelled - the view model removes the bubble silently
                 }
