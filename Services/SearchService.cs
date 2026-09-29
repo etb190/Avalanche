@@ -1,3 +1,4 @@
+using System.IO;
 using Avalanche.Features.AI;
 using UglyToad.PdfPig;
 
@@ -126,39 +127,121 @@ namespace Avalanche.Services
             if (string.IsNullOrWhiteSpace(filePath)) return null;
             try
             {
-                using var doc = PdfDocument.Open(filePath);
-                if (pageIndex < 0 || pageIndex >= doc.NumberOfPages) return null;
-                var page = doc.GetPage(pageIndex + 1);
-                var words = page.GetWords().Select(ToPassageWord).ToList();
-                if (words.Count == 0) return null;
+                var (rawWords, orderedWords) = GetPageWordsCached(filePath, pageIndex);
+                if (rawWords.Count == 0) return null;
 
                 var active = needles.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
                 foreach (var needle in active)
                 {
-                    var match = LocatePassageWords(words, needle);
+                    var match = LocatePassageWords(rawWords, needle);
                     if (match is not null) return match;
                 }
 
                 // Reading-order retry. The stream builder emits every word exactly
                 // once, so any needle that exists on the page is findable here.
-                var raw = page.GetWords()
-                    .Select(w => new IndexedWord(w.Text, w.BoundingBox.Left, w.BoundingBox.Bottom,
-                        w.BoundingBox.Right, w.BoundingBox.Top))
-                    .ToList();
-                var stream = PageWordStreamBuilder.Build(raw, page.Width, page.Height);
-                if (stream.Words.Count == 0) return null;
-                var ordered = stream.Words
-                    .Select(w => new PassageWord(w.Text, w.Left, w.Bottom, w.Right, w.Top))
-                    .ToList();
-
                 foreach (var needle in active)
                 {
-                    var match = LocatePassageWords(ordered, needle);
+                    var match = LocatePassageWords(orderedWords, needle);
                     if (match is not null) return match;
                 }
             }
             catch { /* encrypted/broken file - no passage location on this page */ }
             return null;
+        }
+
+        /// <summary>
+        /// Locates the model's QUOTE strictly within the cited chunk's page
+        /// slice (E5): the slice is found first (reading order - slices are cut
+        /// from that order), then the quote is located only inside that word
+        /// span. A phrase occurring elsewhere on the page can never be
+        /// highlighted by mistake. When the chunk has no slice (legacy index),
+        /// the quote falls back to the whole page. No cross-page fallback.
+        /// </summary>
+        internal static PassageMatch? LocateQuoteWithinSlice(
+            string filePath, int pageIndex, string? slice, string? quote)
+        {
+            if (string.IsNullOrWhiteSpace(filePath) || string.IsNullOrWhiteSpace(quote)) return null;
+            try
+            {
+                var (rawWords, orderedWords) = GetPageWordsCached(filePath, pageIndex);
+                if (rawWords.Count == 0) return null;
+
+                // The chunk page slice is cut from the READING order, so the
+                // slice is located there first (word-sequence pass, then the
+                // fuzzy run). The raw-order list is only a fallback when the
+                // slice cannot be found at all (stale index).
+                List<PassageWord> scope = orderedWords;
+                if (!string.IsNullOrWhiteSpace(slice))
+                {
+                    var span = FindSequenceSpan(orderedWords, slice)
+                               ?? FindSequenceSpan(rawWords, slice);
+                    if (span is null) return null; // slice drifted off the page - no highlight
+
+                    // Extract the span's words; geometry stays absolute.
+                    int s = Math.Max(0, span.Value.Start);
+                    int count = Math.Min(orderedWords.Count, span.Value.End + 1) - s;
+                    scope = orderedWords.Skip(s).Take(Math.Max(0, count)).ToList();
+                }
+
+                if (scope.Count == 0) return null;
+                return LocatePassageWords(scope, quote);
+            }
+            catch { /* encrypted/broken file - no passage location on this page */ }
+            return null;
+        }
+
+        // E10: per-page word geometry cache, keyed by file + page + size +
+        // mtime (invalidated when the file changes). Every citation click (and
+        // every repaint after re-render) previously re-opened the PDF with
+        // PdfPig just to re-read the same words.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (List<PassageWord> Raw, List<PassageWord> Ordered)> PageWordCache = new();
+
+        private static (List<PassageWord> Raw, List<PassageWord> Ordered) GetPageWordsCached(string filePath, int pageIndex)
+        {
+            var fileInfo = new FileInfo(filePath);
+            string key = $"{filePath.ToLowerInvariant()}|{pageIndex}|{fileInfo.Length}|{fileInfo.LastWriteTimeUtc.Ticks}";
+            return PageWordCache.AddOrUpdate(key,
+                _ => ReadPageWords(filePath, pageIndex),
+                (_, existing) => existing);
+        }
+
+        private static (List<PassageWord> Raw, List<PassageWord> Ordered) ReadPageWords(string filePath, int pageIndex)
+        {
+            // Bound the cache: drop everything once it grows past ~300 pages.
+            if (PageWordCache.Count > 300)
+                PageWordCache.Clear();
+
+            using var doc = PdfDocument.Open(filePath);
+            if (pageIndex < 0 || pageIndex >= doc.NumberOfPages)
+                return (new List<PassageWord>(), new List<PassageWord>());
+
+            var page = doc.GetPage(pageIndex + 1);
+            var rawWords = page.GetWords()
+                .Select(ToPassageWord)
+                .ToList();
+
+            var rawIndexed = page.GetWords()
+                .Select(w => new IndexedWord(NormalizeIndexedWordText(w.Text), w.BoundingBox.Left, w.BoundingBox.Bottom,
+                    w.BoundingBox.Right, w.BoundingBox.Top))
+                .ToList();
+            var stream = PageWordStreamBuilder.Build(rawIndexed, page.Width, page.Height);
+            var orderedWords = stream.Words
+                .Select(w => new PassageWord(w.Text, w.Left, w.Bottom, w.Right, w.Top))
+                .ToList();
+
+            return (rawWords, orderedWords);
+        }
+
+        /// <summary>Mirrors DocumentIndexer.NormalizeWordText: the index was
+        /// built from whitespace-stripped word texts, so the reading-order
+        /// comparison here must use the same words or slices will not match.</summary>
+        private static string NormalizeIndexedWordText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            foreach (var ch in text)
+                if (char.IsWhiteSpace(ch))
+                    return new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
+            return text;
         }
 
         /// <summary>Text plus PDF-space box the passage locator works on - lets PdfPig
@@ -167,6 +250,36 @@ namespace Avalanche.Services
 
         private static PassageWord ToPassageWord(UglyToad.PdfPig.Content.Word w)
             => new(w.Text, w.BoundingBox.Left, w.BoundingBox.Bottom, w.BoundingBox.Right, w.BoundingBox.Top);
+
+        /// <summary>Word-index span [Start, End] of a needle inside a word
+        /// list (exact, then punctuation-relaxed, then fuzzy) - used to bound
+        /// quote location to the cited chunk's slice.</summary>
+        private static (int Start, int End)? FindSequenceSpan(List<PassageWord> words, string needle)
+        {
+            if (words.Count == 0 || string.IsNullOrWhiteSpace(needle)) return null;
+
+            var needleWords = needle.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (needleWords.Length == 0) return null;
+
+            var rawItems = words.Select(w => w.Text).ToList();
+            var exact = SequencePass(rawItems, needleWords, StringComparer.OrdinalIgnoreCase);
+            if (exact is { } e) return (e.Start, e.End - 1);
+
+            var normItems = new List<string>(words.Count);
+            foreach (var w in words)
+            {
+                var n = NormalizeWordForPassage(w.Text);
+                if (n.Length > 0) normItems.Add(n);
+            }
+            var needleNorm = needleWords.Select(NormalizeWordForPassage)
+                .Where(s => s.Length > 0).ToArray();
+            if (normItems.Count == 0 || needleNorm.Length == 0) return null;
+
+            var relaxed = SequencePass(normItems, needleNorm, StringComparer.Ordinal)
+                          ?? FuzzyRunPass(normItems, needleNorm);
+            if (relaxed is not { } r || r.End <= r.Start) return null;
+            return (r.Start, r.End - 1);
+        }
 
         private static PassageMatch? LocatePassageWords(List<PassageWord> words, string needle)
         {

@@ -697,11 +697,14 @@ namespace Avalanche.Features.AI
             }
 
             var kept = new List<AiSource>(sources.Count);
+            var seenIds = new HashSet<int>();
             foreach (var src in sources)
             {
                 int n = AiCitations.ParseSourceId(src.SourceId) + offset;
                 if (n < 1 || n > retrieved.Count)
                     continue; // invented/unknown id: drop it rather than guess
+                if (!seenIds.Add(n))
+                    continue; // repeated sourceId: keep only the first occurrence (E11)
 
                 var chunk = retrieved[n - 1].Chunk;
                 // Keep the model's own spelling when it numbered 0-based: the
@@ -711,11 +714,26 @@ namespace Avalanche.Features.AI
                     ? AiCitations.FormatId(n - offset)
                     : AiCitations.FormatId(n); // normalize spelling ("source_3" -> "SOURCE_3")
                 src.ResolvedChunk = chunk;
-                src.PageIndex = chunk.PageIndex;
-                src.PageNumber = chunk.PageNumber;
-                // Verify the model's quote against the chunk's own text;
-                // unverified quotes are never used as highlight needles.
-                src.QuoteVerified = PassageQuoteValidator.IsValidQuote(src.Quote, chunk.Text);
+
+                // Locate the quote INSIDE the cited chunk (never elsewhere):
+                // the located page becomes the citation's page (a quote on the
+                // chunk's 2nd page navigates to the 2nd page - E3) and the
+                // location state decides whether highlighting is allowed (E2).
+                var hit = QuoteLocator.LocateInChunk(chunk, src.Quote);
+                src.Location = hit.State;
+                src.QuoteVerified = hit.State != AiQuoteLocation.Unlocated;
+                if (hit.State != AiQuoteLocation.Unlocated)
+                {
+                    src.PageIndex = hit.PageIndex;
+                    src.PageNumber = hit.PageIndex + 1;
+                }
+                else
+                {
+                    // No highlight later; navigation still lands on the chunk's
+                    // first page and the UI shows the "could not locate" status.
+                    src.PageIndex = chunk.PageIndex;
+                    src.PageNumber = chunk.PageNumber;
+                }
                 kept.Add(src);
             }
 

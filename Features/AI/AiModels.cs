@@ -89,6 +89,16 @@ namespace Avalanche.Features.AI
         Reranked
     }
 
+    /// <summary>Where the model's quote was located inside the cited chunk.
+    /// Drives highlight behavior: Exact/Approximate highlight the located
+    /// range, Unlocated shows the "could not locate" status.</summary>
+    public enum AiQuoteLocation
+    {
+        Exact,
+        Approximate,
+        Unlocated
+    }
+
     /// <summary>
     /// Structured source citation from AI response.
     /// </summary>
@@ -109,6 +119,12 @@ namespace Avalanche.Features.AI
         // text (relaxed letters/digits compare). Unverified quotes are never
         // used as highlight needles - they would paint unrelated passages.
         public bool QuoteVerified { get; set; }
+
+        /// <summary>Where the quote was found inside the cited chunk: Exact
+        /// (word-for-word), Approximate (in-order repair) or Unlocated (no
+        /// highlight, status message). Computed by ResolveSources - never
+        /// trusted from the model.</summary>
+        public AiQuoteLocation Location { get; set; } = AiQuoteLocation.Unlocated;
     }
 
     /// <summary>

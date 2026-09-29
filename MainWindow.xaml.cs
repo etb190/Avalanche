@@ -971,7 +971,12 @@ namespace Avalanche
         }
 
         /// <summary>
-        /// Navigates to a page and highlights the AI source passage using exact coordinates from retrieval.
+        /// Navigates to a citation's page and highlights the quoted passage.
+        /// The page comes from the citation's LOCATED quote (a quote on a
+        /// chunk's second page navigates to the second page), the viewer is
+        /// captured at click time (refocusing the other pane mid-wait cannot
+        /// redirect the highlight) and a navigation generation token ensures
+        /// only the LATEST click may draw (E3/E7/E8).
         /// </summary>
         internal void NavigateToAiSource(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
         {
@@ -982,7 +987,7 @@ namespace Avalanche
                 return;
             }
 
-            int pageIndex = chunk.PageIndex;
+            int pageIndex = source.PageIndex >= 0 ? source.PageIndex : chunk.PageIndex;
             if (pageIndex < 0 || pageIndex >= _doc.PageCount)
             {
                 Avalanche.Services.AiHighlightLog.Log(
@@ -991,12 +996,15 @@ namespace Avalanche
                 return;
             }
 
+            // A new click invalidates any still-running wait/draw of the
+            // previous one; only the newest may paint.
+            int navGeneration = ++_aiNavGeneration;
+            var viewer = ActiveViewer;
+
             Avalanche.Services.AiHighlightLog.Log(
-                $"navigate: chunk#{chunk.ChunkIndex} page={pageIndex} " +
-                $"PageIndices=[{string.Join(',', chunk.PageIndices)}] WordRanges={chunk.WordRanges.Count} " +
-                $"PdfCoords={chunk.PdfCoordinates.Count} PageSizes={chunk.PageSizes.Count} " +
-                $"textLen={chunk.Text?.Length ?? 0} source={source.SourceId} " +
-                $"quoteLen={source.Quote?.Length ?? 0} quoteVerified={source.QuoteVerified}");
+                $"navigate: chunk#{chunk.ChunkIndex} page={pageIndex} gen={navGeneration} " +
+                $"source={source.SourceId} location={source.Location} " +
+                $"quoteLen={source.Quote?.Length ?? 0}");
 
             // Clear any existing AI highlight
             ClearAiSourceHighlight();
@@ -1006,46 +1014,50 @@ namespace Avalanche
 
             // Wait for the page to render, then highlight using exact coordinates
             // Use a retry loop for continuous view and far-away pages
-            WaitForCanvasAndHighlight(chunk, source, pageIndex, 0);
+            _ = WaitForCanvasAndHighlightAsync(viewer, chunk, source, pageIndex, navGeneration);
         }
 
-        private async void WaitForCanvasAndHighlight(Features.AI.DocumentChunk chunk, Features.AI.AiSource source, int pageIndex, int attempt)
+        private int _aiNavGeneration;
+
+        private async Task WaitForCanvasAndHighlightAsync(Controls.PdfViewer viewer,
+            Features.AI.DocumentChunk chunk, Features.AI.AiSource source, int pageIndex, int navGeneration)
         {
             const int maxAttempts = 60; // ~6 seconds with 100ms intervals; big documents
                                         // can take a while to mount and render a far page
             const int delayMs = 100;
 
-            var activeViewer = ActiveViewer;
-            if (activeViewer is null)
+            if (viewer is null)
             {
-                Avalanche.Services.AiHighlightLog.Log($"wait attempt {attempt}: no active viewer");
+                Avalanche.Services.AiHighlightLog.Log("wait: no active viewer");
                 return;
             }
 
-            var canvas = activeViewer.GetCanvasForPage(pageIndex);
-            if (canvas is null || activeViewer.GetRenderDimensions(pageIndex) is null)
+            for (int attempt = 0; attempt <= maxAttempts; attempt++)
             {
-                if (attempt < maxAttempts)
+                // Another click, a document switch or a closed panel invalidates
+                // this wait (E7).
+                if (navGeneration != _aiNavGeneration || _doc is null)
+                    return;
+
+                var canvas = viewer.GetCanvasForPage(pageIndex);
+                if (canvas is null || viewer.GetRenderDimensions(pageIndex) is null)
                 {
-                    if (attempt == 0 || attempt == maxAttempts - 1)
+                    if (attempt == maxAttempts)
+                    {
                         Avalanche.Services.AiHighlightLog.Log(
-                            $"wait attempt {attempt}: canvas={(canvas is not null)} " +
-                            $"dims={(activeViewer.GetRenderDimensions(pageIndex) is not null)} page={pageIndex}");
+                            $"wait GAVE UP after {maxAttempts} attempts: page {pageIndex} never got canvas + render dims");
+                        SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
+                        return;
+                    }
                     await Task.Delay(delayMs);
-                    WaitForCanvasAndHighlight(chunk, source, pageIndex, attempt + 1);
+                    continue;
                 }
-                else
-                {
-                    Avalanche.Services.AiHighlightLog.Log(
-                        $"wait GAVE UP after {maxAttempts} attempts: page {pageIndex} never got canvas + render dims");
-                    SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
-                }
+
+                if (attempt > 0)
+                    Avalanche.Services.AiHighlightLog.Log($"wait attempt {attempt}: ready, highlighting page {pageIndex}");
+                HighlightAiSourceOnPage(viewer, chunk, source, pageIndex);
                 return;
             }
-
-            if (attempt > 0)
-                Avalanche.Services.AiHighlightLog.Log($"wait attempt {attempt}: ready, highlighting page {pageIndex}");
-            HighlightAiSourceOnPage(chunk, source);
         }
 
         // AI citation highlights carry their own translucent light blue so they can
@@ -1062,11 +1074,12 @@ namespace Avalanche
         private (int PageIndex, Features.AI.DocumentChunk Chunk, Features.AI.AiSource? Source)? _aiHighlight;
         private List<(double Left, double Bottom, double Right, double Top)>? _aiHighlightRects;
 
-        private void HighlightAiSourceOnPage(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
+        private void HighlightAiSourceOnPage(Controls.PdfViewer viewer,
+            Features.AI.DocumentChunk chunk, Features.AI.AiSource source, int pageIndex)
         {
             try
             {
-                HighlightAiSourceOnPageCore(chunk, source);
+                HighlightAiSourceOnPageCore(viewer, chunk, source, pageIndex);
             }
             catch (Exception ex)
             {
@@ -1076,7 +1089,8 @@ namespace Avalanche
             }
         }
 
-        private void HighlightAiSourceOnPageCore(Features.AI.DocumentChunk chunk, Features.AI.AiSource source)
+        private void HighlightAiSourceOnPageCore(Controls.PdfViewer viewer,
+            Features.AI.DocumentChunk chunk, Features.AI.AiSource source, int pageIndex)
         {
             if (_doc is null)
             {
@@ -1084,15 +1098,13 @@ namespace Avalanche
                 return;
             }
 
-            var activeViewer = ActiveViewer;
-            if (activeViewer is null)
+            if (viewer is null)
             {
-                Avalanche.Services.AiHighlightLog.Log("highlight BAIL: no active viewer");
+                Avalanche.Services.AiHighlightLog.Log("highlight BAIL: no viewer");
                 return;
             }
 
-            int pageIndex = chunk.PageIndex;
-            var canvas = activeViewer.GetCanvasForPage(pageIndex);
+            var canvas = viewer.GetCanvasForPage(pageIndex);
             if (canvas is null)
             {
                 Avalanche.Services.AiHighlightLog.Log($"highlight BAIL: no canvas for page {pageIndex}");
@@ -1102,29 +1114,32 @@ namespace Avalanche
             _aiHighlight = (pageIndex, chunk, source);
             _aiHighlightRects = null;
 
-            // The cited passage is located among the page's real words and painted
-            // as one translucent band per line, in the citation's own light blue -
-            // the same highlighter look as the selection quads. The page slice of the
-            // chunk itself is the primary needle (the evidence the citation refers
-            // to), the model's quote and prefix/suffix windows are fallbacks for
-            // indexes that drifted from the file on disk.
-            if (DrawAiHighlightForPage(activeViewer, pageIndex, canvas, chunk, source)) return;
+            // Remove any previous citation rectangles BEFORE drawing, so two
+            // citations can never show simultaneously (E7).
+            RemoveAiHighlightRects(canvas);
 
-            // Nothing matchable (stale index, scanned page): paint the chunk's stored
-            // bounding box rather than giving up, so the user still lands on the region.
-            if (DrawAiSourceBBoxHighlight(chunk, activeViewer, pageIndex, canvas)) return;
+            // The model's QUOTE is located inside the cited chunk's page slice
+            // and only that range is painted (E1). An unlocated quote paints
+            // NOTHING - the previous whole-chunk/bbox fallbacks painted entire
+            // passages the citation never named.
+            if (DrawAiHighlightForPage(viewer, pageIndex, canvas, chunk, source))
+            {
+                if (source.Location == Features.AI.AiQuoteLocation.Approximate)
+                    SetStatus(Loc("Str_AiChatSourceApproximate"));
+                return;
+            }
 
             Avalanche.Services.AiHighlightLog.Log(
-                $"highlight FAILED: page {pageIndex} - no needle matched and no usable bbox " +
-                $"(PdfCoords={chunk.PdfCoordinates.Count})");
+                $"highlight FAILED: page {pageIndex} - quote not located within the cited chunk (location={source.Location})");
             SetStatus(Loc("Str_AiChatSourceNavigateFailed"));
         }
 
         /// <summary>
-        /// Resolves and paints the cited passage for one page. Candidates are tried most
-        /// faithful first inside SearchService.LocatePassageInFile (one PdfPig open): the
-        /// chunk's own words for THIS page, the model's quote, then 40-word prefix/suffix
-        /// windows of both for indexes that drifted from the file on disk.
+        /// Resolves and paints the quoted passage for one page: the QUOTE is
+        /// located strictly within the chunk's page slice (SearchService
+        /// .LocateQuoteWithinSlice - one cached PdfPig open), so a phrase that
+        /// also occurs elsewhere on the page can never be highlighted by
+        /// mistake (E5).
         /// </summary>
         private bool DrawAiHighlightForPage(Controls.PdfViewer viewer, int pageIndex, Canvas canvas,
             Features.AI.DocumentChunk chunk, Features.AI.AiSource? source)
@@ -1139,23 +1154,27 @@ namespace Avalanche
                 return false;
             }
 
+            // Unlocated citations never paint - there is nothing trustworthy
+            // to highlight (E2/E4).
+            if (source is null || source.Location == Features.AI.AiQuoteLocation.Unlocated ||
+                string.IsNullOrWhiteSpace(source.Quote))
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"locate BAIL: location={source?.Location} quoteLen={source?.Quote?.Length ?? 0}");
+                return false;
+            }
+
             string? slice = ChunkPageSliceForPage(chunk, pageIndex);
-            // The chunk's page slice is the primary needle; the model's quote and the
-            // prefix/suffix windows below are fallbacks for indexes that drifted from
-            // the file on disk. Every candidate is located against the page's real
-            // words, so a quote can only ever paint text that actually exists here.
-            string? quote = string.IsNullOrWhiteSpace(source?.Quote) ? null : source!.Quote;
+            string quote = source.Quote;
 
             Avalanche.Services.AiHighlightLog.Log(
-                $"locate: page={pageIndex} " +
-                $"slice={(slice is null ? "null" : $"{slice.Length}ch '{TruncLog(slice)}'")} " +
-                $"quote={(quote is null ? "null" : $"{quote.Length}ch '{TruncLog(quote)}'")}");
+                $"locate: page={pageIndex} slice={(slice is null ? "null" : $"{slice.Length}ch")} " +
+                $"quote={quote.Length}ch '{TruncLog(quote)}'");
 
-            var match = Services.SearchService.LocatePassageInFile(
-                _currentFile!, pageIndex, CandidateAiNeedles(slice, quote));
+            var match = Services.SearchService.LocateQuoteWithinSlice(_currentFile!, pageIndex, slice, quote);
             if (match is null || match.LineRects.Count == 0)
             {
-                Avalanche.Services.AiHighlightLog.Log("locate: NO MATCH for any needle");
+                Avalanche.Services.AiHighlightLog.Log("locate: QUOTE NOT FOUND within the chunk slice");
                 return false;
             }
 
@@ -1163,34 +1182,6 @@ namespace Avalanche
             _aiHighlightRects = match.LineRects;
             return TryDrawAiHighlightRects(canvas, match.LineRects, viewer, pageIndex, chunk);
         }
-
-        /// <summary>Candidate needles for one page, most faithful first.</summary>
-        private static IEnumerable<string> CandidateAiNeedles(string? slice, string? quote)
-        {
-            foreach (var needle in new[] { slice, quote })
-                if (!string.IsNullOrWhiteSpace(needle)) yield return needle;
-
-            foreach (var window in new[] { NeedleWindow(slice, true), NeedleWindow(slice, false),
-                                            NeedleWindow(quote, true), NeedleWindow(quote, false) })
-                if (!string.IsNullOrWhiteSpace(window)) yield return window;
-        }
-
-        /// <summary>First (head) or last (tail) 40 words of a needle - null when the needle
-        /// is short enough to have been tried whole.</summary>
-        private static string? NeedleWindow(string? text, bool head)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return null;
-            var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-            const int maxWords = 40;
-            if (words.Length <= maxWords) return null;
-            return head
-                ? string.Join(' ', words.Take(maxWords))
-                : string.Join(' ', words.Skip(words.Length - maxWords));
-        }
-
-        /// <summary>First 60 characters of a needle for the diagnostics log.</summary>
-        private static string TruncLog(string s)
-            => s.Length <= 60 ? s : s[..60] + "...";
 
         /// <summary>
         /// The chunk's text restricted to one page. CreateChunk stores an inclusive
@@ -1298,30 +1289,6 @@ namespace Avalanche
         }
 
         /// <summary>
-        /// Fallback for passages the word locator cannot find: the chunk's stored per-page
-        /// bounding box, filled with the same light blue and converted the same
-        /// way, so even the fallback reads as a highlight mark rather than a foreign
-        /// selection box.
-        /// </summary>
-        private bool DrawAiSourceBBoxHighlight(Features.AI.DocumentChunk chunk, Controls.PdfViewer viewer, int pageIndex, Canvas canvas)
-        {
-            var coords = chunk.PdfCoordinates;
-            int pageIdxInChunk = chunk.PageIndices.IndexOf(pageIndex);
-            if (coords == null || pageIdxInChunk < 0 || pageIdxInChunk >= coords.Count
-                || coords[pageIdxInChunk] is not { } pdfCoords || pdfCoords.Length < 4)
-            {
-                Avalanche.Services.AiHighlightLog.Log(
-                    $"bbox BAIL: page {pageIndex} not covered by chunk " +
-                    $"(PageIndices=[{string.Join(',', chunk.PageIndices)}], PdfCoords={coords?.Count ?? 0})");
-                return false;
-            }
-
-            var pdfRect = new List<(double Left, double Bottom, double Right, double Top)>
-                { ((double)pdfCoords[0], (double)pdfCoords[1], (double)pdfCoords[2], (double)pdfCoords[3]) };
-            return TryDrawAiHighlightRects(canvas, pdfRect, viewer, pageIndex, chunk);
-        }
-
-        /// <summary>
         /// Called by the viewer at the tail of every annotation re-render: repaints this
         /// citation's line highlights onto the freshly cleared canvas, or nothing when the
         /// re-rendered page is not the highlighted one.
@@ -1329,22 +1296,57 @@ namespace Avalanche
         private void ReapplyAiSourceHighlight(int page, Canvas canvas)
         {
             if (_aiHighlight is not { } hl || hl.PageIndex != page) return;
-            var viewer = ActiveViewer;
+            // The canvas belongs to the re-rendering viewer (which pane it is
+            // need not match ActiveViewer in split view) - resolve the owner
+            // instead of assuming (E8).
+            var viewer = FindCanvasOwnerViewer(canvas) ?? ActiveViewer;
             if (viewer is null) return;
-            if (DrawAiHighlightForPage(viewer, page, canvas, hl.Chunk, hl.Source)) return;
-            DrawAiSourceBBoxHighlight(hl.Chunk, viewer, page, canvas);
+            DrawAiHighlightForPage(viewer, page, canvas, hl.Chunk, hl.Source);
         }
+
+        /// <summary>Walks up from a canvas to the PdfViewer pane that hosts it.</summary>
+        private static Controls.PdfViewer? FindCanvasOwnerViewer(Canvas canvas)
+        {
+            System.Windows.DependencyObject? current = canvas;
+            while (current is not null)
+            {
+                if (current is Controls.PdfViewer pv) return pv;
+                current = System.Windows.Media.VisualTreeHelper.GetParent(current);
+            }
+            return null;
+        }
+
+        /// <summary>First 60 characters of a needle for the diagnostics log.</summary>
+        private static string TruncLog(string s)
+            => s.Length <= 60 ? s : s[..60] + "...";
+
+        /// <summary>Removes every citation rectangle from one canvas.</summary>
+        private static void RemoveAiHighlightRects(Canvas canvas)
+        {
+            var toRemove = canvas.Children.OfType<System.Windows.Shapes.Rectangle>()
+                .Where(r => r.Tag is string s && s == "AiSourceHighlight").ToList();
+            foreach (var r in toRemove)
+                canvas.Children.Remove(r);
+        }
+
         private void ClearAiSourceHighlight()
         {
             _aiHighlight = null;
             _aiHighlightRects = null;
-            foreach (var canvas in ActiveViewer?.GetAllCanvases() ?? Enumerable.Empty<Canvas>())
+            // BOTH panes: the highlight may have been drawn on the pane that
+            // was active at click time; a pane switch must not strand it (E8).
+            foreach (var viewer in AllViewerPanes())
             {
-                var toRemove = canvas.Children.OfType<Rectangle>()
-                    .Where(r => r.Tag is string s && s == "AiSourceHighlight").ToList();
-                foreach (var r in toRemove)
-                    canvas.Children.Remove(r);
+                foreach (var canvas in viewer.GetAllCanvases() ?? Enumerable.Empty<Canvas>())
+                    RemoveAiHighlightRects(canvas);
             }
+        }
+
+        /// <summary>Every document pane in the window (A and B when split).</summary>
+        private IEnumerable<Controls.PdfViewer> AllViewerPanes()
+        {
+            if (Viewer is not null) yield return Viewer;
+            if (ViewerB is not null) yield return ViewerB;
         }
 
         // ============================================================

@@ -1071,6 +1071,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_AiErrorUsageLimit">Cloud usage limit reached for your Ollama account.</sys:String>
     <sys:String x:Key="Str_AiErrorCutOff">Answer was cut off; try a shorter question or raise the token limit.</sys:String>
 
+    <sys:String x:Key="Str_AiChatSourceApproximate">Approximate location — the quote was matched with fuzzy repair.</sys:String>
     <sys:String x:Key="Str_AiChatPartialTextLayer">{0} page(s) have no text layer and are not searchable.</sys:String>
     <sys:String x:Key="Str_AiChatEmbeddingsUnavailable">Semantic search is unavailable right now — using keyword search only.</sys:String>
     <sys:String x:Key="Str_AiChatEmbeddingModelMissing">Embedding model {0} not found. Run: ollama pull {0} — using keyword search only.</sys:String>
