@@ -188,4 +188,26 @@ public sealed class DocumentChunkerTests
         Assert.Equal(new[] { 3, 5 }, chunk.WordRanges[1]);
         Assert.All(chunk.PdfCoordinates, c => Assert.Equal(4, c.Length));
     }
+
+    [Fact]
+    public void LongTokensPastCharBudgetWithFewWordsDoNotThrowAndStillChunk()
+    {
+        // URLs, file paths, base64 and CJK runs are single tokens of 80-160
+        // chars: the pending word list crosses the 800-char MaxChunkSize with
+        // far fewer than MinChunkWords(20) words. The hard-overflow cut used
+        // to set breakIdx=MinChunkWords on that short list and List.GetRange
+        // threw, aborting the whole index build - the AI chat was dead for
+        // such files (no citations, no highlights). The cut must clamp to the
+        // pending count and chunking must carry on.
+        const string url = "https://example.com/documentation/v2/reference/api/endpoints/search/results/pagination";
+        var chunker = new DocumentChunker(new ChunkerOptions());
+        chunker.AppendPage(0, Stream((new[] { url, url, url, url, url, url, url, url, url, url, url, url }, 700)));
+        chunker.AppendPage(0, Stream((new[] { url, url, url, url }, 650)));
+
+        var chunks = chunker.Finish();
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => Assert.False(string.IsNullOrWhiteSpace(c.Text)));
+        // The long tokens must survive into the chunk text for retrieval.
+        Assert.Contains("https://example.com", chunks[0].Text);
+    }
 }

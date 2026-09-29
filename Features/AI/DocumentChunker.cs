@@ -366,8 +366,15 @@ namespace Avalanche.Features.AI
             {
                 if (_pendingChars < _options.MaxChunkSize) return;
                 // Hard overflow: cut at the first word boundary that keeps the
-                // head chunk above MinChunkWords.
-                breakIdx = _options.MinChunkWords;
+                // head chunk above MinChunkWords. Long tokens - URLs, file
+                // paths, base64, CJK runs without spaces, merged glyph runs
+                // from overlapping text - can push _pendingChars past
+                // MaxChunkSize while FEWER than MinChunkWords words are
+                // pending. Clamp the cut to the pending count so the split
+                // stays in bounds instead of throwing and killing the whole
+                // index build, which left the AI chat dead for such files.
+                breakIdx = Math.Min(_options.MinChunkWords, _pending.Count);
+                if (breakIdx <= 0) return;
             }
 
             var head = _pending.GetRange(0, breakIdx);
