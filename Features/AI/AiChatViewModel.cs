@@ -310,10 +310,10 @@ namespace Avalanche.Features.AI
                 {
                     AiIndexingFailure.NoTextLayer => _loc("Str_AiChatNoTextLayer"),
                     AiIndexingFailure.PasswordProtected => _loc("Str_AiChatPasswordProtected"),
-                    _ => $"{_loc("Str_AiChatIndexingFailed")}: {aix.Message}"
+                    _ => _loc("Str_AiChatIndexingFailed")
                 };
             }
-            return $"{_loc("Str_AiChatIndexingFailed")}: {ex.Message}";
+            return _loc("Str_AiChatIndexingFailed");
         }
 
         /// <summary>
@@ -494,8 +494,12 @@ namespace Avalanche.Features.AI
             }
             catch (Exception ex)
             {
-                assistantMsg.Content = MapErrorToFriendlyMessage(ex);
-                assistantMsg.Error = ex.Message;
+                // The error box is the single surface: Content stays empty so
+                // the failure is not shown twice, and only the localized
+                // friendly message lands in Error - raw exception text is
+                // never bound to the UI.
+                assistantMsg.Content = "";
+                assistantMsg.Error = MapErrorToFriendlyMessage(ex);
                 assistantMsg.IsLoading = false;
             }
             finally
@@ -811,30 +815,49 @@ namespace Avalanche.Features.AI
             return greetings.Contains(cleaned);
         }
 
+        /// <summary>
+        /// Maps a failure to localized user-facing text. Provider failures
+        /// arrive typed (AiProviderException.Category) - keyword matching on
+        /// English exception text misfired on Windows wording ("actively
+        /// refused"), on the provider's own signin message and on timeouts.
+        /// Raw exception text and response bodies never reach the UI.
+        /// </summary>
         private string MapErrorToFriendlyMessage(Exception ex)
         {
-            var message = ex.Message?.ToLowerInvariant() ?? "";
-            
-            // Connection refused / timeout on localhost
-            if (ex is System.Net.Http.HttpRequestException hre)
+            if (ex is AiProviderException ape)
             {
-                if (message.Contains("connection refused") || message.Contains("timeout") || message.Contains("unreachable"))
-                    return _loc("Str_AiErrorOllamaNotRunning");
-                if (message.Contains("401") || message.Contains("unauthorized") || message.Contains("sign in"))
-                    return _loc("Str_AiErrorNotSignedIn");
-                if (message.Contains("404") || message.Contains("not found"))
-                    return _loc("Str_AiErrorModelNotFound");
-                if (message.Contains("429") || message.Contains("503") || message.Contains("queue") || message.Contains("busy"))
-                    return _loc("Str_AiErrorBusy");
-                if (message.Contains("usage") || message.Contains("credit") || message.Contains("limit"))
-                    return _loc("Str_AiErrorUsageLimit");
+                switch (ape.Category)
+                {
+                    case AiErrorCategory.OllamaNotRunning:
+                        return _loc("Str_AiErrorOllamaNotRunning");
+                    case AiErrorCategory.NotSignedIn:
+                        return _loc("Str_AiErrorNotSignedIn");
+                    case AiErrorCategory.ModelNotFound:
+                        return string.Format(
+                            _loc("Str_AiErrorModelNotFound"),
+                            ape.ModelName ?? _configProvider().Model);
+                    case AiErrorCategory.Busy:
+                        return _loc("Str_AiErrorBusy");
+                    case AiErrorCategory.UsageLimit:
+                        return _loc("Str_AiErrorUsageLimit");
+                    case AiErrorCategory.CutOff:
+                        return _loc("Str_AiErrorCutOff");
+                    case AiErrorCategory.Timeout:
+                        return _loc("Str_AiErrorTimeout");
+                    case AiErrorCategory.BadResponse:
+                        return _loc("Str_AiErrorBadResponse");
+                    default:
+                        return _loc("Str_AiChatError");
+                }
             }
-            
-            // Check for empty content with finish_reason = length
-            if (message.Contains("cut off") || message.Contains("length"))
-                return _loc("Str_AiErrorCutOff");
 
-            // Generic fallback
+            // Non-provider failures (e.g. retrieval/parse layers that never
+            // went through the provider): classify the few well-known shapes
+            // without echoing any exception text.
+            if (ex is System.Net.Http.HttpRequestException hre
+                && OpenAiCompatibleProvider.IsConnectionFailure(hre))
+                return _loc("Str_AiErrorOllamaNotRunning");
+
             return _loc("Str_AiChatError");
         }
 

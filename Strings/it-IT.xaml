@@ -1089,6 +1089,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiErrorUsageLimit">Cloud usage limit reached for your Ollama account.</sys:String>
     <sys:String x:Key="Str_AiErrorCutOff">Answer was cut off; try a shorter question or raise the token limit.</sys:String>
 
+    <sys:String x:Key="Str_AiErrorBadResponse">The AI returned a response the app could not read. Try again.</sys:String>
+    <sys:String x:Key="Str_AiErrorTimeout">The AI request timed out. Make sure Ollama is running and try again.</sys:String>
     <!-- AI Settings UI -->
     <sys:String x:Key="Str_AiSettingsChatProvider">Chat Provider</sys:String>
     <sys:String x:Key="Str_AiSettingsChatBaseUrl">Chat Base URL</sys:String>

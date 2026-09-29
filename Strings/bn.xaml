@@ -1069,6 +1069,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiErrorUsageLimit">আপনার Ollama অ্যাকাউন্টের ক্লাউড ব্যবহার সীমা পূর্ণ।</sys:String>
     <sys:String x:Key="Str_AiErrorCutOff">উত্তর কাটা হয়েছে; সংক্ষিপ্ত প্রশ্ন করুন বা টোকেন লিমিট বাড়ান।</sys:String>
 
+    <sys:String x:Key="Str_AiErrorBadResponse">The AI returned a response the app could not read. Try again.</sys:String>
+    <sys:String x:Key="Str_AiErrorTimeout">The AI request timed out. Make sure Ollama is running and try again.</sys:String>
     <!-- ── AI Settings UI ─────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiSettingsChatProvider">চ্যাট প্রদানকারী</sys:String>
     <sys:String x:Key="Str_AiSettingsChatBaseUrl">চ্যাট বেস URL</sys:String>
