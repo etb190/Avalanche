@@ -21,7 +21,7 @@ public sealed class AiProviderParsingTests
     private const string Envelope = "{{\"choices\":[{{\"message\":{{\"role\":\"assistant\",\"content\":{0}}},\"finish_reason\":{1}}}]}}";
 
     private static string EnvelopeWith(string contentJson, string finishReasonJson) =>
-        string.Format(Envelope, contentJson, finishReasonJson);
+        string.Format(Envelope, contentJson, "\"" + finishReasonJson + "\"");
 
     private static AiResponse ParseContent(string content) =>
         OpenAiCompatibleProvider.ParseResponse(EnvelopeWith(
