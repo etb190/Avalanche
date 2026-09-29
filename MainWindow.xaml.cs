@@ -869,7 +869,7 @@ namespace Avalanche
                 _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile); // fire-and-forget, UI stays responsive
             }
 
-            AiChatOverlay.Visibility = Visibility.Visible;
+            AnimateAiPanel(true);
             AiChatInput?.Focus();
         }
 
@@ -888,10 +888,70 @@ namespace Avalanche
         {
             if (AiChatOverlay is null) return;
 
-            AiChatOverlay.Visibility = Visibility.Collapsed;
+            AnimateAiPanel(false);
 
             // Clear the AI source highlight
             ClearAiSourceHighlight();
+        }
+
+        // Open/close animation for the assistant overlay. The panel is a fixed-width
+        // overlay, so there is no layout change to ride on: the slide animates the
+        // panel's TranslateTransform.X from beyond the window's right edge to its
+        // resting position (open) and back out (close). BeginAnimation replaces any
+        // in-flight animation, so rapid toggles retarget the slide from wherever it
+        // currently is, and a replaced close animation never fires its Completed
+        // handler - the panel can never be collapsed mid-slide-in.
+        private void AnimateAiPanel(bool open)
+        {
+            if (AiChatOverlay is null) return;
+
+            if (AiChatOverlay.RenderTransform is not TranslateTransform shift)
+            {
+                shift = new TranslateTransform();
+                AiChatOverlay.RenderTransform = shift;
+            }
+
+            // Respect the OS "animate controls" preference: snap, do not slide.
+            if (!SystemParameters.ClientAreaAnimation)
+            {
+                shift.BeginAnimation(TranslateTransform.XProperty, null);
+                shift.X = 0;
+                AiChatOverlay.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                return;
+            }
+
+            // First open after launch: the panel was never laid out (Collapsed
+            // elements get no layout pass), so force one to learn the real width.
+            double slide = AiChatOverlay.ActualWidth;
+            if (slide < 50)
+            {
+                AiChatOverlay.Visibility = Visibility.Visible;
+                AiChatOverlay.UpdateLayout();
+                slide = AiChatOverlay.ActualWidth;
+            }
+            if (slide < 50) slide = 380;   // paranoid fallback; matches the XAML Width
+
+            var anim = new DoubleAnimation(open ? 0 : slide + 12,   // +12 clears the window gutter
+                                           TimeSpan.FromMilliseconds(160))
+            {
+                // EaseOut: fast start, gentle landing on open. EaseIn: the panel
+                // lingers a beat, then whips off-screen on close.
+                EasingFunction = new CubicEase
+                {
+                    EasingMode = open ? EasingMode.EaseOut : EasingMode.EaseIn
+                }
+            };
+
+            if (open)
+            {
+                AiChatOverlay.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                anim.Completed += (s, e) => AiChatOverlay.Visibility = Visibility.Collapsed;
+            }
+
+            shift.BeginAnimation(TranslateTransform.XProperty, anim);
         }
 
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)

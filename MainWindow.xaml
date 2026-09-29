@@ -1676,11 +1676,13 @@
                      ApplySidebarSide, keeps working unchanged. -->
                 <ColumnDefinition Width="0"/>
                 <ColumnDefinition x:Name="DocCol" Width="*"/>
-                <!-- Docked assistant panel column (index 3): Auto so it collapses to
-                     zero width while the panel is Collapsed and takes exactly the
-                     panel's Width while it is open, pushing the document narrower
-                     exactly like the pages/outline sidebar does. -->
-                <ColumnDefinition x:Name="AiCol" Width="Auto"/>
+                <!-- Assistant panel column (index 3): a ZERO-WIDTH ANCHOR, not a
+                     sized column. The panel right-aligns into this empty slot and
+                     overflows leftward as a floating overlay, so opening or closing
+                     it never reflows the document - the pages sit exactly where
+                     they were before the assistant existed. The pages/outline
+                     sidebar keeps its own sized-column push behavior unchanged. -->
+                <ColumnDefinition x:Name="AiCol" Width="0"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>   <!-- row 0: tab strip (above the document only) -->
@@ -2716,19 +2718,26 @@
                 </Popup>
             </Grid>
 
-            <!-- AI assistant panel - a DOCKED sidebar, not an overlay. It lives in
-                 its own column (index 3) spanning both content rows: the top edge
-                 sits directly under the toolbar and the document card (tabs
-                 included) is pushed narrower instead of being covered - the same
-                 relationship as the pages/outline sidebar. SidebarPaneBrush is
-                 transparent outside 98SE, so the shared grain border and window
-                 surface show through exactly like the pages rail; the removed
-                 shadow/clip/z-lift stop it reading as a card floating over chrome. -->
+            <!-- AI assistant panel - a FLOATING OVERLAY, not a docked column. It
+                 right-aligns into the zero-width AiCol anchor at the right edge of
+                 MainContentGrid, spanning both content rows so the top edge sits
+                 flush under the toolbar, and it slides OVER the document instead
+                 of pushing it: the pages keep the exact position they have while
+                 the panel is closed. SidebarPaneBrush is transparent outside
+                 98SE, so the shared grain border and window surface still show
+                 through exactly like the pages rail. The TranslateTransform is
+                 the handle the open/close slide animation (AnimateAiPanel)
+                 drives; still no shadow or clip, so it reads as flush chrome,
+                 not a floating card. -->
             <Border x:Name="AiChatOverlay" Grid.Column="3" Grid.Row="0" Grid.RowSpan="2"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Stretch"
                     Width="380" Visibility="Collapsed"
                     Background="{DynamicResource SidebarPaneBrush}"
                     BorderThickness="0">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="AiPanelShift"/>
+                </Border.RenderTransform>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- Header -->
