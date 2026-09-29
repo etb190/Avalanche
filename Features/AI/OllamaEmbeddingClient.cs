@@ -116,7 +116,7 @@ namespace Avalanche.Features.AI
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
-            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && (config.BaseUrl?.Contains("localhost") ?? false)
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(config.BaseUrl)
                 ? "ollama"
                 : config.ApiKey;
             if (!string.IsNullOrWhiteSpace(apiKey))

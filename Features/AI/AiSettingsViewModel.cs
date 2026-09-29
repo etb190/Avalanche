@@ -230,8 +230,8 @@ namespace Avalanche.Features.AI
 
         private void UpdateCloudWarning()
         {
-            ShowCloudWarning = GenModel?.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase) == true 
-                || (!GenBaseUrl.Contains("localhost") && !GenBaseUrl.Contains("127.0.0.1"));
+            ShowCloudWarning = GenModel?.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase) == true
+                || !AiEndpoints.IsLocal(GenBaseUrl);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

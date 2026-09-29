@@ -80,6 +80,7 @@
          vector store, Ollama /api/embed client, indexer embedding pass and
          the hybrid retriever. AiHighlightLog is dependency-free file logging.
          DocumentIndexer pulls PdfPig (already referenced above). -->
+    <Compile Include="..\Features\AI\AiEndpoints.cs" Link="Features\AI\AiEndpoints.cs" />
     <Compile Include="..\Features\AI\AiModels.cs" Link="Features\AI\AiModels.cs" />
     <Compile Include="..\Features\AI\VectorIndex.cs" Link="Features\AI\VectorIndex.cs" />
     <Compile Include="..\Features\AI\OllamaEmbeddingClient.cs" Link="Features\AI\OllamaEmbeddingClient.cs" />

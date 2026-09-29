@@ -107,7 +107,7 @@ namespace Avalanche.Features.AI
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
             // For Ollama (localhost), use dummy key if empty
-            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && config.BaseUrl.Contains("localhost")
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(config.BaseUrl)
                 ? "ollama"
                 : config.ApiKey;
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
@@ -147,7 +147,7 @@ namespace Avalanche.Features.AI
         public async Task<bool> IsAvailableAsync(AiProviderConfig config)
         {
             // For Ollama (localhost), don't require API key
-            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && config.BaseUrl.Contains("localhost")
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(config.BaseUrl)
                 ? "ollama"
                 : config.ApiKey;
 
@@ -253,7 +253,7 @@ namespace Avalanche.Features.AI
 
         private static Exception MapError(System.Net.HttpStatusCode statusCode, string responseJson, AiProviderConfig config)
         {
-            var isLocalhost = config.BaseUrl.Contains("localhost");
+            var isLocalhost = AiEndpoints.IsLocal(config.BaseUrl);
             var isCloudModel = config.IsCloudModel;
 
             return statusCode switch
