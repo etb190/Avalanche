@@ -2728,9 +2728,10 @@
                  same PaneBevelOverlay bevel in its grid) - only the content
                  inside differs. The rail normally floats on the bare window
                  surface; this overlay hangs over the document card, so the
-                 outer Border replicates that surface (BackgroundBrush + the
-                 shared grain) for the transparent rail copy to float on -
-                 nothing of the card shows through. Geometry: spans all four
+                 outer Border replicates that surface (WindowFrameBrush - the
+                 brush RootBorder itself paints - plus the shared grain,
+                 phase-aligned to the root grid in code) for the transparent
+                 rail copy to float on - nothing of the card shows through. Geometry: spans all four
                  columns (a zero-width anchor slot measures children to zero -
                  been there), right-aligns, occupies no layout space so the
                  pages never move, ZIndex 200 above the comparison bar and
@@ -2740,16 +2741,30 @@
                     HorizontalAlignment="Right"
                     VerticalAlignment="Stretch"
                     Width="380" Visibility="Collapsed"
-                    Background="{DynamicResource BackgroundBrush}"
+                    Background="{DynamicResource WindowFrameBrush}"
                     BorderThickness="0">
                 <Border.RenderTransform>
                     <TranslateTransform x:Name="AiPanelShift"/>
                 </Border.RenderTransform>
-                <Grid>
-                    <!-- The window surface, replicated: BackgroundBrush base +
-                         the shared grain - exactly what the real rail floats on. -->
-                    <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                            Background="{StaticResource GrainBrushShared}"/>
+                <Grid ClipToBounds="True">
+                    <!-- The window surface, replicated: WindowFrameBrush base (the
+                         brush RootBorder paints - what the real rail floats on;
+                         BackgroundBrush here read as a darker, foreign slab) +
+                         the shared grain. The grain bleeds 256px past both sides
+                         and is shifted in code (AlignAiPanelGrain) so its tiles
+                         land on the same 256px lattice as the window-level grain
+                         border: the pattern runs continuously across the panel's
+                         left edge instead of restarting - the "one connected
+                         grain" look of the docked build. ClipToBounds trims the
+                         bleed. -->
+                    <Border x:Name="AiPanelGrainBorder" IsHitTestVisible="False"
+                            Margin="-256,0,-256,0"
+                            Opacity="{DynamicResource GrainOpacity}"
+                            Background="{StaticResource GrainBrushShared}">
+                        <Border.RenderTransform>
+                            <TranslateTransform x:Name="AiPanelGrainShift"/>
+                        </Border.RenderTransform>
+                    </Border>
                     <!-- SidebarBorder, copied 1:1 (Margin / Background / Border /
                          bevel identical; only the right-click handler and the
                          page list are not carried over). On Dark/Light

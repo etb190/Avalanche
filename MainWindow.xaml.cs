@@ -917,6 +917,11 @@ namespace Avalanche
                 shift.BeginAnimation(TranslateTransform.XProperty, null);
                 shift.X = 0;
                 AiChatOverlay.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                if (open)
+                {
+                    AiChatOverlay.UpdateLayout();   // collapsed panels skip layout; align needs a slot
+                    AlignAiPanelGrain();
+                }
                 return;
             }
 
@@ -945,6 +950,7 @@ namespace Avalanche
             if (open)
             {
                 AiChatOverlay.Visibility = Visibility.Visible;
+                AlignAiPanelGrain();   // phase-lock the grain to the window lattice
             }
             else
             {
@@ -952,6 +958,40 @@ namespace Avalanche
             }
 
             shift.BeginAnimation(TranslateTransform.XProperty, anim);
+        }
+
+        private bool _aiPanelGrainRootHooked;
+
+        // The panel floats over the document card, so it paints the window
+        // surface itself: WindowFrameBrush base + the shared grain. For that
+        // grain to read as ONE surface with the chrome around it (the docked
+        // build's look), its tiles must sit on the same 256px lattice as the
+        // window-level grain border - which tiles from the root grid's origin.
+        // The panel is right-anchored, so an unshifted copy would tile from
+        // (rootWidth - 380, 0) and the pattern would visibly restart at the
+        // panel's left edge. The copy bleeds 256px past both sides (XAML
+        // margin) and this method shifts it left by the panel's layout X
+        // mod 256, landing every tile back on the lattice; ClipToBounds trims
+        // the bleed. Root resizes re-run this while the panel is open.
+        private void AlignAiPanelGrain()
+        {
+            if (AiChatOverlay?.Visibility != Visibility.Visible) return;
+            if (AiChatOverlay.Parent is not Grid root) return;
+            if (!_aiPanelGrainRootHooked)
+            {
+                _aiPanelGrainRootHooked = true;
+                root.SizeChanged += (s, e) => AlignAiPanelGrain();
+            }
+            if (AiPanelGrainShift is null) return;
+
+            // Visual position minus the slide transform = layout position; the
+            // grain must align for the panel's resting spot, not mid-slide.
+            var origin = AiChatOverlay.TransformToVisual(root).Transform(new Point(0, 0));
+            if (AiChatOverlay.RenderTransform is TranslateTransform slide) origin.X -= slide.X;
+
+            double phase = origin.X % 256.0;
+            if (phase < 0) phase += 256.0;
+            AiPanelGrainShift.X = -phase;
         }
 
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)
