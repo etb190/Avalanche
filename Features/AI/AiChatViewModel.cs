@@ -38,6 +38,8 @@ namespace Avalanche.Features.AI
         private bool _isIndexing;
         private string _indexingStatus = "";
         private double _indexingProgress = 0.0;
+        private string _semanticStatus = "";
+        private CancellationTokenSource? _indexingCts;
         private bool _isProcessing;
         private readonly object _processingLock = new();
         private int _maxHistoryMessages = 6;
@@ -71,6 +73,15 @@ namespace Avalanche.Features.AI
         {
             get => _indexingProgress;
             private set { _indexingProgress = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>One-line status of the OPTIONAL semantic layer: building,
+        /// ready, embedding model missing, or keyword-only fallback. Never
+        /// gates the chat - it only explains search quality (D3).</summary>
+        public string SemanticStatus
+        {
+            get => _semanticStatus;
+            private set { _semanticStatus = value; OnPropertyChanged(); }
         }
 
         public bool IsProcessing
@@ -213,6 +224,12 @@ namespace Avalanche.Features.AI
             IsIndexing = true;
             IndexingStatus = _loc("Str_AiChatPreparing");
             IndexingProgress = 0.0;
+            var indexingCts = new CancellationTokenSource();
+            lock (_processingLock)
+            {
+                _indexingCts?.Dispose();
+                _indexingCts = indexingCts;
+            }
 
             try
             {
@@ -246,6 +263,13 @@ namespace Avalanche.Features.AI
                 }
                 IndexingStatus = _loc("Str_AiChatReady");
 
+                // Partially scanned PDFs: pages without a text layer are
+                // silently unsearchable - say so instead of hiding it (D8).
+                int pagesWithText = index.Chunks.SelectMany(c => c.PageIndices).Distinct().Count();
+                int textlessPages = Math.Max(0, index.PageCount - pagesWithText);
+                if (textlessPages > 0)
+                    SemanticStatus = string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages);
+
                 // Consume anything queued while indexing ran.
                 lock (_processingLock)
                 {
@@ -261,22 +285,54 @@ namespace Avalanche.Features.AI
                     }
                 }
 
-                // Semantic layer: embed the chunks with embeddinggemma:latest
-                // (local Ollama /api/embed). Runs AFTER the index is published
-                // and readable; any failure is logged and the chat stays fully
-                // usable in lexical-only mode.
-                try
+                // Semantic layer: embed in the BACKGROUND so readiness never
+                // waited on it (D1). Failures degrade search to keyword-only
+                // and surface as a one-line localized status - they are never
+                // fatal for the chat (D3).
+                var embeddingModel = _configProvider().EmbeddingModel;
+                var documentPrefix = _configProvider().EmbeddingDocumentPrefix;
+                var queryPrefix = _configProvider().EmbeddingQueryPrefix;
+                SemanticStatus = _loc("Str_AiChatSemanticBuilding");
+                _ = Task.Run(async () =>
                 {
-                    var embeddingModel = _configProvider().EmbeddingModel;
-                    await _indexer.EnsureEmbeddingsAsync(index,
-                        (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
-                        embeddingModel, progress);
-                }
-                catch (Exception embedEx)
-                {
-                    Avalanche.Services.AiHighlightLog.Log(
-                        $"semantic indexing skipped - lexical-only mode ({embedEx.Message})");
-                }
+                    try
+                    {
+                        await _indexer.EnsureEmbeddingsAsync(index,
+                            (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
+                            embeddingModel, progress, indexingCts.Token,
+                            documentPrefix, queryPrefix);
+
+                        lock (_processingLock)
+                        {
+                            if (generation != _initGeneration) return;
+                        }
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            if (textlessPages > 0)
+                                SemanticStatus = string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages) +
+                                                 " " + _loc("Str_AiChatSemanticReady");
+                            else
+                                SemanticStatus = _loc("Str_AiChatSemanticReady");
+                        });
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // document switched - nothing to report
+                    }
+                    catch (AiProviderException pex) when (pex.Category == AiErrorCategory.ModelNotFound)
+                    {
+                        Avalanche.Services.AiHighlightLog.Log($"semantic indexing failed: model missing ({pex.ModelName})");
+                        Application.Current.Dispatcher.Invoke(() =>
+                            SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
+                    }
+                    catch (Exception embedEx)
+                    {
+                        Avalanche.Services.AiHighlightLog.Log(
+                            $"semantic indexing skipped - lexical-only mode ({embedEx.Message})");
+                        Application.Current.Dispatcher.Invoke(() =>
+                            SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
+                    }
+                });
 
                 // Nothing else to publish here: the lexical index went live
                 // BEFORE the embedding pass, so readiness never waited on it.
@@ -319,6 +375,8 @@ namespace Avalanche.Features.AI
                         // build's progress.
                         if (generation == _initGeneration)
                             IsIndexing = false;
+                        try { indexingCts.Dispose(); } catch { }
+                        if (_indexingCts == indexingCts) _indexingCts = null;
                     }
                 });
             }
@@ -491,6 +549,10 @@ namespace Avalanche.Features.AI
                 // that?") are almost all pronouns and stopwords; retrieving
                 // on their raw words found nothing, so the query is widened
                 // with the previous user question for context.
+                // Refresh configurable retrieval settings + semantic gate keys
+                // from live config (D2/D4).
+                RefreshRetrievalOptions();
+
                 var retrievalQuery = BuildRetrievalQuery(input);
                 var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, retrievalQuery, _retrievalOptions.TopK, ct);
 
@@ -510,8 +572,10 @@ namespace Avalanche.Features.AI
                 // Build system prompt with structured citation instructions
                 var systemPrompt = BuildSystemPrompt(retrieved);
 
-                // Prepare available sources for the model
-                var sourceRefs = BuildSourceReferences(retrieved);
+                // Evidence is embedded ONCE (inside the system prompt). A
+                // second AVAILABLE SOURCES copy previously doubled the payload
+                // (D6).
+                string sourceRefs = "";
 
                 // Get AI response with the CURRENT provider settings
                 var config = _configProvider();
@@ -707,25 +771,6 @@ namespace Avalanche.Features.AI
             sb.AppendLine("8. Distinguish the document's claims from your explanation.");
             sb.AppendLine("Output ONLY a JSON object:");
             sb.AppendLine("{\"answer\": \"The fee doubles after the first year. [SOURCE_1]\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text from that source>\", \"reason\": \"<why it supports the answer>\"}]}");
-            sb.AppendLine("(Do not ask the model for page numbers; the app derives them from sourceId.)");
-
-            return sb.ToString();
-        }
-
-        private string BuildSourceReferences(List<RetrievedChunk> retrieved)
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("AVAILABLE SOURCES:");
-            sb.AppendLine();
-
-            for (int i = 0; i < retrieved.Count; i++)
-            {
-                var chunk = retrieved[i].Chunk;
-                sb.AppendLine($"SOURCE_{i + 1}");
-                sb.AppendLine($"Page: {chunk.PageNumber}");
-                sb.AppendLine($"Text: {chunk.Text}");
-                sb.AppendLine();
-            }
 
             return sb.ToString();
         }
@@ -737,7 +782,28 @@ namespace Avalanche.Features.AI
                             && !m.IsLoading
                             && string.IsNullOrWhiteSpace(m.Error))
                 .TakeLast(_maxHistoryMessages)
+                .Select(m => m.MessageRole == ChatMessage.Role.Assistant
+                    // Old assistant turns carry THIS turn's SOURCE_n numbering;
+                    // the next turn renumbers, so stale markers are stripped
+                    // before they can bait wrong citations (D5).
+                    ? new ChatMessage { MessageRole = m.MessageRole, Content = AiChatText.StripCitationMarkers(m.Content) }
+                    : m)
                 .ToList();
+        }
+
+        /// <summary>Refreshes the retrieval options from LIVE settings before
+        /// each reply: TopK/evidence budget/history cap are configurable, and
+        /// the semantic gate needs the current embedding model + prefix set
+        /// (D2/D4).</summary>
+        private void RefreshRetrievalOptions()
+        {
+            var cfg = _configProvider();
+            _retrievalOptions.TopK = cfg.TopK;
+            _retrievalOptions.EvidenceCharBudget = cfg.EvidenceCharBudget;
+            _retrievalOptions.EmbeddingModel = cfg.EmbeddingModel;
+            _retrievalOptions.EmbeddingQueryPrefix = cfg.EmbeddingQueryPrefix;
+            _retrievalOptions.EmbeddingPrefixKey = (cfg.EmbeddingDocumentPrefix ?? "") + "\u0001" + (cfg.EmbeddingQueryPrefix ?? "");
+            _maxHistoryMessages = Math.Max(2, cfg.MaxHistoryMessages);
         }
 
         /// <summary>First 60 characters of a query for the diagnostics log.</summary>
@@ -784,13 +850,18 @@ namespace Avalanche.Features.AI
                 // Invalidate any in-flight index build or deferred reply.
                 _initGeneration++;
                 try { _replyCts?.Cancel(); } catch (ObjectDisposedException) { }
+                try { _indexingCts?.Cancel(); } catch (ObjectDisposedException) { }
                 _currentIndex = null;
                 _currentFilePath = "";
                 _currentDocumentId = "";
                 _pendingUserInput = null;
                 _pendingPlaceholder = null;
             }
-            Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                SemanticStatus = "";
+            });
         }
 
         /// <summary>
@@ -871,16 +942,13 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
-        /// Retrieval query for the user's input. Short follow-up questions
-        /// are mostly pronouns and stopwords; prepending the previous user
-        /// question gives the lexical query something substantive to match
-        /// without changing what the model is asked to answer.
+        /// Retrieval query for the user's input, the previous question and the
+        /// shared follow-up heuristics now live in the testable AiChatText
+        /// helper (D5): only genuine follow-ups are widened, and widening
+        /// caps the PREVIOUS question, never the current one.
         /// </summary>
         private string BuildRetrievalQuery(string input)
         {
-            if (!LooksLikeFollowUp(input))
-                return input;
-
             string? previous = null;
             for (int i = Messages.Count - 1; i >= 0; i--)
             {
@@ -891,31 +959,7 @@ namespace Avalanche.Features.AI
                     break;
                 }
             }
-
-            if (string.IsNullOrEmpty(previous) || previous == input)
-                return input;
-
-            var combined = previous + " " + input;
-            return combined.Length <= 400 ? combined : combined[..400];
-        }
-
-        /// <summary>Short questions, or ones opening with pronouns or
-        /// question words, lean on the previous turn for their subject.</summary>
-        private static bool LooksLikeFollowUp(string input)
-        {
-            var trimmed = input.Trim();
-            if (trimmed.Length < 80)
-                return true;
-
-            var first = trimmed.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-                               .FirstOrDefault();
-            if (first is null) return true;
-            first = new string(first.Where(char.IsLetter).ToArray()).ToLowerInvariant();
-            return first is "why" or "what" or "how" or "who" or "when" or "where"
-                or "it" or "its" or "that" or "this" or "these" or "those"
-                or "they" or "them" or "he" or "she" or "his" or "her"
-                or "so" or "and" or "but" or "because" or "then" or "also"
-                or "more" or "else" or "explain" or "continue";
+            return AiChatText.BuildRetrievalQuery(input, previous);
         }
 
         /// <summary>

@@ -140,25 +140,33 @@ namespace Avalanche.Features.AI
             Func<IReadOnlyList<string>, CancellationToken, Task<float[][]>> embedBatch,
             string embeddingModel,
             IProgress<IndexingProgress>? progress = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            string documentPrefix = "",
+            string queryPrefix = "")
         {
             if (doc is null) throw new ArgumentNullException(nameof(doc));
             if (doc.Chunks.Count == 0) return; // nothing to embed (e.g. empty text layer tolerated by caller)
             if (string.IsNullOrWhiteSpace(embeddingModel))
                 embeddingModel = OllamaEmbeddingClient.DefaultModel;
 
+            // The prefix set is part of the vector identity: changing it makes
+            // stored vectors incomparable with future query vectors.
+            var prefixKey = (documentPrefix ?? "") + "\u0001" + (queryPrefix ?? "");
+
             var state = _vectorIndex.GetEmbeddingState(doc.DocumentId);
             if (state is not null
                 && state.Model == embeddingModel
                 && state.ContentHash == doc.ContentHash
-                && state.ChunkCount == doc.Chunks.Count)
+                && state.ChunkCount == doc.Chunks.Count
+                && state.PrefixKey == prefixKey)
             {
                 progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 1.0, Message = "Embeddings up to date" });
                 return;
             }
 
-            // Different model or changed file: the old vectors point at chunk
-            // ids/text that no longer exist - drop them before refilling.
+            // Different model, changed file, or changed prefixes: the old
+            // vectors point at chunk ids/text that no longer exist - drop
+            // them before refilling.
             if (state is not null)
                 _vectorIndex.DeleteEmbeddingsForDocument(doc.DocumentId);
 
@@ -172,7 +180,7 @@ namespace Avalanche.Features.AI
                 // Vectors survived but the state row did not (crash between
                 // the last insert and the state write) - just re-mark.
                 _vectorIndex.SetEmbeddingState(doc.DocumentId, embeddingModel, doc.ContentHash,
-                    _vectorIndex.GetEmbeddingDim(doc.DocumentId), total);
+                    _vectorIndex.GetEmbeddingDim(doc.DocumentId), total, prefixKey);
                 progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 1.0, Message = "Embeddings up to date" });
                 return;
             }
@@ -184,7 +192,18 @@ namespace Avalanche.Features.AI
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var batch = missing.Skip(offset).Take(batchSize).ToList();
-                var vectors = await embedBatch(batch.Select(c => c.Text).ToList(), cancellationToken).ConfigureAwait(false);
+
+                // The document task prompt goes on EVERY chunk (query time
+                // applies the query prompt); the input is hard-capped so a
+                // long-token chunk cannot blow up the request.
+                var inputs = batch
+                    .Select(c => TruncateForEmbedding((documentPrefix ?? "") + c.Text))
+                    .ToList();
+
+                // One retry per batch: a transient Ollama hiccup previously
+                // aborted the whole pass and silently downgraded the document
+                // to keyword-only search.
+                float[][] vectors = await TryEmbedBatchAsync(embedBatch, inputs, cancellationToken, attempts: 2);
 
                 if (vectors is null || vectors.Length != batch.Count)
                     throw new InvalidOperationException(
@@ -214,8 +233,42 @@ namespace Avalanche.Features.AI
                 });
             }
 
-            _vectorIndex.SetEmbeddingState(doc.DocumentId, embeddingModel, doc.ContentHash, dim, total);
+            _vectorIndex.SetEmbeddingState(doc.DocumentId, embeddingModel, doc.ContentHash, dim, total, prefixKey);
         }
+
+        /// <summary>Embeds one batch, retrying once on any non-cancellation
+        /// failure before giving up.</summary>
+        private static async Task<float[][]> TryEmbedBatchAsync(
+            Func<IReadOnlyList<string>, CancellationToken, Task<float[][]>> embedBatch,
+            List<string> inputs,
+            CancellationToken ct,
+            int attempts)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return await embedBatch(inputs, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch when (attempt < attempts)
+                {
+                    // fall through to the retry
+                }
+            }
+        }
+
+        /// <summary>Hard cap for one embedding input: long-token chunks (URLs,
+        /// base64, CJK runs) can far exceed MaxChunkSize in model tokens.</summary>
+        internal const int MaxEmbeddingInputChars = 1200;
+
+        private static string TruncateForEmbedding(string text) =>
+            string.IsNullOrEmpty(text) || text.Length <= MaxEmbeddingInputChars
+                ? text
+                : text[..MaxEmbeddingInputChars];
 
         /// <summary>
         /// Builds a fresh index from the PDF. Extraction streams page by page
@@ -250,7 +303,7 @@ namespace Avalanche.Features.AI
                 {
                     var page = pdfDoc.GetPage(pi + 1);
                     var rawWords = page.GetWords()
-                        .Select(w => new IndexedWord(w.Text, w.BoundingBox.Left, w.BoundingBox.Bottom,
+                        .Select(w => new IndexedWord(NormalizeWordText(w.Text), w.BoundingBox.Left, w.BoundingBox.Bottom,
                             w.BoundingBox.Right, w.BoundingBox.Top))
                         .ToList();
 
@@ -331,6 +384,23 @@ namespace Avalanche.Features.AI
                 CreatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 UpdatedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             };
+        }
+
+        /// <summary>
+        /// Strips whitespace from inside a PdfPig word's text. A word whose
+        /// text contains a non-breaking space (or any other whitespace) made
+        /// text.Split() yield MORE tokens than there are words, so every later
+        /// WordRange on the chunk drifted and page slices/highlights pointed
+        /// at the wrong words. After normalization the joined chunk text splits
+        /// back into exactly the stored words (D9).
+        /// </summary>
+        internal static string NormalizeWordText(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+            foreach (var ch in text)
+                if (char.IsWhiteSpace(ch))
+                    return new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
+            return text;
         }
 
         private static bool IsPasswordFailure(Exception ex)

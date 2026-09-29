@@ -81,6 +81,9 @@
          the hybrid retriever. AiHighlightLog is dependency-free file logging.
          DocumentIndexer pulls PdfPig (already referenced above). -->
     <Compile Include="..\Features\AI\AiEndpoints.cs" Link="Features\AI\AiEndpoints.cs" />
+    <Compile Include="..\Features\AI\AiProviderException.cs" Link="Features\AI\AiProviderException.cs" />
+    <Compile Include="..\Features\AI\AiCitations.cs" Link="Features\AI\AiCitations.cs" />
+    <Compile Include="..\Features\AI\AiChatText.cs" Link="Features\AI\AiChatText.cs" />
     <Compile Include="..\Features\AI\AiModels.cs" Link="Features\AI\AiModels.cs" />
     <Compile Include="..\Features\AI\VectorIndex.cs" Link="Features\AI\VectorIndex.cs" />
     <Compile Include="..\Features\AI\OllamaEmbeddingClient.cs" Link="Features\AI\OllamaEmbeddingClient.cs" />

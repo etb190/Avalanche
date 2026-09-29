@@ -181,6 +181,20 @@ namespace Avalanche.Features.AI
         // (local vectors for the hybrid retriever). Never used for chat
         // generation; that stays gpt-oss:120b-cloud.
         public string EmbeddingModel { get; set; } = "embeddinggemma:latest";
+
+        // Retrieval behavior (was hardcoded in the AiChatViewModel ctor).
+        public int TopK { get; set; } = 8;
+        public int EvidenceCharBudget { get; set; } = 12000;
+        public int MaxHistoryMessages { get; set; } = 6;
+
+        // Embedding prompt prefixes (model-specific). The EmbeddingGemma model
+        // card prescribes task prompts - documents: "title: none | text: ...",
+        // queries: "task: search results | query: ...". nomic-embed-text
+        // models use "search_document: " / "search_query: ". Changing a
+        // prefix invalidates stored vectors (they are part of the embedding
+        // state).
+        public string EmbeddingDocumentPrefix { get; set; } = "title: none | text: ";
+        public string EmbeddingQueryPrefix { get; set; } = "task: search results | query: ";
         public double Temperature { get; set; } = 0.1;
         public int MaxTokens { get; set; } = 4096;  // Increased default for reasoning models
         public double TopP { get; set; } = 1.0;

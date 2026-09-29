@@ -20,6 +20,11 @@ namespace Avalanche.Features.AI
         private double _genTopP = 1.0;
         private string _genReasoningEffort = "low";
         private string _embeddingModel = "embeddinggemma:latest";
+        private int _topK = 8;
+        private int _evidenceCharBudget = 12000;
+        private int _maxHistoryMessages = 6;
+        private string _embeddingDocumentPrefix = "title: none | text: ";
+        private string _embeddingQueryPrefix = "task: search results | query: ";
 
         private bool _isEnabled = false;
         private string _connectionStatus = "";
@@ -83,6 +88,36 @@ namespace Avalanche.Features.AI
             set { _embeddingModel = value; OnPropertyChanged(); }
         }
 
+        public int TopK
+        {
+            get => _topK;
+            set { _topK = Math.Max(1, value); OnPropertyChanged(); }
+        }
+
+        public int EvidenceCharBudget
+        {
+            get => _evidenceCharBudget;
+            set { _evidenceCharBudget = Math.Max(1000, value); OnPropertyChanged(); }
+        }
+
+        public int MaxHistoryMessages
+        {
+            get => _maxHistoryMessages;
+            set { _maxHistoryMessages = Math.Max(2, value); OnPropertyChanged(); }
+        }
+
+        public string EmbeddingDocumentPrefix
+        {
+            get => _embeddingDocumentPrefix;
+            set { _embeddingDocumentPrefix = value ?? ""; OnPropertyChanged(); }
+        }
+
+        public string EmbeddingQueryPrefix
+        {
+            get => _embeddingQueryPrefix;
+            set { _embeddingQueryPrefix = value ?? ""; OnPropertyChanged(); }
+        }
+
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -123,7 +158,12 @@ namespace Avalanche.Features.AI
                 Temperature = GenTemperature,
                 MaxTokens = GenMaxTokens,
                 TopP = GenTopP,
-                ReasoningEffort = GenReasoningEffort
+                ReasoningEffort = GenReasoningEffort,
+                TopK = TopK,
+                EvidenceCharBudget = EvidenceCharBudget,
+                MaxHistoryMessages = MaxHistoryMessages,
+                EmbeddingDocumentPrefix = EmbeddingDocumentPrefix,
+                EmbeddingQueryPrefix = EmbeddingQueryPrefix
             };
         }
 
@@ -139,6 +179,13 @@ namespace Avalanche.Features.AI
             GenMaxTokens = config.MaxTokens;
             GenTopP = config.TopP;
             GenReasoningEffort = config.ReasoningEffort ?? "low";
+            TopK = config.TopK;
+            EvidenceCharBudget = config.EvidenceCharBudget;
+            MaxHistoryMessages = config.MaxHistoryMessages;
+            EmbeddingDocumentPrefix = string.IsNullOrEmpty(config.EmbeddingDocumentPrefix)
+                ? "title: none | text: " : config.EmbeddingDocumentPrefix;
+            EmbeddingQueryPrefix = string.IsNullOrEmpty(config.EmbeddingQueryPrefix)
+                ? "task: search results | query: " : config.EmbeddingQueryPrefix;
         }
 
         public void ApplyOllamaPreset()

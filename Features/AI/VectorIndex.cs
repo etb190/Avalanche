@@ -66,7 +66,7 @@ namespace Avalanche.Features.AI
 
         private static readonly string[] EmbeddingStateColumns =
         {
-            "document_id", "model", "content_hash", "dim", "chunk_count", "updated_at"
+            "document_id", "model", "content_hash", "dim", "chunk_count", "prefix_key", "updated_at"
         };
 
         public VectorIndex(string dbPath)
@@ -190,6 +190,7 @@ namespace Avalanche.Features.AI
                     content_hash TEXT NOT NULL,
                     dim INTEGER NOT NULL,
                     chunk_count INTEGER NOT NULL,
+                    prefix_key TEXT NOT NULL DEFAULT '',
                     updated_at INTEGER NOT NULL
                 );
             ";
@@ -625,12 +626,13 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>Recorded embedding pass for a document, or null. The
-        /// content hash + chunk count decide whether vectors can be reused.</summary>
+        /// content hash + chunk count + prefix key decide whether vectors can
+        /// be reused.</summary>
         public EmbeddingState? GetEmbeddingState(string documentId)
         {
             using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
-            cmd.CommandText = "SELECT model, content_hash, dim, chunk_count FROM embedding_state WHERE document_id = $doc_id";
+            cmd.CommandText = "SELECT model, content_hash, dim, chunk_count, prefix_key FROM embedding_state WHERE document_id = $doc_id";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
 
             using var reader = cmd.ExecuteReader();
@@ -642,22 +644,24 @@ namespace Avalanche.Features.AI
                 Model = reader.GetString(0),
                 ContentHash = reader.GetString(1),
                 Dim = reader.GetInt32(2),
-                ChunkCount = reader.GetInt32(3)
+                ChunkCount = reader.GetInt32(3),
+                PrefixKey = reader.IsDBNull(4) ? "" : reader.GetString(4)
             };
         }
 
-        public void SetEmbeddingState(string documentId, string model, string contentHash, int dim, int chunkCount)
+        public void SetEmbeddingState(string documentId, string model, string contentHash, int dim, int chunkCount, string prefixKey = "")
         {
             using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
-                INSERT INTO embedding_state (document_id, model, content_hash, dim, chunk_count, updated_at)
-                VALUES ($doc_id, $model, $hash, $dim, $count, $updated)
+                INSERT INTO embedding_state (document_id, model, content_hash, dim, chunk_count, prefix_key, updated_at)
+                VALUES ($doc_id, $model, $hash, $dim, $count, $prefix_key, $updated)
                 ON CONFLICT(document_id) DO UPDATE SET
                     model = $model,
                     content_hash = $hash,
                     dim = $dim,
                     chunk_count = $count,
+                    prefix_key = $prefix_key,
                     updated_at = $updated;
             ";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
@@ -665,8 +669,38 @@ namespace Avalanche.Features.AI
             cmd.Parameters.AddWithValue("$hash", contentHash);
             cmd.Parameters.AddWithValue("$dim", dim);
             cmd.Parameters.AddWithValue("$count", chunkCount);
+            cmd.Parameters.AddWithValue("$prefix_key", prefixKey ?? "");
             cmd.Parameters.AddWithValue("$updated", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             cmd.ExecuteNonQuery();
+        }
+
+        /// <summary>
+        /// True when the semantic channel may be USED for retrieval: a
+        /// COMPLETED embedding pass exists whose model AND prefix set match
+        /// the configured ones, covering exactly the chunks the document has
+        /// now. Partial passes (interrupted, failed) and foreign-model or
+        /// foreign-prefix vectors never bias the fusion (D2) - retrieval
+        /// degrades to pure lexical, and the next EnsureEmbeddingsAsync pass
+        /// rebuilds the mismatched set.
+        /// </summary>
+        public bool IsSemanticChannelReady(string documentId, string model, string prefixKey)
+        {
+            using var _dbGateScope = Gate();
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT EXISTS(
+                    SELECT 1 FROM embedding_state s
+                    WHERE s.document_id = $doc_id
+                      AND s.model = $model
+                      AND s.prefix_key = $prefix_key
+                      AND s.chunk_count = (SELECT COUNT(*) FROM chunks WHERE document_id = $doc_id)
+                      AND (SELECT COUNT(*) FROM chunk_embeddings WHERE document_id = $doc_id) >= s.chunk_count
+                )
+            ";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+            cmd.Parameters.AddWithValue("$model", model ?? "");
+            cmd.Parameters.AddWithValue("$prefix_key", prefixKey ?? "");
+            return Convert.ToInt64(cmd.ExecuteScalar()) == 1;
         }
 
         /// <summary>Chunk ids that already carry a vector - the resume set
@@ -880,6 +914,7 @@ namespace Avalanche.Features.AI
         public string ContentHash { get; set; } = "";
         public int Dim { get; set; }
         public int ChunkCount { get; set; }
+        public string PrefixKey { get; set; } = "";
     }
         public void Dispose()
         {

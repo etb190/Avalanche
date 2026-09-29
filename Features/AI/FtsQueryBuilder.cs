@@ -35,6 +35,36 @@ namespace Avalanche.Features.AI
             "whom","whose","when","where","why","how"
         };
 
+        /// <summary>True when the term is on the shared stopword list.</summary>
+        public static bool IsStopword(string term) =>
+            !string.IsNullOrEmpty(term) && Stopwords.Contains(term);
+
+        /// <summary>How many content (non-stopword, non-trivial) terms a text
+        /// carries after the same tokenization Build uses. Follow-up detection
+        /// widens only questions with fewer than three of them.</summary>
+        public static int CountContentTerms(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 0;
+            int count = 0;
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var sb = new StringBuilder();
+            void Flush()
+            {
+                var term = sb.ToString();
+                sb.Clear();
+                if (term.Length < 2 || Stopwords.Contains(term) || !seen.Add(term))
+                    return;
+                count++;
+            }
+            foreach (var ch in text.ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+                else if (sb.Length > 0) Flush();
+            }
+            if (sb.Length > 0) Flush();
+            return count;
+        }
+
         public static string? Build(string? query)
         {
             if (string.IsNullOrWhiteSpace(query)) return null;

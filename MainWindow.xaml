@@ -2746,6 +2746,7 @@
                         <RowDefinition Height="Auto"/>   <!-- Header -->
                         <RowDefinition Height="*"/>      <!-- Conversation -->
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
+                        <RowDefinition Height="Auto"/>   <!-- Semantic status -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
                     <!-- Edge bevels, the pages/outline sidebar's SidebarBorder
@@ -2942,8 +2943,17 @@
                         </Grid>
                     </Border>
 
+                    <!-- One-line semantic-retrieval status: building / ready /
+                         embedding model missing / keyword-only fallback. -->
+                    <Border Grid.Row="3" Padding="12,3"
+                            Visibility="{Binding SemanticStatus, Converter={StaticResource StringToVisibilityConverter}}">
+                        <TextBlock Text="{Binding SemanticStatus}" TextTrimming="CharacterEllipsis"
+                                   FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                   Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                    </Border>
+
                     <!-- Input Area -->
-                    <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                    <Border Grid.Row="4" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Background="Transparent" CornerRadius="0"
                             Padding="8">
                         <Grid>

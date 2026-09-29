@@ -35,10 +35,14 @@ namespace Avalanche.Features.AI
 
         // Capability probe state (see class doc). A negative probe is retried
         // after EmbeddingRetryCoolDown so a temporarily-down Ollama does not
-        // disable semantic search for the whole process run.
+        // disable semantic search for the whole process run. The state is
+        // keyed by (base url, embedding model): changing the model in settings
+        // previously kept a stale "available" verdict for a DIFFERENT model.
         private const int CapabilityUnknown = 0;
         private const int CapabilityAvailable = 1;
         private const int CapabilityUnavailable = 2;
+        private readonly object _stateLock = new object();
+        private string? _capabilityKey;
         private int _capability = CapabilityUnknown;
         private long _unavailableAtUtcTicks;
         private readonly SemaphoreSlim _probeLock = new SemaphoreSlim(1, 1);
@@ -125,7 +129,16 @@ namespace Avalanche.Features.AI
             using var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
             var responseJson = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
-                throw new HttpRequestException($"Ollama embed failed: {(int)response.StatusCode} {response.StatusCode} - {Truncate(responseJson, 300)}");
+            {
+                var model = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel;
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    throw new AiProviderException(AiErrorCategory.ModelNotFound, model, response.StatusCode);
+                if (hreLike(response))
+                    throw new AiProviderException(AiErrorCategory.OllamaNotRunning, model, null);
+                throw new AiProviderException(AiErrorCategory.BadResponse, model, response.StatusCode);
+
+                bool hreLike(HttpResponseMessage r) => (int)r.StatusCode >= 500 || r.StatusCode == System.Net.HttpStatusCode.RequestTimeout;
+            }
 
             return ParseEmbeddings(responseJson, batch.Count);
         }
@@ -194,41 +207,62 @@ namespace Avalanche.Features.AI
         /// </summary>
         private async Task EnsureEmbeddingsAvailableAsync(CancellationToken cancellationToken)
         {
-            if (Volatile.Read(ref _capability) == CapabilityAvailable)
-                return;
+            var config = _configProvider();
+            var key = CapabilityKey(config);
 
-            if (Volatile.Read(ref _capability) == CapabilityUnavailable)
+            lock (_stateLock)
             {
-                var elapsed = DateTime.UtcNow.Ticks - Volatile.Read(ref _unavailableAtUtcTicks);
-                if (elapsed < EmbeddingRetryCoolDown.Ticks)
-                    throw EmbeddingsUnavailable();
+                if (_capabilityKey != key)
+                {
+                    // Endpoint or model changed: previous verdicts no longer apply.
+                    _capabilityKey = key;
+                    _capability = CapabilityUnknown;
+                }
+
+                if (_capability == CapabilityAvailable)
+                    return;
+
+                if (_capability == CapabilityUnavailable)
+                {
+                    var elapsed = DateTime.UtcNow.Ticks - _unavailableAtUtcTicks;
+                    if (elapsed < EmbeddingRetryCoolDown.Ticks)
+                        throw EmbeddingsUnavailable(config);
+                }
             }
 
             await _probeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                if (Volatile.Read(ref _capability) == CapabilityAvailable)
-                    return;
-                if (Volatile.Read(ref _capability) == CapabilityUnavailable
-                    && DateTime.UtcNow.Ticks - Volatile.Read(ref _unavailableAtUtcTicks) < EmbeddingRetryCoolDown.Ticks)
-                    throw EmbeddingsUnavailable();
+                lock (_stateLock)
+                {
+                    if (_capabilityKey != key)
+                    {
+                        _capabilityKey = key;
+                        _capability = CapabilityUnknown;
+                    }
+                    if (_capability == CapabilityAvailable)
+                        return;
+                    if (_capability == CapabilityUnavailable
+                        && DateTime.UtcNow.Ticks - _unavailableAtUtcTicks < EmbeddingRetryCoolDown.Ticks)
+                        throw EmbeddingsUnavailable(config);
+                }
 
                 try
                 {
                     using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     cts.CancelAfter(ProbeTimeout);
                     await GenerateBatchAsync(new List<string> { "capability probe" }, cts.Token).ConfigureAwait(false);
-                    Volatile.Write(ref _capability, CapabilityAvailable);
+                    lock (_stateLock) _capability = CapabilityAvailable;
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
                     MarkUnavailable();
-                    throw EmbeddingsUnavailable();
+                    throw EmbeddingsUnavailable(config);
                 }
                 catch (Exception ex)
                 {
                     MarkUnavailable();
-                    throw EmbeddingsUnavailable(ex);
+                    throw EmbeddingsUnavailable(config, ex);
                 }
             }
             finally
@@ -239,14 +273,25 @@ namespace Avalanche.Features.AI
 
         private void MarkUnavailable()
         {
-            Volatile.Write(ref _unavailableAtUtcTicks, DateTime.UtcNow.Ticks);
-            Volatile.Write(ref _capability, CapabilityUnavailable);
+            lock (_stateLock)
+            {
+                _unavailableAtUtcTicks = DateTime.UtcNow.Ticks;
+                _capability = CapabilityUnavailable;
+            }
         }
 
-        private static HttpRequestException EmbeddingsUnavailable(Exception? inner = null) =>
-            new HttpRequestException(
-                $"Embeddings are unavailable (embeddinggemma:latest at the local Ollama bridge). " +
+        private static string CapabilityKey(AiProviderConfig config) =>
+            $"{config.BaseUrl}|{config.EmbeddingModel}";
+
+        private static HttpRequestException EmbeddingsUnavailable(AiProviderConfig config, Exception? inner = null)
+        {
+            var model = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel;
+            // Log/diagnostic text only - the UI shows localized strings from
+            // the view model, never this message.
+            return new HttpRequestException(
+                $"Embeddings are unavailable ({model} at the local Ollama bridge). " +
                 $"Search falls back to lexical (BM25) mode until Ollama serves /api/embed.", inner);
+        }
 
         private static string Truncate(string s, int max) =>
             string.IsNullOrEmpty(s) || s.Length <= max ? s : s[..max] + "...";

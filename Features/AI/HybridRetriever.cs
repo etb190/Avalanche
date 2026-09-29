@@ -37,18 +37,28 @@ namespace Avalanche.Features.AI
             if (string.IsNullOrWhiteSpace(query))
                 return new List<RetrievedChunk>();
 
-            // Semantic channel. Two gates keep the fallback FREE of network
-            // cost: no embedding client, or no stored vectors for this
-            // document yet (embedding pass still running or failed) -> pure
-            // lexical without an HTTP round-trip.
+            // Semantic channel. Three gates keep the fallback FREE of network
+            // cost and of bad vectors: no embedding client, no COMPLETED
+            // embedding pass for the CURRENT model + prefix set (partial or
+            // foreign-model vectors never bias the fusion - D2), or a failed
+            // query embedding -> pure lexical.
             float[] queryEmbedding = Array.Empty<float>();
             bool usedSemantic = false;
-            if (_embeddingClient is not null && _vectorIndex.HasEmbeddings(documentId))
+            bool vectorsReady = !string.IsNullOrEmpty(_options.EmbeddingModel)
+                && _vectorIndex.IsSemanticChannelReady(documentId, _options.EmbeddingModel, _options.EmbeddingPrefixKey);
+            if (_embeddingClient is not null && vectorsReady)
             {
                 try
                 {
-                    queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query, cancellationToken).ConfigureAwait(false);
+                    var queryText = (_options.EmbeddingQueryPrefix ?? "") + query;
+                    if (queryText.Length > DocumentIndexer.MaxEmbeddingInputChars)
+                        queryText = queryText[..DocumentIndexer.MaxEmbeddingInputChars];
+                    queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(queryText, cancellationToken).ConfigureAwait(false);
                     usedSemantic = queryEmbedding is { Length: > 0 };
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -71,6 +81,14 @@ namespace Avalanche.Features.AI
                     return new List<RetrievedChunk>();
 
                 VectorIndex.NormalizeScores(results);
+
+                // Min-max normalization makes the weakest hit 0, so an
+                // ABSOLUTE MinScore turned the filter relative: with two
+                // matching chunks the weaker one was often dropped outright.
+                // Use a relative-to-best threshold instead: keep what is at
+                // least 20% as good as the best hit.
+                float best = results.Max(r => r.Score);
+                results = results.Where(r => r.Score >= best * 0.2f).ToList();
             }
 
             // A single hit has nothing to normalize against; it matched the
@@ -87,6 +105,11 @@ namespace Avalanche.Features.AI
                 results = Rerank(query, results);
                 reranked = true;
             }
+
+            // Adjacent chunks share up to 40 overlap words: the same passage
+            // can otherwise occupy two evidence slots and halve the usable
+            // context. Heavily overlapping hits are merged away, best first.
+            results = DedupeOverlapping(results);
 
             // Apply evidence character budget
             var finalResults = ApplyEvidenceBudget(results, _options.EvidenceCharBudget);
@@ -160,9 +183,43 @@ namespace Avalanche.Features.AI
             return selected;
         }
 
+        /// <summary>Skips hits whose normalized word set overlaps an already
+        /// kept hit by more than 60% (Jaccard). Order is preserved - callers
+        /// hand in score-ordered candidates.</summary>
+        private static List<RetrievedChunk> DedupeOverlapping(List<RetrievedChunk> results)
+        {
+            if (results.Count <= 1) return results;
+
+            var kept = new List<RetrievedChunk>(results.Count);
+            var keptWordSets = new List<HashSet<string>>(results.Count);
+            foreach (var r in results)
+            {
+                var words = new HashSet<string>(
+                    (r.Chunk.Text ?? "").ToLowerInvariant()
+                        .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries),
+                    StringComparer.Ordinal);
+
+                bool duplicate = keptWordSets.Any(keptWords =>
+                {
+                    int shared = 0;
+                    foreach (var w in words)
+                        if (keptWords.Contains(w)) shared++;
+                    int union = keptWords.Count + words.Count - shared;
+                    return union > 0 && (double)shared / union > 0.6;
+                });
+                if (duplicate) continue;
+
+                kept.Add(r);
+                keptWordSets.Add(words);
+            }
+            return kept;
+        }
+
         /// <summary>
         /// Reranks candidates using a heuristic approach based on query-term
         /// overlap and position. Pure CPU work - no model call involved.
+        /// Stopwords come from the shared FTS list - the old length>2 rule
+        /// counted "does"/"that"/"why" as evidence-bearing terms.
         /// </summary>
         private List<RetrievedChunk> Rerank(string query, List<RetrievedChunk> candidates)
         {
@@ -172,7 +229,7 @@ namespace Avalanche.Features.AI
 
             var queryTerms = query.ToLowerInvariant()
                 .Split(new[] { ' ', '\n', '\r', '\t', '.', ',', ';', ':', '!', '?' }, StringSplitOptions.RemoveEmptyEntries)
-                .Where(t => t.Length > 2)
+                .Where(t => t.Length > 1 && !FtsQueryBuilder.IsStopword(t))
                 .Distinct()
                 .ToList();
 
@@ -238,5 +295,14 @@ namespace Avalanche.Features.AI
         public int MaxRerankCandidates { get; set; } = 20;    // Max candidates to rerank
         public float LexicalWeight { get; set; } = 0.4f;      // BM25 channel weight in the fusion
         public float SemanticWeight { get; set; } = 0.6f;     // Cosine channel weight in the fusion
+
+        // Semantic channel gating (D2): the embedding model + prefix set the
+        // vectors were built with. The retriever uses the semantic channel
+        // ONLY when the stored embedding state matches BOTH - partial or
+        // foreign-model vectors never bias the fusion. Refreshed from live
+        // config before every retrieval by the view model.
+        public string EmbeddingModel { get; set; } = "";
+        public string EmbeddingQueryPrefix { get; set; } = "";
+        public string EmbeddingPrefixKey { get; set; } = "";
     }
 }
