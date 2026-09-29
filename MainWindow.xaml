@@ -2732,18 +2732,22 @@
                  so the panel laid out zero pixels wide and was invisible. A
                  full-width slot is never narrower than the panel, so Width=380
                  plus Right alignment is exact.) RowSpan=2 keeps the top edge
-                 flush under the toolbar; SidebarPaneBrush is transparent
-                 outside 98SE, so the shared grain border and window surface
-                 still show through exactly like the pages rail; ZIndex 200 puts
-                 the overlay above the comparison bar (100) and the sidebar
-                 splitter (50), exactly like the pre-dock overlay; still no
-                 shadow or clip, so it reads as flush chrome, not a card. -->
+                 flush under the toolbar. Background: the panel hangs over the
+                 document card now, so it can NOT let the surface show through
+                 (that was the docked trick) - instead it paints the toolbar
+                 header's exact recipe itself: BackgroundBrush base + the
+                 shared grain at GrainOpacity, i.e. the same dark
+                 semitransparent grain as the header and the pages/outline
+                 rail. ZIndex 200 puts the overlay above the comparison bar
+                 (100) and the sidebar splitter (50), exactly like the
+                 pre-dock overlay; still no shadow or clip, so it reads as
+                 flush chrome, not a card. -->
             <Border x:Name="AiChatOverlay" Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="0" Grid.RowSpan="2"
                     Panel.ZIndex="200"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Stretch"
                     Width="380" Visibility="Collapsed"
-                    Background="{DynamicResource SidebarPaneBrush}"
+                    Background="{DynamicResource BackgroundBrush}"
                     BorderThickness="0">
                 <Border.RenderTransform>
                     <TranslateTransform x:Name="AiPanelShift"/>
@@ -2755,6 +2759,13 @@
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
+                    <!-- The toolbar header's grain, replicated 1:1: this overlay
+                         hangs over the document card, so it paints its own copy of
+                         the shared grain instead of relying on what is beneath it.
+                         First child, under the (transparent) strips and bevel. -->
+                    <Border Grid.RowSpan="4" IsHitTestVisible="False"
+                            Opacity="{DynamicResource GrainOpacity}"
+                            Background="{StaticResource GrainBrushShared}"/>
                     <!-- Edge bevels, the pages/outline sidebar's SidebarBorder
                          treatment: directional bevels on 98SE, transparent elsewhere.
                          Hit-test transparent, above the (transparent) strips. -->
