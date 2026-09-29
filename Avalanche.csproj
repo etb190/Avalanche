@@ -135,8 +135,8 @@
     <Resource Include="Resources\kp-icon.ico" />
     <Resource Include="Resources\kp-icon.png" />
     <Resource Include="Fonts\Typewriter-A602.ttf" />
-	<Resource Include="Resources\open_hand.cur" />
-	<Resource Include="Resources\closed_hand.cur" />
+        <Resource Include="Resources\open_hand.cur" />
+        <Resource Include="Resources\closed_hand.cur" />
     <EmbeddedResource Include="Resources\pdf-file.ico" />
   </ItemGroup>
 
@@ -159,4 +159,7 @@
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File '$(ProjectDir)build\bundle-source.ps1' -ProjectDir '$(ProjectDir.TrimEnd('\'))' -Version '$(Version)' -AppName '$(AssemblyName)' -PublishDir '$(PublishDir.TrimEnd('\'))'" IgnoreExitCode="true" />
   </Target>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Avalanche.Tests" />
+  </ItemGroup>
 </Project>

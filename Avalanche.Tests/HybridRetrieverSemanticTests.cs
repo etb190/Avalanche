@@ -54,7 +54,13 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         handler.VectorMap[Question] = new[] { 1f, 0f, 0f, 0f };
         var retriever = new HybridRetriever(index,
             new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
-            new RetrievalOptions { EnableReranking = false, MinScore = 0.15f });
+            new RetrievalOptions
+            {
+                EnableReranking = false,
+                MinScore = 0.15f,
+                EmbeddingModel = "embeddinggemma:latest",
+                EmbeddingPrefixKey = "\u0001"   // seed pass used empty doc/query prefixes
+            });
 
         var results = await retriever.RetrieveAsync("doc_rank", Question, 8);
 
@@ -62,6 +68,54 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         Assert.Equal(SemanticTestHelpers.TerminationText, results[0].Chunk.Text);
         Assert.Equal(30, results[0].Chunk.PageNumber);
         Assert.True(results[0].Score >= results[^1].Score);
+    }
+
+    [Fact]
+    public async Task PartialEmbeddingPass_NeverUsesSemanticChannel()
+    {
+        // D2: a completed-pass gate - vectors present but the state row says
+        // the pass is not complete for this chunk count -> lexical only.
+        using var index = await SeedAsync("doc_partial");
+        var handler = new FakeEmbedHandler();
+        handler.VectorMap[Question] = new[] { 1f, 0f, 0f, 0f };
+        // Simulate a partial pass: state row claims MORE chunks than embedded.
+        index.SetEmbeddingState("doc_partial", "embeddinggemma:latest", "any", 4, 999, "\u0001");
+        var retriever = new HybridRetriever(index,
+            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new RetrievalOptions
+            {
+                EnableReranking = false,
+                EmbeddingModel = "embeddinggemma:latest",
+                EmbeddingPrefixKey = "\u0001"
+            });
+
+        var results = await retriever.RetrieveAsync("doc_partial", "terminated notice", 8);
+
+        Assert.NotEmpty(results);
+        Assert.All(results, r => Assert.Equal(RetrievalMethod.Lexical, r.Method));
+    }
+
+    [Fact]
+    public async Task ModelMismatch_LexicalOnly()
+    {
+        // D2: stored vectors were built with a different model than the
+        // configured one -> the semantic channel is refused.
+        using var index = await SeedAsync("doc_model");
+        var handler = new FakeEmbedHandler();
+        handler.VectorMap[Question] = new[] { 1f, 0f, 0f, 0f };
+        var retriever = new HybridRetriever(index,
+            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new RetrievalOptions
+            {
+                EnableReranking = false,
+                EmbeddingModel = "nomic-embed-text:latest",
+                EmbeddingPrefixKey = "\u0001"
+            });
+
+        var results = await retriever.RetrieveAsync("doc_model", "terminated notice", 8);
+
+        Assert.NotEmpty(results);
+        Assert.All(results, r => Assert.Equal(RetrievalMethod.Lexical, r.Method));
     }
 
     [Fact]
