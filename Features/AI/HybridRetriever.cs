@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Avalanche.Features.AI
@@ -30,7 +31,8 @@ namespace Avalanche.Features.AI
         /// with optional reranking. Falls back to lexical-only when the
         /// embedding layer is unavailable - see the class doc.
         /// </summary>
-        public async Task<List<RetrievedChunk>> RetrieveAsync(string documentId, string query, int maxResults = 10)
+        public async Task<List<RetrievedChunk>> RetrieveAsync(string documentId, string query, int maxResults = 10,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return new List<RetrievedChunk>();
@@ -45,7 +47,7 @@ namespace Avalanche.Features.AI
             {
                 try
                 {
-                    queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query).ConfigureAwait(false);
+                    queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query, cancellationToken).ConfigureAwait(false);
                     usedSemantic = queryEmbedding is { Length: > 0 };
                 }
                 catch (Exception ex)
@@ -110,12 +112,13 @@ namespace Avalanche.Features.AI
         /// Semantic-only search for conceptual queries (diagnostics and
         /// tests; the normal path is the fused RetrieveAsync).
         /// </summary>
-        public async Task<List<RetrievedChunk>> SemanticSearchAsync(string documentId, string query, int maxResults = 10)
+        public async Task<List<RetrievedChunk>> SemanticSearchAsync(string documentId, string query, int maxResults = 10,
+            CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(query) || _embeddingClient is null)
                 return new List<RetrievedChunk>();
 
-            var queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query).ConfigureAwait(false);
+            var queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query, cancellationToken).ConfigureAwait(false);
             var results = _vectorIndex.SemanticSearch(documentId, queryEmbedding, maxResults);
             foreach (var r in results) r.Method = RetrievalMethod.Semantic;
             return results;

@@ -40,9 +40,18 @@ namespace Avalanche.Features.AI
         private double _indexingProgress = 0.0;
         private bool _isProcessing;
         private readonly object _processingLock = new();
-        private int _maxHistoryMessages = 10;
+        private int _maxHistoryMessages = 6;
         private string? _pendingUserInput;  // Queue message if indexing not complete
         private ChatMessage? _pendingPlaceholder;  // "Preparing..." bubble shown while a queued message waits
+
+        /// <summary>Cancels the in-flight reply (user Stop button or document
+        /// switch). Replaced for every new reply.</summary>
+        private CancellationTokenSource? _replyCts;
+
+        /// <summary>Chat transcript per document id - restored when the user
+        /// switches back to a document (C6). Entries are snapshots without
+        /// loading placeholders or error bubbles.</summary>
+        private readonly Dictionary<string, List<ChatMessage>> _historyByDocument = new();
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
@@ -74,7 +83,7 @@ namespace Avalanche.Features.AI
         /// be swept out from under a reply that is still streaming.</summary>
         public bool CanStartNewChat => !IsProcessing;
 
-        public bool CanSend => !IsProcessing && !string.IsNullOrWhiteSpace(CurrentInput);
+        public bool CanSend => !IsProcessing && !IsIndexing && !string.IsNullOrWhiteSpace(CurrentInput);
 
         public string CurrentInput 
         { 
@@ -163,24 +172,40 @@ namespace Avalanche.Features.AI
         {
             if (string.IsNullOrEmpty(filePath)) return;
 
-            int generation;
+            bool restored = false;
             lock (_processingLock)
             {
-                if (_currentFilePath == filePath && _currentIndex != null)
+                // Same document already indexed OR still being indexed: keep
+                // the existing build instead of restarting it - previously a
+                // reopen while indexing bumped the generation, cleared the
+                // messages and started a SECOND concurrent build/embed pass.
+                if (_currentFilePath == filePath && (_currentIndex != null || IsIndexing))
                     return;
 
                 // Claim a new generation: any index build still running for
                 // the previous document is now stale and must not commit.
-                generation = ++_initGeneration;
+                _initGeneration++;
+                int generation = _initGeneration;
                 _currentFilePath = filePath;
                 _currentIndex = null;
                 _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
+
+                // Restore this document's saved transcript, if any (C6).
+                restored = _historyByDocument.ContainsKey(_currentDocumentId);
             }
 
-            // Clear conversation for new document (or could preserve per-document history)
-            Application.Current.Dispatcher.Invoke(() => Messages.Clear());
+            var docId = _currentDocumentId;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                if (restored && _historyByDocument.TryGetValue(docId, out var saved))
+                {
+                    foreach (var m in saved)
+                        Messages.Add(m);
+                }
+            });
 
-            await IndexDocumentAsync(filePath, generation);
+            await IndexDocumentAsync(filePath, _initGeneration);
         }
 
         private async Task IndexDocumentAsync(string filePath, int generation)
@@ -210,13 +235,36 @@ namespace Avalanche.Features.AI
                         return;
                 }
 
+                // Publish the lexical index FIRST (D1): the embedding pass is
+                // optional and can run long, but the document is answerable
+                // the moment its BM25 index exists.
+                lock (_processingLock)
+                {
+                    if (generation != _initGeneration)
+                        return;
+                    _currentIndex = index;
+                }
+                IndexingStatus = _loc("Str_AiChatReady");
+
+                // Consume anything queued while indexing ran.
+                lock (_processingLock)
+                {
+                    if (!string.IsNullOrEmpty(_pendingUserInput))
+                    {
+                        var pendingInput = _pendingUserInput;
+                        _pendingUserInput = null;
+                        var placeholder = _pendingPlaceholder;
+                        _pendingPlaceholder = null;
+                        if (placeholder is not null)
+                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(placeholder));
+                        _ = GenerateReplyAsync(pendingInput);
+                    }
+                }
+
                 // Semantic layer: embed the chunks with embeddinggemma:latest
-                // (local Ollama /api/embed) so retrieval can fuse BM25 with
-                // cosine search. Strictly OPTIONAL: any failure here - Ollama
-                // down, model not pulled, slow machine - is logged and the chat
-                // stays fully usable in lexical-only mode. Embedding problems
-                // must never park the panel on "Preparing document..."
-                // (the c97dbcd stall lesson).
+                // (local Ollama /api/embed). Runs AFTER the index is published
+                // and readable; any failure is logged and the chat stays fully
+                // usable in lexical-only mode.
                 try
                 {
                     var embeddingModel = _configProvider().EmbeddingModel;
@@ -230,29 +278,8 @@ namespace Avalanche.Features.AI
                         $"semantic indexing skipped - lexical-only mode ({embedEx.Message})");
                 }
 
-                // The embedding pass can run long on large PDFs: re-check the
-                // generation before committing - a switched document must not
-                // receive this index.
-                lock (_processingLock)
-                {
-                    if (generation != _initGeneration)
-                        return;
-                }
-
-                _currentIndex = index;
-                IndexingStatus = _loc("Str_AiChatReady");
-
-                // Process any pending user input after indexing completes
-                if (!string.IsNullOrEmpty(_pendingUserInput))
-                {
-                    var pendingInput = _pendingUserInput;
-                    _pendingUserInput = null;
-                    var placeholder = _pendingPlaceholder;
-                    _pendingPlaceholder = null;
-                    if (placeholder is not null)
-                        Application.Current.Dispatcher.Invoke(() => Messages.Remove(placeholder));
-                    _ = GenerateReplyAsync(pendingInput);
-                }
+                // Nothing else to publish here: the lexical index went live
+                // BEFORE the embedding pass, so readiness never waited on it.
             }
             catch (Exception ex)
             {
@@ -372,9 +399,21 @@ namespace Avalanche.Features.AI
                     return;
                 }
 
-                // No index and not indexing (e.g. indexing failed): surface the
-                // problem to the user instead of silently dropping the message.
-                // Prefer the detailed status (e.g. the underlying exception text).
+                // No index and not indexing: either the panel was opened with
+                // no document at all, or indexing failed. Tell the user which.
+                if (string.IsNullOrEmpty(_currentFilePath))
+                {
+                    var hint = _loc("Str_AiChatNoDocument");
+                    Application.Current.Dispatcher.Invoke(() => Messages.Add(new ChatMessage
+                    {
+                        MessageRole = ChatMessage.Role.Assistant,
+                        Content = hint
+                    }));
+                    return;
+                }
+
+                // Indexing failed earlier: surface the problem instead of
+                // silently dropping the message.
                 var failureDetail = !string.IsNullOrEmpty(IndexingStatus)
                     ? IndexingStatus
                     : _loc("Str_AiChatIndexingFailed");
@@ -399,22 +438,28 @@ namespace Avalanche.Features.AI
 
         /// <summary>
         /// Runs retrieval and generation for an already-displayed user message.
-        /// Waits for any in-flight reply so messages are answered in order and
-        /// none are dropped.
+        /// Only one reply can run at a time; the reply runs on its own
+        /// CancellationTokenSource so the user (or a document switch) can
+        /// cancel it - a cancelled reply removes the loading bubble without
+        /// showing an error.
         /// </summary>
         private async Task GenerateReplyAsync(string input)
         {
-            while (true)
+            var cts = new CancellationTokenSource();
+            CancellationToken ct;
+            int generation;
+            lock (_processingLock)
             {
-                lock (_processingLock)
+                if (IsProcessing)
                 {
-                    if (!IsProcessing)
-                    {
-                        IsProcessing = true;
-                        break;
-                    }
+                    cts.Dispose();
+                    return; // serialized by the caller paths; never queue a second reply
                 }
-                await Task.Delay(100);
+                IsProcessing = true;
+                _replyCts?.Dispose();
+                _replyCts = cts;
+                ct = cts.Token;
+                generation = _initGeneration;
             }
 
             // Add loading assistant message. This is the reply indicator, so
@@ -447,7 +492,7 @@ namespace Avalanche.Features.AI
                 // on their raw words found nothing, so the query is widened
                 // with the previous user question for context.
                 var retrievalQuery = BuildRetrievalQuery(input);
-                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, retrievalQuery, _retrievalOptions.TopK);
+                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, retrievalQuery, _retrievalOptions.TopK, ct);
 
                 Avalanche.Services.AiHighlightLog.Log(
                     $"retrieve: '{TruncLog(retrievalQuery)}' -> {retrieved.Count} chunk(s)" +
@@ -475,7 +520,19 @@ namespace Avalanche.Features.AI
                     GetRecentMessages(),
                     retrieved.ConvertAll(r => r.Chunk),
                     sourceRefs,
-                    config);
+                    config,
+                    ct);
+
+                // A document switch while the request ran must not write the
+                // old document's answer into the new document's conversation.
+                lock (_processingLock)
+                {
+                    if (generation != _initGeneration)
+                    {
+                        Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg));
+                        return;
+                    }
+                }
 
                 // Resolve each returned sourceId through THIS reply's evidence
                 // list before anything binds to Sources: the chip row and the
@@ -492,6 +549,12 @@ namespace Avalanche.Features.AI
                     // Scroll logic would go here
                 });
             }
+            catch (OperationCanceledException)
+            {
+                // User cancel (Stop button) or document switch: the loading
+                // bubble disappears without an error bubble.
+                Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg));
+            }
             catch (Exception ex)
             {
                 // The error box is the single surface: Content stays empty so
@@ -506,9 +569,35 @@ namespace Avalanche.Features.AI
             {
                 lock (_processingLock)
                 {
+                    if (_replyCts == cts)
+                    {
+                        _replyCts.Dispose();
+                        _replyCts = null;
+                    }
                     IsProcessing = false;
                 }
             }
+        }
+
+        /// <summary>Cancels the in-flight reply, if any (Stop button).</summary>
+        public void CancelReply()
+        {
+            lock (_processingLock)
+            {
+                try { _replyCts?.Cancel(); } catch (ObjectDisposedException) { }
+            }
+        }
+
+        /// <summary>Releases the DB connection, HTTP clients and the static
+        /// citation-click subscription (which was never removed before, so a
+        /// closed window's VM kept responding to clicks).</summary>
+        public void Dispose()
+        {
+            AiMarkdown.CitationClicked -= OnInlineCitationClicked;
+            CancelReply();
+            _vectorIndex.Dispose();
+            _embeddingClient.Dispose();
+            (_aiProvider as IDisposable)?.Dispose();
         }
 
         /// <summary>
@@ -684,6 +773,9 @@ namespace Avalanche.Features.AI
 
         /// <summary>
         /// Clears the current conversation and index (for document switch).
+        /// Cancels the in-flight reply and any queued message: without that,
+        /// a reply for the PREVIOUS document kept IsProcessing true for up to
+        /// five minutes and the new document's chat could not send.
         /// </summary>
         public void ClearForDocumentSwitch()
         {
@@ -691,6 +783,7 @@ namespace Avalanche.Features.AI
             {
                 // Invalidate any in-flight index build or deferred reply.
                 _initGeneration++;
+                try { _replyCts?.Cancel(); } catch (ObjectDisposedException) { }
                 _currentIndex = null;
                 _currentFilePath = "";
                 _currentDocumentId = "";
@@ -724,19 +817,57 @@ namespace Avalanche.Features.AI
         /// Called by the window when the active document changes (tab
         /// switch, new open, close). Same file: no-op. Otherwise chat,
         /// pending queue and index are cleared and the new document is
-        /// indexed. ClearForDocumentSwitch previously had NO callers, so
-        /// switching tabs with the panel open kept the old document's
-        /// index and messages and answered from the wrong document.
+        /// indexed - but ONLY when the AI panel is visible; while hidden the
+        /// identity is re-bound and indexing is deferred to the next open
+        /// (no background embedding for tabs the user is not looking at).
         /// </summary>
-        public void HandleDocumentSwitch(string? filePath)
+        public void HandleDocumentSwitch(string? filePath, bool panelVisible = true)
         {
             if (_currentFilePath == filePath)
                 return;
 
+            SaveHistory();
             ClearForDocumentSwitch();
 
-            if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath))
-                _ = InitializeForDocumentAsync(filePath);
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+                return;
+
+            if (!panelVisible)
+            {
+                // Re-bind identity only; OpenAiChat calls
+                // InitializeForDocumentAsync when the user actually opens the
+                // panel.
+                lock (_processingLock)
+                {
+                    _currentFilePath = filePath;
+                    _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
+                }
+                return;
+            }
+
+            _ = InitializeForDocumentAsync(filePath);
+        }
+
+        /// <summary>Snapshots the current transcript (without placeholders or
+        /// error bubbles) under the current document id so switching back
+        /// restores the conversation (C6).</summary>
+        private void SaveHistory()
+        {
+            string docId;
+            lock (_processingLock) docId = _currentDocumentId;
+            if (string.IsNullOrEmpty(docId)) return;
+
+            List<ChatMessage> snapshot = new();
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                foreach (var m in Messages)
+                {
+                    if (m.IsLoading || !string.IsNullOrWhiteSpace(m.Error) || string.IsNullOrWhiteSpace(m.Content))
+                        continue;
+                    snapshot.Add(m);
+                }
+            });
+            lock (_processingLock) _historyByDocument[docId] = snapshot;
         }
 
         /// <summary>

@@ -848,12 +848,23 @@ namespace Avalanche
             }
         }
 
+        /// <summary>Releases the AI chat's DB connection, HTTP clients and
+        /// the static citation-click subscription when the window closes.</summary>
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            _aiChatViewModel?.Dispose();
+            _aiChatViewModel = null;
+        }
+
         private void OpenAiChat()
         {
             if (AiChatOverlay is null) return;
 
-            // Initialize viewmodel if needed
-            if (_aiChatViewModel is null && _currentFile is not null)
+            // Initialize viewmodel if needed. The VM exists even with no
+            // document open: previously the panel was dead (send silently
+            // returned) until it was closed and reopened after opening a PDF.
+            if (_aiChatViewModel is null)
             {
                 _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
                 _aiChatViewModel = new Features.AI.AiChatViewModel(
@@ -863,8 +874,8 @@ namespace Avalanche
                 AiChatOverlay.DataContext = _aiChatViewModel;
             }
 
-            // Initialize for current document
-            if (_currentFile is not null && _aiChatViewModel is not null)
+            // Initialize for current document (no-op when none is open)
+            if (_currentFile is not null)
             {
                 _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile); // fire-and-forget, UI stays responsive
             }
@@ -881,7 +892,9 @@ namespace Avalanche
         private void ActiveDocumentChanged(string? filePath)
         {
             ClearAiSourceHighlight();
-            _aiChatViewModel?.HandleDocumentSwitch(filePath);
+            _aiChatViewModel?.HandleDocumentSwitch(
+                filePath,
+                panelVisible: AiChatOverlay?.Visibility == Visibility.Visible);
         }
 
         private void CloseAiChat()
@@ -892,6 +905,11 @@ namespace Avalanche
 
             // Clear the AI source highlight
             ClearAiSourceHighlight();
+        }
+
+        private void AiChatCancelBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _aiChatViewModel?.CancelReply();
         }
 
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Avalanche.Features.AI
@@ -15,7 +16,8 @@ namespace Avalanche.Features.AI
             string systemPrompt,
             List<ChatMessage> messages,
             List<DocumentChunk> contextChunks,
-            AiProviderConfig config);
+            AiProviderConfig config,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets a chat completion with structured output and source references.
@@ -25,7 +27,8 @@ namespace Avalanche.Features.AI
             List<ChatMessage> messages,
             List<DocumentChunk> contextChunks,
             string sourceReferences,
-            AiProviderConfig config);
+            AiProviderConfig config,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Checks if the provider is configured and available.

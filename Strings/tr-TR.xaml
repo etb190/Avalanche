@@ -1069,6 +1069,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiErrorUsageLimit">Cloud usage limit reached for your Ollama account.</sys:String>
     <sys:String x:Key="Str_AiErrorCutOff">Answer was cut off; try a shorter question or raise the token limit.</sys:String>
 
+    <sys:String x:Key="Str_AiChatNoDocument">Open a PDF first, then ask me about it here.</sys:String>
+    <sys:String x:Key="Str_AiChatCancelTip">Stop the current reply</sys:String>
     <sys:String x:Key="Str_AiErrorBadResponse">The AI returned a response the app could not read. Try again.</sys:String>
     <sys:String x:Key="Str_AiErrorTimeout">The AI request timed out. Make sure Ollama is running and try again.</sys:String>
     <!-- AI Settings UI -->

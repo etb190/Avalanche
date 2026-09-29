@@ -31,7 +31,12 @@ namespace Avalanche.Features.AI
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
-        private readonly SemaphoreSlim _chatSemaphore = new SemaphoreSlim(1, 1);  // Serialize chat requests
+
+        // Serialize chat requests ACROSS provider instances: the factory mints
+        // a new provider per call (Test Connection created its own), so an
+        // instance semaphore let two cloud requests run in parallel against a
+        // queue-limited account.
+        private static readonly SemaphoreSlim SharedChatSemaphore = new SemaphoreSlim(1, 1);
 
         // Learned optional-field drops per endpoint (provider|base url|model):
         // after a 400 that names one of the optional fields, the field is
@@ -49,9 +54,10 @@ namespace Avalanche.Features.AI
             string systemPrompt,
             List<ChatMessage> messages,
             List<DocumentChunk> contextChunks,
-            AiProviderConfig config)
+            AiProviderConfig config,
+            CancellationToken cancellationToken = default)
         {
-            return await GetChatCompletionAsync(systemPrompt, messages, contextChunks, "", config);
+            return await GetChatCompletionAsync(systemPrompt, messages, contextChunks, "", config, cancellationToken);
         }
 
         /// <summary>
@@ -62,9 +68,10 @@ namespace Avalanche.Features.AI
             List<ChatMessage> messages,
             List<DocumentChunk> contextChunks,
             string sourceReferences,
-            AiProviderConfig config)
+            AiProviderConfig config,
+            CancellationToken cancellationToken = default)
         {
-            await _chatSemaphore.WaitAsync();
+            await SharedChatSemaphore.WaitAsync(cancellationToken);
             try
             {
                 bool jsonOutput = config.RequestJsonOutput && !LearnedJsonDrop(config);
@@ -79,8 +86,8 @@ namespace Avalanche.Features.AI
                 while (true)
                 {
                     var body = BuildRequestBody(systemPrompt, messages, sourceReferences, config, jsonOutput, reasoning);
-                    var response = await SendWithRetryAsync(() => CreateRequest(body, config), config);
-                    var responseJson = await response.Content.ReadAsStringAsync();
+                    var response = await SendWithRetryAsync(() => CreateRequest(body, config), config, cancellationToken);
+                    var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -114,7 +121,7 @@ namespace Avalanche.Features.AI
             }
             finally
             {
-                _chatSemaphore.Release();
+                SharedChatSemaphore.Release();
             }
         }
 
@@ -157,7 +164,7 @@ namespace Avalanche.Features.AI
         /// Connection failures and HttpClient timeouts are classified into
         /// typed categories here, where they surface.
         /// </summary>
-        private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory, AiProviderConfig config)
+        private async Task<HttpResponseMessage> SendWithRetryAsync(Func<HttpRequestMessage> requestFactory, AiProviderConfig config, CancellationToken cancellationToken)
         {
             for (int attempt = 0; ; attempt++)
             {
@@ -166,19 +173,22 @@ namespace Avalanche.Features.AI
                 string? busyBody = null;
                 try
                 {
-                    response = await _httpClient.SendAsync(request);
+                    response = await _httpClient.SendAsync(request, cancellationToken);
                     if (!response.IsSuccessStatusCode && IsBusyStatus(response.StatusCode))
-                        busyBody = await response.Content.ReadAsStringAsync();
+                        busyBody = await response.Content.ReadAsStringAsync(cancellationToken);
                 }
                 catch (HttpRequestException hre) when (IsConnectionFailure(hre))
                 {
                     throw new AiProviderException(AiErrorCategory.OllamaNotRunning, config.Model, null, hre);
                 }
+                catch (OperationCanceledException oce) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw; // caller cancelled - the view model removes the bubble silently
+                }
                 catch (OperationCanceledException oce)
                 {
-                    // HttpClient timeout surfaces as TaskCanceledException; with
-                    // no caller cancellation yet (C1 adds the token), any OCE
-                    // here is the 5-minute client timeout.
+                    // No caller cancellation: HttpClient timeout surfaces as
+                    // TaskCanceledException, not HttpRequestException.
                     throw new AiProviderException(AiErrorCategory.Timeout, config.Model, null, oce);
                 }
 
@@ -196,7 +206,7 @@ namespace Avalanche.Features.AI
                     delayMs = (int)Math.Clamp(delta.TotalMilliseconds, 500, 15000);
 
                 response.Dispose();
-                await Task.Delay(delayMs);
+                await Task.Delay(delayMs, cancellationToken);
             }
         }
 
@@ -526,7 +536,6 @@ namespace Avalanche.Features.AI
         public void Dispose()
         {
             _httpClient?.Dispose();
-            _chatSemaphore?.Dispose();
         }
     }
 }

@@ -2950,6 +2950,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" CornerRadius="{DynamicResource ControlCornerRadius}"
                                     Background="{DynamicResource PaneBrush}"
@@ -2967,7 +2968,14 @@
                                          Text="{Binding CurrentInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          ToolTip="{DynamicResource Str_AiChatInputTip}"/>
                             </Border>
-                            <Button x:Name="AiChatSendBtn" Grid.Column="1" Content="&#xE724;" Style="{StaticResource ToolbarButton}"
+                            <!-- Stop: visible only while a reply is running; cancels it
+                                 (removes the loading bubble, no error shown). -->
+                            <Button x:Name="AiChatCancelBtn" Grid.Column="1" Content="&#xE71A;" Style="{StaticResource ToolbarButton}"
+                                    Width="36" Height="36" Margin="8,0,0,0" Padding="0" FontSize="14"
+                                    VerticalAlignment="Center" Click="AiChatCancelBtn_Click"
+                                    Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVisibilityConverter}}"
+                                    ToolTip="{DynamicResource Str_AiChatCancelTip}"/>
+                            <Button x:Name="AiChatSendBtn" Grid.Column="2" Content="&#xE724;" Style="{StaticResource ToolbarButton}"
                                     Width="36" Height="36" Margin="8,0,0,0" Padding="0" FontSize="14"
                                     VerticalAlignment="Center" Click="AiChatSendBtn_Click"
                                     IsEnabled="{Binding CanSend}"

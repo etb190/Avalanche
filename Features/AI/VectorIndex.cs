@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Threading;
+using System.Threading;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,6 +20,22 @@ namespace Avalanche.Features.AI
         private readonly string _dbPath;
         private readonly SqliteConnection _connection;
         private bool _disposed;
+
+        // ONE SQLite connection is shared by the UI thread, Task.Run indexing,
+        // background embedding inserts and retrieval continuations. SQLite
+        // connections are not thread-safe, so every public operation enters
+        // this reentrant gate (Monitor) - concurrent use previously could
+        // throw mid-query.
+        private readonly object _dbGate = new object();
+
+        private DbGateScope Gate() => new DbGateScope(_dbGate);
+
+        private readonly struct DbGateScope : IDisposable
+        {
+            private readonly object _gate;
+            public DbGateScope(object gate) { _gate = gate; Monitor.Enter(gate); }
+            public void Dispose() { Monitor.Exit(_gate); }
+        }
 
         // Expected column sets. Older builds created different schemas (for
         // example the embedding columns that have since been removed), and
@@ -260,6 +278,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void UpsertDocument(DocumentIndex doc, SqliteTransaction? transaction = null)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.Transaction = transaction;
             cmd.CommandText = @"
@@ -289,6 +308,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public DocumentIndex? GetDocument(string documentId)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT id, file_path, file_size, last_write_time, content_hash, page_count, created_at, updated_at FROM documents WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", documentId);
@@ -315,6 +335,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public bool IsDocumentCurrent(string documentId, long fileSize, long lastWriteTime, string contentHash)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT file_size, last_write_time, content_hash FROM documents WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", documentId);
@@ -333,6 +354,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void BulkInsertChunks(IEnumerable<DocumentChunk> chunks, SqliteTransaction? transaction = null)
         {
+            using var _dbGateScope = Gate();
             bool ownTx = transaction is null;
             using var tx = ownTx ? _connection.BeginTransaction() : null;
             var effectiveTx = transaction ?? tx;
@@ -394,6 +416,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void PersistDocumentAtomic(DocumentIndex doc)
         {
+            using var _dbGateScope = Gate();
             using var transaction = _connection.BeginTransaction();
             try
             {
@@ -417,6 +440,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void CleanupOrphanedDocumentRows(string filePath, string keepDocumentId)
         {
+            using var _dbGateScope = Gate();
             using var transaction = _connection.BeginTransaction();
             try
             {
@@ -447,6 +471,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public List<DocumentChunk> GetChunksForDocument(string documentId)
         {
+            using var _dbGateScope = Gate();
             var chunks = new List<DocumentChunk>();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT id, document_id, chunk_index, text, page_indices, word_ranges, pdf_coords, char_offset, lexical_tokens, page_sizes, page_rotations, crop_boxes FROM chunks WHERE document_id = $doc_id ORDER BY chunk_index";
@@ -468,6 +493,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public List<RetrievedChunk> LexicalSearch(string documentId, string query, int topK = 20)
         {
+            using var _dbGateScope = Gate();
             if (string.IsNullOrWhiteSpace(query))
                 return new List<RetrievedChunk>();
 
@@ -506,6 +532,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void DeleteDocumentChunks(string documentId, SqliteTransaction? transaction = null)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.Transaction = transaction;
             cmd.CommandText = "DELETE FROM chunks WHERE document_id = $doc_id";
@@ -518,6 +545,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void DeleteDocument(string documentId)
         {
+            using var _dbGateScope = Gate();
             using var transaction = _connection.BeginTransaction();
             try
             {
@@ -589,6 +617,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public bool HasEmbeddings(string documentId)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM chunk_embeddings WHERE document_id = $doc_id LIMIT 1)";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
@@ -599,6 +628,7 @@ namespace Avalanche.Features.AI
         /// content hash + chunk count decide whether vectors can be reused.</summary>
         public EmbeddingState? GetEmbeddingState(string documentId)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT model, content_hash, dim, chunk_count FROM embedding_state WHERE document_id = $doc_id";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
@@ -618,6 +648,7 @@ namespace Avalanche.Features.AI
 
         public void SetEmbeddingState(string documentId, string model, string contentHash, int dim, int chunkCount)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
                 INSERT INTO embedding_state (document_id, model, content_hash, dim, chunk_count, updated_at)
@@ -642,6 +673,7 @@ namespace Avalanche.Features.AI
         /// for a partially completed embedding pass (crash recovery).</summary>
         public HashSet<string> GetEmbeddedChunkIds(string documentId)
         {
+            using var _dbGateScope = Gate();
             var ids = new HashSet<string>();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT chunk_id FROM chunk_embeddings WHERE document_id = $doc_id";
@@ -657,6 +689,7 @@ namespace Avalanche.Features.AI
         /// and resumes from GetEmbeddedChunkIds.</summary>
         public void InsertEmbeddings(string documentId, IReadOnlyList<(string ChunkId, float[] Vector)> items)
         {
+            using var _dbGateScope = Gate();
             if (items.Count == 0) return;
             using var tx = _connection.BeginTransaction();
             try
@@ -693,6 +726,7 @@ namespace Avalanche.Features.AI
         /// file was re-indexed, which mints fresh chunk ids).</summary>
         public void DeleteEmbeddingsForDocument(string documentId)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "DELETE FROM chunk_embeddings WHERE document_id = $doc_id";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
@@ -703,6 +737,7 @@ namespace Avalanche.Features.AI
         /// Used when vectors survived but the state row did not.</summary>
         public int GetEmbeddingDim(string documentId)
         {
+            using var _dbGateScope = Gate();
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = "SELECT dim FROM chunk_embeddings WHERE document_id = $doc_id LIMIT 1";
             cmd.Parameters.AddWithValue("$doc_id", documentId);
@@ -719,6 +754,7 @@ namespace Avalanche.Features.AI
         /// </summary>
         public List<RetrievedChunk> SemanticSearch(string documentId, float[] queryEmbedding, int topK = 20)
         {
+            using var _dbGateScope = Gate();
             var results = new List<RetrievedChunk>();
             if (queryEmbedding == null || queryEmbedding.Length == 0 || topK <= 0)
                 return results;
@@ -766,6 +802,7 @@ namespace Avalanche.Features.AI
         public List<RetrievedChunk> HybridSearch(string documentId, string query, float[] queryEmbedding,
             int topK = 10, float lexicalWeight = 0.4f, float semanticWeight = 0.6f)
         {
+            using var _dbGateScope = Gate();
             var lexicalResults = LexicalSearch(documentId, query, topK * 3);
             var semanticResults = SemanticSearch(documentId, queryEmbedding, topK * 3);
             if (semanticResults.Count == 0)
