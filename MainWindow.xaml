@@ -1398,10 +1398,10 @@
                         <!-- Soft drop shadow: a blurred, offset copy behind the crisp wordmark -->
                         <StackPanel Orientation="Horizontal" Margin="1,1,0,0" Opacity="{DynamicResource WordmarkShadowOpacity}">
                             <StackPanel.Effect><BlurEffect Radius="2"/></StackPanel.Effect>
-                            <TextBlock Text="Avalanche" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" FontWeight="Bold" Foreground="#D8000000"/>
+                            <TextBlock Text="Avalanche" FontFamily="{DynamicResource UiFont}" FontSize="16.5" FontWeight="Bold" Foreground="#D8000000"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Avalanche" FontFamily="{DynamicResource WordmarkFont}" FontSize="16.5" FontWeight="Bold" Foreground="{DynamicResource AccentLogo}"/>
+                            <TextBlock Text="Avalanche" FontFamily="{DynamicResource UiFont}" FontSize="16.5" FontWeight="Bold" Foreground="{DynamicResource AccentLogo}"/>
                         </StackPanel>
                     </Grid>
                 </StackPanel>
@@ -2716,12 +2716,12 @@
             <Border x:Name="AiChatOverlay" Grid.Column="2" Grid.Row="1" Panel.ZIndex="200"
                     HorizontalAlignment="Right" VerticalAlignment="Stretch"
                     Width="380" Visibility="Collapsed"
-                    Background="{DynamicResource PaneBrush}"
+                    Background="{DynamicResource BackgroundBrush}"
                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1,0,0,0"
-                    CornerRadius="{DynamicResource RadCard}"
+                    CornerRadius="0"
                     Effect="{DynamicResource PaneShadowEffect}">
                 <Border.Clip>
-                    <RectangleGeometry Rect="0,0,380,10000" RadiusX="6" RadiusY="6"/>
+                    <RectangleGeometry Rect="0,0,380,10000" RadiusX="0" RadiusY="0"/>
                 </Border.Clip>
                 <Grid>
                     <Grid.RowDefinitions>
@@ -2730,11 +2730,16 @@
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
+                    <!-- Same treatment as the toolbar header: BackgroundBrush + grain,
+                         so the assistant panel reads as chrome docked under the toolbar
+                         instead of a gray floating card. First child -> paints behind. -->
+                    <Border Grid.RowSpan="4" IsHitTestVisible="False"
+                            Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
 
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
-                            Background="{DynamicResource PaneBrush}" CornerRadius="6,0,0,0"
-                            Padding="12,8">
+                            Background="{DynamicResource BackgroundBrush}" CornerRadius="0"
+                            Padding="12,5">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -2748,7 +2753,7 @@
                                        Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                             <Button Grid.Column="2" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
-                                    Width="28" Height="28" Padding="0" FontSize="10" VerticalAlignment="Center"
+                                    Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
                         </Grid>
                     </Border>
@@ -2756,7 +2761,7 @@
                     <!-- Conversation Area -->
                     <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                  Background="{DynamicResource PaneBrush}" FocusVisualStyle="{x:Null}"
+                                  Background="{DynamicResource BackgroundBrush}" FocusVisualStyle="{x:Null}"
                                   Padding="8,8,8,0">
                         <ItemsControl x:Name="AiChatMessages" ItemsSource="{Binding Messages}">
                             <ItemsControl.ItemTemplate>
@@ -2895,7 +2900,7 @@
                          slow or stuck index build looked like an endless "Preparing
                          document..." wait. -->
                     <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
-                            Background="{DynamicResource PaneBrush}" Padding="12,5"
+                            Background="{DynamicResource BackgroundBrush}" Padding="12,5"
                             Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -2913,7 +2918,7 @@
 
                     <!-- Input Area -->
                     <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
-                            Background="{DynamicResource PaneBrush}" CornerRadius="0,0,6,0"
+                            Background="{DynamicResource BackgroundBrush}" CornerRadius="0"
                             Padding="8">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -2921,7 +2926,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" CornerRadius="{DynamicResource ControlCornerRadius}"
-                                    Background="{DynamicResource BackgroundBrush}"
+                                    Background="{DynamicResource PaneBrush}"
                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                     Padding="0">
                                 <TextBox x:Name="AiChatInput"
