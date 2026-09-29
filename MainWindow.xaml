@@ -2763,7 +2763,7 @@
                                 <ctrl:RobotIcon Width="18" Height="18"
                                                 Foreground="{DynamicResource PrimaryBrush}"
                                                 HorizontalAlignment="Center"/>
-                                <TextBlock Text="Chat"
+                                <TextBlock Text="{DynamicResource Str_AiChatCaption}"
                                            FontFamily="{DynamicResource UiFont}" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{DynamicResource TextBrush}"
                                            HorizontalAlignment="Center" Margin="0,2,0,0"/>
