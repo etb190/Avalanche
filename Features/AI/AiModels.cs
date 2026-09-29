@@ -84,6 +84,8 @@ namespace Avalanche.Features.AI
     public enum RetrievalMethod
     {
         Lexical,
+        Semantic,
+        Hybrid,
         Reranked
     }
 
@@ -174,6 +176,11 @@ namespace Avalanche.Features.AI
         public string BaseUrl { get; set; } = "http://localhost:11434/v1";
         public string ApiKey { get; set; } = "ollama";
         public string Model { get; set; } = "gpt-oss:120b-cloud";
+
+        // Semantic retrieval model - used ONLY for Ollama /api/embed calls
+        // (local vectors for the hybrid retriever). Never used for chat
+        // generation; that stays gpt-oss:120b-cloud.
+        public string EmbeddingModel { get; set; } = "embeddinggemma:latest";
         public double Temperature { get; set; } = 0.1;
         public int MaxTokens { get; set; } = 4096;  // Increased default for reasoning models
         public double TopP { get; set; } = 1.0;

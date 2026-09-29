@@ -19,6 +19,7 @@ namespace Avalanche.Features.AI
         private int _genMaxTokens = 4096;
         private double _genTopP = 1.0;
         private string _genReasoningEffort = "low";
+        private string _embeddingModel = "embeddinggemma:latest";
 
         private bool _isEnabled = false;
         private string _connectionStatus = "";
@@ -74,6 +75,14 @@ namespace Avalanche.Features.AI
             set { _genReasoningEffort = value; OnPropertyChanged(); }
         }
 
+        /// <summary>Model used ONLY for the semantic retrieval layer
+        /// (Ollama /api/embed). Chat generation keeps GenModel.</summary>
+        public string EmbeddingModel
+        {
+            get => _embeddingModel;
+            set { _embeddingModel = value; OnPropertyChanged(); }
+        }
+
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -110,6 +119,7 @@ namespace Avalanche.Features.AI
                 BaseUrl = GenBaseUrl,
                 ApiKey = GenApiKey,
                 Model = GenModel,
+                EmbeddingModel = EmbeddingModel,
                 Temperature = GenTemperature,
                 MaxTokens = GenMaxTokens,
                 TopP = GenTopP,
@@ -123,6 +133,8 @@ namespace Avalanche.Features.AI
             GenBaseUrl = config.BaseUrl;
             GenApiKey = config.ApiKey;
             GenModel = config.Model;
+            EmbeddingModel = string.IsNullOrWhiteSpace(config.EmbeddingModel)
+                ? "embeddinggemma:latest" : config.EmbeddingModel;
             GenTemperature = config.Temperature;
             GenMaxTokens = config.MaxTokens;
             GenTopP = config.TopP;
@@ -135,6 +147,7 @@ namespace Avalanche.Features.AI
             GenBaseUrl = "http://localhost:11434/v1";
             GenApiKey = "ollama";
             GenModel = "gpt-oss:120b-cloud";
+            EmbeddingModel = "embeddinggemma:latest";
             GenTemperature = 0.2;
             GenMaxTokens = 4096;
             GenTopP = 1.0;

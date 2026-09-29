@@ -22,6 +22,7 @@ namespace Avalanche.Features.AI
         private readonly HybridRetriever _retriever;
         private readonly VectorIndex _vectorIndex;
         private readonly DocumentIndexer _indexer;
+        private readonly OllamaEmbeddingClient _embeddingClient;
         private readonly Func<AiProviderConfig> _configProvider;
         private readonly MainWindow _mainWindow;
         private readonly Func<string, string> _loc;
@@ -101,7 +102,8 @@ namespace Avalanche.Features.AI
             };
 
             _vectorIndex = new VectorIndex(GetIndexDbPath());
-            _retriever = new HybridRetriever(_vectorIndex, _retrievalOptions);
+            _embeddingClient = new OllamaEmbeddingClient(_configProvider);
+            _retriever = new HybridRetriever(_vectorIndex, _embeddingClient, _retrievalOptions);
             _indexer = new DocumentIndexer(_vectorIndex);
 
             // Inline citation footnotes inside answer bubbles route their
@@ -202,6 +204,35 @@ namespace Avalanche.Features.AI
 
                 // A newer InitializeForDocumentAsync started while this one
                 // was building (rapid tab switching): discard, never clobber.
+                lock (_processingLock)
+                {
+                    if (generation != _initGeneration)
+                        return;
+                }
+
+                // Semantic layer: embed the chunks with embeddinggemma:latest
+                // (local Ollama /api/embed) so retrieval can fuse BM25 with
+                // cosine search. Strictly OPTIONAL: any failure here - Ollama
+                // down, model not pulled, slow machine - is logged and the chat
+                // stays fully usable in lexical-only mode. Embedding problems
+                // must never park the panel on "Preparing document..."
+                // (the c97dbcd stall lesson).
+                try
+                {
+                    var embeddingModel = _configProvider().EmbeddingModel;
+                    await _indexer.EnsureEmbeddingsAsync(index,
+                        (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
+                        embeddingModel, progress);
+                }
+                catch (Exception embedEx)
+                {
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"semantic indexing skipped - lexical-only mode ({embedEx.Message})");
+                }
+
+                // The embedding pass can run long on large PDFs: re-check the
+                // generation before committing - a switched document must not
+                // receive this index.
                 lock (_processingLock)
                 {
                     if (generation != _initGeneration)

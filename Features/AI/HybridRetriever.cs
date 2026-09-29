@@ -6,40 +6,76 @@ using System.Threading.Tasks;
 namespace Avalanche.Features.AI
 {
     /// <summary>
-    /// Lexical (BM25/FTS5) retriever with heuristic reranking. Embedding-based
-    /// semantic search was removed: retrieval runs entirely on the local
-    /// full-text index and needs no embedding model.
+    /// Hybrid retriever: lexical (BM25/FTS5) + semantic (cosine over
+    /// embeddinggemma:latest vectors) with heuristic reranking. The semantic
+    /// channel is strictly optional - a missing embedding client, a document
+    /// whose vectors are not (yet) stored, or a failed query embedding all
+    /// degrade to the proven lexical-only path instead of failing retrieval.
     /// </summary>
     public sealed class HybridRetriever
     {
         private readonly VectorIndex _vectorIndex;
+        private readonly OllamaEmbeddingClient? _embeddingClient;
         private readonly RetrievalOptions _options;
 
-        public HybridRetriever(VectorIndex vectorIndex, RetrievalOptions? options = null)
+        public HybridRetriever(VectorIndex vectorIndex, OllamaEmbeddingClient? embeddingClient = null, RetrievalOptions? options = null)
         {
             _vectorIndex = vectorIndex ?? throw new ArgumentNullException(nameof(vectorIndex));
+            _embeddingClient = embeddingClient;
             _options = options ?? new RetrievalOptions();
         }
 
         /// <summary>
-        /// Retrieves relevant chunks using lexical search with optional reranking.
+        /// Retrieves relevant chunks using hybrid (lexical + semantic) search
+        /// with optional reranking. Falls back to lexical-only when the
+        /// embedding layer is unavailable - see the class doc.
         /// </summary>
-        public Task<List<RetrievedChunk>> RetrieveAsync(string documentId, string query, int maxResults = 10)
+        public async Task<List<RetrievedChunk>> RetrieveAsync(string documentId, string query, int maxResults = 10)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return Task.FromResult(new List<RetrievedChunk>());
+                return new List<RetrievedChunk>();
 
-            // Lexical retrieval (BM25 via FTS5). Scores are -bm25, best-first.
-            var results = _vectorIndex.LexicalSearch(documentId, query, _options.CandidatePoolSize);
-            if (results.Count == 0)
-                return Task.FromResult(new List<RetrievedChunk>());
+            // Semantic channel. Two gates keep the fallback FREE of network
+            // cost: no embedding client, or no stored vectors for this
+            // document yet (embedding pass still running or failed) -> pure
+            // lexical without an HTTP round-trip.
+            float[] queryEmbedding = Array.Empty<float>();
+            bool usedSemantic = false;
+            if (_embeddingClient is not null && _vectorIndex.HasEmbeddings(documentId))
+            {
+                try
+                {
+                    queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query).ConfigureAwait(false);
+                    usedSemantic = queryEmbedding is { Length: > 0 };
+                }
+                catch (Exception ex)
+                {
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"retrieval: query embedding failed - lexical-only fallback ({ex.Message})");
+                }
+            }
 
-            VectorIndex.NormalizeScores(results);
+            List<RetrievedChunk> results;
+            if (usedSemantic)
+            {
+                results = _vectorIndex.HybridSearch(documentId, query, queryEmbedding, _options.CandidatePoolSize,
+                    _options.LexicalWeight, _options.SemanticWeight);
+            }
+            else
+            {
+                // Lexical retrieval (BM25 via FTS5). Scores are -bm25, best-first.
+                results = _vectorIndex.LexicalSearch(documentId, query, _options.CandidatePoolSize);
+                if (results.Count == 0)
+                    return new List<RetrievedChunk>();
+
+                VectorIndex.NormalizeScores(results);
+            }
 
             // A single hit has nothing to normalize against; it matched the
-            // query's own terms, so it is relevant by definition. Previously it
-            // kept its raw -bm25-derived score and the MinScore filter could
-            // drop it, reporting "no matches" for an exact-term question.
+            // query (by terms or above the cosine noise floor), so it is
+            // relevant by definition. Previously it kept its raw score and the
+            // MinScore filter could drop it, reporting "no matches" for an
+            // exact-term question.
             if (results.Count == 1) results[0].Score = 1f;
 
             // Rerank if enabled
@@ -62,10 +98,27 @@ namespace Avalanche.Features.AI
             // Mark retrieval method
             foreach (var r in finalResults)
             {
-                r.Method = reranked ? RetrievalMethod.Reranked : RetrievalMethod.Lexical;
+                r.Method = reranked ? RetrievalMethod.Reranked
+                         : usedSemantic ? RetrievalMethod.Hybrid
+                         : RetrievalMethod.Lexical;
             }
 
-            return Task.FromResult(finalResults);
+            return finalResults;
+        }
+
+        /// <summary>
+        /// Semantic-only search for conceptual queries (diagnostics and
+        /// tests; the normal path is the fused RetrieveAsync).
+        /// </summary>
+        public async Task<List<RetrievedChunk>> SemanticSearchAsync(string documentId, string query, int maxResults = 10)
+        {
+            if (string.IsNullOrWhiteSpace(query) || _embeddingClient is null)
+                return new List<RetrievedChunk>();
+
+            var queryEmbedding = await _embeddingClient.GenerateEmbeddingAsync(query).ConfigureAwait(false);
+            var results = _vectorIndex.SemanticSearch(documentId, queryEmbedding, maxResults);
+            foreach (var r in results) r.Method = RetrievalMethod.Semantic;
+            return results;
         }
 
         /// <summary>
@@ -180,5 +233,7 @@ namespace Avalanche.Features.AI
         public float MinScore { get; set; } = 0.15f;          // Minimum relevance score
         public bool EnableReranking { get; set; } = true;     // Apply reranking
         public int MaxRerankCandidates { get; set; } = 20;    // Max candidates to rerank
+        public float LexicalWeight { get; set; } = 0.4f;      // BM25 channel weight in the fusion
+        public float SemanticWeight { get; set; } = 0.6f;     // Cosine channel weight in the fusion
     }
 }

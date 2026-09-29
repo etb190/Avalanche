@@ -38,6 +38,19 @@ namespace Avalanche.Features.AI
             "page_rotations", "crop_boxes", "created_at"
         };
 
+        // Semantic retrieval layer (embeddinggemma:latest via Ollama /api/embed).
+        // Kept in dedicated tables so the lexical schema above never drifts;
+        // existing databases keep their FTS data (no forced re-index).
+        private static readonly string[] ChunkEmbeddingsColumns =
+        {
+            "chunk_id", "document_id", "dim", "vector"
+        };
+
+        private static readonly string[] EmbeddingStateColumns =
+        {
+            "document_id", "model", "content_hash", "dim", "chunk_count", "updated_at"
+        };
+
         public VectorIndex(string dbPath)
         {
             _dbPath = dbPath ?? throw new ArgumentNullException(nameof(dbPath));
@@ -68,6 +81,15 @@ namespace Avalanche.Features.AI
                 DropAllTables();
 
             CreateTables();
+
+            // Same self-heal rule, scoped to the embedding tables only: a
+            // mismatched semantic schema drops and recreates JUST those
+            // tables (they are rebuildable from the chunks) - the lexical
+            // index survives.
+            if (!EmbeddingSchemaMatches())
+                DropEmbeddingTables();
+
+            CreateEmbeddingTables();
         }
 
         private void CreateTables()
@@ -128,6 +150,53 @@ namespace Avalanche.Features.AI
                     INSERT INTO chunks_fts (chunk_id, document_id, text)
                     VALUES (NEW.id, NEW.document_id, NEW.text);
                 END;
+            ";
+            cmd.ExecuteNonQuery();
+        }
+        private void CreateEmbeddingTables()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+                CREATE TABLE IF NOT EXISTS chunk_embeddings (
+                    chunk_id TEXT PRIMARY KEY,
+                    document_id TEXT NOT NULL,
+                    dim INTEGER NOT NULL,
+                    vector BLOB NOT NULL
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_chunk_embeddings_document ON chunk_embeddings(document_id);
+
+                CREATE TABLE IF NOT EXISTS embedding_state (
+                    document_id TEXT PRIMARY KEY,
+                    model TEXT NOT NULL,
+                    content_hash TEXT NOT NULL,
+                    dim INTEGER NOT NULL,
+                    chunk_count INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                );
+            ";
+            cmd.ExecuteNonQuery();
+        }
+
+        private bool EmbeddingSchemaMatches()
+        {
+            var embeddingColumns = GetTableColumns("chunk_embeddings");
+            if (embeddingColumns.Count > 0 && !ColumnsMatch(embeddingColumns, ChunkEmbeddingsColumns))
+                return false;
+
+            var stateColumns = GetTableColumns("embedding_state");
+            if (stateColumns.Count > 0 && !ColumnsMatch(stateColumns, EmbeddingStateColumns))
+                return false;
+
+            return true;
+        }
+
+        private void DropEmbeddingTables()
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+                DROP TABLE IF EXISTS chunk_embeddings;
+                DROP TABLE IF EXISTS embedding_state;
             ";
             cmd.ExecuteNonQuery();
         }
@@ -508,6 +577,273 @@ namespace Avalanche.Features.AI
             return chunk;
         }
 
+        // ============================================================
+        // Semantic retrieval (embeddinggemma:latest via Ollama /api/embed)
+        // ============================================================
+
+        /// <summary>
+        /// True when at least one chunk of the document carries an embedding.
+        /// Used as the retrieval fast path: while the background embedding
+        /// pass is still running (or after it failed), retrieval goes purely
+        /// lexical WITHOUT paying an HTTP round-trip.
+        /// </summary>
+        public bool HasEmbeddings(string documentId)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT EXISTS(SELECT 1 FROM chunk_embeddings WHERE document_id = $doc_id LIMIT 1)";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+            return Convert.ToInt64(cmd.ExecuteScalar()) == 1;
+        }
+
+        /// <summary>Recorded embedding pass for a document, or null. The
+        /// content hash + chunk count decide whether vectors can be reused.</summary>
+        public EmbeddingState? GetEmbeddingState(string documentId)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT model, content_hash, dim, chunk_count FROM embedding_state WHERE document_id = $doc_id";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+                return null;
+
+            return new EmbeddingState
+            {
+                Model = reader.GetString(0),
+                ContentHash = reader.GetString(1),
+                Dim = reader.GetInt32(2),
+                ChunkCount = reader.GetInt32(3)
+            };
+        }
+
+        public void SetEmbeddingState(string documentId, string model, string contentHash, int dim, int chunkCount)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+                INSERT INTO embedding_state (document_id, model, content_hash, dim, chunk_count, updated_at)
+                VALUES ($doc_id, $model, $hash, $dim, $count, $updated)
+                ON CONFLICT(document_id) DO UPDATE SET
+                    model = $model,
+                    content_hash = $hash,
+                    dim = $dim,
+                    chunk_count = $count,
+                    updated_at = $updated;
+            ";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+            cmd.Parameters.AddWithValue("$model", model);
+            cmd.Parameters.AddWithValue("$hash", contentHash);
+            cmd.Parameters.AddWithValue("$dim", dim);
+            cmd.Parameters.AddWithValue("$count", chunkCount);
+            cmd.Parameters.AddWithValue("$updated", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            cmd.ExecuteNonQuery();
+        }
+
+        /// <summary>Chunk ids that already carry a vector - the resume set
+        /// for a partially completed embedding pass (crash recovery).</summary>
+        public HashSet<string> GetEmbeddedChunkIds(string documentId)
+        {
+            var ids = new HashSet<string>();
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT chunk_id FROM chunk_embeddings WHERE document_id = $doc_id";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                ids.Add(reader.GetString(0));
+            return ids;
+        }
+
+        /// <summary>Stores one batch of vectors. Callers embed and insert in
+        /// batches, so an interrupted pass leaves only complete vectors behind
+        /// and resumes from GetEmbeddedChunkIds.</summary>
+        public void InsertEmbeddings(string documentId, IReadOnlyList<(string ChunkId, float[] Vector)> items)
+        {
+            if (items.Count == 0) return;
+            using var tx = _connection.BeginTransaction();
+            try
+            {
+                using var cmd = _connection.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = @"
+                    INSERT INTO chunk_embeddings (chunk_id, document_id, dim, vector)
+                    VALUES ($id, $doc_id, $dim, $vector)
+                    ON CONFLICT(chunk_id) DO UPDATE SET
+                        document_id = $doc_id,
+                        dim = $dim,
+                        vector = $vector;
+                ";
+                foreach (var item in items)
+                {
+                    cmd.Parameters.Clear();
+                    cmd.Parameters.AddWithValue("$id", item.ChunkId);
+                    cmd.Parameters.AddWithValue("$doc_id", documentId);
+                    cmd.Parameters.AddWithValue("$dim", item.Vector.Length);
+                    cmd.Parameters.AddWithValue("$vector", FloatArrayToBytes(item.Vector));
+                    cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+            catch
+            {
+                tx.Rollback();
+                throw;
+            }
+        }
+
+        /// <summary>Drops all vectors for a document (model changed or the
+        /// file was re-indexed, which mints fresh chunk ids).</summary>
+        public void DeleteEmbeddingsForDocument(string documentId)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "DELETE FROM chunk_embeddings WHERE document_id = $doc_id";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+            cmd.ExecuteNonQuery();
+        }
+
+        /// <summary>Dimension of any stored vector for the document, or 0.
+        /// Used when vectors survived but the state row did not.</summary>
+        public int GetEmbeddingDim(string documentId)
+        {
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = "SELECT dim FROM chunk_embeddings WHERE document_id = $doc_id LIMIT 1";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+            var result = cmd.ExecuteScalar();
+            return result is null ? 0 : Convert.ToInt32(result);
+        }
+
+        /// <summary>
+        /// Cosine similarity search over the document's stored vectors.
+        /// Linear scan: ~3 vectors per page, so a 1,000-page document scans
+        /// ~3,000 x 768 floats - a few milliseconds. Vectors whose dimension
+        /// differs from the query (stale rows) are skipped, never crashed on.
+        /// Returns best-first with the raw cosine as the score.
+        /// </summary>
+        public List<RetrievedChunk> SemanticSearch(string documentId, float[] queryEmbedding, int topK = 20)
+        {
+            var results = new List<RetrievedChunk>();
+            if (queryEmbedding == null || queryEmbedding.Length == 0 || topK <= 0)
+                return results;
+
+            using var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+                SELECT c.id, c.document_id, c.chunk_index, c.text, c.page_indices, c.word_ranges,
+                       c.pdf_coords, c.char_offset, c.lexical_tokens, c.page_sizes, c.page_rotations, c.crop_boxes,
+                       e.vector
+                FROM chunk_embeddings e
+                JOIN chunks c ON c.id = e.chunk_id
+                WHERE e.document_id = $doc_id
+            ";
+            cmd.Parameters.AddWithValue("$doc_id", documentId);
+
+            var candidates = new List<(DocumentChunk chunk, float similarity)>();
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var vector = BytesToFloatArray((byte[])reader.GetValue(12));
+                    if (vector.Length != queryEmbedding.Length)
+                        continue; // stale dimension - skip, never crash
+
+                    float similarity = CosineSimilarity(queryEmbedding, vector);
+                    if (similarity <= 0.1f)
+                        continue; // noise floor (kept from the pre-removal pipeline)
+
+                    var chunk = ReadChunkRow(reader);
+                    candidates.Add((chunk, similarity));
+                }
+            }
+
+            foreach (var c in candidates.OrderByDescending(c => c.similarity).Take(topK))
+                results.Add(new RetrievedChunk { Chunk = c.chunk, Score = c.similarity, Method = RetrievalMethod.Semantic });
+            return results;
+        }
+
+        /// <summary>
+        /// Weighted fusion of lexical (BM25) and semantic (cosine) results -
+        /// the same 0.4/0.6 recipe the pre-removal pipeline used. Each channel
+        /// is min-max normalized over its own candidate pool before merging,
+        /// so the two scales are comparable.
+        /// </summary>
+        public List<RetrievedChunk> HybridSearch(string documentId, string query, float[] queryEmbedding,
+            int topK = 10, float lexicalWeight = 0.4f, float semanticWeight = 0.6f)
+        {
+            var lexicalResults = LexicalSearch(documentId, query, topK * 3);
+            var semanticResults = SemanticSearch(documentId, queryEmbedding, topK * 3);
+            if (semanticResults.Count == 0)
+            {
+                // Semantic channel empty (no vectors / below the noise floor):
+                // hand back the lexical pool on the same 0..1 scale the fused
+                // path would have produced.
+                NormalizeScores(lexicalResults);
+                return lexicalResults;
+            }
+
+            NormalizeScores(lexicalResults);
+            NormalizeScores(semanticResults);
+
+            var merged = new Dictionary<string, (DocumentChunk chunk, float lexical, float semantic)>();
+            foreach (var r in lexicalResults)
+                merged[r.Chunk.ChunkId] = (r.Chunk, r.Score, 0f);
+            foreach (var r in semanticResults)
+            {
+                if (merged.TryGetValue(r.Chunk.ChunkId, out var existing))
+                    merged[r.Chunk.ChunkId] = (existing.chunk, existing.lexical, r.Score);
+                else
+                    merged[r.Chunk.ChunkId] = (r.Chunk, 0f, r.Score);
+            }
+
+            return merged.Values
+                .Select(m => new RetrievedChunk
+                {
+                    Chunk = m.chunk,
+                    Score = (lexicalWeight * m.lexical) + (semanticWeight * m.semantic),
+                    Method = RetrievalMethod.Hybrid
+                })
+                .OrderByDescending(r => r.Score)
+                .Take(topK)
+                .ToList();
+        }
+
+        /// <summary>Angle between two vectors, -1..1. Zero-length or
+        /// mismatched dimensions yield 0 (never NaN, never a throw).</summary>
+        public static float CosineSimilarity(float[] a, float[] b)
+        {
+            if (a == null || b == null || a.Length != b.Length || a.Length == 0)
+                return 0f;
+            float dot = 0f, normA = 0f, normB = 0f;
+            for (int i = 0; i < a.Length; i++)
+            {
+                dot += a[i] * b[i];
+                normA += a[i] * a[i];
+                normB += b[i] * b[i];
+            }
+            if (normA == 0f || normB == 0f) return 0f;
+            return dot / (MathF.Sqrt(normA) * MathF.Sqrt(normB));
+        }
+
+        private static byte[] FloatArrayToBytes(float[] array)
+        {
+            var bytes = new byte[array.Length * 4];
+            Buffer.BlockCopy(array, 0, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
+        private static float[] BytesToFloatArray(byte[] bytes)
+        {
+            var array = new float[bytes.Length / 4];
+            Buffer.BlockCopy(bytes, 0, array, 0, bytes.Length);
+            return array;
+        }
+
+    /// <summary>Persisted marker for a completed embedding pass. The
+    /// content hash + chunk count let the indexer reuse vectors for an
+    /// unchanged document instead of re-embedding it.</summary>
+    public sealed class EmbeddingState
+    {
+        public string Model { get; set; } = "";
+        public string ContentHash { get; set; } = "";
+        public int Dim { get; set; }
+        public int ChunkCount { get; set; }
+    }
         public void Dispose()
         {
             if (!_disposed)

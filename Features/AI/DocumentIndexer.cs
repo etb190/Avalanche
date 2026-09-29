@@ -115,6 +115,109 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
+        /// Ensures every chunk of the document carries an embedding for the
+        /// given model (embeddinggemma:latest via the local Ollama bridge).
+        /// Runs AFTER the lexical index is ready, so an embedding failure or
+        /// an unavailable Ollama can never block document readiness - the
+        /// caller catches and continues in lexical-only mode (the c97dbcd
+        /// stall lesson: embedding problems must never park the UI on
+        /// "Preparing document...").
+        /// Reuse rules:
+        ///   - state row matches model + content hash + chunk count: NO-OP,
+        ///     reopening an unchanged document re-embeds nothing;
+        ///   - vectors already present for some chunks (interrupted pass):
+        ///     only the missing chunk ids are embedded;
+        ///   - file changed or model changed: stale vectors deleted, fresh
+        ///     pass (a re-index mints new chunk ids, so old vectors would be
+        ///     garbage anyway).
+        /// </summary>
+        /// <param name="embedBatch">Embeds one batch of texts, returning one
+        /// vector per input, aligned and same-dimension. Wired to
+        /// OllamaEmbeddingClient.GenerateEmbeddingsAsync in the app; tests
+        /// inject fakes without HTTP.</param>
+        public async Task EnsureEmbeddingsAsync(
+            DocumentIndex doc,
+            Func<IReadOnlyList<string>, CancellationToken, Task<float[][]>> embedBatch,
+            string embeddingModel,
+            IProgress<IndexingProgress>? progress = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (doc is null) throw new ArgumentNullException(nameof(doc));
+            if (doc.Chunks.Count == 0) return; // nothing to embed (e.g. empty text layer tolerated by caller)
+            if (string.IsNullOrWhiteSpace(embeddingModel))
+                embeddingModel = OllamaEmbeddingClient.DefaultModel;
+
+            var state = _vectorIndex.GetEmbeddingState(doc.DocumentId);
+            if (state is not null
+                && state.Model == embeddingModel
+                && state.ContentHash == doc.ContentHash
+                && state.ChunkCount == doc.Chunks.Count)
+            {
+                progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 1.0, Message = "Embeddings up to date" });
+                return;
+            }
+
+            // Different model or changed file: the old vectors point at chunk
+            // ids/text that no longer exist - drop them before refilling.
+            if (state is not null)
+                _vectorIndex.DeleteEmbeddingsForDocument(doc.DocumentId);
+
+            var embedded = _vectorIndex.GetEmbeddedChunkIds(doc.DocumentId);
+            var missing = doc.Chunks.Where(c => !embedded.Contains(c.ChunkId)).ToList();
+            int total = doc.Chunks.Count;
+            int done = total - missing.Count;
+
+            if (missing.Count == 0)
+            {
+                // Vectors survived but the state row did not (crash between
+                // the last insert and the state write) - just re-mark.
+                _vectorIndex.SetEmbeddingState(doc.DocumentId, embeddingModel, doc.ContentHash,
+                    _vectorIndex.GetEmbeddingDim(doc.DocumentId), total);
+                progress?.Report(new IndexingProgress { Stage = IndexingStage.Embedding, Progress = 1.0, Message = "Embeddings up to date" });
+                return;
+            }
+
+            int dim = 0;
+            const int batchSize = 32;
+            for (int offset = 0; offset < missing.Count; offset += batchSize)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var batch = missing.Skip(offset).Take(batchSize).ToList();
+                var vectors = await embedBatch(batch.Select(c => c.Text).ToList(), cancellationToken).ConfigureAwait(false);
+
+                if (vectors is null || vectors.Length != batch.Count)
+                    throw new InvalidOperationException(
+                        $"Embedding batch returned {vectors?.Length ?? 0} vector(s) for {batch.Count} chunk(s).");
+
+                var items = new List<(string ChunkId, float[] Vector)>(batch.Count);
+                for (int i = 0; i < batch.Count; i++)
+                {
+                    var vector = vectors[i];
+                    if (vector is null || vector.Length == 0)
+                        throw new InvalidOperationException("Embedding batch contained an empty vector.");
+                    if (dim == 0)
+                        dim = vector.Length;
+                    else if (vector.Length != dim)
+                        throw new InvalidOperationException(
+                            $"Embedding dimension changed mid-pass ({dim} -> {vector.Length}).");
+                    items.Add((batch[i].ChunkId, vector));
+                }
+
+                _vectorIndex.InsertEmbeddings(doc.DocumentId, items);
+                done += batch.Count;
+                progress?.Report(new IndexingProgress
+                {
+                    Stage = IndexingStage.Embedding,
+                    Progress = (double)done / total,
+                    Message = $"Embedding {done}/{total} passages..."
+                });
+            }
+
+            _vectorIndex.SetEmbeddingState(doc.DocumentId, embeddingModel, doc.ContentHash, dim, total);
+        }
+
+        /// <summary>
         /// Builds a fresh index from the PDF. Extraction streams page by page
         /// into the chunker - the previous build held every word of the whole
         /// document in memory before chunking even started.
@@ -350,6 +453,7 @@ namespace Avalanche.Features.AI
         Extracting,
         Chunking,
         Persisting,
+        Embedding,
         Loaded,
         Complete
     }
