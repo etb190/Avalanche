@@ -1534,8 +1534,20 @@
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}">
-                            <ctrl:RobotIcon Width="16" Height="16" Foreground="{DynamicResource TextBrush}"/>
+                        <!-- Robot + "Chat" caption, stacked. The robot draws in a
+                             24-unit design box, so 18 control px puts ~15px of ink
+                             on screen - even with the 14px MDL2 glyphs on its left
+                             (16px read visibly smaller). Padding=0 lets the caption
+                             fit inside the standard 32px button height. -->
+                        <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
+                                Padding="0">
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                <ctrl:RobotIcon Width="18" Height="18" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Str_AiChatCaption}"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                            </StackPanel>
                         </Button>
                     </StackPanel>
                     </StackPanel>
@@ -2752,22 +2764,11 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <!-- Icon + caption stack: the robot is sized to the
-                                 toolbar glyphs on its left (MDL2 14px) - it draws
-                                 inside a 24-unit design box, so 18 control px puts
-                                 ~15px of actual robot on screen, even with a 14px
-                                 glyph. The caption sits under the icon instead of
-                                 a side title. -->
-                            <StackPanel Grid.Column="0" Orientation="Vertical"
-                                        VerticalAlignment="Center" Margin="0,0,8,0">
-                                <ctrl:RobotIcon Width="18" Height="18"
-                                                Foreground="{DynamicResource PrimaryBrush}"
-                                                HorizontalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource Str_AiChatCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="10" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center" Margin="0,2,0,0"/>
-                            </StackPanel>
+                            <ctrl:RobotIcon Grid.Column="0" Width="16" Height="16"
+                                            Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiChatTitle}"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                             <!-- New chat: sweeps the conversation (document index kept)
                                  so the next question starts clean. Disabled while a
                                  reply is streaming (CanStartNewChat). -->
