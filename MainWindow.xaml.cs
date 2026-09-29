@@ -869,7 +869,7 @@ namespace Avalanche
                 _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile); // fire-and-forget, UI stays responsive
             }
 
-            AnimateAiPanel(true);
+            AiChatOverlay.Visibility = Visibility.Visible;
             AiChatInput?.Focus();
         }
 
@@ -888,110 +888,10 @@ namespace Avalanche
         {
             if (AiChatOverlay is null) return;
 
-            AnimateAiPanel(false);
+            AiChatOverlay.Visibility = Visibility.Collapsed;
 
             // Clear the AI source highlight
             ClearAiSourceHighlight();
-        }
-
-        // Open/close animation for the assistant overlay. The panel is a fixed-width
-        // overlay, so there is no layout change to ride on: the slide animates the
-        // panel's TranslateTransform.X from beyond the window's right edge to its
-        // resting position (open) and back out (close). BeginAnimation replaces any
-        // in-flight animation, so rapid toggles retarget the slide from wherever it
-        // currently is, and a replaced close animation never fires its Completed
-        // handler - the panel can never be collapsed mid-slide-in.
-        private void AnimateAiPanel(bool open)
-        {
-            if (AiChatOverlay is null) return;
-
-            if (AiChatOverlay.RenderTransform is not TranslateTransform shift)
-            {
-                shift = new TranslateTransform();
-                AiChatOverlay.RenderTransform = shift;
-            }
-
-            // Respect the OS "animate controls" preference: snap, do not slide.
-            if (!SystemParameters.ClientAreaAnimation)
-            {
-                shift.BeginAnimation(TranslateTransform.XProperty, null);
-                shift.X = 0;
-                AiChatOverlay.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
-                if (open)
-                {
-                    AiChatOverlay.UpdateLayout();   // collapsed panels skip layout; align needs a slot
-                    AlignAiPanelGrain();
-                }
-                return;
-            }
-
-            // First open after launch: the panel was never laid out (Collapsed
-            // elements get no layout pass), so force one to learn the real width.
-            double slide = AiChatOverlay.ActualWidth;
-            if (slide < 50)
-            {
-                AiChatOverlay.Visibility = Visibility.Visible;
-                AiChatOverlay.UpdateLayout();
-                slide = AiChatOverlay.ActualWidth;
-            }
-            if (slide < 50) slide = 380;   // paranoid fallback; matches the XAML Width
-
-            var anim = new DoubleAnimation(open ? 0 : slide + 12,   // +12 clears the window gutter
-                                           TimeSpan.FromMilliseconds(160))
-            {
-                // EaseOut: fast start, gentle landing on open. EaseIn: the panel
-                // lingers a beat, then whips off-screen on close.
-                EasingFunction = new CubicEase
-                {
-                    EasingMode = open ? EasingMode.EaseOut : EasingMode.EaseIn
-                }
-            };
-
-            if (open)
-            {
-                AiChatOverlay.Visibility = Visibility.Visible;
-                AlignAiPanelGrain();   // phase-lock the grain to the window lattice
-            }
-            else
-            {
-                anim.Completed += (s, e) => AiChatOverlay.Visibility = Visibility.Collapsed;
-            }
-
-            shift.BeginAnimation(TranslateTransform.XProperty, anim);
-        }
-
-        private bool _aiPanelGrainRootHooked;
-
-        // The panel floats over the document card, so it paints the window
-        // surface itself: WindowFrameBrush base + the shared grain. For that
-        // grain to read as ONE surface with the chrome around it (the docked
-        // build's look), its tiles must sit on the same 256px lattice as the
-        // window-level grain border - which tiles from the root grid's origin.
-        // The panel is right-anchored, so an unshifted copy would tile from
-        // (rootWidth - 380, 0) and the pattern would visibly restart at the
-        // panel's left edge. The copy bleeds 256px past both sides (XAML
-        // margin) and this method shifts it left by the panel's layout X
-        // mod 256, landing every tile back on the lattice; ClipToBounds trims
-        // the bleed. Root resizes re-run this while the panel is open.
-        private void AlignAiPanelGrain()
-        {
-            if (AiChatOverlay?.Visibility != Visibility.Visible) return;
-            if (AiChatOverlay.Parent is not Grid root) return;
-            if (!_aiPanelGrainRootHooked)
-            {
-                _aiPanelGrainRootHooked = true;
-                root.SizeChanged += (s, e) => AlignAiPanelGrain();
-            }
-            if (AiPanelGrainShift is null) return;
-
-            // Visual position minus the slide transform = layout position; the
-            // grain must align for the panel's resting spot, not mid-slide.
-            var origin = AiChatOverlay.TransformToVisual(root).Transform(new Point(0, 0));
-            if (AiChatOverlay.RenderTransform is TranslateTransform slide) origin.X -= slide.X;
-
-            double phase = origin.X % 256.0;
-            if (phase < 0) phase += 256.0;
-            AiPanelGrainShift.X = -phase;
         }
 
         private async void AiChatSendBtn_Click(object sender, RoutedEventArgs e)
