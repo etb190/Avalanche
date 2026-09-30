@@ -401,7 +401,7 @@ namespace Avalanche.Features.Summary
 
             using Stream stream = await response.Content.ReadAsStreamAsync(ct);
             using var reader = new StreamReader(stream);
-            while (!reader.EndOfStream)
+            while (true)
             {
                 ct.ThrowIfCancellationRequested();
                 string? line = await reader.ReadLineAsync(ct);
