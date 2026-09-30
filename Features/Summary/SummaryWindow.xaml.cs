@@ -204,6 +204,7 @@ namespace Avalanche.Features.Summary
                             if (gen == _generation)
                             {
                                 Overlay(_loc("Str_SummaryNoText"));
+                                DiagnosticsBundle.Dump("summary notext");
                             }
 
                             break;
@@ -211,6 +212,7 @@ namespace Avalanche.Features.Summary
                             if (gen == _generation)
                             {
                                 Overlay(string.Format(_loc("Str_SummaryError"), update.Text));
+                                DiagnosticsBundle.Dump("summary error");
                             }
 
                             break;
@@ -234,6 +236,10 @@ namespace Avalanche.Features.Summary
             }
             catch (Exception ex)
             {
+                // Terminal failure: drop the evidence (log tail with the extraction
+                // and POST lines) on the Desktop regardless of generation - a stale
+                // dump after a Reset is still evidence.
+                DiagnosticsBundle.Dump("summary exception: " + ex.GetType().Name);
                 if (gen == _generation)
                 {
                     Overlay(string.Format(_loc("Str_SummaryError"), PageSummarizer.FriendlyError(ex)));

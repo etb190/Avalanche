@@ -146,6 +146,30 @@ namespace Avalanche.Features.Summary
                     yield break;
                 }
 
+                // Thin extraction: letters exist but there is no prose to digest
+                // (headers, page numbers, a broken text layer). The absolute gate
+                // above only catches < 60 letters TOTAL, so a 60-page range of
+                // ~40-letter pages sailed through, collapsed into ONE segment, and
+                // the model answered with the digest-framed refusal "no text
+                // provided" (seen in the field). Proportional floor: ~100 letters
+                // per page - real prose pages run 1000+, so nothing anyone would
+                // want summarized is lost.
+                int rangedPages = request.LastPage - request.FirstPage + 1;
+                if (CountLetters(bodyText) < 100 * rangedPages)
+                {
+                    SurfaceHealthLog.Log(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "summary: extraction too thin: {0} letters across {1} pages (< 100/page) - aborting",
+                        CountLetters(bodyText),
+                        rangedPages));
+                    yield return new SummaryUpdate(
+                        "error",
+                        string.Format(
+                            loc("Str_SummaryNoTextRange"),
+                            DescribeRanges(Enumerable.Range(request.FirstPage, rangedPages).ToList())));
+                    yield break;
+                }
+
                 // Pages that yielded (almost) no text: a digest built anyway would
                 // silently skip them, and the reader would trust coverage the model
                 // never saw. Log the holes; at >= 30% textless pages the run cannot
@@ -185,15 +209,28 @@ namespace Avalanche.Features.Summary
                         ct).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(cached))
                     {
-                        SurfaceHealthLog.Log(string.Format(
-                            CultureInfo.InvariantCulture,
-                            "summary: cache hit for pages {0}-{1} ({2} chars)",
-                            request.FirstPage,
-                            request.LastPage,
-                            cached.Length));
-                        yield return new SummaryUpdate("delta", cached);
-                        yield return new SummaryUpdate("done", cached, FromCache: true);
-                        yield break;
+                        if (LooksLikeRefusal(cached))
+                        {
+                            // An older build could cache the model's refusal as the
+                            // "digest"; replaying it makes every retry fail the same
+                            // way ("its back to saying..."). Self-heal: treat the
+                            // poisoned entry as a miss and regenerate.
+                            SurfaceHealthLog.Log(
+                                "summary: cache hit for pages " + request.FirstPage + "-" +
+                                request.LastPage + " is a stored refusal - ignoring and regenerating");
+                        }
+                        else
+                        {
+                            SurfaceHealthLog.Log(string.Format(
+                                CultureInfo.InvariantCulture,
+                                "summary: cache hit for pages {0}-{1} ({2} chars)",
+                                request.FirstPage,
+                                request.LastPage,
+                                cached.Length));
+                            yield return new SummaryUpdate("delta", cached);
+                            yield return new SummaryUpdate("done", cached, FromCache: true);
+                            yield break;
+                        }
                     }
                 }
 
@@ -344,6 +381,24 @@ namespace Avalanche.Features.Summary
                     yield break;
                 }
 
+                // A refusal streamed as the "digest" must never be cached (it would
+                // replay forever) nor presented as a result. With the thin gate
+                // upstream this should be rare - usually a provider hiccup or a
+                // context-starved model; the bundle names which.
+                if (LooksLikeRefusal(finalText))
+                {
+                    SurfaceHealthLog.Log(
+                        "summary: final text is a model refusal (" + finalText.Length +
+                        " chars) - not cached");
+                    DiagnosticsBundle.Dump("summary refusal");
+                    yield return new SummaryUpdate(
+                        "error",
+                        "the AI replied with a refusal instead of a digest - it was not cached. " +
+                        "Try again (Reset first to skip the cache); if it repeats, switch AI " +
+                        "models. A diagnostics file was saved to the Desktop.");
+                    yield break;
+                }
+
                 SurfaceHealthLog.Log(string.Format(
                     CultureInfo.InvariantCulture,
                     "summary: digest ready: {0} chars / {1} words",
@@ -381,6 +436,28 @@ namespace Avalanche.Features.Summary
             }
 
             return covered;
+        }
+
+        /// <summary>True when the text reads like the model's "no text provided"
+        /// refusal instead of a digest. Deliberately narrow: the phrases mirror the
+        /// digest task framing, so a real digest will not match them.</summary>
+        private static bool LooksLikeRefusal(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            string flat = text.ToLowerInvariant();
+            return flat.Contains("no text provided") ||
+                   flat.Contains("no text was provided") ||
+                   flat.Contains("no page text") ||
+                   flat.Contains("no page content") ||
+                   flat.Contains("supply the page content") ||
+                   flat.Contains("provide the page content") ||
+                   flat.Contains("no content was provided") ||
+                   flat.Contains("cannot create a reading digest") ||
+                   flat.Contains("unable to create a reading digest");
         }
 
         public static int CountWords(string text)
