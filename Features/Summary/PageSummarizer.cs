@@ -676,9 +676,14 @@ namespace Avalanche.Features.Summary
                   "carries its (p. N) page tag. Fuse them into ONE summary of your own: merge " +
                   "duplicates, drop filler, and cover the full span the notes cover, from their " +
                   "first page tag to their last. Never copy the notes verbatim and never return " +
-                  "one segment's notes unchanged."
+                  "one segment's notes unchanged.\n\n" +
+                  "The notes are RAW MATERIAL, not a format template. They are bullet lists - your " +
+                  "summary must NOT be. Ignore the notes' layout completely and write flowing prose " +
+                  "in plain paragraphs: no bullet points, no headings, no list markers, no (p. N) " +
+                  "tags anywhere in your output. Bullet points in your answer are a total failure."
                 : "Each page's text starts with a [[p. N]] marker; the markers tell you which " +
-                  "page each part came from, but they must NOT appear in your output.");
+                  "page each part came from, but they must NOT appear in your output. Write " +
+                  "flowing prose in plain paragraphs - no bullet points, no headings, no page tags.");
         }
 
         private static string MiniSystemPrompt() =>
