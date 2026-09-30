@@ -37,8 +37,12 @@ namespace Avalanche
         private const uint IMAGE_ICON           = 1;
         private const uint LR_SHARED            = 0x00008000;
         private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+        private const uint SWP_NOSIZE         = 0x0001;
+        private const uint SWP_NOMOVE         = 0x0002;
         private const uint SWP_NOZORDER       = 0x0004;
         private const uint SWP_NOACTIVATE     = 0x0010;
+        private const uint SWP_FRAMECHANGED   = 0x0020;
+        private const uint SWP_NOCOPYBITS     = 0x0100;
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
@@ -414,7 +418,60 @@ namespace Avalanche
             base.OnStateChanged(e);
             UpdateWindowChrome();
             RepositionAnnotationBars();
+            if (WindowState == WindowState.Minimized)
+                _wasMinimized = true;
+            else if (_wasMinimized)
+            {
+                _wasMinimized = false;
+                QueueRestoreRepaint();
+            }
         }
+
+        // Being minimized "for a few minutes" usually means the display turned off or the session
+        // locked in between. On wake, DWM can hand the window back a discarded redirection surface,
+        // and WPF re-presents only what it considers dirty - so the client area comes back black
+        // while the OS frame and the caption buttons still draw. Restore is exactly the moment
+        // nothing else invalidates the visual tree, so force one fresh frame here.
+        private bool _wasMinimized;
+        private bool _restoreRepaintQueued;
+        private void QueueRestoreRepaint()
+        {
+            if (_restoreRepaintQueued) return;
+            _restoreRepaintQueued = true;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+            {
+                _restoreRepaintQueued = false;
+                ForceClientRepaint();
+            }));
+        }
+
+        // Two-sided kick. InvalidateVisual dirties the whole WPF tree so milcore presents a brand-new
+        // frame; SWP_FRAMECHANGED re-runs WM_NCCALCSIZE (our custom chrome) and SWP_NOCOPYBITS refuses
+        // the stale saved bits so Windows repaints the client from scratch instead of blitting the
+        // black surface back. Loaded priority lands after WPF's own state-change layout has settled.
+        private void ForceClientRepaint()
+        {
+            if (WindowState == WindowState.Minimized) return;   // still hidden; the restore path repaints
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+                SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
+                    SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
+                    | SWP_FRAMECHANGED | SWP_NOCOPYBITS);
+            InvalidateVisual();
+        }
+
+        // The screen-off / lock / sleep that blackens the restored window can also strike while the
+        // app sits VISIBLE in the background. Windows announces both moments, so repaint on resume
+        // and on any display change too, not just on the minimize -> restore transition. SystemEvents
+        // raises on its own thread; every touch of the window marshals through the Dispatcher.
+        private void OnSystemPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+        {
+            if (e.Mode != PowerModes.Resume) return;
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)ForceClientRepaint);
+        }
+
+        private void OnSystemDisplaySettingsChanged(object? sender, EventArgs e) =>
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)ForceClientRepaint);
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {

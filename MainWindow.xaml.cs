@@ -534,6 +534,10 @@ namespace Avalanche
             HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
             InitializeTaskbarIcons(hwnd);
             ThemeManager.ApplyDwm(hwnd);
+            // Black-client-area-after-minimize/resume guard (Shell/WindowChrome.cs): repaint on
+            // system resume and display changes, not just on the minimize -> restore transition.
+            SystemEvents.PowerModeChanged += OnSystemPowerModeChanged;
+            SystemEvents.DisplaySettingsChanged += OnSystemDisplaySettingsChanged;
             // Snapping moves the window without changing WindowState, so re-evaluate the rounded vs
             // squared chrome on every move (and once now that the handle exists).
             LocationChanged += OnWindowLocationChanged;
@@ -853,6 +857,8 @@ namespace Avalanche
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
+            SystemEvents.PowerModeChanged -= OnSystemPowerModeChanged;
+            SystemEvents.DisplaySettingsChanged -= OnSystemDisplaySettingsChanged;
             _aiChatViewModel?.Dispose();
             _aiChatViewModel = null;
         }
