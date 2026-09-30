@@ -78,6 +78,16 @@ namespace Avalanche
             AppDomain.CurrentDomain.UnhandledException      += OnDomainException;
             TaskScheduler.UnobservedTaskException           += OnUnobservedTaskException;
 
+            // --sw-render: last-resort escape hatch for the black-surface bug family.
+            // Software rendering has no D3D device to lose, so milcore device loss cannot
+            // occur at all. Costs GPU compositing smoothness; use it to confirm a
+            // DWM/driver-side diagnosis or as a stopgap on affected machines.
+            if (e.Args.Any(a => string.Equals(a, "--sw-render", StringComparison.OrdinalIgnoreCase)))
+            {
+                RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
+                StartupTrace.Mark("software rendering forced via --sw-render");
+            }
+
             base.OnStartup(e);
             StartupTrace.Mark("Application base startup complete");
 

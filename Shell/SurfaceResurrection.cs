@@ -170,6 +170,9 @@ namespace Avalanche
         // the staggered schedule starts immediately.
         private void MarkDisplayWake(string reason)
         {
+            // SurfaceHealth: record the trigger and start burst-verification probes so a
+            // surface that died around this event is caught and healed within seconds.
+            NotifySurfaceEvent(reason);
             _surfaceSuspect = true;
             if (WindowState == WindowState.Minimized) return;
             QueueSurfaceResurrection(full: true, reason);
@@ -180,6 +183,8 @@ namespace Avalanche
         // everyday minimize/restore stays instant.
         private void OnWindowRestoredFromMinimize()
         {
+            // SurfaceHealth: burst-verify after restore - the highest-risk transition.
+            NotifySurfaceEvent("restore from minimize");
             var started = _minimizedAt;
             _minimizedAt = null;
             bool longAbsence = started.HasValue

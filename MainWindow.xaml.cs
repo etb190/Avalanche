@@ -569,6 +569,11 @@ namespace Avalanche
             SystemEvents.DisplaySettingsChanged += OnSystemDisplaySettingsChanged;
             SystemEvents.SessionSwitch += OnSystemSessionSwitch;
             RegisterDisplayWakeNotifications(hwnd);
+            // SurfaceHealth (Shell/SurfaceHealth.cs): closed-loop black-surface defense. The
+            // event-driven resurrection above cannot see every possible trigger (GPU TDR,
+            // HDR toggle, driver quirks), so the window also verifies its own rendered
+            // output every 10s and runs an escalation ladder when it detects black.
+            StartSurfaceHealth();
             Title = BuildDisplayTitle();
             // Snapping moves the window without changing WindowState, so re-evaluate the rounded vs
             // squared chrome on every move (and once now that the handle exists).
@@ -893,6 +898,7 @@ namespace Avalanche
             SystemEvents.DisplaySettingsChanged -= OnSystemDisplaySettingsChanged;
             SystemEvents.SessionSwitch -= OnSystemSessionSwitch;
             UnregisterDisplayWakeNotifications();
+            ShutdownSurfaceHealth();
             _aiChatViewModel?.Dispose();
             _aiChatViewModel = null;
         }
