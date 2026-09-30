@@ -86,9 +86,12 @@ namespace Avalanche.Features.AI
                 // ABSOLUTE MinScore turned the filter relative: with two
                 // matching chunks the weaker one was often dropped outright.
                 // Use a relative-to-best threshold instead: keep what is at
-                // least 20% as good as the best hit.
+                // least 12% as good as the best hit - loose enough that
+                // synonym-poor questions ("channel rivers" vs chunks that only
+                // say "canals"/"irrigation") keep their neighboring material.
+                // Reranking and the exact-quote citation gate absorb the noise.
                 float best = results.Max(r => r.Score);
-                results = results.Where(r => r.Score >= best * 0.2f).ToList();
+                results = results.Where(r => r.Score >= best * 0.12f).ToList();
             }
 
             // A single hit has nothing to normalize against; it matched the

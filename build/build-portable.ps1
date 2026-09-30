@@ -44,12 +44,25 @@ $fileVersionNode = $versionXml.SelectSingleNode('/Project/PropertyGroup/FileVers
 $fileVersion = if ($fileVersionNode) { [string]$fileVersionNode.InnerText } else { '' }
 if (-not $fileVersion) { throw 'Avalanche.csproj has no FileVersion.' }
 
+# Stamp the git commit into InformationalVersion (semver build metadata,
+# e.g. '1.8.71+a1b2c3d') so the running window title and ai-highlight.log
+# session headers can identify the exact build. Local non-git builds fall
+# back to the plain version.
+$commitHash = ''
+try {
+    if (Test-Path (Join-Path $projectDir '.git')) {
+        $commitHash = (git -C $projectDir rev-parse --short HEAD 2>$null | Out-String).Trim()
+    }
+} catch { $commitHash = '' }
+$informationalVersion = if ($commitHash) { "$version+$commitHash" } else { $version }
+
 if (-not $RepackOnly) {
     Write-Host "==> Building loose Avalanche payload $version..." -ForegroundColor Cyan
     & dotnet publish $appProject -c $Configuration `
         -r win-x64 `
         --self-contained $(!$isInstaller) `
         -p:AvalanchePayloadBuild=true `
+        -p:InformationalVersion="$informationalVersion" `
         -p:PublishDir="$payloadDir\"
     if ($LASTEXITCODE -ne 0) { throw 'Payload build failed.' }
 

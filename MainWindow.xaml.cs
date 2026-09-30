@@ -528,6 +528,30 @@ namespace Avalanche
         // Maximize-respects-taskbar fix (WindowStyle=None needs WM_GETMINMAXINFO)
         // ============================================================
 
+        // "Avalanche (<short-sha>)" - CI stamps the commit into InformationalVersion
+        // (1.8.71+<sha>). Portable exe copies pile up in Downloads looking identical
+        // and the UI never showed which build was running, so the hash is surfaced
+        // on the title bar and mirrored into ai-highlight.log session headers.
+        internal static string BuildDisplayTitle()
+        {
+            const string baseTitle = "Avalanche";
+            try
+            {
+                var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)System.Attribute.GetCustomAttribute(
+                                System.Reflection.Assembly.GetEntryAssembly(),
+                                typeof(System.Reflection.AssemblyInformationalVersionAttribute));
+                            var info = attr?.InformationalVersion;
+                if (string.IsNullOrWhiteSpace(info)) return baseTitle;
+                var plus = info.IndexOf('+');
+                var id = plus >= 0 && plus < info.Length - 1 ? info[(plus + 1)..] : info;
+                return $"{baseTitle} ({id})";
+            }
+            catch
+            {
+                return baseTitle;
+            }
+        }
+
         private void MainWindow_SourceInitialized(object? sender, EventArgs e)
         {
             var hwnd = new WindowInteropHelper(this).Handle;
@@ -538,6 +562,7 @@ namespace Avalanche
             // system resume and display changes, not just on the minimize -> restore transition.
             SystemEvents.PowerModeChanged += OnSystemPowerModeChanged;
             SystemEvents.DisplaySettingsChanged += OnSystemDisplaySettingsChanged;
+            Title = BuildDisplayTitle();
             // Snapping moves the window without changing WindowState, so re-evaluate the rounded vs
             // squared chrome on every move (and once now that the handle exists).
             LocationChanged += OnWindowLocationChanged;

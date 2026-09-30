@@ -32,8 +32,34 @@ namespace Avalanche.Services
                     }
 
                     // Rotate: start fresh once the log outlives its usefulness.
-                    if (File.Exists(_path) && new FileInfo(_path).Length > 512 * 1024)
+                    bool fresh = !File.Exists(_path);
+                    if (!fresh && new FileInfo(_path).Length > 512 * 1024)
+                    {
                         File.Delete(_path);
+                        fresh = true;
+                    }
+
+                    // Session header on every fresh file: pins the exact build the
+                    // lines below came from - a report is only diagnosable when the
+                    // build identity is known alongside the retrieval stats.
+                    if (fresh)
+                    {
+                        var build = "unknown";
+                        try
+                        {
+                            var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)
+                                System.Attribute.GetCustomAttribute(
+                                    System.Reflection.Assembly.GetEntryAssembly(),
+                                    typeof(System.Reflection.AssemblyInformationalVersionAttribute));
+                            var info = attr?.InformationalVersion;
+                            if (!string.IsNullOrWhiteSpace(info)) build = info;
+                        }
+                        catch { /* best-effort diagnostics */ }
+                        File.AppendAllText(
+                            _path,
+                            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} === session: build {build} ==={Environment.NewLine}",
+                            Encoding.UTF8);
+                    }
 
                     File.AppendAllText(
                         _path,
