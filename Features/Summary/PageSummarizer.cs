@@ -146,6 +146,29 @@ namespace Avalanche.Features.Summary
                     yield break;
                 }
 
+                // Pages that yielded (almost) no text: a digest built anyway would
+                // silently skip them, and the reader would trust coverage the model
+                // never saw. Log the holes; at >= 30% textless pages the run cannot
+                // miss nothing, so it fails with the exact ranges instead of
+                // shipping a digest that quietly ignores part of the range.
+                List<int> textless = TextlessPages(rangeText, request.FirstPage, request.LastPage);
+                if (textless.Count > 0)
+                {
+                    SurfaceHealthLog.Log(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "summary: {0} of {1} pages have no text layer: {2}",
+                        textless.Count,
+                        request.LastPage - request.FirstPage + 1,
+                        DescribeRanges(textless)));
+                    if (textless.Count * 10 >= (request.LastPage - request.FirstPage + 1) * 3)
+                    {
+                        yield return new SummaryUpdate(
+                            "error",
+                            string.Format(loc("Str_SummaryNoTextRange"), DescribeRanges(textless)));
+                        yield break;
+                    }
+                }
+
                 yield return new SummaryUpdate(
                     "progress",
                     string.Format(
@@ -195,6 +218,7 @@ namespace Avalanche.Features.Summary
                 else
                 {
                     var notes = new List<string>();
+                    var missing = new List<int>();
                     for (int i = 0; i < segments.Count; i++)
                     {
                         var (first, last) = SegmentRange(segments[i]);
@@ -203,9 +227,51 @@ namespace Avalanche.Features.Summary
                         // The old 250 * segments.Count cap starved every note (and left a
                         // reasoning model with nothing after its think). Scale by the
                         // segment's page count instead; a cap only costs when it is used.
-                        string note = await RunBufferedPassAsync(
-                            config, MiniSystemPrompt(), segments[i], ct,
-                            800 + 350 * (last - first + 1));
+                        int noteBudget = 800 + 350 * (last - first + 1);
+                        string note = string.Empty;
+                        try
+                        {
+                            note = await RunBufferedPassAsync(
+                                config, MiniSystemPrompt(), segments[i], ct, noteBudget);
+                            if (string.IsNullOrWhiteSpace(note))
+                            {
+                                // Buffered calls are the flakiest path (rate limits,
+                                // think-only answers, silent 200s). One quiet retry of
+                                // each kind before the segment is declared lost.
+                                await Task.Delay(1200, ct).ConfigureAwait(false);
+                                note = await RunBufferedPassAsync(
+                                    config, MiniSystemPrompt(), segments[i], ct, noteBudget);
+                            }
+
+                            if (string.IsNullOrWhiteSpace(note))
+                            {
+                                var streamed = new StringBuilder();
+                                await foreach (SummaryUpdate update in StreamDigestPassAsync(
+                                    config, MiniSystemPrompt(), segments[i], ct))
+                                {
+                                    if (update.Kind == "delta")
+                                    {
+                                        streamed.Append(update.Text);
+                                    }
+                                }
+
+                                note = streamed.ToString();
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            throw;
+                        }
+                        catch (Exception ex)
+                        {
+                            // A hard provider error on one segment must not kill the
+                            // whole run; the segment lands in "missing" and the
+                            // coverage guard below does the talking.
+                            SurfaceHealthLog.Log(
+                                "summary: segment " + (i + 1) + "/" + segments.Count +
+                                " failed: " + FriendlyError(ex));
+                        }
+
                         SurfaceHealthLog.Log(string.Format(
                             CultureInfo.InvariantCulture,
                             "summary: segment {0}/{1} (p. {2}-{3}) -> {4} chars",
@@ -214,6 +280,12 @@ namespace Avalanche.Features.Summary
                             first,
                             last,
                             note.Length));
+                        if (string.IsNullOrWhiteSpace(note))
+                        {
+                            missing.AddRange(Enumerable.Range(first, last - first + 1));
+                            continue;
+                        }
+
                         notes.Add(note);
                     }
 
@@ -221,17 +293,36 @@ namespace Avalanche.Features.Summary
                     // that puts everything into reasoning_content) yields empty notes; fusing
                     // empties would ask the model to digest nothing, and it would answer
                     // "no page text was provided". Fail loudly instead.
-                    if (notes.All(string.IsNullOrWhiteSpace))
+                    if (notes.Count == 0)
                     {
                         yield return new SummaryUpdate(
                             "error", "provider returned no content for every segment pass");
                         yield break;
                     }
 
-                    notes.RemoveAll(string.IsNullOrWhiteSpace);
+                    // Partial coverage is a failure, not a summary: fusing the survivors
+                    // ships a digest that quietly skips every dead segment (the "only
+                    // pages 91-100 came back" report). Name the holes instead of
+                    // pretending the range is covered.
+                    if (missing.Count > 0)
+                    {
+                        yield return new SummaryUpdate(
+                            "error",
+                            "segment passes returned no content for pages " + DescribeRanges(missing) +
+                            " - the digest was aborted instead of silently covering part of " +
+                            "the range. Try again; if it repeats, switch AI models.");
+                        yield break;
+                    }
+
                     yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
                     string fuseInput = string.Join(
                         "\n\n", notes.Select((n, i) => $"--- segment {i + 1} ---\n{n}"));
+                    SurfaceHealthLog.Log(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "summary: fusion input: {0}/{1} notes, {2} chars",
+                        notes.Count,
+                        segments.Count,
+                        fuseInput.Length));
                     var fused = new StringBuilder();
                     await foreach (SummaryUpdate update in StreamDigestPassAsync(
                         config, DigestSystemPrompt(request.TargetWords, fromNotes: true), fuseInput, ct))
@@ -440,7 +531,10 @@ namespace Avalanche.Features.Summary
             $"- Target length: about {targetWords} words. Prefer completeness over brevity.\n" +
             (fromNotes
                 ? "The user message holds working notes from earlier passes; every item already " +
-                  "carries its (p. N) page tag. Fuse them into one digest and keep the tags."
+                  "carries its (p. N) page tag. Fuse them into ONE digest of your own: reorganize " +
+                  "by topic, merge duplicates, drop filler, and cover the full span the notes " +
+                  "cover, from their first page tag to their last. Never copy the notes verbatim, " +
+                  "never return one segment's notes unchanged, and keep every (p. N) tag."
                 : "Each page's text starts with a [[p. N]] marker.");
 
         private static string MiniSystemPrompt() =>
@@ -480,6 +574,61 @@ namespace Avalanche.Features.Summary
             }
 
             return segments;
+        }
+
+        /// <summary>Pages in [firstPage..lastPage] whose extracted text is essentially
+        /// empty (fewer than ~20 letters): the model would see nothing for them.</summary>
+        private static List<int> TextlessPages(string rangeText, int firstPage, int lastPage)
+        {
+            var textless = new List<int>();
+            string[] chunks = System.Text.RegularExpressions.Regex.Split(
+                rangeText, @"\[\[p\.\s*\d+\]\]");
+            for (int i = 1; i < chunks.Length; i++)
+            {
+                int page = firstPage + i - 1;
+                if (page > lastPage)
+                {
+                    break;
+                }
+
+                if (CountLetters(chunks[i]) < 20)
+                {
+                    textless.Add(page);
+                }
+            }
+
+            return textless;
+        }
+
+        /// <summary>"40-44, 47, 50-53": consecutive page runs compressed for messages.</summary>
+        private static string DescribeRanges(List<int> pages)
+        {
+            var parts = new List<string>();
+            int start = -1, prev = -1;
+            foreach (int page in pages.OrderBy(p => p))
+            {
+                if (start >= 0 && page == prev + 1)
+                {
+                    prev = page;
+                    continue;
+                }
+
+                if (start >= 0)
+                {
+                    parts.Add(start == prev ? start.ToString() : start + "-" + prev);
+                }
+
+                start = page;
+                prev = page;
+            }
+
+            if (start >= 0)
+            {
+                parts.Add(start == prev ? start.ToString() : start + "-" + prev);
+            }
+
+            string joined = string.Join(", ", parts);
+            return joined.Length <= 200 ? joined : joined[..200];
         }
 
         private static (int First, int Last) SegmentRange(string segment)

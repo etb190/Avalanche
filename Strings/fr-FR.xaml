@@ -1164,6 +1164,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryStart">Démarrer</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} mots / {1} caractères</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} caractères extraits des pages {1}-{2}</sys:String>
+	<sys:String x:Key="Str_SummaryNoTextRange">Les pages {0} n'ont pas de couche de texte. Exécutez d'abord l'OCR dessus, puis réessayez.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

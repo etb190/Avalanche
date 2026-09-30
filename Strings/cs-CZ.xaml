@@ -1149,6 +1149,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryStart">Spustit</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} slov / {1} znaků</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Extrahováno {0} znaků ze stránek {1}-{2}</sys:String>
+	<sys:String x:Key="Str_SummaryNoTextRange">Stránky {0} nemají textovou vrstvu. Nejprve na nich spusťte OCR a zkuste to znovu.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

@@ -1163,6 +1163,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryStart">Бастау</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} сөз / {1} таңба</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} беттерден {0} таңба алынды</sys:String>
+	<sys:String x:Key="Str_SummaryNoTextRange">{0} беттерде мәтін қабаты жоқ. Алдымен оларға OCR жүргізіп, кейін қайта көріңіз.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

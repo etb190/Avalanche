@@ -1148,6 +1148,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryStart">开始</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} 词 / {1} 字符</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">已从第 {1}-{2} 页提取 {0} 个字符</sys:String>
+	<sys:String x:Key="Str_SummaryNoTextRange">第 {0} 页没有文本层。请先对这些页面运行 OCR，然后重试。</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

@@ -1144,6 +1144,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Iniciar</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} palabras / {1} caracteres</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Se extrajeron {0} caracteres de las páginas {1}-{2}</sys:String>
+	<sys:String x:Key="Str_SummaryNoTextRange">Las páginas {0} no tienen capa de texto. Ejecuta primero OCR sobre ellas y vuelve a intentarlo.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

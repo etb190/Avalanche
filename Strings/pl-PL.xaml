@@ -1152,6 +1152,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryStart">Rozpocznij</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} słów / {1} znaków</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Wyodrębniono {0} znaków ze stron {1}-{2}</sys:String>
+	<sys:String x:Key="Str_SummaryNoTextRange">Strony {0} nie mają warstwy tekstu. Najpierw uruchom na nich OCR, a następnie spróbuj ponownie.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>
