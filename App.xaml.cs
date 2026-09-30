@@ -416,6 +416,9 @@ namespace Avalanche
             var ex = e.ExceptionObject as Exception
                      ?? new Exception(e.ExceptionObject?.ToString() ?? "Unknown error");
             var logPath = CrashReporter.Capture(ex, "AppDomain");
+            // The process may be going down: drop the full evidence bundle next to
+            // the crash log while there is still time.
+            DiagnosticsBundle.Dump("fatal exception: " + ex.GetType().FullName);
 
             try
             {

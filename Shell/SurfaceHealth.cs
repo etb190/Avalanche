@@ -186,6 +186,7 @@ namespace Avalanche
                     {
                         DateTime stallStart = submitted;
                         double loggedAt = 0;
+                        bool evidenceDumped = false;
                         while (!_shHangStop)
                         {
                             Thread.Sleep(2000);
@@ -201,6 +202,16 @@ namespace Avalanche
                                 SurfaceHealthLog.Log(string.Format(
                                     "UI THREAD UNRESPONSIVE for {0:F0}s and counting (stall began {1:HH:mm:ss})",
                                     stalledFor, stallStart.ToLocalTime()));
+                                if (!evidenceDumped)
+                                {
+                                    // The dispatcher is wedged: no sweep, no clipboard,
+                                    // no dialogs. The background thread still has file
+                                    // I/O - drop the evidence on the Desktop before
+                                    // the user force-kills the process.
+                                    evidenceDumped = true;
+                                    DiagnosticsBundle.Dump(
+                                        "UI thread unresponsive " + (int)stalledFor + "s");
+                                }
                             }
                         }
 
@@ -325,9 +336,30 @@ namespace Avalanche
             SurfaceHealthLog.Log(string.Format(
                 "BLACK SURFACE DETECTED (cause={0} mean={1:F1} max={2} bright={3:P2}) — escalation started",
                 cause, r.Mean, r.Max, r.BrightFrac));
+            // Evidence now, not later: the UI thread is alive at this point, so the
+            // bundle lands on the Desktop AND the clipboard (copy:true keeps it
+            // alive even if the user force-kills the frozen-looking app).
+            DumpSurfaceEvidence("black surface: " + cause);
             _shLadderRunning = true;
             _shLadderStep = 0;
             ShAdvanceLadder();
+        }
+
+        /// <summary>Writes the diagnostics bundle and copies it to the clipboard.
+        /// UI thread only; the Desktop file survives even when the clipboard and
+        /// the process do not.</summary>
+        private void DumpSurfaceEvidence(string reason)
+        {
+            try
+            {
+                string bundle = DiagnosticsBundle.Dump(reason);
+                Clipboard.SetDataObject(new DataObject(DataFormats.UnicodeText, bundle), true);
+                SurfaceHealthLog.Log("diagnostics bundle copied to clipboard");
+            }
+            catch
+            {
+                // clipboard can fail (locked session, RDP); the Desktop file remains
+            }
         }
 
         private void ShAdvanceLadder()
