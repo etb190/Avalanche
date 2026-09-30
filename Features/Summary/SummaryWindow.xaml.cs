@@ -66,17 +66,19 @@ namespace Avalanche.Features.Summary
 
             PagesLabel.Text = loc("Str_SummaryPages");
             ToLabel.Text = loc("Str_SummaryTo");
-            DepthBox.Items.Add(loc("Str_SummaryDepthCompact"));
-            DepthBox.Items.Add(loc("Str_SummaryDepthStandard"));
-            DepthBox.Items.Add(loc("Str_SummaryDepthDeep"));
-            DepthBox.SelectedIndex = 1;
+            DepthCompactBtn.Content = loc("Str_SummaryDepthCompact");
+            DepthStandardBtn.Content = loc("Str_SummaryDepthStandard");
+            DepthDeepBtn.Content = loc("Str_SummaryDepthDeep");
+            DepthStandardBtn.IsChecked = true;
             PinBtn.ToolTip = loc("Str_SummaryPin");
-            PinBtn.Content = (char)0xE718; // Segoe MDL2: Pin
-            GoBtn.Content = loc("Str_SummaryGo");
-            StopBtn.Content = loc("Str_SummaryStop");
-            CopyBtn.Content = loc("Str_SummaryCopy");
-            SaveBtn.Content = loc("Str_SummarySave");
-            RegenBtn.Content = loc("Str_SummaryRegen");
+            PinBtn.Content = "\uE718"; // Segoe MDL2: Pin (E840 = pinned fill while checked)
+            PinBtn.Checked += (_, _) => PinBtn.Content = "\uE840";
+            PinBtn.Unchecked += (_, _) => PinBtn.Content = "\uE718";
+            GoBtn.Content = ActionLabel("\uE8FD", loc("Str_SummaryGo"), Orientation.Horizontal);
+            StopBtn.Content = ActionLabel("\uE71A", loc("Str_SummaryStop"), Orientation.Vertical);
+            CopyBtn.Content = ActionLabel("\uE8C8", loc("Str_SummaryCopy"), Orientation.Vertical);
+            SaveBtn.Content = ActionLabel("\uE74E", loc("Str_SummarySave"), Orientation.Vertical);
+            RegenBtn.Content = ActionLabel("\uE72C", loc("Str_SummaryRegen"), Orientation.Vertical);
             CoverageHint.Text = loc("Str_SummaryUntouched");
 
             int current = currentPageProvider();
@@ -258,12 +260,45 @@ namespace Avalanche.Features.Summary
 
         private int TargetWords()
         {
-            return DepthBox.SelectedIndex switch
+            if (DepthCompactBtn.IsChecked == true)
             {
-                0 => 400,
-                2 => 2000,
-                _ => 1000
+                return 400;
+            }
+
+            return DepthDeepBtn.IsChecked == true ? 2000 : 1000;
+        }
+
+        // Glyph + caption composite used by the styled action buttons; colors inherit
+        // from the button (white on the primary face, themed accents elsewhere).
+        private StackPanel ActionLabel(string glyph, string text, Orientation orientation)
+        {
+            var icon = new TextBlock
+            {
+                Text = glyph,
+                FontSize = orientation == Orientation.Vertical ? 15 : 13,
+                HorizontalAlignment = HorizontalAlignment.Center
             };
+            icon.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
+            var label = new TextBlock
+            {
+                Text = text,
+                FontSize = 10,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            label.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
+            var sp = new StackPanel { Orientation = orientation, VerticalAlignment = VerticalAlignment.Center };
+            sp.Children.Add(icon);
+            sp.Children.Add(label);
+            if (orientation == Orientation.Horizontal)
+            {
+                label.Margin = new Thickness(5, 0, 0, 0);
+            }
+            else
+            {
+                label.Margin = new Thickness(0, 1, 0, 0);
+            }
+
+            return sp;
         }
 
         private void SetBusy(bool busy)

@@ -62,9 +62,6 @@ namespace Avalanche
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var wordmark = UiKit.WordmarkFont;
-            var wordmarkPdf = UiKit.WordmarkFontPdf;
-
             // Build the wordmark row. A DropShadowEffect applied directly to text rasterizes it and
             // disables ClearType, which reads as blurry. So we LAYER it instead: a blurred black duplicate
             // sits behind a crisp, effect-free copy - soft shadow, sharp text. `shadow` paints the duplicate.
@@ -77,11 +74,17 @@ namespace Avalanche
                 int kp = fullTitle?.IndexOf("Avalanche", StringComparison.Ordinal) ?? -1;
                 if (kp >= 0)
                 {
-                    // Killer + PDF in one TextBlock so the two sizes share a baseline (cohesive wordmark).
-                    var logoTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-                    logoTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = wordmark, FontWeight = FontWeights.Normal, FontSize = 16, Foreground = primary });
-                    logoTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = wordmarkPdf, FontWeight = FontWeights.Bold, FontSize = 20.8, Foreground = logo });
-                    sp.Children.Add(logoTb);
+                    // The "Avalanche" wordmark - same face and size as the main window logo -
+                    // with the dialog suffix beside it sharing one baseline.
+                    sp.Children.Add(new TextBlock
+                    {
+                        Text = "Avalanche",
+                        FontFamily = UiKit.UiFont,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 16.5,
+                        Foreground = logo,
+                        VerticalAlignment = VerticalAlignment.Center
+                    });
                     string after = fullTitle![(kp + "Avalanche".Length)..];
                     if (!string.IsNullOrEmpty(after))
                         sp.Children.Add(new TextBlock { Text = after, FontFamily = UiKit.MonoFont, FontSize = 14, Foreground = secondary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 1, 0, 0) });
