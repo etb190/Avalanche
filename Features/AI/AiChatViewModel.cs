@@ -298,16 +298,35 @@ namespace Avalanche.Features.AI
                 SemanticStatus = _loc("Str_AiChatSemanticBuilding");
                 _ = Task.Run(async () =>
                 {
+                    var passToken = indexingCts.Token;
+                    var passStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                    int chunkCount = index.Chunks.Count;
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass START: gen={generation} chunks={chunkCount} model={embeddingModel}");
+
+                    // A wedged endpoint (accepts TCP, never answers) previously
+                    // kept the pass alive for batches x 2 minutes - hours on a
+                    // large PDF - with the status line parked on "building".
+                    // Bound the WHOLE pass: past the deadline it ends in the
+                    // visible keyword-only state instead of an eternal wait.
+                    using var passCts = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(passToken);
+                    passCts.CancelAfter(TimeSpan.FromMinutes(10));
+                    bool staleStatus = false;
+
                     try
                     {
                         await _indexer.EnsureEmbeddingsAsync(index,
                             (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
-                            embeddingModel, progress, indexingCts.Token,
+                            embeddingModel, progress, passCts.Token,
                             documentPrefix, queryPrefix);
 
                         lock (_processingLock)
                         {
-                            if (generation != _initGeneration) return;
+                            if (generation != _initGeneration)
+                            {
+                                staleStatus = true;
+                                return;
+                            }
                         }
                         Application.Current.Dispatcher.Invoke(() =>
                         {
@@ -317,23 +336,63 @@ namespace Avalanche.Features.AI
                             else
                                 SemanticStatus = _loc("Str_AiChatSemanticReady");
                         });
+                        Avalanche.Services.AiHighlightLog.Log(
+                            $"embedding pass DONE in {passStopwatch.ElapsedMilliseconds}ms: {chunkCount} chunk(s), semantic channel ready");
+                    }
+                    catch (OperationCanceledException) when (passToken.IsCancellationRequested)
+                    {
+                        // Document switched (or panel re-bound): the pass was
+                        // cancelled - previously this exited SILENTLY and left
+                        // the status line stuck on "building" forever.
+                        staleStatus = true;
+                        Avalanche.Services.AiHighlightLog.Log(
+                            $"embedding pass CANCELLED after {passStopwatch.ElapsedMilliseconds}ms (document switch, gen={generation})");
                     }
                     catch (OperationCanceledException)
                     {
-                        // document switched - nothing to report
+                        // OUR 10-minute deadline fired, not a document switch:
+                        // the endpoint never completed the pass. Make that
+                        // visible instead of waiting forever.
+                        Avalanche.Services.AiHighlightLog.Log(
+                            $"embedding pass TIMEOUT after {passStopwatch.ElapsedMilliseconds}ms - endpoint never finished; keyword-only mode");
+                        try
+                        {
+                            Application.Current.Dispatcher.Invoke(() =>
+                                SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
+                        }
+                        catch { /* app shutting down */ }
                     }
                     catch (AiProviderException pex) when (pex.Category == AiErrorCategory.ModelNotFound)
                     {
-                        Avalanche.Services.AiHighlightLog.Log($"semantic indexing failed: model missing ({pex.ModelName})");
+                        Avalanche.Services.AiHighlightLog.Log(
+                            $"embedding pass FAILED in {passStopwatch.ElapsedMilliseconds}ms: model missing ({pex.ModelName})");
                         Application.Current.Dispatcher.Invoke(() =>
                             SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
                     }
                     catch (Exception embedEx)
                     {
                         Avalanche.Services.AiHighlightLog.Log(
-                            $"semantic indexing skipped - lexical-only mode ({embedEx.Message})");
+                            $"embedding pass FAILED in {passStopwatch.ElapsedMilliseconds}ms - lexical-only mode ({embedEx.Message})");
                         Application.Current.Dispatcher.Invoke(() =>
                             SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
+                    }
+                    finally
+                    {
+                        // A cancelled/orphaned pass must not leave "building"
+                        // on the status line: clear it when this generation
+                        // no longer owns the panel.
+                        if (staleStatus)
+                        {
+                            try
+                            {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    if (SemanticStatus == _loc("Str_AiChatSemanticBuilding"))
+                                        SemanticStatus = "";
+                                });
+                            }
+                            catch { /* app shutting down */ }
+                        }
                     }
                 });
 

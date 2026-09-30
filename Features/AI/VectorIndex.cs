@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading;
-using System.Threading;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -212,6 +211,12 @@ namespace Avalanche.Features.AI
 
         private void DropEmbeddingTables()
         {
+            // Schema drift in the semantic tables (e.g. the prefix_key column
+            // added to embedding_state) wipes stored vectors. The lexical
+            // index survives; documents re-embed on their next open. Log it:
+            // "my vectors are gone" previously had no visible cause.
+            Avalanche.Services.AiHighlightLog.Log(
+                "embedding tables: schema drift detected - rebuilding; stored vectors cleared and documents re-embed on next open");
             using var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
                 DROP TABLE IF EXISTS chunk_embeddings;

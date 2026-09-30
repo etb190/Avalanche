@@ -252,16 +252,29 @@ namespace Avalanche.Features.AI
                     using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                     cts.CancelAfter(ProbeTimeout);
                     await GenerateBatchAsync(new List<string> { "capability probe" }, cts.Token).ConfigureAwait(false);
-                    lock (_stateLock) _capability = CapabilityAvailable;
+                    lock (_stateLock)
+                    {
+                        if (_capability == CapabilityUnavailable)
+                            Avalanche.Services.AiHighlightLog.Log(
+                                "embedding probe: endpoint recovered - semantic channel re-enabled");
+                        _capability = CapabilityAvailable;
+                    }
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
                     MarkUnavailable();
+                    // The probe used to fail silently: the only visible symptom
+                    // was a status line stuck on "building" and a semantic
+                    // channel that never came back. Log the reason.
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding probe: no answer within {ProbeTimeout.TotalSeconds:0}s ({CapabilityKey(config)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
                     throw EmbeddingsUnavailable(config);
                 }
                 catch (Exception ex)
                 {
                     MarkUnavailable();
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding probe: unavailable ({ex.GetType().Name}: {Truncate(ex.Message, 160)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
                     throw EmbeddingsUnavailable(config, ex);
                 }
             }
