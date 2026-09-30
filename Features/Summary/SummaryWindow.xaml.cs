@@ -36,6 +36,7 @@ namespace Avalanche.Features.Summary
         private bool _flushPending;
         private bool _closed;
         private int _generation;        // bumped by Reset/close so stale continuations can't repaint
+        private bool _bypassOnce;       // Reset arms the next Start to ignore any cached digest
 
         public SummaryWindow(
             MainWindow owner,
@@ -117,6 +118,7 @@ namespace Avalanche.Features.Summary
             // token and no longer repaint the cleared card (status, digest, overlays).
             _generation++;
             _cts?.Cancel();
+            _bypassOnce = true;     // the next Start runs fresh instead of replaying a cached digest
 
             _fullText = string.Empty;
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
@@ -164,8 +166,10 @@ namespace Avalanche.Features.Summary
             Overlay(null);
             SetBusy(true);
 
+            bool bypass = bypassCache || _bypassOnce;
+            _bypassOnce = false;
             var request = new SummaryRequest(
-                _filePath, _documentId, first, last, TargetWords(), bypassCache);
+                _filePath, _documentId, first, last, TargetWords(), bypass);
             try
             {
                 await foreach (SummaryUpdate update in PageSummarizer.GenerateAsync(

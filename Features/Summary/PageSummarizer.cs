@@ -21,6 +21,7 @@ namespace Avalanche.Features.Summary
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Net.Http;
@@ -127,11 +128,28 @@ namespace Avalanche.Features.Summary
                 // summarize bare markers - it answered "no page text was provided".
                 string bodyText = System.Text.RegularExpressions.Regex.Replace(
                     rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                // Black-box evidence: what was actually pulled out of the file, and from
+                // which file. Zero letters here means the answer is the document (no text
+                // layer / wrong file), not the model.
+                SurfaceHealthLog.Log(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "summary: pages {0}-{1} extracted {2} chars / {3} letters from \"{4}\"; preview: {5}",
+                    request.FirstPage,
+                    request.LastPage,
+                    bodyText.Length,
+                    CountLetters(bodyText),
+                    request.FilePath,
+                    Preview(bodyText)));
                 if (CountLetters(bodyText) < 60)
                 {
                     yield return new SummaryUpdate("notext");
                     yield break;
                 }
+
+                yield return new SummaryUpdate(
+                    "progress",
+                    string.Format(
+                        loc("Str_SummaryExtracted"), bodyText.Length, request.FirstPage, request.LastPage));
 
                 // Hash + cache lookup run off the UI thread: they touch vector_index.db,
                 // which the chat's indexer can hold locked for seconds at a time.
@@ -144,6 +162,12 @@ namespace Avalanche.Features.Summary
                         ct).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(cached))
                     {
+                        SurfaceHealthLog.Log(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "summary: cache hit for pages {0}-{1} ({2} chars)",
+                            request.FirstPage,
+                            request.LastPage,
+                            cached.Length));
                         yield return new SummaryUpdate("delta", cached);
                         yield return new SummaryUpdate("done", cached, FromCache: true);
                         yield break;
@@ -290,6 +314,14 @@ namespace Avalanche.Features.Summary
             return count;
         }
 
+        /// <summary>First 120 characters of the extracted text, flattened for the log line -
+        /// distinguishes real prose from empty extraction and from garbled glyph soup.</summary>
+        private static string Preview(string text)
+        {
+            string flat = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+            return flat.Length <= 120 ? flat : flat[..120];
+        }
+
         // ------------------------------------------------------------------
         // Prompts
         // ------------------------------------------------------------------
@@ -408,6 +440,12 @@ namespace Avalanche.Features.Summary
             [EnumeratorCancellation] CancellationToken ct)
         {
             using var request = BuildRequest(config, system, user, Math.Max(config.MaxTokens, 6000), stream: true);
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "summary: POST model={0} system={1}ch user={2}ch stream=true",
+                config.Model,
+                system.Length,
+                user.Length));
             using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
                 .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
@@ -459,6 +497,13 @@ namespace Avalanche.Features.Summary
             AiProviderConfig config, string system, string user, CancellationToken ct, int maxTokens)
         {
             using var request = BuildRequest(config, system, user, maxTokens, stream: false);
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "summary: POST model={0} system={1}ch user={2}ch stream=false maxTokens={3}",
+                config.Model,
+                system.Length,
+                user.Length,
+                maxTokens));
             using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
