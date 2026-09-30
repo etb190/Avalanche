@@ -537,10 +537,13 @@ namespace Avalanche
             const string baseTitle = "Avalanche";
             try
             {
-                var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)System.Attribute.GetCustomAttribute(
-                                System.Reflection.Assembly.GetEntryAssembly(),
-                                typeof(System.Reflection.AssemblyInformationalVersionAttribute));
-                            var info = attr?.InformationalVersion;
+                var entry = System.Reflection.Assembly.GetEntryAssembly();
+                var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)(entry is null
+                                ? null
+                                : System.Attribute.GetCustomAttribute(
+                                    entry,
+                                    typeof(System.Reflection.AssemblyInformationalVersionAttribute)));
+                var info = attr?.InformationalVersion;
                 if (string.IsNullOrWhiteSpace(info)) return baseTitle;
                 var plus = info.IndexOf('+');
                 var id = plus >= 0 && plus < info.Length - 1 ? info[(plus + 1)..] : info;

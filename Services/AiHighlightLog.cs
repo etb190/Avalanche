@@ -47,10 +47,12 @@ namespace Avalanche.Services
                         var build = "unknown";
                         try
                         {
-                            var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)
-                                System.Attribute.GetCustomAttribute(
-                                    System.Reflection.Assembly.GetEntryAssembly(),
-                                    typeof(System.Reflection.AssemblyInformationalVersionAttribute));
+                            var entry = System.Reflection.Assembly.GetEntryAssembly();
+                            var attr = (System.Reflection.AssemblyInformationalVersionAttribute?)(entry is null
+                                ? null
+                                : System.Attribute.GetCustomAttribute(
+                                    entry,
+                                    typeof(System.Reflection.AssemblyInformationalVersionAttribute)));
                             var info = attr?.InformationalVersion;
                             if (!string.IsNullOrWhiteSpace(info)) build = info;
                         }
