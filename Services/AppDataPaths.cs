@@ -66,6 +66,26 @@ internal static class AppDataPaths
         }
     }
 
+    // General (installed + portable) key-value settings. Unlike the portable-only
+    // accessors above, these always operate on UserRoot's settings.json.
+    internal static string? GetSetting(string name)
+    {
+        lock (SettingsGate)
+        {
+            return ReadSettings().GetValueOrDefault(name);
+        }
+    }
+
+    internal static void SetSetting(string name, string value)
+    {
+        lock (SettingsGate)
+        {
+            Dictionary<string, string> settings = ReadSettings();
+            settings[name] = value;
+            WriteSettings(settings);
+        }
+    }
+
     private static Dictionary<string, string> ReadSettings()
     {
         try

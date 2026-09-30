@@ -71,6 +71,10 @@ namespace Avalanche
         // Startup
         // ============================================================
 
+        // True when the process runs with hardware acceleration disabled
+        // (settings.json "render.mode"="software" or --sw-render).
+        internal static bool SoftwareRenderingForced { get; private set; }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             StartupTrace.Mark("App.OnStartup entered");
@@ -78,15 +82,34 @@ namespace Avalanche
             AppDomain.CurrentDomain.UnhandledException      += OnDomainException;
             TaskScheduler.UnobservedTaskException           += OnUnobservedTaskException;
 
-            // --sw-render: last-resort escape hatch for the black-surface bug family.
-            // Software rendering has no D3D device to lose, so milcore device loss cannot
-            // occur at all. Costs GPU compositing smoothness; use it to confirm a
-            // DWM/driver-side diagnosis or as a stopgap on affected machines.
-            if (e.Args.Any(a => string.Equals(a, "--sw-render", StringComparison.OrdinalIgnoreCase)))
+            // Persistent render-mode policy (settings.json "render.mode"). SOFTWARE is the
+            // default: software rendering has no D3D device to lose, so the entire
+            // black-surface bug family (minimize/restore, monitor power, GPU TDR, HDR
+            // toggles) becomes structurally impossible instead of repaired after the
+            // fact. Hardware mode stays available for maximum compositing smoothness and
+            // is then guarded by SurfaceHealth's self-healing probes. Session-only CLI
+            // overrides: --hw-render / --sw-render.
+            string renderMode;
+            if (e.Args.Any(a => string.Equals(a, "--hw-render", StringComparison.OrdinalIgnoreCase)))
+            {
+                renderMode = "hardware";
+            }
+            else if (e.Args.Any(a => string.Equals(a, "--sw-render", StringComparison.OrdinalIgnoreCase)))
+            {
+                renderMode = "software";
+            }
+            else
+            {
+                renderMode = AppDataPaths.GetSetting("render.mode") ?? "software";
+            }
+
+            if (string.Equals(renderMode, "software", StringComparison.OrdinalIgnoreCase))
             {
                 RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
-                StartupTrace.Mark("software rendering forced via --sw-render");
+                SoftwareRenderingForced = true;
             }
+
+            StartupTrace.Mark("render mode: " + renderMode);
 
             base.OnStartup(e);
             StartupTrace.Mark("Application base startup complete");

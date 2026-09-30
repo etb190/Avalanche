@@ -94,7 +94,12 @@ namespace Avalanche
             };
             _shSweepTimer.Tick += (sender, e) => ShSweepTick();
             _shSweepTimer.Start();
-            SurfaceHealthLog.Log("SurfaceHealth sweep started (probe every 10s, escalation ladder armed)");
+            bool software = Application.Current is App && App.SoftwareRenderingForced;
+            SurfaceHealthLog.Log(software
+                ? "SurfaceHealth sweep started (probe every 10s); render mode: SOFTWARE - " +
+                  "device-loss bug class structurally impossible, probes are a backstop only"
+                : "SurfaceHealth sweep started (probe every 10s, escalation ladder armed); " +
+                  "render mode: HARDWARE");
         }
 
         /// <summary>
