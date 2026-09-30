@@ -73,6 +73,23 @@ namespace Avalanche.Services
                 sb.AppendLine("render : (unavailable)");
             }
 
+            // Memory context: software-mode render-thread deaths are suspected to
+            // involve allocation pressure (large page bitmaps in system memory).
+            try
+            {
+                using var proc = System.Diagnostics.Process.GetCurrentProcess();
+                sb.AppendLine(string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "memory: working set {0:F0} MB, private {1:F0} MB, GC heap {2:F0} MB",
+                    proc.WorkingSet64 / 1048576.0,
+                    proc.PrivateMemorySize64 / 1048576.0,
+                    GC.GetTotalMemory(false) / 1048576.0));
+            }
+            catch
+            {
+                sb.AppendLine("memory: (unavailable)");
+            }
+
             sb.AppendLine();
 
             string logPath = Path.Combine(

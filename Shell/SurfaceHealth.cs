@@ -98,7 +98,8 @@ namespace Avalanche
             bool software = Application.Current is App && App.SoftwareRenderingForced;
             SurfaceHealthLog.Log(software
                 ? "SurfaceHealth sweep started (probe every 10s); render mode: SOFTWARE - " +
-                  "device-loss bug class structurally impossible, probes are a backstop only"
+                  "no GPU device loss, but software composition has its own restore/resize " +
+                  "render-thread failure class (UCEERR_RENDERTHREADFAILURE, field-proven); probes are the safety net"
                 : "SurfaceHealth sweep started (probe every 10s, escalation ladder armed); " +
                   "render mode: HARDWARE");
             SurfaceHealthLog.Log("UI-thread hang watchdog armed (probe every 5s, 10s timeout)");
@@ -114,10 +115,54 @@ namespace Avalanche
         {
             SurfaceHealthLog.Log("trigger: " + reason);
             int gen = ++_shBurstGen;
+            // Early probe (~300 ms). The field log shows every restore-time death
+            // is fully black well before the +1 s burst entry, so one extra
+            // PrintWindow probe per trigger cuts ~1 s of dead screen. It uses a
+            // stricter purity rule (mean<2 AND max==0) than the sweep so a dark
+            // frame mid-relayout cannot false-positive into the ladder; the
+            // regular burst still backs it up.
+            ShRunOnce(TimeSpan.FromMilliseconds(300), () => ShEarlyProbe(gen));
             foreach (double delaySec in ShBurstDelaysSec)
             {
                 double at = delaySec;
                 ShRunOnce(TimeSpan.FromSeconds(delaySec), () => ShBurstProbe(gen, at));
+            }
+        }
+
+        /// <summary>
+        /// Fast-path for the one failure class the probes can only see after the
+        /// fact: WPF's composition channel died (UCEERR_RENDERTHREADFAILURE,
+        /// 0x88980406). The dispatcher exception handler calls this instead of
+        /// showing a dialog; the escalation ladder is the same recovery the
+        /// probes use (field-proven at step 5), just started immediately.
+        /// </summary>
+        public void NotifyRenderThreadFailure(Exception ex)
+        {
+            if (_shLadderRunning)
+            {
+                SurfaceHealthLog.Log(
+                    "render thread failure (" + ex.GetType().Name + ") while a ladder is already running - re-probe continues");
+                return;
+            }
+
+            SurfaceHealthLog.Log(
+                "render thread failure caught (" + ex.GetType().Name +
+                ", hr=0x" + ex.HResult.ToString("X8") + ") - escalating immediately");
+            SurfaceHealthProbeResult r = ShProbeSurface();
+            ShBeginEscalation("render-thread-failure", r.Ok ? r : SurfaceHealthProbeResult.Healthy(0, 0, 0));
+        }
+
+        private void ShEarlyProbe(int gen)
+        {
+            if (gen != _shBurstGen || _shLadderRunning || DateTime.UtcNow < _shCooldownUntil)
+            {
+                return;
+            }
+
+            SurfaceHealthProbeResult r = ShProbeSurface();
+            if (r.Ok && r.Mean < 2.0 && r.Max == 0)
+            {
+                ShBeginEscalation("early-probe", r);
             }
         }
 

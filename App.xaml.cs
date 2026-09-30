@@ -403,6 +403,25 @@ namespace Avalanche
 
         private void OnDispatcherException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
+            // Render-thread death (UCEERR_RENDERTHREADFAILURE, 0x88980406): the
+            // composition channel is gone and the window paints black until the
+            // SurfaceHealth escalation ladder rebuilds it. Field-proven
+            // recoverable, so skip the crash dialog (it would just sit on top of
+            // a dead surface) and start healing immediately.
+            if (e.Exception is System.Runtime.InteropServices.COMException cex &&
+                ((uint)cex.HResult == 0x88980406u ||
+                 cex.Message.Contains("UCEERR_RENDERTHREADFAILURE")))
+            {
+                e.Handled = true;
+                CrashReporter.Capture(cex, "Dispatcher (render thread failure)");
+                if (Application.Current?.MainWindow is MainWindow mw)
+                {
+                    mw.NotifyRenderThreadFailure(cex);
+                }
+
+                return;
+            }
+
             // Let WPF unwind the failing input/layout callback before creating another window.
             // Opening a modal dialog inside this event re-enters the dispatcher while its visual
             // tree may still be inconsistent, which can turn one recoverable error into a loop.
