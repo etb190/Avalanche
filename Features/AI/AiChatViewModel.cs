@@ -114,9 +114,9 @@ namespace Avalanche.Features.AI
 
             _retrievalOptions = new RetrievalOptions
             {
-                TopK = 8,
-                EvidenceCharBudget = 12000,
-                CandidatePoolSize = 30,
+                TopK = 24,
+                EvidenceCharBudget = 40000,
+                CandidatePoolSize = 80,
                 EnableReranking = true,
                 MinScore = 0.15f
             };
@@ -976,6 +976,12 @@ namespace Avalanche.Features.AI
             sb.AppendLine("Example: 'The trial lasted twelve weeks. [SOURCE_2]'.");
             sb.AppendLine("Use [SOURCE_n] only - never full-width brackets like \u3010SOURCE_n\u3011, never (SOURCE_n).");
             sb.AppendLine("Every source listed in 'sources' must also appear as an inline [SOURCE_n] marker in the answer.");
+            sb.AppendLine();
+            sb.AppendLine("ANSWER STYLE:");
+            sb.AppendLine("Write a thorough, well-structured answer that fully covers what the evidence says about the question.");
+            sb.AppendLine("Include every distinct aspect, mechanism, technique, step, or example the evidence provides; never compress the answer into a single short sentence when the evidence supports more.");
+            sb.AppendLine("When there are several distinct points, present them as short paragraphs or a bulleted list ('- '), each point carrying its own inline [SOURCE_n] citation.");
+            sb.AppendLine("Briefly explain terms or context the document uses when that aids understanding, staying grounded in the evidence.");
             sb.AppendLine();
             sb.AppendLine("EVIDENCE FORMAT:");
             sb.AppendLine("[SOURCE_1] Page 147 (section: ...)");

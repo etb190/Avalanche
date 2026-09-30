@@ -286,13 +286,13 @@ namespace Avalanche.Features.AI
     /// </summary>
     public sealed class RetrievalOptions
     {
-        public int CandidatePoolSize { get; set; } = 30;      // Initial pool before reranking
+        public int CandidatePoolSize { get; set; } = 80;      // Initial pool before reranking
         public int MaxResults { get; set; } = 10;             // Final results
-        public int TopK { get; set; } = 8;                    // Number of chunks to retrieve
-        public int EvidenceCharBudget { get; set; } = 12000;  // Total character budget for evidence
+        public int TopK { get; set; } = 24;                   // Number of chunks to retrieve
+        public int EvidenceCharBudget { get; set; } = 40000;  // Total character budget for evidence
         public float MinScore { get; set; } = 0.15f;          // Minimum relevance score
         public bool EnableReranking { get; set; } = true;     // Apply reranking
-        public int MaxRerankCandidates { get; set; } = 20;    // Max candidates to rerank
+        public int MaxRerankCandidates { get; set; } = 40;    // Max candidates to rerank
         public float LexicalWeight { get; set; } = 0.4f;      // BM25 channel weight in the fusion
         public float SemanticWeight { get; set; } = 0.6f;     // Cosine channel weight in the fusion
 

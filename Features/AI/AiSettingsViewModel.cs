@@ -20,8 +20,8 @@ namespace Avalanche.Features.AI
         private double _genTopP = 1.0;
         private string _genReasoningEffort = "low";
         private string _embeddingModel = "embeddinggemma:latest";
-        private int _topK = 8;
-        private int _evidenceCharBudget = 12000;
+        private int _topK = 24;
+        private int _evidenceCharBudget = 40000;
         private int _maxHistoryMessages = 6;
         private string _embeddingDocumentPrefix = "title: none | text: ";
         private string _embeddingQueryPrefix = "task: search results | query: ";
@@ -340,7 +340,21 @@ namespace Avalanche.Features.AI
                 var json = System.IO.File.ReadAllText(path);
                 var config = System.Text.Json.JsonSerializer.Deserialize<AiProviderConfig>(json);
                 if (config is not null)
+                {
                     LoadFromGenConfig(config);
+                    // One-time upgrade for settings saved before the evidence scale-up: the
+                    // exact old default pair (TopK 8 / 12000 chars = roughly one page of
+                    // context) marks values that were never customized, and one page of
+                    // context is what made answers terse. Lift it to the new defaults and
+                    // persist immediately so this runs once. A deliberate 8/12000 entered
+                    // by hand afterwards is honored (and saved as-is by the panel).
+                    if (TopK == 8 && EvidenceCharBudget == 12000)
+                    {
+                        TopK = 24;
+                        EvidenceCharBudget = 40000;
+                        Save();
+                    }
+                }
             }
             catch
             {

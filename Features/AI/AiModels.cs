@@ -199,8 +199,8 @@ namespace Avalanche.Features.AI
         public string EmbeddingModel { get; set; } = "embeddinggemma:latest";
 
         // Retrieval behavior (was hardcoded in the AiChatViewModel ctor).
-        public int TopK { get; set; } = 8;
-        public int EvidenceCharBudget { get; set; } = 12000;
+        public int TopK { get; set; } = 24;
+        public int EvidenceCharBudget { get; set; } = 40000;
         public int MaxHistoryMessages { get; set; } = 6;
 
         // Embedding prompt prefixes (model-specific). The EmbeddingGemma model
