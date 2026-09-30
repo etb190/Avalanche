@@ -80,7 +80,15 @@ namespace Avalanche.Controls
             if (_currentTool != EditTool.Select || _currentFile is null) return CursorForTool(_currentTool);
             if (!_renderDims.TryGetValue(pageIdx, out var rd) || rd.w <= 0 || rd.h <= 0)
                 return Cursors.Arrow;
-            var runs = _textRuns.GetPage(_currentFile, pageIdx);
+            // Cache-only: the first hover over a page must never parse it on the UI thread
+            // (a slow page would stall the dispatcher on every mouse move). A miss warms
+            // the page in the background; the next move sees the I-beam.
+            if (!_textRuns.TryGetCached(_currentFile, pageIdx, out var runs))
+            {
+                _textRuns.WarmPage(_currentFile, pageIdx);
+                return Cursors.Arrow;
+            }
+
             if (runs is null || runs.Chars.Count == 0) return Cursors.Arrow;
             var (px, py) = CanvasToPdf(pos, rd.w, rd.h, runs);
             return TextRunService.IsOverText(runs, px, py) ? Cursors.IBeam : Cursors.Arrow;

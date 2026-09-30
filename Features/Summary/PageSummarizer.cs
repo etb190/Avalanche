@@ -120,8 +120,14 @@ namespace Avalanche.Features.Summary
 
                 string rangeText = await ExtractRangeAsync(request.FilePath, request.FirstPage, request.LastPage, ct)
                     .ConfigureAwait(false);
-                if (string.IsNullOrWhiteSpace(rangeText.Replace("[[p.", string.Empty, StringComparison.Ordinal))
-                    || CountLetters(rangeText) < 60)
+                // Marker-aware gate: strip WHOLE [[p. N]] tokens before counting. The old
+                // string.Replace left " N]]" behind (never whitespace) and CountLetters
+                // counted the 'p' inside every marker, so a long marker-only range (>= 60
+                // pages of a scanned book) slipped through and the model was asked to
+                // summarize bare markers - it answered "no page text was provided".
+                string bodyText = System.Text.RegularExpressions.Regex.Replace(
+                    rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                if (CountLetters(bodyText) < 60)
                 {
                     yield return new SummaryUpdate("notext");
                     yield break;
@@ -175,6 +181,18 @@ namespace Avalanche.Features.Summary
                         notes.Add(note);
                     }
 
+                    // A provider that answers 200 with an error body (or a reasoning model
+                    // that puts everything into reasoning_content) yields empty notes; fusing
+                    // empties would ask the model to digest nothing, and it would answer
+                    // "no page text was provided". Fail loudly instead.
+                    if (notes.All(string.IsNullOrWhiteSpace))
+                    {
+                        yield return new SummaryUpdate(
+                            "error", "provider returned no content for every segment pass");
+                        yield break;
+                    }
+
+                    notes.RemoveAll(string.IsNullOrWhiteSpace);
                     yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
                     string fuseInput = string.Join(
                         "\n\n", notes.Select((n, i) => $"--- segment {i + 1} ---\n{n}"));
@@ -487,11 +505,23 @@ namespace Avalanche.Features.Summary
                     choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
                 {
                     var message = choices[0];
-                    if (message.TryGetProperty("message", out var msg) &&
-                        msg.TryGetProperty("content", out var content) &&
-                        content.ValueKind == JsonValueKind.String)
+                    if (message.TryGetProperty("message", out var msg))
                     {
-                        return content.GetString();
+                        if (msg.TryGetProperty("content", out var content) &&
+                            content.ValueKind == JsonValueKind.String &&
+                            content.GetString() is { Length: > 0 } text)
+                        {
+                            return text;
+                        }
+
+                        // Reasoning-style endpoints keep the answer in reasoning_content
+                        // while visible content stays empty - returning it beats nothing.
+                        if (msg.TryGetProperty("reasoning_content", out var reasoning) &&
+                            reasoning.ValueKind == JsonValueKind.String &&
+                            reasoning.GetString() is { Length: > 0 } rtext)
+                        {
+                            return rtext;
+                        }
                     }
                 }
 

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 using UglyToad.PdfPig;
 
@@ -53,7 +54,7 @@ namespace Avalanche.Services
         // Keyed by (path, last-write ticks, page): a resave or temp-reload changes the key, so stale
         // geometry can never serve a newer file. Nulls are cached too - a file PdfPig cannot open
         // should not be re-parsed on every click.
-        private readonly Dictionary<(string Path, long Ticks, int Page), PageTextRuns?> _cache = [];
+        private readonly ConcurrentDictionary<(string Path, long Ticks, int Page), PageTextRuns?> _cache = [];
 
         public PageTextRuns? GetPage(string path, int pageIdx)
         {
@@ -77,6 +78,41 @@ namespace Avalanche.Services
 
             _cache[key] = runs;
             return runs;
+        }
+
+        /// <summary>Cache lookup without parsing. Lets UI hot paths (mouse move) stay
+        /// parse-free: a miss must warm the page in the background instead of building
+        /// PdfPig runs synchronously on the dispatcher.</summary>
+        public bool TryGetCached(string path, int pageIdx, out PageTextRuns? runs)
+        {
+            runs = null;
+            if (string.IsNullOrEmpty(path) || pageIdx < 0) return false;
+            long ticks;
+            try { ticks = File.GetLastWriteTimeUtc(path).Ticks; }
+            catch { return false; }
+            return _cache.TryGetValue((path, ticks, pageIdx), out runs);
+        }
+
+        private readonly ConcurrentDictionary<(string Path, long Ticks, int Page), byte> _warming = [];
+
+        /// <summary>Builds a page's runs on a background thread (fire and forget). The
+        /// _warming guard keeps concurrent callers from duplicating the parse; results
+        /// land in the same cache GetPage reads, so later synchronous paths are instant.</summary>
+        public void WarmPage(string path, int pageIdx)
+        {
+            if (string.IsNullOrEmpty(path) || pageIdx < 0) return;
+            long ticks;
+            try { ticks = File.GetLastWriteTimeUtc(path).Ticks; }
+            catch { return; }
+
+            var key = (path, ticks, pageIdx);
+            if (_cache.ContainsKey(key) || !_warming.TryAdd(key, 0)) return;
+            Task.Run(() =>
+            {
+                try { GetPage(path, pageIdx); }
+                catch { /* warmup is best-effort */ }
+                finally { _warming.TryRemove(key, out _); }
+            });
         }
 
         // #185 helper: see the call site comment. Bands arrive top-to-bottom; the result is the
