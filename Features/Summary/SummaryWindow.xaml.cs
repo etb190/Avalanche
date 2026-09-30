@@ -61,7 +61,7 @@ namespace Avalanche.Features.Summary
             _loc = loc;
 
             DialogChrome.Configure(this, owner, resizable: true);
-            Content = DialogChrome.Frame(this, owner, loc("Str_SummaryTitle"), Close, BodyRoot);
+            Content = DialogChrome.Frame(this, owner, "Avalanche - " + loc("Str_SummaryTitle"), Close, BodyRoot);
             Title = "Avalanche - " + loc("Str_SummaryTitle");
 
             PagesLabel.Text = loc("Str_SummaryPages");

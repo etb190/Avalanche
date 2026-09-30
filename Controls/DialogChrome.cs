@@ -241,6 +241,21 @@ namespace Avalanche
             Window win, Window? owner, string title, Action onClose, UIElement body,
             Thickness? haloMargin = null)
         {
+            // A body declared as the window's XAML content is still the window's logical
+            // child when its ctor hands it over (SummaryWindow v1.8.71 crash: "Specified
+            // element is already the logical child of another element"). Disconnect it so
+            // the frame can adopt it; a no-op for the code-built bodies other dialogs pass.
+            if (body is FrameworkElement fe && fe.Parent is { } previous)
+            {
+                switch (previous)
+                {
+                    case Panel panel when panel.Children.Contains(fe): panel.Children.Remove(fe); break;
+                    case Border border when ReferenceEquals(border.Child, fe): border.Child = null; break;
+                    case Decorator decorator when ReferenceEquals(decorator.Child, fe): decorator.Child = null; break;
+                    case ContentControl host when ReferenceEquals(host.Content, fe): host.Content = null; break;
+                }
+            }
+
             win.KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; onClose(); } };
 
             var card = new Border
