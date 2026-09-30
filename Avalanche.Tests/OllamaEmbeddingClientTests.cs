@@ -135,19 +135,23 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
     }
 
     [Fact]
-    public async Task GenerateEmbeddings_ServerError_ThrowsHttpRequestException()
+    public async Task GenerateEmbeddings_ServerError_ThrowsTypedProviderException()
     {
         var handler = new FakeEmbedHandler
         {
             Responder = _ => Json("{\"error\":\"boom\"}", HttpStatusCode.InternalServerError)
         };
         var c = NewClient(handler, batchSize: 4);
-        await Assert.ThrowsAsync<HttpRequestException>(() => c.GenerateEmbeddingAsync("q"));
+        var ex = await Assert.ThrowsAsync<AiProviderException>(() => c.GenerateEmbeddingAsync("q"));
         c.Dispose();
+
+        // Typed verdicts must survive: the UI maps the category to the
+        // localized message instead of a generic "unavailable" line.
+        Assert.Equal(AiErrorCategory.OllamaNotRunning, ex.Category);
     }
 
     [Fact]
-    public async Task ProbeFailure_IsCached_WithinCoolDown()
+    public async Task Probe_ModelMissing404_IsTypedAndCached_WithinCoolDown()
     {
         var handler = new FakeEmbedHandler
         {
@@ -155,15 +159,97 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         };
         var c = NewClient(handler, batchSize: 4);
 
-        var ex1 = await Assert.ThrowsAsync<HttpRequestException>(() => c.GenerateEmbeddingAsync("q"));
-        var ex2 = await Assert.ThrowsAsync<HttpRequestException>(() => c.GenerateEmbeddingAsync("q"));
+        // 404 = model absent: BOTH the live probe AND the cool-down fast-fail
+        // must carry the typed verdict, otherwise the UI can only say
+        // "unavailable" instead of the actionable "run: ollama pull <model>".
+        var ex1 = await Assert.ThrowsAsync<AiProviderException>(() => c.GenerateEmbeddingAsync("q"));
+        var ex2 = await Assert.ThrowsAsync<AiProviderException>(() => c.GenerateEmbeddingAsync("q"));
         c.Dispose();
 
-        Assert.Contains("unavailable", ex1.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("unavailable", ex2.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(AiErrorCategory.ModelNotFound, ex1.Category);
+        Assert.Equal(AiErrorCategory.ModelNotFound, ex2.Category);
         // One probe only: the negative capability is cached (fast-fail), the
         // second call never touched the network.
         Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task Probe_Unreachable_WrapsAsUnavailable()
+    {
+        var handler = new FakeEmbedHandler
+        {
+            Responder = _ => throw new HttpRequestException("connection refused")
+        };
+        var c = NewClient(handler, batchSize: 4);
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => c.GenerateEmbeddingAsync("q"));
+        c.Dispose();
+
+        Assert.Contains("unavailable", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task BatchDeadline_SplitsBatch_AsHalvesAndCompletes()
+    {
+        // A CPU-only endpoint can need longer for a FULL batch than the
+        // per-batch deadline. The batch is split and retried as halves so the
+        // pass makes progress instead of dying (the old 10-minute total
+        // deadline killed exactly these healthy-but-slow passes).
+        var handler = new FakeEmbedHandler
+        {
+            AsyncResponder = async (r, ct) =>
+            {
+                var body = await r.Content!.ReadAsStringAsync(ct);
+                var doc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body);
+                int count = doc.GetProperty("input").GetArrayLength();
+                var vectors = Enumerable.Range(0, count).Select(_ => new float[] { 1f, 0f, 0f, 0f }).ToArray();
+                var payload = System.Text.Json.JsonSerializer.Serialize(new { embeddings = vectors });
+                if (count > 2)
+                    await Task.Delay(1000, ct); // slower than the batch deadline (token observed!)
+                return Json(payload);
+            }
+        };
+        var c = NewClient(handler, batchSize: 8);
+        c.BatchTimeout = TimeSpan.FromMilliseconds(300);
+
+        var texts = Enumerable.Range(0, 8).Select(i => $"text {i}").ToList();
+        var vectors = await c.GenerateEmbeddingsAsync(texts);
+        c.Dispose();
+
+        // 8 inputs -> one deadline-violating batch of 8, split 4+4 (still too
+        // slow), each split again into pairs (fast). Aligned result.
+        Assert.Equal(8, vectors.Length);
+        Assert.All(vectors, v => Assert.Equal(4, v.Length));
+        Assert.Equal(1 + 1 + 2 + 4, handler.RequestCount); // probe + 1 + 2 + 4
+    }
+
+    [Fact]
+    public async Task BatchDeadline_AtSplitFloor_PropagatesCancellation()
+    {
+        // A batch that cannot be split further (a pair) that STILL blows the
+        // deadline is a dead endpoint, not a slow model: the cancellation
+        // propagates (the pass then ends in the visible keyword-only state)
+        // instead of splitting down to single items forever.
+        var handler = new FakeEmbedHandler
+        {
+            AsyncResponder = async (r, ct) =>
+            {
+                var body = await r.Content!.ReadAsStringAsync(ct);
+                var doc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body);
+                int count = doc.GetProperty("input").GetArrayLength();
+                var vectors = Enumerable.Range(0, count).Select(_ => new float[] { 1f, 0f, 0f, 0f }).ToArray();
+                var payload = System.Text.Json.JsonSerializer.Serialize(new { embeddings = vectors });
+                if (count >= 2)
+                    await Task.Delay(1000, ct); // pairs stall too: nothing to split into
+                return Json(payload);
+            }
+        };
+        var c = NewClient(handler, batchSize: 4);
+        c.BatchTimeout = TimeSpan.FromMilliseconds(300);
+
+        var texts = new List<string> { "a", "b" };
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => c.GenerateEmbeddingsAsync(texts));
+        c.Dispose();
     }
 
     [Fact]

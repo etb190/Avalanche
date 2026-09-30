@@ -23,17 +23,25 @@ internal sealed class FakeEmbedHandler : HttpMessageHandler
     public readonly List<string> RequestBodies = new();
     public Func<HttpRequestMessage, HttpResponseMessage>? Responder;
 
+    // Async variant (takes precedence over Responder) - lets tests simulate
+    // SLOW endpoints by delaying the answer past the client's batch deadline.
+    // The CancellationToken MUST be observed by the delay: HttpClient does not
+    // force-cancel a custom handler's pending task on its own.
+    public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? AsyncResponder;
+
     private static HttpResponseMessage Json(string body, HttpStatusCode code = HttpStatusCode.OK)
         => new(code) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
 
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref RequestCount);
         if (request.Content is not null)
             RequestBodies.Add(request.Content.ReadAsStringAsync(cancellationToken).Result);
 
+        if (AsyncResponder is not null)
+            return await AsyncResponder(request, cancellationToken);
         if (Responder is not null)
-            return Task.FromResult(Responder(request));
+            return Responder(request);
 
         // Default: serve deterministic vectors from the map; unknown texts get
         // a distinct unit vector keyed by the text hash.
@@ -43,7 +51,7 @@ internal sealed class FakeEmbedHandler : HttpMessageHandler
         var inputs = body.GetProperty("input").EnumerateArray().Select(e => e.GetString()!).ToList();
         var vectors = inputs.Select(i => VectorMap.TryGetValue(i, out var v) ? v : UnitVector(i)).ToList();
         var payload = JsonSerializer.Serialize(new { embeddings = vectors });
-        return Task.FromResult(Json(payload));
+        return Json(payload);
     }
 
     public Dictionary<string, float[]> VectorMap { get; } = new();

@@ -1111,6 +1111,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiChatEmbeddingModelMissing">Embedding model {0} not found. Run: ollama pull {0} — using keyword search only.</sys:String>
     <sys:String x:Key="Str_AiChatSemanticReady">Semantic search ready.</sys:String>
     <sys:String x:Key="Str_AiChatSemanticBuilding">Ready — building semantic search…</sys:String>
+    <sys:String x:Key="Str_AiChatSemanticBuildingProgress">Building semantic search… {0}/{1}</sys:String>
     <sys:String x:Key="Str_AiChatNoDocument">Open a PDF first, then ask me about it here.</sys:String>
     <sys:String x:Key="Str_AiChatCancelTip">Stop the current reply</sys:String>
     <sys:String x:Key="Str_AiErrorBadResponse">The AI returned a response the app could not read. Try again.</sys:String>

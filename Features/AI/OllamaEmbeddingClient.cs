@@ -24,7 +24,7 @@ namespace Avalanche.Features.AI
     /// cool-down so a restarted Ollama recovers), a per-batch timeout, and
     /// batched input - one HTTP call per batch, never per chunk.
     /// </summary>
-    public sealed class OllamaEmbeddingClient
+    public sealed class OllamaEmbeddingClient : IDisposable
     {
         /// <summary>Default embedding model; overridable via AiProviderConfig.EmbeddingModel.</summary>
         public const string DefaultModel = "embeddinggemma:latest";
@@ -45,10 +45,20 @@ namespace Avalanche.Features.AI
         private string? _capabilityKey;
         private int _capability = CapabilityUnknown;
         private long _unavailableAtUtcTicks;
+        private AiErrorCategory _lastCategory = AiErrorCategory.Other;
         private readonly SemaphoreSlim _probeLock = new SemaphoreSlim(1, 1);
         private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(15);
-        private static readonly TimeSpan BatchTimeout = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan EmbeddingRetryCoolDown = TimeSpan.FromSeconds(60);
+
+        // Per-batch deadline (instance, internal-settable for tests): one HTTP
+        // call with up to _batchSize inputs must answer within this window or
+        // the batch is split and retried - see SendBatchWithSplitRetryAsync.
+        internal TimeSpan BatchTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+        // Splitting floor: the smallest batch that is still WORTH splitting
+        // (into a pair). A pair (or single) that blows the deadline is a dead
+        // endpoint, not a slow model - fail instead of splitting forever.
+        private const int MinSplitBatchSize = 4;
 
         public OllamaEmbeddingClient(Func<AiProviderConfig> configProvider, int batchSize = 32, HttpMessageHandler? handler = null)
         {
@@ -98,13 +108,40 @@ namespace Avalanche.Features.AI
                 for (int j = i; j < end; j++)
                     batch.Add(texts[j] ?? "");
 
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(BatchTimeout);
-                var batchResults = await GenerateBatchAsync(batch, cts.Token).ConfigureAwait(false);
+                var batchResults = await SendBatchWithSplitRetryAsync(batch, cancellationToken).ConfigureAwait(false);
                 results.AddRange(batchResults);
             }
 
             return results.ToArray();
+        }
+
+        /// <summary>
+        /// Sends one batch under the per-batch deadline. A CPU-only endpoint
+        /// can legitimately need longer for a FULL batch than the deadline -
+        /// killing the whole pass for that (the 10-minute total deadline did
+        /// exactly that) permanently degraded answers to keyword-only. Instead
+        /// a timed-out batch is SPLIT and retried as halves: smaller inputs fit
+        /// the window, so slow-but-healthy endpoints make progress while a
+        /// wedged one fails fast at the floor (no answer even for a tiny batch
+        /// within 60s). Caller cancellation is never mistaken for a deadline:
+        /// it propagates untouched.
+        /// </summary>
+        private async Task<List<float[]>> SendBatchWithSplitRetryAsync(List<string> batch, CancellationToken ct)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(BatchTimeout);
+            try
+            {
+                return await GenerateBatchAsync(batch, cts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested && batch.Count >= MinSplitBatchSize)
+            {
+                int half = batch.Count / 2;
+                var first = await SendBatchWithSplitRetryAsync(batch.Take(half).ToList(), ct).ConfigureAwait(false);
+                var second = await SendBatchWithSplitRetryAsync(batch.Skip(half).ToList(), ct).ConfigureAwait(false);
+                first.AddRange(second);
+                return first;
+            }
         }
 
         private async Task<List<float[]>> GenerateBatchAsync(List<string> batch, CancellationToken ct)
@@ -226,7 +263,16 @@ namespace Avalanche.Features.AI
                 {
                     var elapsed = DateTime.UtcNow.Ticks - _unavailableAtUtcTicks;
                     if (elapsed < EmbeddingRetryCoolDown.Ticks)
+                    {
+                        // A cached MODEL-MISSING verdict must stay typed even on
+                        // the fast-fail path: the pass maps it to the localized
+                        // "run: ollama pull <model>" message, and the generic
+                        // HttpRequestException used to mask it as "unavailable".
+                        if (_lastCategory == AiErrorCategory.ModelNotFound)
+                            throw new AiProviderException(AiErrorCategory.ModelNotFound,
+                                string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel);
                         throw EmbeddingsUnavailable(config);
+                    }
                 }
             }
 
@@ -244,7 +290,12 @@ namespace Avalanche.Features.AI
                         return;
                     if (_capability == CapabilityUnavailable
                         && DateTime.UtcNow.Ticks - _unavailableAtUtcTicks < EmbeddingRetryCoolDown.Ticks)
+                    {
+                        if (_lastCategory == AiErrorCategory.ModelNotFound)
+                            throw new AiProviderException(AiErrorCategory.ModelNotFound,
+                                string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel);
                         throw EmbeddingsUnavailable(config);
+                    }
                 }
 
                 try
@@ -258,11 +309,12 @@ namespace Avalanche.Features.AI
                             Avalanche.Services.AiHighlightLog.Log(
                                 "embedding probe: endpoint recovered - semantic channel re-enabled");
                         _capability = CapabilityAvailable;
+                        _lastCategory = AiErrorCategory.Other;
                     }
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
-                    MarkUnavailable();
+                    MarkUnavailable(AiErrorCategory.Timeout);
                     // The probe used to fail silently: the only visible symptom
                     // was a status line stuck on "building" and a semantic
                     // channel that never came back. Log the reason.
@@ -270,9 +322,21 @@ namespace Avalanche.Features.AI
                         $"embedding probe: no answer within {ProbeTimeout.TotalSeconds:0}s ({CapabilityKey(config)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
                     throw EmbeddingsUnavailable(config);
                 }
+                catch (AiProviderException pex)
+                {
+                    // Typed verdicts (404 model missing, 5xx endpoint trouble)
+                    // must reach the caller AS TYPED: wrapping them into a
+                    // generic HttpRequestException cost the UI the actionable
+                    // "ollama pull <model>" message (regression report: users
+                    // only ever saw "semantic search unavailable").
+                    MarkUnavailable(pex.Category);
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding probe: {pex.Category} ({CapabilityKey(config)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
+                    throw;
+                }
                 catch (Exception ex)
                 {
-                    MarkUnavailable();
+                    MarkUnavailable(AiErrorCategory.OllamaNotRunning);
                     Avalanche.Services.AiHighlightLog.Log(
                         $"embedding probe: unavailable ({ex.GetType().Name}: {Truncate(ex.Message, 160)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
                     throw EmbeddingsUnavailable(config, ex);
@@ -284,12 +348,13 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private void MarkUnavailable()
+        private void MarkUnavailable(AiErrorCategory category)
         {
             lock (_stateLock)
             {
                 _unavailableAtUtcTicks = DateTime.UtcNow.Ticks;
                 _capability = CapabilityUnavailable;
+                _lastCategory = category;
             }
         }
 

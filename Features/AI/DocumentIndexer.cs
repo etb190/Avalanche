@@ -239,7 +239,11 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>Embeds one batch, retrying once on any non-cancellation
-        /// failure before giving up.</summary>
+        /// failure before giving up. Typed provider verdicts are NOT retried:
+        /// a missing model or a not-running Ollama cannot heal within one
+        /// immediate retry, and the retry's second (fast-fail) exception used
+        /// to mask the typed one - the UI then showed "unavailable" instead of
+        /// the actionable "run: ollama pull <model>" message.</summary>
         private static async Task<float[][]> TryEmbedBatchAsync(
             Func<IReadOnlyList<string>, CancellationToken, Task<float[][]>> embedBatch,
             List<string> inputs,
@@ -253,6 +257,10 @@ namespace Avalanche.Features.AI
                     return await embedBatch(inputs, ct).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (AiProviderException)
                 {
                     throw;
                 }
