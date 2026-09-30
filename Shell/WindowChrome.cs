@@ -49,6 +49,7 @@ namespace Avalanche
             // Themed system menu (Shell/SystemMenu.cs): swallow the caption right-click and
             // Alt+Space before anything else, or Windows draws its stock white HMENU.
             if (TryHandleSystemMenu(msg, wParam, lParam)) { handled = true; return IntPtr.Zero; }
+            if (TryHandlePowerBroadcast(msg, wParam, lParam)) { handled = true; return new IntPtr(1); }
 
             if (msg == WM_NCCALCSIZE)
             {
@@ -419,46 +420,23 @@ namespace Avalanche
             UpdateWindowChrome();
             RepositionAnnotationBars();
             if (WindowState == WindowState.Minimized)
+            {
                 _wasMinimized = true;
+                _minimizedAt = DateTime.UtcNow;
+            }
             else if (_wasMinimized)
             {
                 _wasMinimized = false;
-                QueueRestoreRepaint();
+                OnWindowRestoredFromMinimize();
             }
         }
 
-        // Being minimized "for a few minutes" usually means the display turned off or the session
-        // locked in between. On wake, DWM can hand the window back a discarded redirection surface,
-        // and WPF re-presents only what it considers dirty - so the client area comes back black
-        // while the OS frame and the caption buttons still draw. Restore is exactly the moment
-        // nothing else invalidates the visual tree, so force one fresh frame here.
         private bool _wasMinimized;
-        private bool _restoreRepaintQueued;
-        private void QueueRestoreRepaint()
-        {
-            if (_restoreRepaintQueued) return;
-            _restoreRepaintQueued = true;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
-            {
-                _restoreRepaintQueued = false;
-                ForceClientRepaint();
-            }));
-        }
-
-        // Two-sided kick. InvalidateVisual dirties the whole WPF tree so milcore presents a brand-new
-        // frame; SWP_FRAMECHANGED re-runs WM_NCCALCSIZE (our custom chrome) and SWP_NOCOPYBITS refuses
-        // the stale saved bits so Windows repaints the client from scratch instead of blitting the
-        // black surface back. Loaded priority lands after WPF's own state-change layout has settled.
-        private void ForceClientRepaint()
-        {
-            if (WindowState == WindowState.Minimized) return;   // still hidden; the restore path repaints
-            var hwnd = new WindowInteropHelper(this).Handle;
-            if (hwnd != IntPtr.Zero)
-                SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
-                    SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
-                    | SWP_FRAMECHANGED | SWP_NOCOPYBITS);
-            InvalidateVisual();
-        }
+        // The restore repaint lives in Shell/SurfaceResurrection.cs: a staggered 4-pass
+        // "surface resurrection" (synchronous Win32 full redraw + 1px render-target nudge
+        // + full render-pipeline rebuild) driven by monitor-power, resume, unlock and
+        // minimize->restore triggers. The old single-shot SWP kick lives on there as
+        // KickSurface, one layer of the new defense stack.
 
         // The screen-off / lock / sleep that blackens the restored window can also strike while the
         // app sits VISIBLE in the background. Windows announces both moments, so repaint on resume
@@ -467,11 +445,13 @@ namespace Avalanche
         private void OnSystemPowerModeChanged(object? sender, PowerModeChangedEventArgs e)
         {
             if (e.Mode != PowerModes.Resume) return;
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)ForceClientRepaint);
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                (Action)(() => MarkDisplayWake("system resume (SystemEvents)")));
         }
 
         private void OnSystemDisplaySettingsChanged(object? sender, EventArgs e) =>
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)ForceClientRepaint);
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                (Action)(() => MarkDisplayWake("display settings changed")));
 
         protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
         {

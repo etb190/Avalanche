@@ -561,10 +561,14 @@ namespace Avalanche
             HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
             InitializeTaskbarIcons(hwnd);
             ThemeManager.ApplyDwm(hwnd);
-            // Black-client-area-after-minimize/resume guard (Shell/WindowChrome.cs): repaint on
-            // system resume and display changes, not just on the minimize -> restore transition.
+            // Black-client-area-after-minimize/resume guard (Shell/WindowChrome.cs +
+            // Shell/SurfaceResurrection.cs): repaint on system resume and display changes, not
+            // just on the minimize -> restore transition. SessionSwitch covers unlock, and the
+            // registered power notifications cover monitor off/on - which no managed event sees.
             SystemEvents.PowerModeChanged += OnSystemPowerModeChanged;
             SystemEvents.DisplaySettingsChanged += OnSystemDisplaySettingsChanged;
+            SystemEvents.SessionSwitch += OnSystemSessionSwitch;
+            RegisterDisplayWakeNotifications(hwnd);
             Title = BuildDisplayTitle();
             // Snapping moves the window without changing WindowState, so re-evaluate the rounded vs
             // squared chrome on every move (and once now that the handle exists).
@@ -887,6 +891,8 @@ namespace Avalanche
             base.OnClosed(e);
             SystemEvents.PowerModeChanged -= OnSystemPowerModeChanged;
             SystemEvents.DisplaySettingsChanged -= OnSystemDisplaySettingsChanged;
+            SystemEvents.SessionSwitch -= OnSystemSessionSwitch;
+            UnregisterDisplayWakeNotifications();
             _aiChatViewModel?.Dispose();
             _aiChatViewModel = null;
         }
