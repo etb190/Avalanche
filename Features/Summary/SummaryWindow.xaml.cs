@@ -3,8 +3,8 @@
 // Single owned window (MainWindow keeps one instance), themed chrome via
 // DialogChrome (rounded card, themed title bar, Escape-close, fade). Generation
 // is driven by PageSummarizer's async update stream: deltas throttle-flush into
-// the AiMarkdown RichTextBox, page tags build the coverage chips, and chip /
-// range hints jump the reader via the injected _jumpToPage callback.
+// the AiMarkdown RichTextBox. Nothing runs automatically - Start and Reset
+// are explicit, Reset clears back to the opening state.
 
 namespace Avalanche.Features.Summary
 {
@@ -27,7 +27,7 @@ namespace Avalanche.Features.Summary
         private readonly string _documentId;
         private readonly int _pageCount;
         private readonly Func<int> _currentPageProvider;   // 0-based, -1 when closed
-        private readonly Action<int> _jumpToPage;          // 0-based page index
+
         private readonly Func<AiProviderConfig> _configProvider;
         private readonly Func<string, string> _loc;
 
@@ -35,6 +35,8 @@ namespace Avalanche.Features.Summary
         private bool _generating;
         private string _fullText = string.Empty;
         private bool _fromCache;
+        private bool _hasResult;        // a finished digest exists -> the out-of-range hint may show
+        private bool _resetting;        // Reset pressed: swallow the cancelled-run status line
         private int _rangeFirst = 1, _rangeLast = 1;
         private bool _flushPending;
         private bool _closed;
@@ -47,7 +49,6 @@ namespace Avalanche.Features.Summary
             string documentId,
             int pageCount,
             Func<int> currentPageProvider,
-            Action<int> jumpToPage,
             Func<AiProviderConfig> configProvider,
             Func<string, string> loc)
         {
@@ -56,11 +57,20 @@ namespace Avalanche.Features.Summary
             _documentId = documentId;
             _pageCount = pageCount;
             _currentPageProvider = currentPageProvider;
-            _jumpToPage = jumpToPage;
             _configProvider = configProvider;
             _loc = loc;
 
             DialogChrome.Configure(this, owner, resizable: true);
+            // Borderless windows (WindowStyle.None) have no native resize border - the same
+            // WindowChrome PrintPreviewWindow uses restores edge resizing without a grip.
+            System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome
+            {
+                ResizeBorderThickness = new Thickness(12),
+                CaptionHeight = 0,
+                GlassFrameThickness = new Thickness(0),
+                CornerRadius = new CornerRadius(0),
+                UseAeroCaptionButtons = false
+            });
             Content = DialogChrome.Frame(this, owner, "Avalanche - " + loc("Str_SummaryTitle"), Close, BodyRoot);
             Title = "Avalanche - " + loc("Str_SummaryTitle");
 
@@ -79,7 +89,8 @@ namespace Avalanche.Features.Summary
             CopyBtn.Content = ActionLabel("\uE8C8", loc("Str_SummaryCopy"), Orientation.Vertical);
             SaveBtn.Content = ActionLabel("\uE74E", loc("Str_SummarySave"), Orientation.Vertical);
             RegenBtn.Content = ActionLabel("\uE72C", loc("Str_SummaryRegen"), Orientation.Vertical);
-            CoverageHint.Text = loc("Str_SummaryUntouched");
+            ResetBtn.Content = loc("Str_Tf_Reset");
+            ResetBtn.Click += (_, _) => ResetAll();
 
             int current = currentPageProvider();
             int first = current >= 0 ? current + 1 : 1;
@@ -127,7 +138,34 @@ namespace Avalanche.Features.Summary
             };
 
             RestorePlacement();
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => StartGeneration(false)));
+        }
+
+        /// <summary>Clears the window back to its opening state: cancels a running
+        /// generation, wipes the digest and status, and restores the default range.
+        /// Nothing is generated automatically - Start is always explicit.</summary>
+        private void ResetAll()
+        {
+            _resetting = true;
+            try
+            {
+                _cts?.Cancel();
+            }
+            finally
+            {
+                _resetting = false;
+            }
+
+            _hasResult = false;
+            _fullText = string.Empty;
+            DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
+            Overlay(null);
+            StatusText.Text = string.Empty;
+            RerunBtn.Visibility = Visibility.Collapsed;
+            int current = _currentPageProvider();
+            int first = current >= 0 ? current + 1 : 1;
+            FromBox.Text = first.ToString(CultureInfo.InvariantCulture);
+            ToBox.Text = Math.Min(first + 1, Math.Max(1, _pageCount)).ToString(CultureInfo.InvariantCulture);
+            DepthStandardBtn.IsChecked = true;
         }
 
         /// <summary>True when this window already summarizes the given document
@@ -166,7 +204,6 @@ namespace Avalanche.Features.Summary
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
-            BuildChips();
             _startedAt = DateTime.UtcNow;
 
             var request = new SummaryRequest(
@@ -192,6 +229,7 @@ namespace Avalanche.Features.Summary
                             }
 
                             DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                            _hasResult = true;
                             FinishSuccess();
                             break;
                         case "notext":
@@ -211,7 +249,7 @@ namespace Avalanche.Features.Summary
             catch (OperationCanceledException)
             {
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                StatusText.Text = _loc("Str_SummaryStopped");
+                StatusText.Text = _resetting ? string.Empty : _loc("Str_SummaryStopped");
             }
             catch (Exception ex)
             {
@@ -221,7 +259,6 @@ namespace Avalanche.Features.Summary
             {
                 _generating = false;
                 SetBusy(false);
-                BuildChips();
             }
         }
 
@@ -327,47 +364,12 @@ namespace Avalanche.Features.Summary
         }
 
         // ------------------------------------------------------------------
-        // Coverage chips + reader sync hint
+        // Reader sync hint
         // ------------------------------------------------------------------
-
-        private void BuildChips()
-        {
-            ChipsPanel.Children.Clear();
-            if (_rangeLast < _rangeFirst)
-            {
-                return;
-            }
-
-            var covered = _fullText.Length == 0
-                ? new System.Collections.Generic.HashSet<int>()
-                : PageSummarizer.CoveredPages(_fullText, _rangeFirst, _rangeLast);
-            for (int page = _rangeFirst; page <= _rangeLast; page++)
-            {
-                bool has = covered.Contains(page);
-                var chip = new Button
-                {
-                    Content = page.ToString(CultureInfo.InvariantCulture),
-                    Style = (Style)FindResource("ChipBtn"),
-                    Opacity = has ? 1.0 : 0.45,
-                    Background = ResourceBrush("PaneBrush"),
-                    Foreground = ResourceBrush("TextBrush"),
-                    BorderBrush = ResourceBrush("CardBorderBrush"),
-                    ToolTip = _loc("Str_SummaryJumpHint")
-                };
-                int target = page;
-                chip.Click += (_, _) => _jumpToPage(target - 1);
-                ChipsPanel.Children.Add(chip);
-            }
-        }
-
-        private Brush ResourceBrush(string key)
-        {
-            return TryFindResource(key) as Brush ?? Brushes.Transparent;
-        }
 
         private void UpdateHint()
         {
-            if (_generating || _closed)
+            if (_generating || _closed || !_hasResult)
             {
                 return;
             }

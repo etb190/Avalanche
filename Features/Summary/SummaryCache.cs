@@ -99,7 +99,10 @@ namespace Avalanche.Features.Summary
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Avalanche", "AI");
             Directory.CreateDirectory(dir);
-            var conn = new SqliteConnection("Data Source=" + Path.Combine(dir, "vector_index.db") + ";Cache=Shared");
+            // Default Timeout=2 bounds lock waits: vector_index.db is shared with the chat
+            // indexer, and a cache miss must never sit behind its write lock for long.
+            var conn = new SqliteConnection(
+                "Data Source=" + Path.Combine(dir, "vector_index.db") + ";Cache=Shared;Default Timeout=2");
             conn.Open();
             using (var cmd = conn.CreateCommand())
             {

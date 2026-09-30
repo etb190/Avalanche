@@ -92,7 +92,7 @@ namespace Avalanche.Features.Summary
             Func<string, string> loc,
             [EnumeratorCancellation] CancellationToken ct)
         {
-            await Gate.WaitAsync(ct);
+            await Gate.WaitAsync(ct).ConfigureAwait(false);
             try
             {
                 await foreach (SummaryUpdate update in GenerateCoreAsync(request, config, loc, ct))
@@ -118,7 +118,8 @@ namespace Avalanche.Features.Summary
             yield return new SummaryUpdate(
                     "progress", string.Format(loc("Str_SummaryPreparing"), request.FirstPage, request.LastPage));
 
-                string rangeText = await ExtractRangeAsync(request.FilePath, request.FirstPage, request.LastPage, ct);
+                string rangeText = await ExtractRangeAsync(request.FilePath, request.FirstPage, request.LastPage, ct)
+                    .ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(rangeText.Replace("[[p.", string.Empty, StringComparison.Ordinal))
                     || CountLetters(rangeText) < 60)
                 {
@@ -126,11 +127,15 @@ namespace Avalanche.Features.Summary
                     yield break;
                 }
 
-                string hash = SummaryCache.HashText(rangeText);
+                // Hash + cache lookup run off the UI thread: they touch vector_index.db,
+                // which the chat's indexer can hold locked for seconds at a time.
+                string hash = await Task.Run(() => SummaryCache.HashText(rangeText), ct).ConfigureAwait(false);
                 if (!request.BypassCache)
                 {
-                    string? cached = SummaryCache.Get(
-                        request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?", hash);
+                    string? cached = await Task.Run(
+                        () => SummaryCache.Get(
+                            request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?", hash),
+                        ct).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(cached))
                     {
                         yield return new SummaryUpdate("delta", cached);
@@ -194,9 +199,11 @@ namespace Avalanche.Features.Summary
                     yield break;
                 }
 
-                SummaryCache.Put(
-                    request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
-                    hash, finalText, CountWords(finalText));
+                await Task.Run(
+                    () => SummaryCache.Put(
+                        request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
+                        hash, finalText, CountWords(finalText)),
+                    ct).ConfigureAwait(false);
                 yield return new SummaryUpdate("done", finalText);
             }
 
@@ -383,13 +390,14 @@ namespace Avalanche.Features.Summary
             [EnumeratorCancellation] CancellationToken ct)
         {
             using var request = BuildRequest(config, system, user, Math.Max(config.MaxTokens, 6000), stream: true);
-            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+                .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             string mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
             if (!mediaType.Contains("event-stream", StringComparison.OrdinalIgnoreCase))
             {
                 // Endpoint ignored stream:true and answered with one JSON body.
-                string json = await response.Content.ReadAsStringAsync(ct);
+                string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 string whole = ExtractMessageContent(json) ?? string.Empty;
                 if (whole.Length > 0)
                 {
@@ -399,12 +407,12 @@ namespace Avalanche.Features.Summary
                 yield break;
             }
 
-            using Stream stream = await response.Content.ReadAsStreamAsync(ct);
+            using Stream stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var reader = new StreamReader(stream);
             while (true)
             {
                 ct.ThrowIfCancellationRequested();
-                string? line = await reader.ReadLineAsync(ct);
+                string? line = await reader.ReadLineAsync(ct).ConfigureAwait(false);
                 if (line is null)
                 {
                     break;
@@ -433,9 +441,9 @@ namespace Avalanche.Features.Summary
             AiProviderConfig config, string system, string user, CancellationToken ct, int maxTokens)
         {
             using var request = BuildRequest(config, system, user, maxTokens, stream: false);
-            using var response = await Http.SendAsync(request, ct);
+            using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
-            string json = await response.Content.ReadAsStringAsync(ct);
+            string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return ExtractMessageContent(json) ?? string.Empty;
         }
 

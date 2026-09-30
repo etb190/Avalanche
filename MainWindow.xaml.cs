@@ -945,13 +945,6 @@ namespace Avalanche
                 Features.AI.DocumentIndexer.ComputeDocumentId(path),
                 pageCount,
                 () => _currentPage,
-                idx =>
-                {
-                    if (_doc != null && idx >= 0 && idx < _doc.PageCount)
-                    {
-                        PageList.SelectedIndex = idx;
-                    }
-                },
                 () => _aiSettingsViewModel!.ToGenConfig(),
                 Loc);
             _summaryWindow.Show();

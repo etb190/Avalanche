@@ -94,12 +94,14 @@ namespace Avalanche
             };
             _shSweepTimer.Tick += (sender, e) => ShSweepTick();
             _shSweepTimer.Start();
+            ShStartHangWatch();
             bool software = Application.Current is App && App.SoftwareRenderingForced;
             SurfaceHealthLog.Log(software
                 ? "SurfaceHealth sweep started (probe every 10s); render mode: SOFTWARE - " +
                   "device-loss bug class structurally impossible, probes are a backstop only"
                 : "SurfaceHealth sweep started (probe every 10s, escalation ladder armed); " +
                   "render mode: HARDWARE");
+            SurfaceHealthLog.Log("UI-thread hang watchdog armed (probe every 5s, 10s timeout)");
         }
 
         /// <summary>
@@ -128,8 +130,95 @@ namespace Avalanche
                 _shSweepTimer = null;
             }
 
+            ShStopHangWatch();
             ShFreeCapture();
             SurfaceHealthLog.Log("SurfaceHealth shutdown");
+        }
+
+        // ---- UI-thread hang watchdog -----------------------------------------
+        // The probe sweep runs ON the dispatcher, so it is blind to the failure mode
+        // where the UI thread itself is wedged (frozen, often black window; the user
+        // ends up killing the process from Task Manager). A dedicated background
+        // thread probes the dispatcher from the outside: every 5 s it posts a no-op
+        // at Send priority and waits up to 10 s. A missed probe is logged with the
+        // ongoing stall duration, and recovery is logged when the thread answers.
+        private Thread? _shHangWatch;
+        private volatile bool _shHangStop;
+
+        private void ShStartHangWatch()
+        {
+            if (_shHangWatch != null)
+            {
+                return;
+            }
+
+            _shHangStop = false;
+            _shHangWatch = new Thread(ShHangWatchLoop)
+            {
+                IsBackground = true,
+                Name = "SurfaceHealth.HangWatch"
+            };
+            _shHangWatch.Start();
+        }
+
+        private void ShStopHangWatch()
+        {
+            _shHangStop = true;
+            _shHangWatch = null; // background thread; exits between sleeps
+        }
+
+        private void ShHangWatchLoop()
+        {
+            Dispatcher dispatcher = Dispatcher;
+            while (!_shHangStop)
+            {
+                Thread.Sleep(5000);
+                if (_shHangStop)
+                {
+                    return;
+                }
+
+                try
+                {
+                    DateTime submitted = DateTime.UtcNow;
+                    var probe = dispatcher.InvokeAsync(() => { }, DispatcherPriority.Send).Task;
+                    if (!probe.Wait(TimeSpan.FromSeconds(10)))
+                    {
+                        DateTime stallStart = submitted;
+                        double loggedAt = 0;
+                        while (!_shHangStop)
+                        {
+                            Thread.Sleep(2000);
+                            if (probe.IsCompleted)
+                            {
+                                break;
+                            }
+
+                            double stalledFor = (DateTime.UtcNow - stallStart).TotalSeconds;
+                            if (stalledFor - loggedAt >= 30)
+                            {
+                                loggedAt = stalledFor;
+                                SurfaceHealthLog.Log(string.Format(
+                                    "UI THREAD UNRESPONSIVE for {0:F0}s and counting (stall began {1:HH:mm:ss})",
+                                    stalledFor, stallStart.ToLocalTime()));
+                            }
+                        }
+
+                        if (_shHangStop)
+                        {
+                            return;
+                        }
+
+                        SurfaceHealthLog.Log(string.Format(
+                            "UI thread responsive again after a {0:F0}s stall",
+                            (DateTime.UtcNow - stallStart).TotalSeconds));
+                    }
+                }
+                catch
+                {
+                    // dispatcher shutting down - the main thread will stop this loop
+                }
+            }
         }
 
         // ---- sweep + burst ---------------------------------------------------
