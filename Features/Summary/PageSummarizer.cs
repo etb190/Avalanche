@@ -180,7 +180,7 @@ namespace Avalanche.Features.Summary
                 {
                     var collected = new StringBuilder();
                     await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                        config, DigestSystemPrompt(request.TargetWords), rangeText, ct))
+                        config, DigestSystemPrompt(request.TargetWords, fromNotes: false), rangeText, ct))
                     {
                         if (update.Kind == "delta")
                         {
@@ -200,8 +200,20 @@ namespace Avalanche.Features.Summary
                         var (first, last) = SegmentRange(segments[i]);
                         yield return new SummaryUpdate("progress", string.Format(
                             loc("Str_SummaryPass"), first, last, i + 1, segments.Count + 1));
+                        // The old 250 * segments.Count cap starved every note (and left a
+                        // reasoning model with nothing after its think). Scale by the
+                        // segment's page count instead; a cap only costs when it is used.
                         string note = await RunBufferedPassAsync(
-                            config, MiniSystemPrompt(), segments[i], ct, 250 * segments.Count);
+                            config, MiniSystemPrompt(), segments[i], ct,
+                            800 + 350 * (last - first + 1));
+                        SurfaceHealthLog.Log(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "summary: segment {0}/{1} (p. {2}-{3}) -> {4} chars",
+                            i + 1,
+                            segments.Count,
+                            first,
+                            last,
+                            note.Length));
                         notes.Add(note);
                     }
 
@@ -222,7 +234,7 @@ namespace Avalanche.Features.Summary
                         "\n\n", notes.Select((n, i) => $"--- segment {i + 1} ---\n{n}"));
                     var fused = new StringBuilder();
                     await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                        config, DigestSystemPrompt(request.TargetWords), fuseInput, ct))
+                        config, DigestSystemPrompt(request.TargetWords, fromNotes: true), fuseInput, ct))
                     {
                         if (update.Kind == "delta")
                         {
@@ -241,6 +253,11 @@ namespace Avalanche.Features.Summary
                     yield break;
                 }
 
+                SurfaceHealthLog.Log(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "summary: digest ready: {0} chars / {1} words",
+                    finalText.Length,
+                    CountWords(finalText)));
                 await Task.Run(
                     () => SummaryCache.Put(
                         request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
@@ -316,17 +333,101 @@ namespace Avalanche.Features.Summary
 
         /// <summary>First 120 characters of the extracted text, flattened for the log line -
         /// distinguishes real prose from empty extraction and from garbled glyph soup.</summary>
-        private static string Preview(string text)
+        private static string Preview(string text) => Snippet(text, 120);
+
+        /// <summary>Flattened, length-capped text for log lines.</summary>
+        private static string Snippet(string text, int length)
         {
             string flat = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
-            return flat.Length <= 120 ? flat : flat[..120];
+            return flat.Length <= length ? flat : flat[..length];
+        }
+
+        /// <summary>choices[0].finish_reason of a completion body/chunk, when present.</summary>
+        private static string? ExtractFinishReason(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("choices", out var choices) &&
+                    choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0 &&
+                    choices[0].TryGetProperty("finish_reason", out var fin) &&
+                    fin.ValueKind == JsonValueKind.String)
+                {
+                    return fin.GetString();
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>The "error" body of a 200 response that is actually a failure.</summary>
+        private static string? ExtractErrorText(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("error", out var err))
+                {
+                    if (err.ValueKind == JsonValueKind.String)
+                    {
+                        return err.GetString();
+                    }
+
+                    if (err.ValueKind == JsonValueKind.Object &&
+                        err.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String)
+                    {
+                        return m.GetString();
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>choices[0].delta.&lt;name&gt; as a string, when present (reasoning fields).</summary>
+        private static string? ExtractDeltaField(string json, string name)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object ||
+                    !root.TryGetProperty("choices", out var choices) ||
+                    choices.ValueKind != JsonValueKind.Array ||
+                    choices.GetArrayLength() == 0)
+                {
+                    return null;
+                }
+
+                var first = choices[0];
+                if (first.TryGetProperty("delta", out var delta) &&
+                    delta.ValueKind == JsonValueKind.Object &&
+                    delta.TryGetProperty(name, out var el) &&
+                    el.ValueKind == JsonValueKind.String)
+                {
+                    return el.GetString();
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
         }
 
         // ------------------------------------------------------------------
         // Prompts
         // ------------------------------------------------------------------
 
-        private static string DigestSystemPrompt(int targetWords) =>
+        private static string DigestSystemPrompt(int targetWords, bool fromNotes) =>
             "You create exhaustive reading digests of book pages for a reader who wants to absorb the " +
             "full content without reading the original pages.\n" +
             "Rules:\n" +
@@ -337,7 +438,10 @@ namespace Avalanche.Features.Summary
             "- Use ONLY the provided material. Never add outside knowledge, opinions, or meta commentary " +
             "about the text or about summarizing.\n" +
             $"- Target length: about {targetWords} words. Prefer completeness over brevity.\n" +
-            "Each page's text starts with a [[p. N]] marker.";
+            (fromNotes
+                ? "The user message holds working notes from earlier passes; every item already " +
+                  "carries its (p. N) page tag. Fuse them into one digest and keep the tags."
+                : "Each page's text starts with a [[p. N]] marker.");
 
         private static string MiniSystemPrompt() =>
             "You produce exhaustive working notes from book page segments that will later be fused into " +
@@ -439,7 +543,9 @@ namespace Avalanche.Features.Summary
             string user,
             [EnumeratorCancellation] CancellationToken ct)
         {
-            using var request = BuildRequest(config, system, user, Math.Max(config.MaxTokens, 6000), stream: true);
+            // Reasoning models split max_tokens between their think and the answer;
+            // 6000 left ~200-word digests. Caps only cost when they are actually used.
+            using var request = BuildRequest(config, system, user, Math.Max(config.MaxTokens, 10000), stream: true);
             SurfaceHealthLog.Log(string.Format(
                 CultureInfo.InvariantCulture,
                 "summary: POST model={0} system={1}ch user={2}ch stream=true",
@@ -459,12 +565,20 @@ namespace Avalanche.Features.Summary
                 {
                     yield return new SummaryUpdate("delta", whole);
                 }
+                else
+                {
+                    SurfaceHealthLog.Log(
+                        "summary: non-stream body without content; snippet: " + Snippet(json, 240));
+                }
 
                 yield break;
             }
 
             using Stream stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var reader = new StreamReader(stream);
+            var reasoningBuf = new StringBuilder();   // reasoning models stream their think first
+            int contentChars = 0;
+            string? finish = null;
             while (true)
             {
                 ct.ThrowIfCancellationRequested();
@@ -488,8 +602,36 @@ namespace Avalanche.Features.Summary
                 string? delta = ExtractDeltaContent(payload);
                 if (!string.IsNullOrEmpty(delta))
                 {
+                    contentChars += delta.Length;
                     yield return new SummaryUpdate("delta", delta);
+                    continue;
                 }
+
+                string? reasoning = ExtractDeltaField(payload, "reasoning_content")
+                    ?? ExtractDeltaField(payload, "reasoning");
+                if (!string.IsNullOrEmpty(reasoning))
+                {
+                    reasoningBuf.Append(reasoning);
+                }
+
+                string? fin = ExtractFinishReason(payload);
+                if (!string.IsNullOrEmpty(fin))
+                {
+                    finish = fin;
+                }
+            }
+
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "summary: stream pass done: {0}ch content / {1}ch reasoning (finish={2})",
+                contentChars,
+                reasoningBuf.Length,
+                finish ?? "?"));
+            if (contentChars == 0 && reasoningBuf.Length > 0)
+            {
+                // The model spent its whole budget thinking and never wrote an answer -
+                // hand the reader the reasoning rather than an empty digest.
+                yield return new SummaryUpdate("delta", Snippet(reasoningBuf.ToString(), 8000));
             }
         }
 
@@ -507,7 +649,28 @@ namespace Avalanche.Features.Summary
             using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
-            return ExtractMessageContent(json) ?? string.Empty;
+            string? content = ExtractMessageContent(json);
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "summary: buffered pass -> {0} chars (finish={1})",
+                content?.Length ?? 0,
+                ExtractFinishReason(json) ?? "?"));
+            if (!string.IsNullOrEmpty(content))
+            {
+                return content;
+            }
+
+            // 200-with-no-content: a provider error body, or a reasoning model whose
+            // token budget died mid-think. Surface the error; otherwise log the raw
+            // shape so the next report names the provider's real response format.
+            string? err = ExtractErrorText(json);
+            if (!string.IsNullOrEmpty(err))
+            {
+                throw new HttpRequestException(err.Length > 200 ? err[..200] : err);
+            }
+
+            SurfaceHealthLog.Log("summary: no content in body; snippet: " + Snippet(json, 240));
+            return string.Empty;
         }
 
         private static string? ExtractDeltaContent(string json)
@@ -560,12 +723,20 @@ namespace Avalanche.Features.Summary
                         }
 
                         // Reasoning-style endpoints keep the answer in reasoning_content
-                        // while visible content stays empty - returning it beats nothing.
+                        // (DeepSeek) or reasoning (OpenRouter) while visible content stays
+                        // empty - returning it beats nothing.
                         if (msg.TryGetProperty("reasoning_content", out var reasoning) &&
                             reasoning.ValueKind == JsonValueKind.String &&
                             reasoning.GetString() is { Length: > 0 } rtext)
                         {
                             return rtext;
+                        }
+
+                        if (msg.TryGetProperty("reasoning", out var reasoningAlt) &&
+                            reasoningAlt.ValueKind == JsonValueKind.String &&
+                            reasoningAlt.GetString() is { Length: > 0 } rtextAlt)
+                        {
+                            return rtextAlt;
                         }
                     }
                 }
