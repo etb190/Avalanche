@@ -1130,4 +1130,34 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiTestChatPrompt">Reply with just 'OK'</sys:String>
     <sys:String x:Key="Str_AiTestChatContent">test</sys:String>
 
+	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
+	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>
+	<sys:String x:Key="Str_SummaryTitle">Page Summary</sys:String>
+	<sys:String x:Key="Str_SummaryPages">Pages</sys:String>
+	<sys:String x:Key="Str_SummaryTo">to</sys:String>
+	<sys:String x:Key="Str_SummaryGo">Summarize</sys:String>
+	<sys:String x:Key="Str_SummaryStop">Stop</sys:String>
+	<sys:String x:Key="Str_SummaryCopy">Copy</sys:String>
+	<sys:String x:Key="Str_SummarySave">Save .md</sys:String>
+	<sys:String x:Key="Str_SummaryRegen">Regenerate</sys:String>
+	<sys:String x:Key="Str_SummaryDepth">Depth</sys:String>
+	<sys:String x:Key="Str_SummaryDepthCompact">Compact (~400 words)</sys:String>
+	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
+	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
+	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
+	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
+	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
+	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>
+	<sys:String x:Key="Str_SummaryStopped">Stopped - partial summary kept.</sys:String>
+	<sys:String x:Key="Str_SummaryInvalidRange">Enter a valid page range between 1 and {0}.</sys:String>
+	<sys:String x:Key="Str_SummaryPin">Always on top</sys:String>
+	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
+	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
+	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
+	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
+	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
 </ResourceDictionary>

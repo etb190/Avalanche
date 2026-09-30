@@ -1,0 +1,120 @@
+<!-- Features/Summary/SummaryWindow.xaml — floating page-summary companion window.
+     The rounded chrome, title bar, fade-close and Escape handling come from
+     DialogChrome.Frame (composed in code-behind); this file is the card body:
+     range picker + depth, coverage chips, markdown digest, footer actions. -->
+<Window x:Class="Avalanche.Features.Summary.SummaryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ai="clr-namespace:Avalanche.Features.AI"
+        Title="Page Summary"
+        Width="480" Height="660" MinWidth="380" MinHeight="420"
+        Background="Transparent" ShowInTaskbar="False">
+    <Window.Resources>
+        <Style x:Key="ChipBtn" TargetType="Button">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Padding" Value="5,1"/>
+            <Setter Property="Margin" Value="1.5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="0.5"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="GhostBtn" TargetType="Button">
+            <Setter Property="Padding" Value="9,3"/>
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="BodyRoot">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: range + depth + pin + run -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="14,12,14,6">
+            <TextBlock x:Name="PagesLabel" VerticalAlignment="Center" Margin="0,0,6,0"
+                       FontFamily="{DynamicResource UiFont}" FontSize="12"
+                       Foreground="{DynamicResource MutedTextBrush}"/>
+            <TextBox x:Name="FromBox" Width="46" VerticalContentAlignment="Center"
+                     FontFamily="{DynamicResource UiFont}" FontSize="12"/>
+            <TextBlock x:Name="ToLabel" VerticalAlignment="Center" Margin="6,0"
+                       FontFamily="{DynamicResource UiFont}" FontSize="12"
+                       Foreground="{DynamicResource MutedTextBrush}"/>
+            <TextBox x:Name="ToBox" Width="46" VerticalContentAlignment="Center"
+                     FontFamily="{DynamicResource UiFont}" FontSize="12"/>
+            <ComboBox x:Name="DepthBox" Width="158" Margin="10,0,0,0" VerticalContentAlignment="Center"
+                      FontFamily="{DynamicResource UiFont}" FontSize="12"
+                      ToolTip="{DynamicResource Str_SummaryDepth}"/>
+            <ToggleButton x:Name="PinBtn" Margin="8,0,0,0" Padding="6,2" FontFamily="{DynamicResource IconFont}"
+                          VerticalContentAlignment="Center"/>
+            <Button x:Name="GoBtn" MinWidth="86" Margin="8,0,0,0" Padding="10,3"
+                    FontWeight="SemiBold" FontFamily="{DynamicResource UiFont}" FontSize="12"/>
+        </StackPanel>
+
+        <!-- Row 1: coverage chips -->
+        <Border Grid.Row="1" Margin="14,0,14,4" Padding="6,3" CornerRadius="7"
+                Background="{DynamicResource PaneBrush}"
+                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0.5">
+            <StackPanel>
+                <ScrollViewer MaxHeight="46" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <WrapPanel x:Name="ChipsPanel" Orientation="Horizontal"/>
+                </ScrollViewer>
+                <TextBlock x:Name="CoverageHint" FontSize="10" Margin="1,3,0,0" TextWrapping="Wrap"
+                           FontFamily="{DynamicResource UiFont}"
+                           Foreground="{DynamicResource MutedTextBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Row 2: the digest -->
+        <Grid Grid.Row="2" Margin="14,6,14,2">
+            <RichTextBox x:Name="DocBox" ai:AiMarkdown.Text=""
+                         IsReadOnly="True" IsDocumentEnabled="False"
+                         BorderThickness="0" Background="Transparent" Padding="0"
+                         VerticalScrollBarVisibility="Auto"
+                         FontFamily="{DynamicResource UiFont}" FontSize="13"
+                         Foreground="{DynamicResource TextBrush}"/>
+            <TextBlock x:Name="OverlayText" Visibility="Collapsed" TextWrapping="Wrap"
+                       TextAlignment="Center" FontSize="12" Margin="24,0"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontFamily="{DynamicResource UiFont}"
+                       Foreground="{DynamicResource MutedTextBrush}"/>
+        </Grid>
+
+        <!-- Row 3: status + actions -->
+        <DockPanel Grid.Row="3" Margin="14,4,14,12">
+            <TextBlock x:Name="StatusText" DockPanel.Dock="Left" VerticalAlignment="Center"
+                       FontSize="11" MaxWidth="230" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                       FontFamily="{DynamicResource UiFont}"
+                       Foreground="{DynamicResource MutedTextBrush}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="RerunBtn" Style="{StaticResource GhostBtn}" Visibility="Collapsed"/>
+                <Button x:Name="RegenBtn" Style="{StaticResource GhostBtn}" Visibility="Collapsed"/>
+                <Button x:Name="StopBtn" Style="{StaticResource GhostBtn}" Visibility="Collapsed"/>
+                <Button x:Name="CopyBtn" Style="{StaticResource GhostBtn}"/>
+                <Button x:Name="SaveBtn" Style="{StaticResource GhostBtn}"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

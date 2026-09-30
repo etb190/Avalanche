@@ -164,6 +164,7 @@ namespace Avalanche
             B("F5",            "Str_View_Continuous", "View", Cap("F5")),
             B("F6",            "Str_View_Single",     "View", Cap("F6")),
             B("F7",            "Str_View_TwoPage",    "View", Cap("F7")),
+            B("%ctrl%+G",       "Str_KS_Summary",     "View", Cap("Ctrl:G")),
             B("B",             "Str_View_BookMode",   "View", Cap("B")),   // #193: Two-Page only
             B("F8",            "Str_View_Grid",       "View", Cap("F8")),
             B("F10",           "Str_KS_SplitPane",    "View", Cap("F10")),

@@ -855,6 +855,7 @@ namespace Avalanche
 
         private Features.AI.AiChatViewModel? _aiChatViewModel;
         private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
+        private Features.Summary.SummaryWindow? _summaryWindow;
 
         private void AiChatBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -899,8 +900,61 @@ namespace Avalanche
             SystemEvents.SessionSwitch -= OnSystemSessionSwitch;
             UnregisterDisplayWakeNotifications();
             ShutdownSurfaceHealth();
+            _summaryWindow?.Close();
+            _summaryWindow = null;
             _aiChatViewModel?.Dispose();
             _aiChatViewModel = null;
+        }
+
+        // ============================================================
+        // Page Summary window (Features/Summary): exhaustive page-range digests in
+        // a floating companion window. Single instance; switching documents recycles it.
+        // ============================================================
+
+        private void SummarizeBtn_Click(object sender, RoutedEventArgs e)
+        {
+            OpenSummaryWindow();
+        }
+
+        private void OpenSummaryWindow()
+        {
+            if (string.IsNullOrEmpty(_currentFile) || _doc is null)
+            {
+                SetStatusHeld(Loc("Str_SummaryOpenBook"));
+                return;
+            }
+
+            if (_summaryWindow != null)
+            {
+                if (_summaryWindow.DocumentPathEquals(_currentFile))
+                {
+                    _summaryWindow.Activate();
+                    return;
+                }
+
+                _summaryWindow.Close();
+                _summaryWindow = null;
+            }
+
+            _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            string path = _currentFile;
+            int pageCount = _doc.PageCount;
+            _summaryWindow = new Features.Summary.SummaryWindow(
+                this,
+                path,
+                Features.AI.DocumentIndexer.ComputeDocumentId(path),
+                pageCount,
+                () => _currentPage,
+                idx =>
+                {
+                    if (_doc != null && idx >= 0 && idx < _doc.PageCount)
+                    {
+                        PageList.SelectedIndex = idx;
+                    }
+                },
+                () => _aiSettingsViewModel!.ToGenConfig(),
+                Loc);
+            _summaryWindow.Show();
         }
 
         private void OpenAiChat()

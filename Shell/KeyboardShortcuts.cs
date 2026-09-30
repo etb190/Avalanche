@@ -314,6 +314,11 @@ namespace Avalanche
                 SaveAs_Click(this, e);
                 e.Handled = true;
             }
+            else if (e.Key == Key.G && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (!e.IsRepeat) OpenSummaryWindow();   // floating page-summary window
+                e.Handled = true;
+            }
             else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 SaveInPlace();
