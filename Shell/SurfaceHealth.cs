@@ -53,6 +53,9 @@ namespace Avalanche
         private DateTime _shCooldownUntil = DateTime.MinValue;
         private double _shBaselineMean;
         private bool _shHasBaseline;
+        private string _shLadderCause = "";
+        private DateTime _shLastAutoRestartUtc = DateTime.MinValue;
+        private bool _shRestartPending;
 
         // GDI capture buffer cache — recreated only when window size changes.
         private IntPtr _shCapDc = IntPtr.Zero;
@@ -138,6 +141,11 @@ namespace Avalanche
         /// </summary>
         public void NotifyRenderThreadFailure(Exception ex)
         {
+            if (_shRestartPending)
+            {
+                return; // auto-restart is scheduled; nothing left to heal
+            }
+
             if (_shLadderRunning)
             {
                 SurfaceHealthLog.Log(
@@ -150,6 +158,64 @@ namespace Avalanche
                 ", hr=0x" + ex.HResult.ToString("X8") + ") - escalating immediately");
             SurfaceHealthProbeResult r = ShProbeSurface();
             ShBeginEscalation("render-thread-failure", r.Ok ? r : SurfaceHealthProbeResult.Healthy(0, 0, 0));
+        }
+
+        /// <summary>
+        /// Clean self-restart after the escalation ladder proved the render thread
+        /// is dead. Releases the single-instance mutex first (the fresh instance
+        /// must become primary, not forward back into this dying one), spawns the
+        /// same executable, then shuts down so OnClosed can save the session.
+        /// Loop guard: at most one auto-restart per 10 minutes.
+        /// </summary>
+        private void ShAutoRestartAfterRenderThreadDeath()
+        {
+            if ((DateTime.UtcNow - _shLastAutoRestartUtc).TotalMinutes < 10)
+            {
+                _shCooldownUntil = DateTime.UtcNow.AddMinutes(5);
+                SurfaceHealthLog.Log(
+                    "render thread dead again within 10 min of the last auto-restart - " +
+                    "staying down (loop guard), 5 min cooldown");
+                return;
+            }
+
+            _shLastAutoRestartUtc = DateTime.UtcNow;
+            _shRestartPending = true;
+            _shCooldownUntil = DateTime.UtcNow.AddMinutes(5);
+            SurfaceHealthLog.Log(
+                "RENDER THREAD DEAD: all 5 recovery steps failed - auto-restarting " +
+                "Avalanche; the last document reopens by itself");
+            ShRunOnce(TimeSpan.FromSeconds(2), () =>
+            {
+                try
+                {
+                    (Application.Current as App)?.ReleaseInstanceMutex();
+                }
+                catch
+                {
+                }
+
+                try
+                {
+                    string? exe = Environment.ProcessPath;
+                    if (!string.IsNullOrEmpty(exe))
+                    {
+                        System.Diagnostics.Process.Start(
+                            new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SurfaceHealthLog.Log("auto-restart spawn failed: " + ex.Message);
+                }
+
+                try
+                {
+                    Application.Current?.Shutdown();
+                }
+                catch
+                {
+                }
+            });
         }
 
         private void ShEarlyProbe(int gen)
@@ -385,6 +451,7 @@ namespace Avalanche
             // bundle lands on the Desktop AND the clipboard (copy:true keeps it
             // alive even if the user force-kills the frozen-looking app).
             DumpSurfaceEvidence("black surface: " + cause);
+            _shLadderCause = cause;
             _shLadderRunning = true;
             _shLadderStep = 0;
             ShAdvanceLadder();
@@ -430,6 +497,16 @@ namespace Avalanche
             if (_shLadderStep >= 5)
             {
                 _shLadderRunning = false;
+                if (_shLadderCause == "render-thread-failure")
+                {
+                    // The composition thread itself is gone: no in-process repaint,
+                    // re-attach or hide/show can bring it back (field-proven: all 5
+                    // steps failed and the app stayed black until the user killed
+                    // it). Restart cleanly instead; the last document reopens.
+                    ShAutoRestartAfterRenderThreadDeath();
+                    return;
+                }
+
                 _shCooldownUntil = DateTime.UtcNow.AddMinutes(5);
                 SurfaceHealthLog.Log(
                     "CRITICAL: all 5 recovery steps failed — 5 min cooldown. " +

@@ -8,8 +8,11 @@
 //  * <= ~45k chars of text: one streaming pass. Bigger ranges: map-reduce - exhaustive
 //    ~250-word notes per ~10-page segment, then a fusion pass that writes the final
 //    digest. Progress for every phase is streamed to the window.
-//  * Output contract: markdown with "## " topic headings, bullets tagged (p. N) -
-//    the window turns those tags into the coverage chips and live page jumps.
+//  * Output contract (v1.8.83, transplanted from the user's pdf-summarizer
+//    extension "nonfiction classic" prompt): plain dense prose, no headings,
+//    no bullet lists, no page tags in the final digest, strict word ceiling.
+//    The per-segment notes keep their internal (p. N) tags for the fusion
+//    coverage plumbing; the finished digest is plain text.
 //  * SSE streaming against the same OpenAI-compatible endpoint the chat uses
 //    (AiProviderConfig), with a non-SSE fallback: endpoints that ignore stream:true
 //    answer with one JSON body and we surface it as a single delta.
@@ -595,24 +598,88 @@ namespace Avalanche.Features.Summary
         // Prompts
         // ------------------------------------------------------------------
 
-        private static string DigestSystemPrompt(int targetWords, bool fromNotes) =>
-            "You create exhaustive reading digests of book pages for a reader who wants to absorb the " +
-            "full content without reading the original pages.\n" +
-            "Rules:\n" +
-            "- Cover EVERY substantive element on the pages: arguments, claims, definitions, facts, " +
-            "figures, names, examples, and transitions between ideas. Nothing important may be missing.\n" +
-            "- Organize with short '## ' headings by topic; beneath each heading use concise bullet points.\n" +
-            "- End every bullet with the page it came from, in the form (p. N).\n" +
-            "- Use ONLY the provided material. Never add outside knowledge, opinions, or meta commentary " +
-            "about the text or about summarizing.\n" +
-            $"- Target length: about {targetWords} words. Prefer completeness over brevity.\n" +
-            (fromNotes
+        // Transplanted verbatim from the user's pdf-summarizer extension
+        // (background.js, shared ANTI_META_LANGUAGE block): bans meta-language,
+        // LaTeX/dollar signs, and invented abbreviations.
+        private static readonly string AntiMeta =
+            """
+            ABSOLUTE BAN ON META-LANGUAGE — these phrases are FORBIDDEN, never write them:
+            - "The text examines...", "The text explores...", "The text discusses...", "The text illustrates...", "The text investigates...", "The text considers...", "The text analyzes...", "The text looks at...", "The text deals with...", "The text covers...", "The text presents...", "The text describes...", "The text outlines...", "The text reviews...", "The text studies...", "The text delves into...", "The text talks about...", "The text addresses...", "The text examines how..."
+            - "The author argues...", "The author shows...", "The author portrays...", "The author suggests...", "The author claims...", "The author explains...", "The author makes the case that...", "The author contends..."
+            - "This passage covers...", "This section deals with...", "This section explores...", "This page discusses...", "These pages describe...", "This chapter examines...", "This range covers..."
+            - "The book examines...", "The book explores...", "The story explores...", "The narrative focuses on...", "The paper argues...", "The study investigates...", "The chapter argues..."
+
+            If the subject of your sentence is "the text", "the author", "the passage", "this section", "the book", "the story", "the narrative", "the paper", "the study", or "the chapter" — STOP and rewrite that sentence so the subject is the actual person, event, finding, idea, number, or definition.
+
+            THIS SUMMARY IS A SUBSTITUTE FOR READING. The reader is using it INSTEAD of the original. Do NOT describe what the text is about — SAY what the text says. State the actual content (definitions, findings, events, arguments, numbers, names, dates) directly as fact, as if you were the expert teaching it from memory.
+
+            BAD (forbidden — describes the text instead of stating content):
+            "The text examines the critical period hypothesis, specifically regarding how age affects pronunciation, grammaticality intuitions, and the overall rate of learning."
+
+            GOOD (states the content directly):
+            "After puberty, second-language learners almost never achieve native-like pronunciation; their grammaticality intuitions also plateau. Younger learners outperform them on implicit acquisition, but older learners actually show a faster explicit learning rate in the early stages — the critical period narrows the ceiling, not the speed of early gains."
+
+            BAD (forbidden):  "The author discusses the relationship between sleep and memory."
+            GOOD:             "Sleep after learning consolidates memories. REM-sleep deprivation specifically impairs procedural memory tasks, while slow-wave-sleep deprivation impairs declarative memory."
+
+            BAD (forbidden):  "The chapter explores Raskolnikov's moral conflict after the murder."
+            GOOD:             "After killing the pawnbroker, Raskolnikov hides the stolen items without using them, falls into a fever, and obsessively revisits the crime scene — convinced he has the right to transgress ordinary morality, yet crushed by guilt he cannot name."
+
+            Before finalizing your summary, re-read every sentence. If any sentence DESCRIBES the text instead of STATING the text's content, rewrite it.
+
+            ABSOLUTE BAN ON LATEX / MATH NOTATION — these are FORBIDDEN in your output:
+            - Never write "$\to$", "$\rightarrow$", "$\Rightarrow$", "$\leftarrow$", "$\mapsto$", "$\approx$", "$\leq$", "$\geq$", "$\neq$", "$\in$", "$\sum$", "$\int$", "$\frac{}{}", "$\sqrt{}$", or ANY other LaTeX command.
+            - NEVER write a dollar sign ($). Dollar signs are FORBIDDEN. If you are about to write a dollar sign, STOP. You have made a mistake.
+            - If you need an arrow, write the literal Unicode character "→" (copy this character: →). Or use the word "to".
+            - If you need any other math symbol, write the literal Unicode character directly: ≤, ≥, ≠, ×, ÷, ±, ≈, ∑, ∫, etc.
+            - For proportions or ratios, write "X to Y" or "X:Y" — never "$\frac{X}{Y}$".
+            - For superscripts/subscripts, write them inline (e.g., "m²" not "$m^2$").
+
+            BAD (forbidden):  "research flows from topic $\to$ thesis $\to$ notes $\to$ draft"
+            BAD (forbidden):  "research flows from topic $\rightarrow$ thesis $\rightarrow$ notes $\rightarrow$ draft"
+            GOOD:              "research flows from topic → thesis → notes → draft"
+            ALSO GOOD:         "research flows from topic to thesis to notes to draft"
+
+            SELF-CHECK BEFORE OUTPUT: Scan your entire response. If it contains ANY dollar sign ($), you have FAILED. Remove every dollar sign and replace any LaTeX command with its plain-text equivalent before sending. Your output is rendered as PLAIN TEXT — it is NOT rendered by a LaTeX engine. Any "$\to$" or "$\rightarrow$" in your output will appear as literal garbage to the reader.
+
+            ABSOLUTE BAN ON CREATING ABBREVIATIONS — NEVER abbreviate proper nouns, technical terms, or multi-word concepts unless the abbreviation appears verbatim in the source text.
+            - If the source text says "Covenant Code", you MUST write "Covenant Code" — NEVER abbreviate it to "CC" or "(CC)".
+            - If the source text says "Critical Period Hypothesis", you MUST write "Critical Period Hypothesis" — NEVER abbreviate it to "CPH".
+            - If the source text says "System 1", you MUST write "System 1" — NEVER abbreviate it to "S1".
+            - Do NOT introduce abbreviations in parentheses after the first mention (e.g., do NOT write "Covenant Code (CC)"). Write the full term every time.
+            - The ONLY exception: if the source text itself uses an abbreviation (e.g., "DNA", "NASA", "MIS 6"), you may use it as the source does.
+            """;
+
+        private static string DigestSystemPrompt(int targetWords, bool fromNotes)
+        {
+            // Word-for-word transplant of the extension's nonfiction_classic
+            // multi-page prompt, with two Avalanche adaptations: the ground rule
+            // (no outside knowledge) and the marker/tag plumbing note.
+            string head =
+                "Summarize the following text in approximately " + targetWords +
+                " words (do NOT exceed " + targetWords + " words).\n\n" +
+                "This summary is a SUBSTITUTE for reading these pages. The reader must understand " +
+                "the key facts, findings, the author's arguments, and the evidence supporting them.\n\n" +
+                "CRITICAL RULES:\n" +
+                "1. Cover the core arguments, evidence, definitions, historical facts, and " +
+                "conclusions directly and factually.\n" +
+                "2. State content directly as facts and findings — never describe the text or the author.\n" +
+                "3. Keep the summary focused, dense, and close to " + targetWords +
+                " words — do NOT exceed " + targetWords + " words.\n\n" +
+                AntiMeta + "\n\n" +
+                "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
+                "commentary about the text or about summarizing.\n\n" +
+                "Plain text only: no headings, no bullet lists, no markdown formatting, and no " +
+                "page tags in the output.\n\n";
+            return head + (fromNotes
                 ? "The user message holds working notes from earlier passes; every item already " +
-                  "carries its (p. N) page tag. Fuse them into ONE digest of your own: reorganize " +
-                  "by topic, merge duplicates, drop filler, and cover the full span the notes " +
-                  "cover, from their first page tag to their last. Never copy the notes verbatim, " +
-                  "never return one segment's notes unchanged, and keep every (p. N) tag."
-                : "Each page's text starts with a [[p. N]] marker.");
+                  "carries its (p. N) page tag. Fuse them into ONE summary of your own: merge " +
+                  "duplicates, drop filler, and cover the full span the notes cover, from their " +
+                  "first page tag to their last. Never copy the notes verbatim and never return " +
+                  "one segment's notes unchanged."
+                : "Each page's text starts with a [[p. N]] marker; the markers tell you which " +
+                  "page each part came from, but they must NOT appear in your output.");
+        }
 
         private static string MiniSystemPrompt() =>
             "You produce exhaustive working notes from book page segments that will later be fused into " +

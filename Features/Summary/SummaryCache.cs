@@ -16,7 +16,9 @@ namespace Avalanche.Features.Summary
 
     internal static class SummaryCache
     {
-        private const int PromptVersion = 1;
+        // v2: digest style transplanted to the extension's nonfiction-classic
+        // prompt; old-style markdown digests must never be served from cache.
+        private const int PromptVersion = 2;
         private static readonly object Gate = new();
         private static SqliteConnection? _connection;
 
