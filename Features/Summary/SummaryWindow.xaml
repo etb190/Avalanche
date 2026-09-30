@@ -1,9 +1,8 @@
 <!-- Features/Summary/SummaryWindow.xaml — floating page-summary companion window.
      The rounded chrome, title bar, fade-close and Escape handling come from
      DialogChrome.Frame (composed in code-behind); this file is the card body:
-     range bar with Start/Reset, segmented depth control, the digest, and an
-     icon action bar - all in the house button language (main-window
-     ToolbarButton look: MDL2 glyph over a tiny caption, rounded hover wash). -->
+     a range bar with Start/Reset, a segmented depth control, the digest, and
+     a status line - all in the house button language (rounded hover wash). -->
 <Window x:Class="Avalanche.Features.Summary.SummaryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -22,53 +21,6 @@
             <Setter Property="Padding" Value="4,3"/>
             <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
             <Setter Property="FontSize" Value="12"/>
-        </Style>
-
-        <!-- Icon action button: glyph over a tiny caption, the main window's
-             ToolbarButton face. Hover wash, pressed fade, disabled fade. -->
-        <Style x:Key="SumActionBtn" TargetType="Button">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="MinWidth" Value="46"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="face" Background="{TemplateBinding Background}"
-                                CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Padding="{TemplateBinding Padding}"
-                                ToolTip="{TemplateBinding ToolTip}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentPresenter.Effect>
-                                    <!-- IconShadowOpacity is 0 in Light, so glyphs stay crisp
-                                         ClearType there; dark themes get soft depth. -->
-                                    <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Direction="270"
-                                                      Opacity="{DynamicResource IconShadowOpacity}"/>
-                                </ContentPresenter.Effect>
-                            </ContentPresenter>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="face" Property="Opacity" Value="0.75"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.35"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="SumActionBtnDanger" TargetType="Button" BasedOn="{StaticResource SumActionBtn}">
-            <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
-        </Style>
-        <Style x:Key="SumActionBtnAccent" TargetType="Button" BasedOn="{StaticResource SumActionBtn}">
-            <Setter Property="Foreground" Value="{DynamicResource AccentLogo}"/>
         </Style>
 
         <!-- Text ghost button (Reset): quiet bordered label that fills on hover. -->
@@ -177,69 +129,6 @@
             </Setter>
         </Style>
 
-        <!-- Pin: icon-only toggle with the house checked face. -->
-        <Style x:Key="SumPinToggle" TargetType="ToggleButton">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Height" Value="28"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="face" Background="{TemplateBinding Background}"
-                                CornerRadius="{DynamicResource ControlCornerRadius}"
-                                ToolTip="{TemplateBinding ToolTip}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="face" Property="Background" Value="{DynamicResource SelectionBg}"/>
-                                <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.35"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- "Summarize this page instead" suggestion chip. -->
-        <Style x:Key="SumSuggestChip" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource SelectionBg}"/>
-            <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
-            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Padding" Value="9,4"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="face" Background="{TemplateBinding Background}"
-                                BorderBrush="{DynamicResource SelectionFg}" BorderThickness="0.5"
-                                CornerRadius="{DynamicResource ControlCornerRadius}"
-                                Padding="{TemplateBinding Padding}"
-                                ToolTip="{TemplateBinding ToolTip}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="face" Property="Opacity" Value="0.85"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="face" Property="Opacity" Value="0.7"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </Window.Resources>
 
     <Grid x:Name="BodyRoot">
@@ -250,13 +139,10 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Row 0: range + reset + pin + primary action -->
+        <!-- Row 0: page range + Reset + Start -->
         <DockPanel Grid.Row="0" Margin="14,12,14,4" LastChildFill="True">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="ResetBtn" Style="{StaticResource SumGhostBtn}" VerticalAlignment="Center"/>
-                <ToggleButton x:Name="PinBtn" Style="{StaticResource SumPinToggle}"
-                              FontFamily="{DynamicResource IconFont}" FontSize="13"
-                              VerticalAlignment="Center" Margin="6,0,0,0"/>
                 <Button x:Name="GoBtn" Style="{StaticResource SumPrimaryBtn}" Margin="8,0,0,0"
                         VerticalAlignment="Center" MinWidth="96"/>
             </StackPanel>
@@ -294,24 +180,10 @@
                        Foreground="{DynamicResource MutedTextBrush}"/>
         </Grid>
 
-        <!-- Row 3: status + icon action bar -->
-        <DockPanel Grid.Row="3" Margin="14,4,14,12" LastChildFill="False">
-            <TextBlock x:Name="StatusText" DockPanel.Dock="Left" VerticalAlignment="Center"
-                       FontSize="11" MaxWidth="185" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                       FontFamily="{DynamicResource UiFont}"
-                       Foreground="{DynamicResource MutedTextBrush}"/>
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button x:Name="RerunBtn" Style="{StaticResource SumSuggestChip}" Visibility="Collapsed"
-                        VerticalAlignment="Center"/>
-                <Button x:Name="StopBtn" Style="{StaticResource SumActionBtnDanger}" Margin="2,0,0,0"
-                        VerticalAlignment="Center"/>
-                <Button x:Name="CopyBtn" Style="{StaticResource SumActionBtn}" Margin="2,0,0,0"
-                        VerticalAlignment="Center"/>
-                <Button x:Name="SaveBtn" Style="{StaticResource SumActionBtn}" Margin="2,0,0,0"
-                        VerticalAlignment="Center"/>
-                <Button x:Name="RegenBtn" Style="{StaticResource SumActionBtnAccent}" Margin="2,0,0,0"
-                        VerticalAlignment="Center"/>
-            </StackPanel>
-        </DockPanel>
+        <!-- Row 3: status line - progress while generating, word/character counts after -->
+        <TextBlock Grid.Row="3" x:Name="StatusText" Margin="14,4,14,12" VerticalAlignment="Center"
+                   FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                   FontFamily="{DynamicResource UiFont}"
+                   Foreground="{DynamicResource MutedTextBrush}"/>
     </Grid>
 </Window>

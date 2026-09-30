@@ -1145,6 +1145,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
 	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
+	<sys:String x:Key="Str_SummaryStart">开始</sys:String>
+	<sys:String x:Key="Str_SummaryCounts">{0} 词 / {1} 字符</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

@@ -1161,6 +1161,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
 	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
+	<sys:String x:Key="Str_SummaryStart">Avvia</sys:String>
+	<sys:String x:Key="Str_SummaryCounts">{0} parole / {1} caratteri</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>
 	<sys:String x:Key="Str_SummaryNoText">No text layer found on these pages. Run OCR first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryError">Summary failed: {0}</sys:String>

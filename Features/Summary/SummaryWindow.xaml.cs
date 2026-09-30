@@ -10,12 +10,11 @@ namespace Avalanche.Features.Summary
 {
     using System;
     using System.Globalization;
-    using System.IO;
     using System.Threading;
-    using System.Threading.Tasks;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Media;
+    using System.Windows.Shapes;
     using System.Windows.Threading;
     using Avalanche.Controls;
     using Avalanche.Features.AI;
@@ -34,14 +33,9 @@ namespace Avalanche.Features.Summary
         private CancellationTokenSource? _cts;
         private bool _generating;
         private string _fullText = string.Empty;
-        private bool _fromCache;
-        private bool _hasResult;        // a finished digest exists -> the out-of-range hint may show
-        private bool _resetting;        // Reset pressed: swallow the cancelled-run status line
-        private int _rangeFirst = 1, _rangeLast = 1;
         private bool _flushPending;
         private bool _closed;
-        private readonly DispatcherTimer _hintTimer;
-        private DateTime _startedAt;
+        private int _generation;        // bumped by Reset/close so stale continuations can't repaint
 
         public SummaryWindow(
             MainWindow owner,
@@ -71,8 +65,19 @@ namespace Avalanche.Features.Summary
                 CornerRadius = new CornerRadius(0),
                 UseAeroCaptionButtons = false
             });
-            Content = DialogChrome.Frame(this, owner, "Avalanche - " + loc("Str_SummaryTitle"), Close, BodyRoot);
-            Title = "Avalanche - " + loc("Str_SummaryTitle");
+            // The title bar carries only the Avalanche wordmark - the body speaks for itself.
+            var frame = DialogChrome.Frame(this, owner, "Avalanche", Close, BodyRoot);
+            // The lower corner squares have no visible pixels (transparent halo over the rounded
+            // card corners), so the OS passes clicks straight through and WindowChrome's
+            // geometric band never fires there - the upper corners sit on the title-bar band
+            // and work. Hit-testable grips with a ResizeGripDirection restore two-axis corner
+            // resizing, matching the upper corners.
+            var root = new Grid();
+            root.Children.Add(frame);
+            root.Children.Add(CornerGrip(HorizontalAlignment.Left, System.Windows.Shell.ResizeGripDirection.BottomLeft));
+            root.Children.Add(CornerGrip(HorizontalAlignment.Right, System.Windows.Shell.ResizeGripDirection.BottomRight));
+            Content = root;
+            Title = "Avalanche";
 
             PagesLabel.Text = loc("Str_SummaryPages");
             ToLabel.Text = loc("Str_SummaryTo");
@@ -80,15 +85,7 @@ namespace Avalanche.Features.Summary
             DepthStandardBtn.Content = loc("Str_SummaryDepthStandard");
             DepthDeepBtn.Content = loc("Str_SummaryDepthDeep");
             DepthStandardBtn.IsChecked = true;
-            PinBtn.ToolTip = loc("Str_SummaryPin");
-            PinBtn.Content = "\uE718"; // Segoe MDL2: Pin (E840 = pinned fill while checked)
-            PinBtn.Checked += (_, _) => PinBtn.Content = "\uE840";
-            PinBtn.Unchecked += (_, _) => PinBtn.Content = "\uE718";
-            GoBtn.Content = ActionLabel("\uE8FD", loc("Str_SummaryGo"), Orientation.Horizontal);
-            StopBtn.Content = ActionLabel("\uE71A", loc("Str_SummaryStop"), Orientation.Vertical);
-            CopyBtn.Content = ActionLabel("\uE8C8", loc("Str_SummaryCopy"), Orientation.Vertical);
-            SaveBtn.Content = ActionLabel("\uE74E", loc("Str_SummarySave"), Orientation.Vertical);
-            RegenBtn.Content = ActionLabel("\uE72C", loc("Str_SummaryRegen"), Orientation.Vertical);
+            GoBtn.Content = loc("Str_SummaryStart");
             ResetBtn.Content = loc("Str_Tf_Reset");
             ResetBtn.Click += (_, _) => ResetAll();
 
@@ -99,40 +96,11 @@ namespace Avalanche.Features.Summary
             ToBox.Text = last.ToString(CultureInfo.InvariantCulture);
 
             GoBtn.Click += (_, _) => StartGeneration(bypassCache: false);
-            StopBtn.Click += (_, _) => _cts?.Cancel();
-            RegenBtn.Click += (_, _) => StartGeneration(bypassCache: true);
-            CopyBtn.Click += (_, _) =>
-            {
-                try
-                {
-                    if (_fullText.Length > 0)
-                    {
-                        Clipboard.SetText(_fullText);
-                    }
-                }
-                catch
-                {
-                    // clipboard can be held by another process
-                }
-            };
-            SaveBtn.Click += (_, _) => _ = SaveMarkdownAsync();
-            PinBtn.Click += (_, _) => Topmost = PinBtn.IsChecked == true;
-            RerunBtn.Click += (_, _) =>
-            {
-                int page = Math.Min(Math.Max(currentPageProvider() + 1, 1), Math.Max(1, pageCount));
-                FromBox.Text = page.ToString(CultureInfo.InvariantCulture);
-                ToBox.Text = Math.Min(page + 1, Math.Max(1, pageCount)).ToString(CultureInfo.InvariantCulture);
-                StartGeneration(bypassCache: false);
-            };
-
-            _hintTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            _hintTimer.Tick += (_, _) => UpdateHint();
-            _hintTimer.Start();
 
             Closed += (_, _) =>
             {
                 _closed = true;
-                _hintTimer.Stop();
+                _generation++;      // a run cancelled by the close can't repaint either
                 _cts?.Cancel();
                 PersistPlacement();
             };
@@ -145,22 +113,15 @@ namespace Avalanche.Features.Summary
         /// Nothing is generated automatically - Start is always explicit.</summary>
         private void ResetAll()
         {
-            _resetting = true;
-            try
-            {
-                _cts?.Cancel();
-            }
-            finally
-            {
-                _resetting = false;
-            }
+            // Invalidate the in-flight run first: its continuations check the generation
+            // token and no longer repaint the cleared card (status, digest, overlays).
+            _generation++;
+            _cts?.Cancel();
 
-            _hasResult = false;
             _fullText = string.Empty;
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             StatusText.Text = string.Empty;
-            RerunBtn.Visibility = Visibility.Collapsed;
             int current = _currentPageProvider();
             int first = current >= 0 ? current + 1 : 1;
             FromBox.Text = first.ToString(CultureInfo.InvariantCulture);
@@ -194,17 +155,14 @@ namespace Avalanche.Features.Summary
                 return;
             }
 
+            int gen = ++_generation;    // a later Reset bumps this: stale continuations stop repainting
             _generating = true;
-            _rangeFirst = first;
-            _rangeLast = last;
-            _fromCache = false;
             _fullText = string.Empty;
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
-            _startedAt = DateTime.UtcNow;
 
             var request = new SummaryRequest(
                 _filePath, _documentId, first, last, TargetWords(), bypassCache);
@@ -216,27 +174,41 @@ namespace Avalanche.Features.Summary
                     switch (update.Kind)
                     {
                         case "progress":
-                            StatusText.Text = update.Text;
-                            break;
-                        case "delta":
-                            AppendDelta(update.Text);
-                            break;
-                        case "done":
-                            _fromCache = update.FromCache;
-                            if (update.Text.Length > 0)
+                            if (gen == _generation)
                             {
-                                _fullText = update.Text;
+                                StatusText.Text = update.Text;
                             }
 
-                            DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                            _hasResult = true;
-                            FinishSuccess();
+                            break;
+                        case "delta":
+                            AppendDelta(update.Text, gen);
+                            break;
+                        case "done":
+                            if (gen == _generation)
+                            {
+                                if (update.Text.Length > 0)
+                                {
+                                    _fullText = update.Text;
+                                }
+
+                                DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                                FinishSuccess();
+                            }
+
                             break;
                         case "notext":
-                            Overlay(_loc("Str_SummaryNoText"));
+                            if (gen == _generation)
+                            {
+                                Overlay(_loc("Str_SummaryNoText"));
+                            }
+
                             break;
                         case "error":
-                            Overlay(string.Format(_loc("Str_SummaryError"), update.Text));
+                            if (gen == _generation)
+                            {
+                                Overlay(string.Format(_loc("Str_SummaryError"), update.Text));
+                            }
+
                             break;
                     }
 
@@ -248,12 +220,20 @@ namespace Avalanche.Features.Summary
             }
             catch (OperationCanceledException)
             {
-                DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                StatusText.Text = _resetting ? string.Empty : _loc("Str_SummaryStopped");
+                // The only cancel path is Reset (or window close), which bumps the
+                // generation and clears the card; only repaint when still current.
+                if (gen == _generation)
+                {
+                    DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                    StatusText.Text = _loc("Str_SummaryStopped");
+                }
             }
             catch (Exception ex)
             {
-                Overlay(string.Format(_loc("Str_SummaryError"), PageSummarizer.FriendlyError(ex)));
+                if (gen == _generation)
+                {
+                    Overlay(string.Format(_loc("Str_SummaryError"), PageSummarizer.FriendlyError(ex)));
+                }
             }
             finally
             {
@@ -262,7 +242,7 @@ namespace Avalanche.Features.Summary
             }
         }
 
-        private void AppendDelta(string delta)
+        private void AppendDelta(string delta, int gen)
         {
             _fullText += delta;
             if (_flushPending)
@@ -274,7 +254,7 @@ namespace Avalanche.Features.Summary
             Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
             {
                 _flushPending = false;
-                if (_generating)
+                if (_generating && gen == _generation)
                 {
                     DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
                     DocBox.ScrollToEnd();
@@ -285,12 +265,9 @@ namespace Avalanche.Features.Summary
         private void FinishSuccess()
         {
             Overlay(null);
-            int words = PageSummarizer.CountWords(_fullText);
-            string tail = _fromCache
-                ? _loc("Str_SummaryCached")
-                : Math.Max(1, (int)(DateTime.UtcNow - _startedAt).TotalSeconds) + "s";
+            // The status line stays factual: word and character count, nothing else.
             StatusText.Text = string.Format(
-                _loc("Str_SummaryDone"), words, _rangeLast - _rangeFirst + 1, tail);
+                _loc("Str_SummaryCounts"), PageSummarizer.CountWords(_fullText), _fullText.Length);
             _cts?.Dispose();
             _cts = null;
         }
@@ -305,46 +282,27 @@ namespace Avalanche.Features.Summary
             return DepthDeepBtn.IsChecked == true ? 2000 : 1000;
         }
 
-        // Glyph + caption composite used by the styled action buttons; colors inherit
-        // from the button (white on the primary face, themed accents elsewhere).
-        private StackPanel ActionLabel(string glyph, string text, Orientation orientation)
-        {
-            var icon = new TextBlock
-            {
-                Text = glyph,
-                FontSize = orientation == Orientation.Vertical ? 15 : 13,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            icon.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
-            var label = new TextBlock
-            {
-                Text = text,
-                FontSize = 10,
-                HorizontalAlignment = HorizontalAlignment.Center
-            };
-            label.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
-            var sp = new StackPanel { Orientation = orientation, VerticalAlignment = VerticalAlignment.Center };
-            sp.Children.Add(icon);
-            sp.Children.Add(label);
-            if (orientation == Orientation.Horizontal)
-            {
-                label.Margin = new Thickness(5, 0, 0, 0);
-            }
-            else
-            {
-                label.Margin = new Thickness(0, 1, 0, 0);
-            }
-
-            return sp;
-        }
-
+        // While a run is in flight Start goes quiet; Reset (which cancels) stays live.
         private void SetBusy(bool busy)
         {
-            GoBtn.Visibility = busy ? Visibility.Collapsed : Visibility.Visible;
-            StopBtn.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
-            RegenBtn.Visibility = !busy && _fullText.Length > 0
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            GoBtn.IsEnabled = !busy;
+        }
+
+        // Invisible but hit-testable corner handle: a near-transparent fill keeps the layered
+        // window from passing clicks through, and the attached ResizeGripDirection tells
+        // WindowChrome which non-client behaviour (both-axis corner resize) the grip maps to.
+        private static Rectangle CornerGrip(HorizontalAlignment align, System.Windows.Shell.ResizeGripDirection direction)
+        {
+            var grip = new Rectangle
+            {
+                Width = 20,
+                Height = 20,
+                HorizontalAlignment = align,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Fill = new SolidColorBrush(Color.FromArgb(2, 0, 0, 0))
+            };
+            System.Windows.Shell.WindowChrome.SetResizeGripDirection(grip, direction);
+            return grip;
         }
 
         private void Overlay(string? message)
@@ -360,58 +318,6 @@ namespace Avalanche.Features.Summary
                 OverlayText.Text = message;
                 OverlayText.Visibility = Visibility.Visible;
                 DocBox.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // Reader sync hint
-        // ------------------------------------------------------------------
-
-        private void UpdateHint()
-        {
-            if (_generating || _closed || !_hasResult)
-            {
-                return;
-            }
-
-            int current = _currentPageProvider();
-            if (current < 0)
-            {
-                return;
-            }
-
-            int page = current + 1;
-            if (page >= _rangeFirst && page <= _rangeLast)
-            {
-                RerunBtn.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            StatusText.Text = string.Format(_loc("Str_SummaryOutOfRange"), page, _rangeFirst, _rangeLast);
-            RerunBtn.Content = string.Format(
-                _loc("Str_SummaryRerunHere"), page, Math.Min(page + 1, _pageCount));
-            RerunBtn.Visibility = Visibility.Visible;
-        }
-
-        // ------------------------------------------------------------------
-        // Export
-        // ------------------------------------------------------------------
-
-        private async Task SaveMarkdownAsync()
-        {
-            if (_fullText.Length == 0)
-            {
-                return;
-            }
-
-            var dialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "Markdown|*.md|Text|*.txt",
-                FileName = $"Summary_p{_rangeFirst}-{_rangeLast}.md"
-            };
-            if (dialog.ShowDialog(this) == true)
-            {
-                await File.WriteAllTextAsync(dialog.FileName, _fullText);
             }
         }
 
