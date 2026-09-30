@@ -62,6 +62,7 @@ namespace Avalanche.Features.Summary
 
             DialogChrome.Configure(this, owner, resizable: true);
             Content = DialogChrome.Frame(this, owner, loc("Str_SummaryTitle"), Close, BodyRoot);
+            Title = "Avalanche - " + loc("Str_SummaryTitle");
 
             PagesLabel.Text = loc("Str_SummaryPages");
             ToLabel.Text = loc("Str_SummaryTo");
@@ -70,7 +71,7 @@ namespace Avalanche.Features.Summary
             DepthBox.Items.Add(loc("Str_SummaryDepthDeep"));
             DepthBox.SelectedIndex = 1;
             PinBtn.ToolTip = loc("Str_SummaryPin");
-            PinBtn.Content = "\uE718"; // Segoe MDL2: Pin
+            PinBtn.Content = (char)0xE718; // Segoe MDL2: Pin
             GoBtn.Content = loc("Str_SummaryGo");
             StopBtn.Content = loc("Str_SummaryStop");
             CopyBtn.Content = loc("Str_SummaryCopy");
