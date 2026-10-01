@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -7,7 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Avalanche.Engine</RootNamespace>
     <AssemblyName>Avalanche.Engine</AssemblyName>
-    <Version>1.8.93</Version>
+    <Version>1.8.94</Version>
     <PackageId>Avalanche.Engine</PackageId>
     <Title>The Avalanche.Engine</Title>
     <Authors>Avalanche Team</Authors>

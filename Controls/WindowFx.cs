@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -15,6 +15,13 @@ namespace Avalanche
         // The reading navigator's beats: it asked for smooth and fast on BOTH ends.
         public const int PopMs = 130;      // close: fade + settle-away
         public const int PopOpenMs = 140;  // open: fade + grow-to-rest
+
+        // WPF forbids RenderTransform on the Window itself - Window.CoerceRenderTransform
+        // rejects every value with "Transform is not valid for Window". The pop scale
+        // therefore plays on the window's content root: the navigator is custom-chromed,
+        // so its content is the whole visible window and scaling it reads as scaling
+        // the window.
+        private static FrameworkElement? ScaleRoot(Window w) => w.Content as FrameworkElement;
 
         public static void EnableFadeClose(Window w, int ms = FadeMs, bool pop = false)
         {
@@ -38,17 +45,20 @@ namespace Avalanche
                     // down to 98.5% while it dissolves, so the close reads as a
                     // motion, not a blink. EaseIn holds still a beat and does the
                     // vanishing late, which is what "smooth" reads as going out.
-                    var scale = new ScaleTransform(1, 1);
-                    w.RenderTransform = scale;
-                    w.RenderTransformOrigin = new Point(0.5, 0.33);
                     var ease = new QuadraticEase { EasingMode = EasingMode.EaseIn };
                     anim.EasingFunction = ease;
                     var shrink = new DoubleAnimation(1, 0.985, new Duration(TimeSpan.FromMilliseconds(ms)))
                     {
                         EasingFunction = ease
                     };
-                    scale.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);
-                    scale.BeginAnimation(ScaleTransform.ScaleYProperty, shrink);
+                    if (ScaleRoot(w) is FrameworkElement root)
+                    {
+                        var scale = new ScaleTransform(1, 1);
+                        root.RenderTransform = scale;
+                        root.RenderTransformOrigin = new Point(0.5, 0.33);
+                        scale.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);
+                        scale.BeginAnimation(ScaleTransform.ScaleYProperty, shrink);
+                    }
                 }
 
                 w.BeginAnimation(UIElement.OpacityProperty, anim);
@@ -63,17 +73,25 @@ namespace Avalanche
         // hold is released so later code can set Opacity freely.
         public static void PlayOpenPop(Window w, int ms = PopOpenMs)
         {
-            var scale = new ScaleTransform(0.965, 0.965);
-            w.RenderTransform = scale;
-            w.RenderTransformOrigin = new Point(0.5, 0.33);
             var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+
+            // The fade is armed FIRST: a window born at Opacity 0 becomes
+            // visible even if the scale step below were ever skipped - the
+            // entrance never depends on the transform for its visibility.
             var fade = new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(ms))) { EasingFunction = ease };
-            var grow = new DoubleAnimation(0.965, 1, new Duration(TimeSpan.FromMilliseconds(ms))) { EasingFunction = ease };
             fade.Completed += (_, _) => { w.BeginAnimation(UIElement.OpacityProperty, null); w.Opacity = 1; };
-            grow.Completed += (_, _) => w.RenderTransform = null;
             w.BeginAnimation(UIElement.OpacityProperty, fade);
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+
+            if (ScaleRoot(w) is FrameworkElement root)
+            {
+                var scale = new ScaleTransform(0.965, 0.965);
+                root.RenderTransform = scale;
+                root.RenderTransformOrigin = new Point(0.5, 0.33);
+                var grow = new DoubleAnimation(0.965, 1, new Duration(TimeSpan.FromMilliseconds(ms))) { EasingFunction = ease };
+                grow.Completed += (_, _) => root.RenderTransform = null;
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
+            }
         }
     }
 }
