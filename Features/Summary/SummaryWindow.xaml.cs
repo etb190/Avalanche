@@ -1,4 +1,4 @@
-// Features/Summary/SummaryWindow.xaml.cs — the floating page-summary companion.
+﻿// Features/Summary/SummaryWindow.xaml.cs — the floating page-summary companion.
 //
 // Single owned window (MainWindow keeps one instance), themed chrome via
 // DialogChrome (rounded card, themed title bar, Escape-close, fade). The body
@@ -125,11 +125,12 @@ namespace Avalanche.Features.Summary
                     {
                         // The pair the reader asked for: minus on the left, a clear gap
                         // between the two, and the increase chip on the right, nearest
-                        // the close mark. Plain + and - faces (E710 Add / E738 Remove),
-                        // not font glyphs.
-                        TitleChip("\uE738", "Str_SummaryFontDown", () => AdjustDigestFont(-1), new Thickness(0, 0, 6, 0)),
-                        TitleChip("\uE710", "Str_SummaryFontUp", () => AdjustDigestFont(+1))
-                    }
+                        // the close mark. Drawn + and - faces - rectangles center
+                        // exactly, where the MDL2 glyphs' ink rode high in the chip.
+                        TitleChip(plus: false, "Str_SummaryFontDown", () => AdjustDigestFont(-1), new Thickness(0, 0, 6, 0)),
+                        TitleChip(plus: true, "Str_SummaryFontUp", () => AdjustDigestFont(+1))
+                    },
+                    CloseCreated = DressCloseChip
                 });
             // The lower corner squares have no visible pixels (transparent halo over the rounded
             // card corners), so the OS passes clicks straight through and WindowChrome's
@@ -745,20 +746,52 @@ namespace Avalanche.Features.Summary
         // One 24px title-bar square: the glyph rides the shared icon font, the tooltip
         // is localized, and the click is taken in the tunnel so the bar's DragMove
         // handler never mistakes a chip press for the start of a window move.
-        private Button TitleChip(string glyph, string tooltipKey, Action onClick, Thickness? margin = null)
+        private Button TitleChip(bool plus, string tooltipKey, Action onClick, Thickness? margin = null)
         {
-            var label = new TextBlock { FontSize = 12, Margin = new Thickness(0, -1, 0, 0), Text = glyph };
-            label.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
-            label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            // Drawn minus/plus instead of MDL2 glyphs: the font's ink rides high
+            // in its line box, which read as glued to the chip's top border.
+            // Rectangles center exactly - no font metrics to guess - and the
+            // shared stroke keeps every mark in the bar the same weight.
+            const double t = 1.6;   // stroke, in control px
+            var mark = new Grid { Width = 10, Height = 10 };
+            var bar = new Rectangle { Width = 10, Height = t, RadiusX = t / 2, RadiusY = t / 2 };
+            bar.SetResourceReference(Shape.FillProperty, "TextBrush");
+            mark.Children.Add(bar);
+            if (plus)
+            {
+                var stem = new Rectangle { Width = t, Height = 10, RadiusX = t / 2, RadiusY = t / 2 };
+                stem.SetResourceReference(Shape.FillProperty, "TextBrush");
+                mark.Children.Add(stem);
+            }
             var chip = new Button
             {
                 Style = (Style)FindResource("SumTitleBtn"),
-                Content = label,
+                Content = mark,
                 Margin = margin ?? new Thickness(0),
                 ToolTip = _loc(tooltipKey)
             };
             chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
             return chip;
+        }
+
+        // The close mark wears the same container as its neighbours: the
+        // SumTitleBtn face (pane fill, hairline border, hover) with a drawn X
+        // at the same stroke as the drawn minus and plus - the chrome style's
+        // bare floating X read as a smaller, different species beside the chips.
+        private void DressCloseChip(Button close)
+        {
+            const double t = 1.6;   // same stroke as the font chips
+            var x = new Grid { Width = 10, Height = 10 };
+            foreach (double angle in new[] { 45d, -45d })
+            {
+                var bar = new Rectangle { Width = 10, Height = t, RadiusX = t / 2, RadiusY = t / 2 };
+                bar.SetResourceReference(Shape.FillProperty, "TextBrush");
+                bar.RenderTransformOrigin = new Point(0.5, 0.5);
+                bar.RenderTransform = new RotateTransform(angle);
+                x.Children.Add(bar);
+            }
+            close.Content = x;
+            close.Style = (Style)FindResource("SumTitleBtn");
         }
 
         private void AdjustDigestFont(int direction)

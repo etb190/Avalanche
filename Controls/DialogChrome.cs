@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +22,12 @@ namespace Avalanche
 
             // 0 leaves the theme's DialogCloseWidth/Height in charge.
             public double CloseButtonSize { get; init; }
+
+            // Last word on the close button's face: invoked once the chrome has
+            // styled and placed it, so a host can re-dress it (the reading
+            // navigator puts its close mark in the same bordered chip as the
+            // font buttons beside it) without forking BuildTitleBar.
+            public Action<Button>? CloseCreated { get; init; }
         }
 
         // Keep generated dialog captions on the same close mark as the main window.
@@ -238,6 +244,9 @@ namespace Avalanche
                 measureText?.SizeChanged += (_, _) => Sync();
                 bar.Loaded += (_, _) => Sync();
             }
+
+            // The host's last word on the close face (navigator: chip-dressed X).
+            extras?.CloseCreated?.Invoke(close);
 
             if (extras?.BottomSeparator == true)
             {
