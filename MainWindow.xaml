@@ -1581,25 +1581,25 @@
                          stays visible in both modes. -->
                     <StackPanel x:Name="GrpToolsToggle" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <!-- Same inset as the overflow menu rows (Add image & friends):
-                             9px of air either side of the content, while the hover box
-                             stays the family's standard 32px height - the icon+caption
-                             stack centers inside it, width sized by its content. -->
+                        <!-- The Add image row's layout, brought up into the bar: icon
+                             left, caption right, 9px of side air, the family's 32px
+                             hover height. Horizontal stacking frees the ink from the
+                             caption's height tax, so the mark reads at glyph weight. -->
                         <Button x:Name="ToolsBtn" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" Padding="9,0" Width="Auto" Height="32"
                                 ToolTip="{DynamicResource Str_TT_Tools}">
-                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                                <Grid Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Grid Width="20" Height="20" VerticalAlignment="Center">
                                     <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <Rectangle Grid.Row="0" Grid.Column="0" Width="7" Height="7" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle Grid.Row="0" Grid.Column="1" Width="7" Height="7" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle Grid.Row="1" Grid.Column="0" Width="7" Height="7" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle Grid.Row="1" Grid.Column="1" Width="7" Height="7" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="0" Grid.Column="0" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="0" Grid.Column="1" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="1" Grid.Column="0" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="1" Grid.Column="1" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                 </Grid>
                                 <TextBlock x:Name="ToolsBtnCaption" Text="{DynamicResource Str_ToolbarToolsCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
                                            Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                                           VerticalAlignment="Center" Margin="5,0,0,0"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -1642,43 +1642,43 @@
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <!-- Robot + "Chat" caption, stacked. The robot draws in a
-                             24-unit design box, so 19 control px puts ~16px of ink
-                             on screen - matching the 14px MDL2 glyphs and the drawn
-                             Tools and Summary icons. Height=32 with 9px side air
-                             keeps the hover box the family's standard height. -->
+                        <!-- Robot + "Chat" caption, side by side like the Add image
+                             overflow row: the robot draws in a 24-unit design box, so
+                             21 control px puts ~18px of ink on screen - the 14px MDL2
+                             glyphs' own weight. Height=32 with 9px side air keeps the
+                             hover box the family's standard height. -->
                         <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
                                 Padding="9,0" Width="Auto" Height="32">
-                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                                <ctrl:RobotIcon Width="19" Height="19" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ctrl:RobotIcon Width="21" Height="21" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                                 <TextBlock Text="{DynamicResource Str_AiChatCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
                                            Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                                           VerticalAlignment="Center" Margin="5,0,0,0"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"
                                 Padding="9,0" Width="Auto" Height="32">
-                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <!-- Summary: a digest page - a sheet with its text
                                      condensed to a few lines, the last one short.
                                      Drawn like the Compare and Form tools instead of
                                      a glyph, so the metaphor is exact. -->
-                                <Grid Width="19" Height="19" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <Border Width="15" Height="17" CornerRadius="2"
+                                <Grid Width="21" Height="21" VerticalAlignment="Center">
+                                    <Border Width="17" Height="19" CornerRadius="2"
                                             BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                             BorderThickness="1.2"/>
-                                    <StackPanel Width="9" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0">
+                                    <StackPanel Width="10" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0">
                                         <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                         <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                         <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Width="6" HorizontalAlignment="Left" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Width="7" HorizontalAlignment="Left" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock Text="{DynamicResource Str_SummaryCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
                                            Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                                           VerticalAlignment="Center" Margin="5,0,0,0"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

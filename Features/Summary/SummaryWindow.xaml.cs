@@ -792,6 +792,13 @@ namespace Avalanche.Features.Summary
             }
             close.Content = x;
             close.Style = (Style)FindResource("SumTitleBtn");
+            // A chip cannot hug the card's corner the way the chrome face did:
+            // guarantee real air between the mark and the window's right edge
+            // (most themes leave DialogCaptionButtonsMargin at zero).
+            var chromeMargin = Application.Current.TryFindResource("DialogCaptionButtonsMargin") is Thickness m
+                ? m
+                : new Thickness(0);
+            close.Margin = new Thickness(chromeMargin.Left, chromeMargin.Top, Math.Max(chromeMargin.Right, 5), chromeMargin.Bottom);
         }
 
         private void AdjustDigestFont(int direction)
