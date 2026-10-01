@@ -751,6 +751,9 @@ namespace Avalanche
             [""] = "Str_Lbl_Stamp",     // page-number / watermark stamp tool
             [""] = "Str_Lbl_Shape",   // Shapes tool (rect / ellipse / polygon)
             ["\uED5E"] = "Str_Lbl_Measure",
+            ["\uE71D"] = "Str_ToolbarToolsCaption",   // tile grid - the Tools switch
+            ["\uE8BD"] = "Str_AiChatCaption",         // comment bubble - AI chat
+            ["\uE8A5"] = "Str_SummaryCaption",        // document - summary navigator
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.

@@ -1581,28 +1581,12 @@
                          stays visible in both modes. -->
                     <StackPanel x:Name="GrpToolsToggle" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <!-- The caption rides UNDER the mark, where the reader expects
-                             it: the enlarged marks keep their 20px boxes and the 9px
-                             label centers beneath. Segoe UI's 9px line box is 11.99px,
-                             so 20+12 fits the family's 32px hover box exactly - the
-                             stack reads as one button, not a wide row that bulges. -->
-                        <Button x:Name="ToolsBtn" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" Padding="9,0" Width="Auto" Height="32"
-                                ToolTip="{DynamicResource Str_TT_Tools}">
-                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                                <Grid Width="20" Height="20" HorizontalAlignment="Center">
-                                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                    <Rectangle Grid.Row="0" Grid.Column="0" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle Grid.Row="0" Grid.Column="1" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle Grid.Row="1" Grid.Column="0" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle Grid.Row="1" Grid.Column="1" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                </Grid>
-                                <TextBlock x:Name="ToolsBtnCaption" Text="{DynamicResource Str_ToolbarToolsCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                        <!-- A literal copy of the search button, renamed: the same
+                             string-glyph content, the same ToolbarButton style, no
+                             local size or padding - the caption engine owns this face
+                             exactly as it owns Search's, so every label mode, size and
+                             reflow treats the two identically. -->
+                        <Button x:Name="ToolsBtn" Content="&#xE71D;" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" ToolTip="{DynamicResource Str_TT_Tools}"/>
                     </StackPanel>
                 </StackPanel>
                 <!-- Edit tools + zoom -->
@@ -1643,45 +1627,12 @@
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <!-- Robot + "Chat" caption stacked, the caption under the
-                             mark where the reader expects it. The robot draws in a
-                             24-unit design box, so 20 control px keeps ~17px of ink
-                             on screen; with the 9px caption's 12px line the stack
-                             fits the family's 32px hover box exactly. -->
-                        <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
-                                Padding="9,0" Width="Auto" Height="32">
-                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                                <ctrl:RobotIcon Width="20" Height="20" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource Str_AiChatCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                        <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"
-                                Padding="9,0" Width="Auto" Height="32">
-                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                                <!-- Summary: a digest page - a sheet with its text
-                                     condensed to a few lines, the last one short.
-                                     Drawn like the Compare and Form tools instead of
-                                     a glyph, so the metaphor is exact. -->
-                                <Grid Width="20" Height="20" HorizontalAlignment="Center">
-                                    <Border Width="16" Height="18" CornerRadius="2"
-                                            BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                            BorderThickness="1.2"/>
-                                    <StackPanel Width="10" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0">
-                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Width="7" HorizontalAlignment="Left" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    </StackPanel>
-                                </Grid>
-                                <TextBlock Text="{DynamicResource Str_SummaryCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
-                                           Foreground="{DynamicResource TextBrush}"
-                                           HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                        <!-- The search button's clone for chat: glyph content, the
+                             family style, no local overrides - the caption engine
+                             dresses it exactly like Search in every mode. -->
+                        <Button x:Name="AiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
+                        <!-- The search button's clone for the summary navigator. -->
+                        <Button x:Name="SummarizeBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"/>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
