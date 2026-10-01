@@ -1038,7 +1038,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Lbl_AiChat">AI Chat</sys:String>
     <sys:String x:Key="Str_TT_AiChat">AI Chat Assistant (Ctrl+Shift+A)</sys:String>
     <sys:String x:Key="Str_AiChatTitle">AI Assistant</sys:String>
-        <sys:String x:Key="Str_AiChatCaption">Chat</sys:String>
+        <sys:String x:Key="Str_AiChatCaption">AI Chat</sys:String>
     <sys:String x:Key="Str_AiChatClose">Close AI Assistant</sys:String>
     <sys:String x:Key="Str_AiChatNewChat">Nový chat</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">Ask about this PDF... (Enter to send, Ctrl+Enter for a new line)</sys:String>

@@ -1032,7 +1032,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 
     <!-- ── AI Chat ────────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiChatTitle">AI সহায়ক</sys:String>
-        <sys:String x:Key="Str_AiChatCaption">চ্যাট</sys:String>
+        <sys:String x:Key="Str_AiChatCaption">AI Chat</sys:String>
     <sys:String x:Key="Str_AiChatClose">AI সহায়ক বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_AiChatNewChat">নতুন চ্যাট</sys:String>
     <sys:String x:Key="Str_AiChatInputTip">এই PDF-র সম্পর্কে জিজ্ঞাসা করুন... (Enter দিয়ে পাঠান, Ctrl+Enter দিয়ে নতুন লাইন)</sys:String>
