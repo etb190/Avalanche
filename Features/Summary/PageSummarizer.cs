@@ -17,6 +17,11 @@
 //    the first heading (range starts mid-section) and headingless ranges summarize
 //    as plain prose. The per-segment notes keep their internal (p. N) tags and the
 //    heading markers for the fusion coverage plumbing.
+//  * Bullet guarantee (v1.8.86): the final digest is BUFFERED, not streamed, and
+//    inspected before anything reaches the screen. A bullet-dominant answer is
+//    retried once against an escalated prose-only prompt and, failing that,
+//    mechanically flattened into flowing paragraphs (ProseGuard). Hidden reasoning
+//    is never shown as a digest. No bullet list can be displayed or cached.
 //  * SSE streaming against the same OpenAI-compatible endpoint the chat uses
 //    (AiProviderConfig), with a non-SSE fallback: endpoints that ignore stream:true
 //    answer with one JSON body and we surface it as a single delta.
@@ -430,15 +435,16 @@ namespace Avalanche.Features.Summary
                         ct).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(cached))
                     {
-                        if (LooksLikeRefusal(cached))
+                        if (LooksLikeRefusal(cached) || ProseGuard.LooksLikeBulletList(cached))
                         {
-                            // An older build could cache the model's refusal as the
+                            // An older build could cache the model's refusal (or, before the
+                            // prose guard, a bullet dump) as the
                             // "digest"; replaying it makes every retry fail the same
                             // way ("its back to saying..."). Self-heal: treat the
                             // poisoned entry as a miss and regenerate.
                             SurfaceHealthLog.Log(
                                 "summary: cache hit for pages " + request.FirstPage + "-" +
-                                request.LastPage + " is a stored refusal - ignoring and regenerating");
+                                request.LastPage + " is a stored refusal or bullet dump - ignoring and regenerating");
                         }
                         else
                         {
@@ -459,19 +465,11 @@ namespace Avalanche.Features.Summary
                 string finalText;
                 if (segments.Count == 1)
                 {
-                    var collected = new StringBuilder();
-                    await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                        config, DigestSystemPrompt(request.TargetWords, fromNotes: false), rangeText, ct))
-                    {
-                        if (update.Kind == "delta")
-                        {
-                            collected.Append(update.Text);
-                        }
-
-                        yield return update;
-                    }
-
-                    finalText = collected.ToString();
+                    // Buffered on purpose: the digest is inspected - and, when needed,
+                    // escalated or mechanically flattened - BEFORE anything is shown.
+                    finalText = await SolidDigestAsync(
+                        config, DigestSystemPrompt(request.TargetWords, fromNotes: false), rangeText, ct)
+                        .ConfigureAwait(false);
                 }
                 else
                 {
@@ -581,19 +579,9 @@ namespace Avalanche.Features.Summary
                         notes.Count,
                         segments.Count,
                         fuseInput.Length));
-                    var fused = new StringBuilder();
-                    await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                        config, DigestSystemPrompt(request.TargetWords, fromNotes: true), fuseInput, ct))
-                    {
-                        if (update.Kind == "delta")
-                        {
-                            fused.Append(update.Text);
-                        }
-
-                        yield return update;
-                    }
-
-                    finalText = fused.ToString();
+                    finalText = await SolidDigestAsync(
+                        config, DigestSystemPrompt(request.TargetWords, fromNotes: true), fuseInput, ct)
+                        .ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(finalText))
@@ -1070,6 +1058,67 @@ namespace Avalanche.Features.Summary
             return request;
         }
 
+        // Appended to the digest system prompt when the first answer comes back as a
+        // bullet list. Short and blunt on purpose: the full prompt already bans bullets,
+        // so the escalation leans on rejection, not on repeating more prose theory.
+        private const string ProseEscalation =
+            "\n\nREJECTED: your previous answer for this exact request was a bullet list. That is " +
+            "a total failure. Write the summary again as flowing prose: full sentences grouped " +
+            "into plain paragraphs, like pages in a book. Not one line may start with \"- \", " +
+            "\"* \", \"+ \", \"• \" or a number followed by \".\" or \")\". Keep the '### ' headings " +
+            "exactly as instructed; everything under them is paragraphs, not lists.";
+
+        /// <summary>Runs the digest as a BUFFERED pass and hardens the result before it
+        /// can reach the window or the cache. The old single-segment path streamed model
+        /// deltas straight onto the screen, so whatever the model emitted - including a
+        /// raw bullet list - appeared as the "summary". Here the finished answer is
+        /// inspected first: an empty answer (a reasoning model that burned its whole
+        /// budget thinking) retries once at double the token budget; a bullet-dominant
+        /// answer retries once against an escalated prose-only prompt; a still
+        /// bullet-dominant answer is mechanically flattened by ProseGuard. Nothing
+        /// bullet-shaped survives, regardless of how badly the model behaves.</summary>
+        private static async Task<string> SolidDigestAsync(
+            AiProviderConfig config, string system, string user, CancellationToken ct)
+        {
+            int budget = Math.Max(config.MaxTokens, 10000);
+            string digest = await RunBufferedPassAsync(config, system, user, ct, budget).ConfigureAwait(false);
+
+            if (string.IsNullOrWhiteSpace(digest))
+            {
+                SurfaceHealthLog.Log(
+                    "summary: digest pass returned no content - retrying once at double the token budget");
+                digest = await RunBufferedPassAsync(config, system, user, ct, budget * 2).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(digest))
+                {
+                    throw new InvalidOperationException(
+                        "the model produced no answer (its whole budget went to hidden reasoning) - " +
+                        "switch to a non-thinking model or raise the token limit");
+                }
+            }
+
+            if (ProseGuard.LooksLikeBulletList(digest))
+            {
+                SurfaceHealthLog.Log(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "summary: digest arrived as a bullet list ({0} words) - escalating to prose-only and retrying",
+                    CountWords(digest)));
+                string escalated = await RunBufferedPassAsync(
+                    config, system + ProseEscalation, user, ct, budget).ConfigureAwait(false);
+                if (!ProseGuard.LooksLikeBulletList(escalated))
+                {
+                    digest = escalated;
+                }
+                else
+                {
+                    SurfaceHealthLog.Log(
+                        "summary: escalated digest is still a bullet list - flattening mechanically to prose");
+                    digest = ProseGuard.ConvertBulletsToProse(escalated);
+                }
+            }
+
+            return digest;
+        }
+
         /// <summary>Streams one digest pass: "delta" updates as SSE chunks arrive (or one
         /// delta when the endpoint ignored stream:true).</summary>
         private static async IAsyncEnumerable<SummaryUpdate> StreamDigestPassAsync(
@@ -1164,9 +1213,13 @@ namespace Avalanche.Features.Summary
                 finish ?? "?"));
             if (contentChars == 0 && reasoningBuf.Length > 0)
             {
-                // The model spent its whole budget thinking and never wrote an answer -
-                // hand the reader the reasoning rather than an empty digest.
-                yield return new SummaryUpdate("delta", Snippet(reasoningBuf.ToString(), 8000));
+                // The model spent its whole budget thinking and never wrote an answer.
+                // The old build "helpfully" handed the raw reasoning to the reader as the
+                // summary - hidden bullet-shaped analysis on screen. Thinking notes are
+                // not a digest: yield nothing and let the caller retry or abort.
+                SurfaceHealthLog.Log(
+                    "summary: stream pass produced only reasoning (" + reasoningBuf.Length +
+                    "ch), no content - treating as empty");
             }
         }
 
@@ -1257,22 +1310,12 @@ namespace Avalanche.Features.Summary
                             return text;
                         }
 
-                        // Reasoning-style endpoints keep the answer in reasoning_content
+                        // Reasoning-style endpoints keep the thinking in reasoning_content
                         // (DeepSeek) or reasoning (OpenRouter) while visible content stays
-                        // empty - returning it beats nothing.
-                        if (msg.TryGetProperty("reasoning_content", out var reasoning) &&
-                            reasoning.ValueKind == JsonValueKind.String &&
-                            reasoning.GetString() is { Length: > 0 } rtext)
-                        {
-                            return rtext;
-                        }
-
-                        if (msg.TryGetProperty("reasoning", out var reasoningAlt) &&
-                            reasoningAlt.ValueKind == JsonValueKind.String &&
-                            reasoningAlt.GetString() is { Length: > 0 } rtextAlt)
-                        {
-                            return rtextAlt;
-                        }
+                        // empty. Thinking notes are NOT an answer: returning them as one
+                        // fed raw bullet-shaped analysis into digests and notes. Return
+                        // null instead - SolidDigestAsync retries and then aborts with a
+                        // switch-models error, which beats showing thinking garbage.
                     }
                 }
 

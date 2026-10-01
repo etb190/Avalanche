@@ -16,10 +16,10 @@ namespace Avalanche.Features.Summary
 
     internal static class SummaryCache
     {
-        // v3: digest style is "the book's own headings" - verbatim font-size-detected [[H]]
-        // headings with prose under each. v2 plain-prose and v1 markdown digests must never
-        // be served from cache.
-        private const int PromptVersion = 3;
+        // v4: digests are buffered and hardened by the prose guard (v1.8.86). v3 entries
+        // can hold bullet-list digests from stubborn models; v2 plain-prose and v1 markdown
+        // digests must never be served from cache either.
+        private const int PromptVersion = 4;
         private static readonly object Gate = new();
         private static SqliteConnection? _connection;
 
