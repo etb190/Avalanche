@@ -36,6 +36,23 @@ namespace Avalanche.Features.AI
 
         public static void SetText(DependencyObject o, string value) => o.SetValue(TextProperty, value);
 
+        // ---------- attached property: paragraph alignment ----------
+
+        /// <summary>
+        /// Alignment applied to body paragraphs and headings while the document is
+        /// built. The summary window sets Justify so digests read like typeset book
+        /// pages; chat bubbles keep the Left default.
+        /// </summary>
+        public static readonly DependencyProperty ParagraphAlignmentProperty = DependencyProperty.RegisterAttached(
+            "ParagraphAlignment", typeof(TextAlignment), typeof(AiMarkdown),
+            new FrameworkPropertyMetadata(TextAlignment.Left));
+
+        public static TextAlignment GetParagraphAlignment(DependencyObject o) =>
+            (TextAlignment)o.GetValue(ParagraphAlignmentProperty);
+
+        public static void SetParagraphAlignment(DependencyObject o, TextAlignment value) =>
+            o.SetValue(ParagraphAlignmentProperty, value);
+
         // Marker used to attach the hyperlink navigation handler exactly once
         // per RichTextBox (documents are rebuilt on every Content change, but
         // AddHandler must not be called repeatedly).
@@ -65,7 +82,7 @@ namespace Avalanche.Features.AI
             if (rtb.DataContext is ChatMessage msg)
                 parse = msg.MessageRole != ChatMessage.Role.User;
 
-            var doc = BuildDocument(text, parse, rtb);
+            var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
             rtb.Document = doc;
 
             // A RichTextBox always stretches to the full available width, which
@@ -150,7 +167,8 @@ namespace Avalanche.Features.AI
 
         // ---------- document building ----------
 
-        internal static FlowDocument BuildDocument(string text, bool parseMarkdown, RichTextBox? rtb)
+        internal static FlowDocument BuildDocument(
+            string text, bool parseMarkdown, RichTextBox? rtb, TextAlignment paragraphAlignment = TextAlignment.Left)
         {
             var doc = new FlowDocument { PagePadding = new Thickness(0) };
             // Footnote display numbers are handed out in order of first appearance
@@ -201,7 +219,7 @@ namespace Avalanche.Features.AI
                     var h = HeadingRx.Match(line);
                     if (h.Success)
                     {
-                        AddHeading(doc, h.Groups[1].Value.Length, h.Groups[2].Value);
+                        AddHeading(doc, h.Groups[1].Value.Length, h.Groups[2].Value, paragraphAlignment);
                         continue;
                     }
 
@@ -233,21 +251,23 @@ namespace Avalanche.Features.AI
                     }
                 }
 
-                AddBody(doc, line, parseMarkdown, sources, numberer);
+                AddBody(doc, line, parseMarkdown, sources, numberer, paragraphAlignment);
             }
 
             if (inFence && fence.Count > 0)
                 AddCodeBlock(doc, fence); // unterminated fence: keep the content
 
             if (doc.Blocks.Count == 0)
-                doc.Blocks.Add(new Paragraph(new Run(text)));
+                doc.Blocks.Add(new Paragraph(new Run(text)) { TextAlignment = paragraphAlignment });
 
             return doc;
         }
 
-        private static void AddBody(FlowDocument doc, string line, bool parse, IReadOnlyList<AiSource> sources, AiCitationNumberer numberer)
+        private static void AddBody(
+            FlowDocument doc, string line, bool parse, IReadOnlyList<AiSource> sources,
+            AiCitationNumberer numberer, TextAlignment alignment)
         {
-            var p = new Paragraph { Margin = new Thickness(0, 0, 0, 2) };
+            var p = new Paragraph { Margin = new Thickness(0, 0, 0, 2), TextAlignment = alignment };
             if (parse)
                 AddInlines(p.Inlines, line, sources, numberer);
             else
@@ -255,9 +275,9 @@ namespace Avalanche.Features.AI
             doc.Blocks.Add(p);
         }
 
-        private static void AddHeading(FlowDocument doc, int level, string text)
+        private static void AddHeading(FlowDocument doc, int level, string text, TextAlignment alignment)
         {
-            var p = new Paragraph { Margin = new Thickness(0, 4, 0, 3) };
+            var p = new Paragraph { Margin = new Thickness(0, 4, 0, 3), TextAlignment = alignment };
             var run = new Run(text)
             {
                 FontWeight = FontWeights.SemiBold,

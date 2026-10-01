@@ -1,18 +1,28 @@
 // Features/Summary/SummaryWindow.xaml.cs — the floating page-summary companion.
 //
 // Single owned window (MainWindow keeps one instance), themed chrome via
-// DialogChrome (rounded card, themed title bar, Escape-close, fade). Generation
-// is driven by PageSummarizer's async update stream: deltas throttle-flush into
-// the AiMarkdown RichTextBox. Nothing runs automatically - Start and Reset
-// are explicit, Reset clears back to the opening state.
+// DialogChrome (rounded card, themed title bar, Escape-close, fade). The body
+// is a reading navigator, not a form:
+//   * a start-page stepper at the top (arrow buttons + a page-number field),
+//   * range chips (1p..60p) that generate [start, start + range] on click,
+//   * a word-limit dropdown telling the model how long the digest should be,
+//   * a summary-language dropdown; Arabic flips the digest right-to-left.
+// Finishing a digest advances the start page to the end of the range just
+// read, so clicking the same chip again reads the next stretch of the book.
+// Generation is driven by PageSummarizer's async update stream: deltas
+// throttle-flush into the justified AiMarkdown RichTextBox. Nothing runs
+// automatically - a range chip (or Enter in the page field) is explicit.
 
 namespace Avalanche.Features.Summary
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using System.Threading;
     using System.Windows;
     using System.Windows.Controls;
+    using System.Windows.Input;
     using System.Windows.Media;
     using System.Windows.Shapes;
     using System.Windows.Threading;
@@ -22,6 +32,21 @@ namespace Avalanche.Features.Summary
 
     public partial class SummaryWindow : Window
     {
+        // The navigator's fixed vocabularies: range chips, word ceilings, and the
+        // languages the digest can be written in (labels exist in every Strings file).
+        private static readonly int[] RangeChoices = { 1, 5, 20, 40, 60 };
+        private static readonly int[] WordChoices = { 500, 750, 1000, 1250, 1500, 2000 };
+        private static readonly string[] LanguageChoices = { "English", "French", "Spanish", "Italian", "Arabic" };
+
+        private static readonly Dictionary<string, string> LangKeySuffix = new()
+        {
+            ["English"] = "En",
+            ["French"] = "Fr",
+            ["Spanish"] = "Es",
+            ["Italian"] = "It",
+            ["Arabic"] = "Ar"
+        };
+
         private readonly string _filePath;
         private readonly string _documentId;
         private readonly int _pageCount;
@@ -35,8 +60,11 @@ namespace Avalanche.Features.Summary
         private string _fullText = string.Empty;
         private bool _flushPending;
         private bool _closed;
-        private int _generation;        // bumped by Reset/close so stale continuations can't repaint
-        private bool _bypassOnce;       // Reset arms the next Start to ignore any cached digest
+        private int _generation;        // bumped by close so stale continuations can't repaint
+
+        private int _rangePages = 20;   // pages per digest: the selected range chip's value
+        private int _targetWords = 1000;
+        private string _language = "English";
 
         public SummaryWindow(
             MainWindow owner,
@@ -50,7 +78,7 @@ namespace Avalanche.Features.Summary
             InitializeComponent();
             _filePath = filePath;
             _documentId = documentId;
-            _pageCount = pageCount;
+            _pageCount = Math.Max(1, pageCount);
             _currentPageProvider = currentPageProvider;
             _configProvider = configProvider;
             _loc = loc;
@@ -80,23 +108,79 @@ namespace Avalanche.Features.Summary
             Content = root;
             Title = "Avalanche";
 
-            PagesLabel.Text = loc("Str_SummaryPages");
-            ToLabel.Text = loc("Str_SummaryTo");
-            DepthCompactBtn.Content = loc("Str_SummaryDepthCompact");
-            DepthStandardBtn.Content = loc("Str_SummaryDepthStandard");
-            DepthDeepBtn.Content = loc("Str_SummaryDepthDeep");
-            DepthStandardBtn.IsChecked = true;
-            GoBtn.Content = loc("Str_SummaryStart");
-            ResetBtn.Content = loc("Str_Tf_Reset");
-            ResetBtn.Click += (_, _) => ResetAll();
+            // Stepper: the arrows nudge the start page (repeat while held); Enter in
+            // the field generates with the selected range, like a chip click would.
+            NavPrevBtn.Click += (_, _) => StepStart(-1);
+            NavNextBtn.Click += (_, _) => StepStart(+1);
+            StartBox.TextChanged += OnStartTextChanged;
+            StartBox.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Enter)
+                {
+                    e.Handled = true;
+                    StartGeneration();
+                }
+            };
+            StartBox.GotKeyboardFocus += (_, _) => StartBox.SelectAll();
 
-            int current = currentPageProvider();
-            int first = current >= 0 ? current + 1 : 1;
-            int last = Math.Min(first + 1, Math.Max(1, pageCount));
-            FromBox.Text = first.ToString(CultureInfo.InvariantCulture);
-            ToBox.Text = last.ToString(CultureInfo.InvariantCulture);
+            // Range chips: label from Strings, page count from Tag. A click checks the
+            // chip (accent state) and immediately generates [start, start + range].
+            foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60 })
+            {
+                int pages = int.Parse((string)chip.Tag, CultureInfo.InvariantCulture);
+                chip.Content = loc("Str_SummaryR" + pages + "p");
+                chip.Checked += (_, _) => OnRangeChanged(pages);
+                chip.Click += (_, _) => StartGeneration();
+            }
 
-            GoBtn.Click += (_, _) => StartGeneration(bypassCache: false);
+            // Word ceiling: displayed "1,000"-style, the raw number rides in Tag.
+            foreach (int words in WordChoices)
+            {
+                WordsCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = words.ToString("N0", CultureInfo.InvariantCulture),
+                    Tag = words
+                });
+            }
+
+            WordsCombo.SelectionChanged += (_, _) =>
+            {
+                if (WordsCombo.SelectedItem is ComboBoxItem item && item.Tag is int words)
+                {
+                    _targetWords = words;
+                    AppDataPaths.SetSetting("summary.words", words.ToString(CultureInfo.InvariantCulture));
+                }
+            };
+
+            // Summary language: endonym labels, canonical name in Tag. Arabic turns the
+            // digest area right-to-left; the book's headings stay verbatim either way.
+            foreach (string language in LanguageChoices)
+            {
+                LangCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = loc("Str_SummaryLang" + LangKeySuffix[language]),
+                    Tag = language
+                });
+            }
+
+            LangCombo.SelectionChanged += (_, _) =>
+            {
+                if (LangCombo.SelectedItem is ComboBoxItem item && item.Tag is string language)
+                {
+                    _language = language;
+                    AppDataPaths.SetSetting("summary.lang", language);
+                    ApplyReadingDirection();
+                }
+            };
+
+            LoadPreferences();
+            SelectChip(_rangePages);
+            SelectCombo(WordsCombo, _targetWords);
+            SelectCombo(LangCombo, _language);
+            ApplyReadingDirection();
+
+            int current = _currentPageProvider();
+            SetStartPage(current >= 0 ? current + 1 : 1);
 
             Closed += (_, _) =>
             {
@@ -109,28 +193,6 @@ namespace Avalanche.Features.Summary
             RestorePlacement();
         }
 
-        /// <summary>Clears the window back to its opening state: cancels a running
-        /// generation, wipes the digest and status, and restores the default range.
-        /// Nothing is generated automatically - Start is always explicit.</summary>
-        private void ResetAll()
-        {
-            // Invalidate the in-flight run first: its continuations check the generation
-            // token and no longer repaint the cleared card (status, digest, overlays).
-            _generation++;
-            _cts?.Cancel();
-            _bypassOnce = true;     // the next Start runs fresh instead of replaying a cached digest
-
-            _fullText = string.Empty;
-            DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
-            Overlay(null);
-            StatusText.Text = string.Empty;
-            int current = _currentPageProvider();
-            int first = current >= 0 ? current + 1 : 1;
-            FromBox.Text = first.ToString(CultureInfo.InvariantCulture);
-            ToBox.Text = Math.Min(first + 1, Math.Max(1, _pageCount)).ToString(CultureInfo.InvariantCulture);
-            DepthStandardBtn.IsChecked = true;
-        }
-
         /// <summary>True when this window already summarizes the given document
         /// (MainWindow reuses the instance instead of opening a second one).</summary>
         public bool DocumentPathEquals(string path)
@@ -139,25 +201,147 @@ namespace Avalanche.Features.Summary
         }
 
         // ------------------------------------------------------------------
+        // Reading navigator
+        // ------------------------------------------------------------------
+
+        // Range, word ceiling and language survive window reopenings and documents:
+        // a reading session keeps its shape until the reader changes it.
+        private void LoadPreferences()
+        {
+            if (int.TryParse(AppDataPaths.GetSetting("summary.range"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int range)
+                && RangeChoices.Contains(range))
+            {
+                _rangePages = range;
+            }
+
+            if (int.TryParse(AppDataPaths.GetSetting("summary.words"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int words)
+                && WordChoices.Contains(words))
+            {
+                _targetWords = words;
+            }
+
+            string? lang = AppDataPaths.GetSetting("summary.lang");
+            if (!string.IsNullOrEmpty(lang) && LanguageChoices.Contains(lang))
+            {
+                _language = lang;
+            }
+        }
+
+        private void SelectChip(int pages)
+        {
+            foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60 })
+            {
+                chip.IsChecked = int.Parse((string)chip.Tag, CultureInfo.InvariantCulture) == pages;
+            }
+        }
+
+        private static void SelectCombo(ComboBox combo, object value)
+        {
+            foreach (var item in combo.Items.OfType<ComboBoxItem>())
+            {
+                item.IsSelected = Equals(item.Tag, value);
+            }
+        }
+
+        // Arrows move the start page by one and clamp to the document; held down they
+        // repeat (RepeatButton), so flipping through a long book is quick.
+        private void StepStart(int direction)
+        {
+            int current = ParseStart();
+            if (current < 1)
+            {
+                current = 1;
+            }
+
+            SetStartPage(current + direction);
+        }
+
+        private void SetStartPage(int page)
+        {
+            StartBox.Text = Math.Clamp(page, 1, _pageCount).ToString(CultureInfo.InvariantCulture);
+            UpdateRangeHint();
+        }
+
+        private int ParseStart()
+        {
+            return int.TryParse(StartBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : 0;
+        }
+
+        // The field takes digits only (a 5-digit cap covers any real document);
+        // anything else is stripped as it is typed, and the range hint follows.
+        private void OnStartTextChanged(object sender, TextChangedEventArgs e)
+        {
+            string clean = new string((StartBox.Text ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (clean.Length > 5)
+            {
+                clean = clean[..5];
+            }
+
+            if (clean != StartBox.Text)
+            {
+                StartBox.Text = clean;
+                StartBox.CaretIndex = clean.Length;
+                return;     // the re-entrant TextChanged updates the hint
+            }
+
+            UpdateRangeHint();
+        }
+
+        // Left of the stepper: the digest a range chip would generate right now,
+        // following the start field and the selected chip live.
+        private void UpdateRangeHint()
+        {
+            int first = ParseStart();
+            if (first < 1 || first > _pageCount)
+            {
+                PagesLabel.Text = _loc("Str_SummaryPages");
+                return;
+            }
+
+            int last = Math.Min(first + _rangePages, _pageCount);
+            PagesLabel.Text = string.Format(
+                CultureInfo.InvariantCulture, "{0} {1} \u2013 {2}", _loc("Str_SummaryPages"), first, last);
+        }
+
+        private void OnRangeChanged(int pages)
+        {
+            _rangePages = pages;
+            AppDataPaths.SetSetting("summary.range", pages.ToString(CultureInfo.InvariantCulture));
+            UpdateRangeHint();
+        }
+
+        // Arabic reads right to left: the digest area mirrors (scrollbar flips, text
+        // starts from the right). The rest of the chrome keeps its orientation.
+        private void ApplyReadingDirection()
+        {
+            DocBox.FlowDirection = string.Equals(_language, "Arabic", StringComparison.Ordinal)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
+        }
+
+        // ------------------------------------------------------------------
         // Generation
         // ------------------------------------------------------------------
 
-        private async void StartGeneration(bool bypassCache)
+        private async void StartGeneration()
         {
             if (_generating || _closed)
             {
                 return;
             }
 
-            if (!int.TryParse(FromBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int first)
-                || !int.TryParse(ToBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int last)
-                || first < 1 || last > _pageCount || first > last)
+            int first = ParseStart();
+            if (first < 1 || first > _pageCount)
             {
                 Overlay(string.Format(_loc("Str_SummaryInvalidRange"), _pageCount));
                 return;
             }
 
-            int gen = ++_generation;    // a later Reset bumps this: stale continuations stop repainting
+            // The chip is the length: [start, start + N], clipped at the document.
+            int last = Math.Min(first + _rangePages, _pageCount);
+            int gen = ++_generation;    // a later close bumps this: stale continuations stop repainting
             _generating = true;
             _fullText = string.Empty;
             _cts?.Dispose();
@@ -166,10 +350,8 @@ namespace Avalanche.Features.Summary
             Overlay(null);
             SetBusy(true);
 
-            bool bypass = bypassCache || _bypassOnce;
-            _bypassOnce = false;
             var request = new SummaryRequest(
-                _filePath, _documentId, first, last, TargetWords(), bypass);
+                _filePath, _documentId, first, last, _targetWords, _language, BypassCache: false);
             try
             {
                 await foreach (SummaryUpdate update in PageSummarizer.GenerateAsync(
@@ -197,6 +379,9 @@ namespace Avalanche.Features.Summary
 
                                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
                                 FinishSuccess();
+                                // Reading chain: this stretch is read; the next click of a
+                                // chip starts where this digest ended.
+                                SetStartPage(last);
                             }
 
                             break;
@@ -226,7 +411,7 @@ namespace Avalanche.Features.Summary
             }
             catch (OperationCanceledException)
             {
-                // The only cancel path is Reset (or window close), which bumps the
+                // The only cancel path is the window closing, which bumps the
                 // generation and clears the card; only repaint when still current.
                 if (gen == _generation)
                 {
@@ -238,7 +423,7 @@ namespace Avalanche.Features.Summary
             {
                 // Terminal failure: drop the evidence (log tail with the extraction
                 // and POST lines) on the Desktop regardless of generation - a stale
-                // dump after a Reset is still evidence.
+                // dump after a close is still evidence.
                 DiagnosticsBundle.Dump("summary exception: " + ex.GetType().Name);
                 if (gen == _generation)
                 {
@@ -282,20 +467,16 @@ namespace Avalanche.Features.Summary
             _cts = null;
         }
 
-        private int TargetWords()
-        {
-            if (DepthCompactBtn.IsChecked == true)
-            {
-                return 400;
-            }
-
-            return DepthDeepBtn.IsChecked == true ? 2000 : 1000;
-        }
-
-        // While a run is in flight Start goes quiet; Reset (which cancels) stays live.
+        // While a run is in flight the whole navigator quiets down; Escape (close)
+        // and the window chrome stay live.
         private void SetBusy(bool busy)
         {
-            GoBtn.IsEnabled = !busy;
+            NavPrevBtn.IsEnabled = !busy;
+            NavNextBtn.IsEnabled = !busy;
+            StartBox.IsEnabled = !busy;
+            RangePanel.IsEnabled = !busy;
+            WordsCombo.IsEnabled = !busy;
+            LangCombo.IsEnabled = !busy;
         }
 
         // Invisible but hit-testable corner handle: a near-transparent fill keeps the layered

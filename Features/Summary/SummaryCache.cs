@@ -2,9 +2,12 @@
 //
 // Stores finished digests in the AI database (vector_index.db) in its own table so
 // re-opening the same range is instant and free. Keyed by document id + page range
-// + model + prompt version, and validated by a SHA-256 of the extracted page text:
-// if the file's text ever changes, the hash mismatch invalidates the stale summary.
-// VectorIndex's drift logic only drops its own tables, so this table is safe here.
+// + model + prompt version + variant (summary language + word ceiling), and
+// validated by a SHA-256 of the extracted page text: if the file's text ever
+// changes, the hash mismatch invalidates the stale summary. VectorIndex's drift
+// logic only drops its own tables, so this table is safe here. The v2 table
+// (v1.8.87) adds variant to the key - the v1 table's rows predate per-language
+// digests and are simply never read again.
 
 namespace Avalanche.Features.Summary
 {
@@ -16,10 +19,11 @@ namespace Avalanche.Features.Summary
 
     internal static class SummaryCache
     {
-        // v4: digests are buffered and hardened by the prose guard (v1.8.86). v3 entries
-        // can hold bullet-list digests from stubborn models; v2 plain-prose and v1 markdown
-        // digests must never be served from cache either.
-        private const int PromptVersion = 4;
+        // v5: the cache key grew a variant (summary language + word ceiling) and the
+        // prompt carries an OUTPUT LANGUAGE contract (v1.8.87). v4 digests are buffered,
+        // prose-guarded English-style digests without the language dimension - a French
+        // request must never replay one. v3 can hold bullet dumps; v2/v1 older styles.
+        private const int PromptVersion = 5;
         private static readonly object Gate = new();
         private static SqliteConnection? _connection;
 
@@ -29,7 +33,8 @@ namespace Avalanche.Features.Summary
             return Convert.ToHexString(bytes);
         }
 
-        public static string? Get(string documentId, int firstPage, int lastPage, string model, string contentHash)
+        public static string? Get(
+            string documentId, int firstPage, int lastPage, string model, string contentHash, string variant)
         {
             try
             {
@@ -37,14 +42,16 @@ namespace Avalanche.Features.Summary
                 {
                     using var cmd = Connection().CreateCommand();
                     cmd.CommandText =
-                        "SELECT content FROM summary_cache WHERE document_id=$d AND " +
-                        "first_page=$f AND last_page=$l AND model=$m AND prompt_version=$v AND content_hash=$h";
+                        "SELECT content FROM summary_cache_v2 WHERE document_id=$d AND " +
+                        "first_page=$f AND last_page=$l AND model=$m AND prompt_version=$v AND " +
+                        "content_hash=$h AND variant=$var";
                     cmd.Parameters.AddWithValue("$d", documentId);
                     cmd.Parameters.AddWithValue("$f", firstPage);
                     cmd.Parameters.AddWithValue("$l", lastPage);
                     cmd.Parameters.AddWithValue("$m", model);
                     cmd.Parameters.AddWithValue("$v", PromptVersion);
                     cmd.Parameters.AddWithValue("$h", contentHash);
+                    cmd.Parameters.AddWithValue("$var", variant);
                     using var reader = cmd.ExecuteReader();
                     if (!reader.Read())
                     {
@@ -62,7 +69,7 @@ namespace Avalanche.Features.Summary
 
         public static void Put(
             string documentId, int firstPage, int lastPage, string model,
-            string contentHash, string content, int wordCount)
+            string contentHash, string variant, string content, int wordCount)
         {
             try
             {
@@ -70,15 +77,16 @@ namespace Avalanche.Features.Summary
                 {
                     using var cmd = Connection().CreateCommand();
                     cmd.CommandText =
-                        "INSERT OR REPLACE INTO summary_cache(document_id, first_page, last_page, model, " +
-                        "prompt_version, content_hash, content, word_count, created_utc) " +
-                        "VALUES($d,$f,$l,$m,$v,$h,$c,$w,$t)";
+                        "INSERT OR REPLACE INTO summary_cache_v2(document_id, first_page, last_page, model, " +
+                        "prompt_version, content_hash, variant, content, word_count, created_utc) " +
+                        "VALUES($d,$f,$l,$m,$v,$h,$var,$c,$w,$t)";
                     cmd.Parameters.AddWithValue("$d", documentId);
                     cmd.Parameters.AddWithValue("$f", firstPage);
                     cmd.Parameters.AddWithValue("$l", lastPage);
                     cmd.Parameters.AddWithValue("$m", model);
                     cmd.Parameters.AddWithValue("$v", PromptVersion);
                     cmd.Parameters.AddWithValue("$h", contentHash);
+                    cmd.Parameters.AddWithValue("$var", variant);
                     cmd.Parameters.AddWithValue("$c", content);
                     cmd.Parameters.AddWithValue("$w", wordCount);
                     cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("o"));
@@ -110,11 +118,12 @@ namespace Avalanche.Features.Summary
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText =
-                    "CREATE TABLE IF NOT EXISTS summary_cache(" +
+                    "CREATE TABLE IF NOT EXISTS summary_cache_v2(" +
                     "document_id TEXT NOT NULL, first_page INTEGER NOT NULL, last_page INTEGER NOT NULL, " +
                     "model TEXT NOT NULL, prompt_version INTEGER NOT NULL, content_hash TEXT NOT NULL, " +
+                    "variant TEXT NOT NULL, " +
                     "content TEXT NOT NULL, word_count INTEGER NOT NULL, created_utc TEXT NOT NULL, " +
-                    "PRIMARY KEY(document_id, first_page, last_page, model, prompt_version))";
+                    "PRIMARY KEY(document_id, first_page, last_page, model, prompt_version, variant))";
                 cmd.ExecuteNonQuery();
             }
 

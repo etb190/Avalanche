@@ -1162,6 +1162,21 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
+	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
+	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
+	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
+	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>
+	<sys:String x:Key="Str_SummaryR20p">20p</sys:String>
+	<sys:String x:Key="Str_SummaryR40p">40p</sys:String>
+	<sys:String x:Key="Str_SummaryR60p">60p</sys:String>
+	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
+	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
+	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
+	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>
+	<sys:String x:Key="Str_SummaryLangIt">Italiano</sys:String>
+	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
 </ResourceDictionary>

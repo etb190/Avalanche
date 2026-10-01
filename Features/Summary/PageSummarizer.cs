@@ -47,7 +47,8 @@ namespace Avalanche.Features.Summary
     using Avalanche.Services;
 
     internal sealed record SummaryRequest(
-        string FilePath, string DocumentId, int FirstPage, int LastPage, int TargetWords, bool BypassCache);
+        string FilePath, string DocumentId, int FirstPage, int LastPage, int TargetWords,
+        string Language, bool BypassCache);
 
     /// <summary>Kind: "progress" (Text = status line), "delta" (Text = markdown chunk),
     /// "done" (Text = full markdown, FromCache = served from cache), "notext", "error" (Text = message).</summary>
@@ -427,11 +428,14 @@ namespace Avalanche.Features.Summary
                 // Hash + cache lookup run off the UI thread: they touch vector_index.db,
                 // which the chat's indexer can hold locked for seconds at a time.
                 string hash = await Task.Run(() => SummaryCache.HashText(rangeText), ct).ConfigureAwait(false);
+                // Language + word ceiling join the cache identity: the same range in
+                // French at 750 words is a different digest than English at 1500.
+                string variant = request.Language + ":" + request.TargetWords.ToString(CultureInfo.InvariantCulture);
                 if (!request.BypassCache)
                 {
                     string? cached = await Task.Run(
                         () => SummaryCache.Get(
-                            request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?", hash),
+                            request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?", hash, variant),
                         ct).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(cached))
                     {
@@ -468,7 +472,7 @@ namespace Avalanche.Features.Summary
                     // Buffered on purpose: the digest is inspected - and, when needed,
                     // escalated or mechanically flattened - BEFORE anything is shown.
                     finalText = await SolidDigestAsync(
-                        config, DigestSystemPrompt(request.TargetWords, fromNotes: false), rangeText, ct)
+                        config, DigestSystemPrompt(request.TargetWords, request.Language, fromNotes: false), rangeText, ct)
                         .ConfigureAwait(false);
                 }
                 else
@@ -580,7 +584,7 @@ namespace Avalanche.Features.Summary
                         segments.Count,
                         fuseInput.Length));
                     finalText = await SolidDigestAsync(
-                        config, DigestSystemPrompt(request.TargetWords, fromNotes: true), fuseInput, ct)
+                        config, DigestSystemPrompt(request.TargetWords, request.Language, fromNotes: true), fuseInput, ct)
                         .ConfigureAwait(false);
                 }
 
@@ -616,7 +620,7 @@ namespace Avalanche.Features.Summary
                 await Task.Run(
                     () => SummaryCache.Put(
                         request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
-                        hash, finalText, CountWords(finalText)),
+                        hash, variant, finalText, CountWords(finalText)),
                     ct).ConfigureAwait(false);
                 yield return new SummaryUpdate("done", finalText);
             }
@@ -856,14 +860,22 @@ namespace Avalanche.Features.Summary
             - The ONLY exception: if the source text itself uses an abbreviation (e.g., "DNA", "NASA", "MIS 6"), you may use it as the source does.
             """;
 
-        private static string DigestSystemPrompt(int targetWords, bool fromNotes)
+        private static string DigestSystemPrompt(int targetWords, string language, bool fromNotes)
         {
             // Word-for-word transplant of the extension's nonfiction_classic
             // multi-page prompt, with two Avalanche adaptations: the ground rule
             // (no outside knowledge) and the marker/tag plumbing note.
+            // OUTPUT LANGUAGE: the digest is written in the language the reader picked
+            // in the window's dropdown. The book's printed headings are the one exception -
+            // they are quoted verbatim in whatever language the book printed them in.
+            string languageBlock =
+                "OUTPUT LANGUAGE: write every sentence of the summary in " + language + ". The " +
+                "one exception is the book's own printed section headings: copy those VERBATIM " +
+                "in their original language exactly as printed.\n\n";
             string head =
                 "Summarize the following text in approximately " + targetWords +
                 " words (do NOT exceed " + targetWords + " words).\n\n" +
+                languageBlock +
                 "This summary is a SUBSTITUTE for reading these pages. The reader must understand " +
                 "the key facts, findings, the author's arguments, and the evidence supporting them.\n\n" +
                 "CRITICAL RULES:\n" +
