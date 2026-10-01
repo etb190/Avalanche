@@ -6,13 +6,16 @@ namespace Avalanche.Services
 {
     /// <summary>One selectable character on a page, in reading order. Coordinates are PDF space
     /// (points, bottom-left origin), matching SearchService and ExtractTextFromRegion.</summary>
-    internal readonly struct RunChar(string value, double left, double right, int word, int line)
+    internal readonly struct RunChar(string value, double left, double right, int word, int line, double pointSize = 0)
     {
         public readonly string Value = value;   // PdfPig letters can be multi-char (ligatures)
         public readonly double Left = left;
         public readonly double Right = right;
         public readonly int Word = word;       // ordinal of the word this char belongs to (for word counts / spacing)
         public readonly int Line = line;       // ordinal of the line this char belongs to
+        /// <summary>Source font size in points (0 when unknown). Lets the summarizer tell the
+        /// book's printed headings from body text without importing PDF-specific code there.</summary>
+        public readonly double PointSize = pointSize;
     }
 
     /// <summary>A visual line of text: a contiguous slice of the page's flattened char list plus its
@@ -267,7 +270,7 @@ namespace Avalanche.Services
                     foreach (var letter in letters)
                     {
                         var g = letter.BoundingBox;
-                        result.Chars.Add(new RunChar(letter.Value, g.Left, g.Right, wordOrdinal, li));
+                        result.Chars.Add(new RunChar(letter.Value, g.Left, g.Right, wordOrdinal, li, letter.PointSize));
                     }
                     wordOrdinal++;
                 }

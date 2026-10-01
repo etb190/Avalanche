@@ -8,11 +8,15 @@
 //  * <= ~45k chars of text: one streaming pass. Bigger ranges: map-reduce - exhaustive
 //    ~250-word notes per ~10-page segment, then a fusion pass that writes the final
 //    digest. Progress for every phase is streamed to the window.
-//  * Output contract (v1.8.83, transplanted from the user's pdf-summarizer
-//    extension "nonfiction classic" prompt): plain dense prose, no headings,
-//    no bullet lists, no page tags in the final digest, strict word ceiling.
-//    The per-segment notes keep their internal (p. N) tags for the fusion
-//    coverage plumbing; the finished digest is plain text.
+//  * Output contract (v1.8.85): the book's OWN printed section headings are detected
+//    deterministically in the text layer (heading = short line whose largest glyph is
+//    clearly bigger than the page's median body font; repeated running heads filtered)
+//    and wrapped as [[H]] ... [[/H]]. The digest copies each heading VERBATIM as a
+//    '### ' markdown heading and summarizes under it in dense flowing prose - no
+//    bullets, no invented headings, no page tags, strict word ceiling. Text before
+//    the first heading (range starts mid-section) and headingless ranges summarize
+//    as plain prose. The per-segment notes keep their internal (p. N) tags and the
+//    heading markers for the fusion coverage plumbing.
 //  * SSE streaming against the same OpenAI-compatible endpoint the chat uses
 //    (AiProviderConfig), with a non-SSE fallback: endpoints that ignore stream:true
 //    answer with one JSON body and we surface it as a single delta.
@@ -65,17 +69,35 @@ namespace Avalanche.Features.Summary
                 () =>
                 {
                     var runsService = new TextRunService();
-                    var sb = new StringBuilder();
+                    // Pass 1: build each page's text with [[H]] ... [[/H]] wrappers around the
+                    // book's own printed headings (font-size detected), collecting every heading
+                    // candidate for the running-head filter.
+                    var candidates = new List<(int Page, string Norm)>();
+                    var pageTexts = new Dictionary<int, string>();
                     for (int page = firstPage; page <= lastPage; page++)
                     {
                         ct.ThrowIfCancellationRequested();
                         PageTextRuns? runs = runsService.GetPage(filePath, page - 1);
-                        string text = runs is null
+                        pageTexts[page] = runs is null
                             ? string.Empty
-                            : TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _);
+                            : BuildPageTextWithHeadings(runs, page, candidates);
+                    }
+
+                    // Pass 2: a heading that repeats across many pages is page furniture
+                    // (book/chapter running head, page-number header), not a section heading.
+                    var runningHeads = DetectRunningHeads(candidates, lastPage - firstPage + 1);
+                    var sb = new StringBuilder();
+                    for (int page = firstPage; page <= lastPage; page++)
+                    {
                         if (sb.Length > 0)
                         {
                             sb.Append("\n\n");
+                        }
+
+                        string text = pageTexts[page];
+                        if (runningHeads.Count > 0 && text.Length > 0)
+                        {
+                            text = StripRunningHeads(text, runningHeads);
                         }
 
                         sb.Append("[[p. ").Append(page).Append("]]\n").Append(text.Trim());
@@ -84,6 +106,202 @@ namespace Avalanche.Features.Summary
                     return sb.ToString();
                 },
                 ct);
+        }
+
+        // ---- Heading detection (the book's OWN printed headings) -------------------------
+        //
+        // The digest copies the book's section headings verbatim and summarizes under them.
+        // Models are unreliable at telling headings from body text (and the old "organize by
+        // topic" prompt produced invented headers the user hated), so detection is
+        // deterministic: a printed heading is a short line whose largest glyph is clearly
+        // bigger than the page's median body font. Consecutive heading-sized lines merge
+        // (a wrapped title spans two bands). Pages whose text layer reports one font size
+        // for everything (some OCR output) yield no headings at all - the prompts then
+        // produce plain prose.
+
+        private const double HeadingSizeRatio = 1.15;
+        private const int HeadingMaxChars = 90;
+
+        private static string BuildPageTextWithHeadings(
+            PageTextRuns runs, int page, List<(int Page, string Norm)> candidates)
+        {
+            double median = MedianBodyPointSize(runs);
+            if (median <= 0)
+            {
+                return TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _);
+            }
+
+            var sb = new StringBuilder();
+            bool first = true;
+            int i = 0;
+            while (i < runs.Lines.Count)
+            {
+                // Merge a run of consecutive heading-sized lines (wrapped titles).
+                int j = i;
+                var parts = new List<string>();
+                while (j < runs.Lines.Count && IsHeadingLine(runs, runs.Lines[j], median))
+                {
+                    string t = TextRunService.TextForRange(runs, runs.Lines[j].Start, runs.Lines[j].End, out _)
+                        .Trim();
+                    if (t.Length > 0)
+                    {
+                        parts.Add(t);
+                    }
+
+                    j++;
+                }
+
+                string heading = string.Join(" ", parts).Trim();
+                if (heading.Length > 0)
+                {
+                    if (!first)
+                    {
+                        sb.Append('\n');
+                    }
+
+                    sb.Append("[[H]] ").Append(heading).Append(" [[/H]]");
+                    candidates.Add((page, NormalizeHeading(heading)));
+                    first = false;
+                    i = j;
+                    continue;
+                }
+
+                if (!first)
+                {
+                    sb.Append('\n');
+                }
+
+                sb.Append(TextRunService.TextForRange(runs, runs.Lines[i].Start, runs.Lines[i].End, out _));
+                first = false;
+                i++;
+            }
+
+            return sb.ToString();
+        }
+
+        private static bool IsHeadingLine(PageTextRuns runs, RunLine line, double medianBody)
+        {
+            double max = 0;
+            int letters = 0;
+            for (int i = line.Start; i < line.End; i++)
+            {
+                RunChar c = runs.Chars[i];
+                if (c.PointSize > max)
+                {
+                    max = c.PointSize;
+                }
+
+                if (c.Value.Length > 0 && char.IsLetter(c.Value[0]))
+                {
+                    letters++;
+                }
+            }
+
+            if (max <= 0 || letters < 2 || max < medianBody * HeadingSizeRatio)
+            {
+                return false;
+            }
+
+            string text = TextRunService.TextForRange(runs, line.Start, line.End, out _).Trim();
+            if (text.Length == 0 || text.Length > HeadingMaxChars)
+            {
+                return false;
+            }
+
+            char last = text[text.Length - 1];
+            return last is not ('.' or ',' or ';' or ':' or '!' or '?');
+        }
+
+        private static double MedianBodyPointSize(PageTextRuns runs)
+        {
+            var sizes = new List<double>();
+            foreach (RunChar c in runs.Chars)
+            {
+                if (c.PointSize > 0 && c.Value.Length > 0 && char.IsLetter(c.Value[0]))
+                {
+                    sizes.Add(c.PointSize);
+                }
+            }
+
+            if (sizes.Count == 0)
+            {
+                return 0;
+            }
+
+            sizes.Sort();
+            return sizes[sizes.Count / 2];
+        }
+
+        private static string NormalizeHeading(string s)
+        {
+            var sb = new StringBuilder();
+            bool space = true;
+            foreach (char ch in s)
+            {
+                if (char.IsLetter(ch))
+                {
+                    sb.Append(char.ToLowerInvariant(ch));
+                    space = false;
+                }
+                else if (!space)
+                {
+                    sb.Append(' ');
+                    space = true;
+                }
+            }
+
+            return sb.ToString().Trim();
+        }
+
+        private static HashSet<string> DetectRunningHeads(List<(int Page, string Norm)> candidates, int pageCount)
+        {
+            var result = new HashSet<string>(StringComparer.Ordinal);
+            if (pageCount >= 5 && candidates.Count > 0)
+            {
+                var byText = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
+                foreach ((int page, string norm) in candidates)
+                {
+                    if (!byText.TryGetValue(norm, out var pages))
+                    {
+                        byText[norm] = pages = new HashSet<int>();
+                    }
+
+                    pages.Add(page);
+                }
+
+                int threshold = Math.Max(3, (int)Math.Ceiling(pageCount * 0.4));
+                foreach (var (norm, pages) in byText)
+                {
+                    if (pages.Count >= threshold)
+                    {
+                        result.Add(norm);
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static string StripRunningHeads(string pageText, HashSet<string> runningHeads)
+        {
+            var kept = new List<string>();
+            foreach (string line in pageText.Split('\n'))
+            {
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith("[[H]]", StringComparison.Ordinal) &&
+                    trimmed.EndsWith("[[/H]]", StringComparison.Ordinal))
+                {
+                    string inner = trimmed.Substring(5, trimmed.Length - 11).Trim();
+                    if (runningHeads.Contains(NormalizeHeading(inner)))
+                    {
+                        continue;
+                    }
+                }
+
+                kept.Add(line);
+            }
+
+            return string.Join("\n", kept);
         }
 
         // ------------------------------------------------------------------
@@ -669,28 +887,47 @@ namespace Avalanche.Features.Summary
                 AntiMeta + "\n\n" +
                 "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
                 "commentary about the text or about summarizing.\n\n" +
-                "Plain text only: no headings, no bullet lists, no markdown formatting, and no " +
-                "page tags in the output.\n\n";
+                "Format: dense flowing prose paragraphs. No bullet lists, no page tags, no markdown " +
+                "decorations of any kind - with exactly one exception: the book's own section " +
+                "headings may appear as '### ' headings, as described below.\n\n";
             return head + (fromNotes
                 ? "The user message holds working notes from earlier passes; every item already " +
                   "carries its (p. N) page tag. Fuse them into ONE summary of your own: merge " +
                   "duplicates, drop filler, and cover the full span the notes cover, from their " +
                   "first page tag to their last. Never copy the notes verbatim and never return " +
                   "one segment's notes unchanged.\n\n" +
-                  "The notes are RAW MATERIAL, not a format template. They are bullet lists - your " +
-                  "summary must NOT be. Ignore the notes' layout completely and write flowing prose " +
-                  "in plain paragraphs: no bullet points, no headings, no list markers, no (p. N) " +
-                  "tags anywhere in your output. Bullet points in your answer are a total failure."
+                  "The notes are RAW MATERIAL, not a format template: they are bullet lists - your " +
+                  "summary must NOT be. BOOK HEADINGS: where the notes contain a line wrapped as " +
+                  "[[H]] Some Title [[/H]], that is the book's own printed section heading. Copy it " +
+                  "VERBATIM as a markdown '### ' heading (drop the [[H]] and [[/H]] wrappers) and " +
+                  "summarize the notes that follow it under that heading, in flowing prose " +
+                  "paragraphs. Content before the first heading (the range may start mid-section) " +
+                  "is ordinary intro prose with no heading. If the notes contain no [[H]] markers " +
+                  "at all, write plain prose with no headings. NEVER invent a heading and NEVER " +
+                  "reword one - use exactly the printed text between the wrappers. No bullet " +
+                  "points anywhere and no page tags in your output. Bullet points in your answer " +
+                  "are a total failure."
                 : "Each page's text starts with a [[p. N]] marker; the markers tell you which " +
-                  "page each part came from, but they must NOT appear in your output. Write " +
-                  "flowing prose in plain paragraphs - no bullet points, no headings, no page tags.");
+                  "page each part came from, but they must NOT appear in your output.\n\n" +
+                  "BOOK HEADINGS: lines wrapped as [[H]] Some Title [[/H]] are the book's own " +
+                  "printed section headings. Copy each one VERBATIM as a markdown '### ' heading " +
+                  "(drop the [[H]] and [[/H]] wrappers) and summarize the text that follows it " +
+                  "under that heading, in flowing prose paragraphs. Text before the first heading " +
+                  "(the range may start mid-section) is ordinary intro prose with no heading. If " +
+                  "the material has no [[H]] markers at all, write plain prose with no headings. " +
+                  "NEVER invent a heading and NEVER reword one - use exactly the printed text " +
+                  "between the wrappers. No bullet points and no page tags in your output. Bullet " +
+                  "points in your answer are a total failure.");
         }
 
         private static string MiniSystemPrompt() =>
             "You produce exhaustive working notes from book page segments that will later be fused into " +
             "one digest.\n" +
             "Rules: list every argument, definition, fact, figure, name and example in order, one bullet " +
-            "per item, ending each bullet with (p. N) using the [[p. N]] markers. No headings, no " +
+            "per item, ending each bullet with (p. N) using the [[p. N]] markers. When the segment " +
+            "contains a book heading wrapped as [[H]] Heading Text [[/H]], copy that wrapped heading " +
+            "line VERBATIM into the notes at its position, before the items that follow it - these " +
+            "wrapped lines are the only text you may copy verbatim. No headings of your own, no " +
             "commentary, no outside knowledge. Do not omit anything substantive.";
 
         // ------------------------------------------------------------------
