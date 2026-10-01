@@ -172,6 +172,37 @@
                 </Setter>
             </Style>
 
+            <!-- The close chip wears the family face but reads as THE close mark:
+                 its X is the theme's danger red at rest, and hover/press paint the
+                 face red with the mark in the on-primary color - the Windows close
+                 convention, in the theme's own palette. Based on SumTitleBtn so the
+                 size, hairline border and cursor stay the family's. -->
+            <Style x:Key="SumCloseBtn" TargetType="Button" BasedOn="{StaticResource SumTitleBtn}">
+                <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="face" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="face" Property="Background" Value="{DynamicResource DangerRed}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="face" Property="Background" Value="{DynamicResource DangerRed}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource OnPrimaryBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Range chip: quiet at rest, accent face when its range is the active one.
                  Checked is declared after hover so the active chip keeps its state face. -->
             <Style x:Key="SumRangeChip" TargetType="RadioButton">

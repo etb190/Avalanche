@@ -1581,14 +1581,15 @@
                          stays visible in both modes. -->
                     <StackPanel x:Name="GrpToolsToggle" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <!-- The Add image row's layout, brought up into the bar: icon
-                             left, caption right, 9px of side air, the family's 32px
-                             hover height. Horizontal stacking frees the ink from the
-                             caption's height tax, so the mark reads at glyph weight. -->
+                        <!-- The caption rides UNDER the mark, where the reader expects
+                             it: the enlarged marks keep their 20px boxes and the 9px
+                             label centers beneath. Segoe UI's 9px line box is 11.99px,
+                             so 20+12 fits the family's 32px hover box exactly - the
+                             stack reads as one button, not a wide row that bulges. -->
                         <Button x:Name="ToolsBtn" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" Padding="9,0" Width="Auto" Height="32"
                                 ToolTip="{DynamicResource Str_TT_Tools}">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Grid Width="20" Height="20" VerticalAlignment="Center">
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                <Grid Width="20" Height="20" HorizontalAlignment="Center">
                                     <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <Rectangle Grid.Row="0" Grid.Column="0" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
@@ -1597,9 +1598,9 @@
                                     <Rectangle Grid.Row="1" Grid.Column="1" Width="8" Height="8" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                                 </Grid>
                                 <TextBlock x:Name="ToolsBtnCaption" Text="{DynamicResource Str_ToolbarToolsCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
                                            Foreground="{DynamicResource TextBrush}"
-                                           VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                           HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -1642,30 +1643,30 @@
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <!-- Robot + "Chat" caption, side by side like the Add image
-                             overflow row: the robot draws in a 24-unit design box, so
-                             21 control px puts ~18px of ink on screen - the 14px MDL2
-                             glyphs' own weight. Height=32 with 9px side air keeps the
-                             hover box the family's standard height. -->
+                        <!-- Robot + "Chat" caption stacked, the caption under the
+                             mark where the reader expects it. The robot draws in a
+                             24-unit design box, so 20 control px keeps ~17px of ink
+                             on screen; with the 9px caption's 12px line the stack
+                             fits the family's 32px hover box exactly. -->
                         <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
                                 Padding="9,0" Width="Auto" Height="32">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <ctrl:RobotIcon Width="21" Height="21" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                <ctrl:RobotIcon Width="20" Height="20" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
                                 <TextBlock Text="{DynamicResource Str_AiChatCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
                                            Foreground="{DynamicResource TextBrush}"
-                                           VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                           HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"
                                 Padding="9,0" Width="Auto" Height="32">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                                 <!-- Summary: a digest page - a sheet with its text
                                      condensed to a few lines, the last one short.
                                      Drawn like the Compare and Form tools instead of
                                      a glyph, so the metaphor is exact. -->
-                                <Grid Width="21" Height="21" VerticalAlignment="Center">
-                                    <Border Width="17" Height="19" CornerRadius="2"
+                                <Grid Width="20" Height="20" HorizontalAlignment="Center">
+                                    <Border Width="16" Height="18" CornerRadius="2"
                                             BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
                                             BorderThickness="1.2"/>
                                     <StackPanel Width="10" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0">
@@ -1676,9 +1677,9 @@
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock Text="{DynamicResource Str_SummaryCaption}"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
                                            Foreground="{DynamicResource TextBrush}"
-                                           VerticalAlignment="Center" Margin="5,0,0,0"/>
+                                           HorizontalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

@@ -127,8 +127,11 @@ namespace Avalanche.Features.Summary
                         // between the two, and the increase chip on the right, nearest
                         // the close mark. Drawn + and - faces - rectangles center
                         // exactly, where the MDL2 glyphs' ink rode high in the chip.
+                        // The gap between the increase chip and the close mark comes
+                        // from the chip's own right margin: the X keeps its exact place
+                        // (the reader was explicit - no more sliding it toward the edge).
                         TitleChip(plus: false, "Str_SummaryFontDown", () => AdjustDigestFont(-1), new Thickness(0, 0, 6, 0)),
-                        TitleChip(plus: true, "Str_SummaryFontUp", () => AdjustDigestFont(+1))
+                        TitleChip(plus: true, "Str_SummaryFontUp", () => AdjustDigestFont(+1), new Thickness(0, 0, 8, 0))
                     },
                     CloseCreated = DressCloseChip
                 });
@@ -785,13 +788,20 @@ namespace Avalanche.Features.Summary
             foreach (double angle in new[] { 45d, -45d })
             {
                 var bar = new Rectangle { Width = 10, Height = t, RadiusX = t / 2, RadiusY = t / 2 };
-                bar.SetResourceReference(Shape.FillProperty, "TextBrush");
+                // The close mark is red: the ink rides the button's Foreground so
+                // SumCloseBtn's triggers drive it - danger red at rest, the
+                // on-primary color over the red hover face.
+                bar.SetBinding(Shape.FillProperty, new System.Windows.Data.Binding("Foreground")
+                {
+                    RelativeSource = new System.Windows.Data.RelativeSource(
+                        System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1)
+                });
                 bar.RenderTransformOrigin = new Point(0.5, 0.5);
                 bar.RenderTransform = new RotateTransform(angle);
                 x.Children.Add(bar);
             }
             close.Content = x;
-            close.Style = (Style)FindResource("SumTitleBtn");
+            close.Style = (Style)FindResource("SumCloseBtn");
             // A chip cannot hug the card's corner the way the chrome face did:
             // guarantee real air between the mark and the window's right edge
             // (most themes leave DialogCaptionButtonsMargin at zero).
