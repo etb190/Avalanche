@@ -1549,7 +1549,7 @@
                                            HorizontalAlignment="Center" Margin="0,1,0,0"/>
                             </StackPanel>
                         </Button>
-                        <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" ToolTip="{DynamicResource Str_TT_Summarize}"
+                        <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"
                                 Padding="0">
                             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                                 <TextBlock Text="&#xE8FD;" FontFamily="{DynamicResource IconFont}" FontSize="17"

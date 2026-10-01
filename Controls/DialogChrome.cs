@@ -48,7 +48,18 @@ namespace Avalanche
                 SnapsToDevicePixels = true,
                 UseLayoutRounding = true
             };
-            bar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
+            // The bar is the grab handle: open hand on hover, closed hand for the whole
+            // move. DragMove runs a modal mouse loop, so the override has to span it -
+            // the same family cursors the stamp canvas and annotation grips use.
+            bar.Cursor = DragCursors.Open;
+            bar.MouseLeftButtonDown += (_, e) =>
+            {
+                if (e.ButtonState == MouseButtonState.Pressed)
+                {
+                    DragCursors.BeginDrag();
+                    try { win.DragMove(); } catch { } finally { DragCursors.EndDrag(); }
+                }
+            };
 
             var grid = new Grid
             {

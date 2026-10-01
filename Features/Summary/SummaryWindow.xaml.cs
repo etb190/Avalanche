@@ -3,15 +3,20 @@
 // Single owned window (MainWindow keeps one instance), themed chrome via
 // DialogChrome (rounded card, themed title bar, Escape-close, fade). The body
 // is a reading navigator, not a form:
-//   * a start-page stepper at the top (arrow buttons + a page-number field),
-//   * range chips (1p..60p) that generate [start, start + range] on click,
+//   * a start-page stepper at the top: the arrows jump the whole range by the
+//     selected span (40p chip -> 40 pages) and start the new digest, the field
+//     between them shows the range ("41-80") and edits the start page,
+//   * Start and Reset under the field: together with the arrows they are the
+//     ONLY controls that may begin or end a generation,
+//   * range chips (1p..60p) that reshape the displayed range without generating,
 //   * a word-limit dropdown telling the model how long the digest should be,
 //   * a summary-language dropdown; Arabic flips the digest right-to-left.
-// Finishing a digest advances the start page to the end of the range just
-// read, so clicking the same chip again reads the next stretch of the book.
-// Generation is driven by PageSummarizer's async update stream: deltas
-// throttle-flush into the justified AiMarkdown RichTextBox. Nothing runs
-// automatically - a range chip (or Enter in the page field) is explicit.
+// The arrows never overlap: forward lands on the first page after the stretch
+// just covered, backward re-opens the stretch before this one. A superseded run
+// (another arrow press, Start, Reset, close) is detached by a generation counter
+// and its request cancelled - stale continuations cannot repaint the card.
+// The reading position survives restarts per document; so do range, word
+// ceiling, language and the window's size and place.
 
 namespace Avalanche.Features.Summary
 {
@@ -60,11 +65,13 @@ namespace Avalanche.Features.Summary
         private string _fullText = string.Empty;
         private bool _flushPending;
         private bool _closed;
-        private int _generation;        // bumped by close so stale continuations can't repaint
+        private int _generation;        // bumped by supersede/reset/close: stale continuations can't repaint
 
         private int _rangePages = 20;   // pages per digest: the selected range chip's value
         private int _targetWords = 1000;
         private string _language = "English";
+        private int _startPage = 1;     // the anchor: first page of the displayed range
+        private bool _editing;          // the field is showing the bare start page for editing
 
         public SummaryWindow(
             MainWindow owner,
@@ -108,29 +115,51 @@ namespace Avalanche.Features.Summary
             Content = root;
             Title = "Avalanche";
 
-            // Stepper: the arrows nudge the start page (repeat while held); Enter in
-            // the field generates with the selected range, like a chip click would.
-            NavPrevBtn.Click += (_, _) => StepStart(-1);
-            NavNextBtn.Click += (_, _) => StepStart(+1);
+            // Stepper arrows: each press moves the whole range by the selected span and
+            // starts the digest for the new stretch - "next page of the reading".
+            NavPrevBtn.Click += (_, _) => MoveRange(-1);
+            NavNextBtn.Click += (_, _) => MoveRange(+1);
+
+            // The field shows the range at rest; the first click swaps it for the bare
+            // start page, fully selected, so typing replaces it in one stroke.
+            StartBox.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                if (!StartBox.IsKeyboardFocused)
+                {
+                    StartBox.Focus();
+                    e.Handled = true;   // GotKeyboardFocus selects all; the click must not re-place the caret
+                }
+            };
+            StartBox.GotKeyboardFocus += (_, _) => BeginStartEdit();
+            StartBox.LostKeyboardFocus += (_, _) => CommitStartEdit();
             StartBox.TextChanged += OnStartTextChanged;
             StartBox.KeyDown += (_, e) =>
             {
                 if (e.Key == Key.Enter)
                 {
                     e.Handled = true;
-                    StartGeneration();
+                    CommitStartEdit();
+                    StartBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+                }
+                else if (e.Key == Key.Escape)
+                {
+                    e.Handled = true;
+                    EndStartEdit();     // revert to the range face, nothing committed
                 }
             };
-            StartBox.GotKeyboardFocus += (_, _) => StartBox.SelectAll();
+
+            // Start and Reset: with the arrows, the only generation owners there are.
+            StartBtn.Click += (_, _) => StartGeneration();
+            ResetBtn.Click += (_, _) => ResetAll();
 
             // Range chips: label from Strings, page count from Tag. A click checks the
-            // chip (accent state) and immediately generates [start, start + range].
+            // chip (accent state) and reshapes the displayed range - deliberately NOT
+            // a generation trigger: only the arrows, Start and Reset may start a run.
             foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60 })
             {
                 int pages = int.Parse((string)chip.Tag, CultureInfo.InvariantCulture);
                 chip.Content = loc("Str_SummaryR" + pages + "p");
                 chip.Checked += (_, _) => OnRangeChanged(pages);
-                chip.Click += (_, _) => StartGeneration();
             }
 
             // Word ceiling: displayed "1,000"-style, the raw number rides in Tag.
@@ -174,13 +203,10 @@ namespace Avalanche.Features.Summary
             };
 
             LoadPreferences();
-            SelectChip(_rangePages);
+            SelectChip(_rangePages);            // fires Checked -> OnRangeChanged -> ShowRange
             SelectCombo(WordsCombo, _targetWords);
             SelectCombo(LangCombo, _language);
             ApplyReadingDirection();
-
-            int current = _currentPageProvider();
-            SetStartPage(current >= 0 ? current + 1 : 1);
 
             Closed += (_, _) =>
             {
@@ -191,6 +217,38 @@ namespace Avalanche.Features.Summary
             };
 
             RestorePlacement();
+
+            // Placement follows the window live (debounced): a killed app still finds
+            // the window where the reader left it, not where it started.
+            var placementTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+            placementTimer.Tick += (_, _) =>
+            {
+                placementTimer.Stop();
+                if (!_closed)
+                {
+                    PersistPlacement();
+                }
+            };
+            LocationChanged += (_, _) =>
+            {
+                if (_closed)
+                {
+                    return;
+                }
+
+                placementTimer.Stop();
+                placementTimer.Start();
+            };
+            SizeChanged += (_, _) =>
+            {
+                if (_closed)
+                {
+                    return;
+                }
+
+                placementTimer.Stop();
+                placementTimer.Start();
+            };
         }
 
         /// <summary>True when this window already summarizes the given document
@@ -204,8 +262,9 @@ namespace Avalanche.Features.Summary
         // Reading navigator
         // ------------------------------------------------------------------
 
-        // Range, word ceiling and language survive window reopenings and documents:
-        // a reading session keeps its shape until the reader changes it.
+        // Range, word ceiling, language - and the per-document reading position -
+        // survive window reopenings, restarts and documents: a reading session
+        // keeps its shape until the reader changes it.
         private void LoadPreferences()
         {
             if (int.TryParse(AppDataPaths.GetSetting("summary.range"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int range)
@@ -225,6 +284,20 @@ namespace Avalanche.Features.Summary
             {
                 _language = lang;
             }
+
+            // Reading position of THIS document: the anchor is remembered across
+            // restarts, so a book resumes where the reader left it. First visit
+            // falls back to the page the viewer is sitting on.
+            int savedStart = ReadIntSetting("summary.start." + _documentId);
+            if (savedStart >= 1 && savedStart <= _pageCount)
+            {
+                _startPage = savedStart;
+            }
+            else
+            {
+                int current = _currentPageProvider();
+                _startPage = current >= 0 ? Math.Clamp(current + 1, 1, _pageCount) : 1;
+            }
         }
 
         private void SelectChip(int pages)
@@ -243,36 +316,120 @@ namespace Avalanche.Features.Summary
             }
         }
 
-        // Arrows move the start page by one and clamp to the document; held down they
-        // repeat (RepeatButton), so flipping through a long book is quick.
-        private void StepStart(int direction)
+        // The last page of the range on screen: N pages from the anchor, clipped at
+        // the document (a 60p chip near the end reads to the last page).
+        private int RangeEnd()
         {
-            int current = ParseStart();
-            if (current < 1)
+            return Math.Min(_startPage + _rangePages - 1, _pageCount);
+        }
+
+        // The field's at-rest face: the page range the next digest will cover, e.g.
+        // "41-80". The range appears nowhere else in the window - the field IS it.
+        private void ShowRange()
+        {
+            UpdateNavEnabled();
+            if (_editing)
             {
-                current = 1;
+                return;     // never stomp the bare start page mid-edit
             }
 
-            SetStartPage(current + direction);
+            int last = RangeEnd();
+            StartBox.Text = string.Create(CultureInfo.InvariantCulture, $"{_startPage}-{last}");
+        }
+
+        // Arrows dim at the ends of the book: nothing to move onto there.
+        private void UpdateNavEnabled()
+        {
+            NavPrevBtn.IsEnabled = _startPage > 1;
+            NavNextBtn.IsEnabled = RangeEnd() < _pageCount;
+        }
+
+        // The arrows page through the book one digest at a time: forward lands on the
+        // first page AFTER the stretch just covered (no overlap, no gap), backward
+        // re-opens the stretch before this one. Both start the new digest at once.
+        private void MoveRange(int direction)
+        {
+            if (direction > 0)
+            {
+                int end = RangeEnd();
+                if (end >= _pageCount)
+                {
+                    return;     // the last stretch of the book is already on screen
+                }
+
+                SetStartPage(end + 1);
+            }
+            else
+            {
+                int previous = Math.Max(1, _startPage - _rangePages);
+                if (previous == _startPage)
+                {
+                    return;     // already on the first stretch
+                }
+
+                SetStartPage(previous);
+            }
+
+            StartGeneration();
         }
 
         private void SetStartPage(int page)
         {
-            StartBox.Text = Math.Clamp(page, 1, _pageCount).ToString(CultureInfo.InvariantCulture);
-            UpdateRangeHint();
+            _startPage = Math.Clamp(page, 1, _pageCount);
+            PersistStart();
+            ShowRange();
         }
 
-        private int ParseStart()
+        private void PersistStart()
         {
-            return int.TryParse(StartBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
-                ? value
-                : 0;
+            AppDataPaths.SetSetting(
+                "summary.start." + _documentId, _startPage.ToString(CultureInfo.InvariantCulture));
         }
 
-        // The field takes digits only (a 5-digit cap covers any real document);
-        // anything else is stripped as it is typed, and the range hint follows.
+        // ----- the range field's two faces -----
+
+        private void BeginStartEdit()
+        {
+            if (_editing || _generating)
+            {
+                return;
+            }
+
+            _editing = true;
+            StartBox.Text = _startPage.ToString(CultureInfo.InvariantCulture);
+            StartBox.SelectAll();
+        }
+
+        private void EndStartEdit()
+        {
+            _editing = false;
+            ShowRange();
+        }
+
+        private void CommitStartEdit()
+        {
+            if (!_editing)
+            {
+                return;
+            }
+
+            _editing = false;
+            int parsed = int.TryParse(StartBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : _startPage;   // an empty or non-numeric field keeps the current anchor
+            SetStartPage(parsed);   // clamps, persists, repaints the range
+        }
+
+        // While edited, the field takes digits only (a 5-digit cap covers any real
+        // document); anything else is stripped as it is typed. The range face - shown
+        // at rest - contains a dash by design and is never sanitized.
         private void OnStartTextChanged(object sender, TextChangedEventArgs e)
         {
+            if (!_editing)
+            {
+                return;
+            }
+
             string clean = new string((StartBox.Text ?? string.Empty).Where(char.IsDigit).ToArray());
             if (clean.Length > 5)
             {
@@ -283,33 +440,14 @@ namespace Avalanche.Features.Summary
             {
                 StartBox.Text = clean;
                 StartBox.CaretIndex = clean.Length;
-                return;     // the re-entrant TextChanged updates the hint
             }
-
-            UpdateRangeHint();
-        }
-
-        // Left of the stepper: the digest a range chip would generate right now,
-        // following the start field and the selected chip live.
-        private void UpdateRangeHint()
-        {
-            int first = ParseStart();
-            if (first < 1 || first > _pageCount)
-            {
-                PagesLabel.Text = _loc("Str_SummaryPages");
-                return;
-            }
-
-            int last = Math.Min(first + _rangePages, _pageCount);
-            PagesLabel.Text = string.Format(
-                CultureInfo.InvariantCulture, "{0} {1} \u2013 {2}", _loc("Str_SummaryPages"), first, last);
         }
 
         private void OnRangeChanged(int pages)
         {
             _rangePages = pages;
             AppDataPaths.SetSetting("summary.range", pages.ToString(CultureInfo.InvariantCulture));
-            UpdateRangeHint();
+            ShowRange();        // reshape the displayed range - never a generation trigger
         }
 
         // Arabic reads right to left: the digest area mirrors (scrollbar flips, text
@@ -327,24 +465,34 @@ namespace Avalanche.Features.Summary
 
         private async void StartGeneration()
         {
-            if (_generating || _closed)
+            if (_closed)
             {
                 return;
             }
 
-            int first = ParseStart();
+            int first = _startPage;     // always clamped by SetStartPage
             if (first < 1 || first > _pageCount)
             {
                 Overlay(string.Format(_loc("Str_SummaryInvalidRange"), _pageCount));
                 return;
             }
 
-            // The chip is the length: [start, start + N], clipped at the document.
-            int last = Math.Min(first + _rangePages, _pageCount);
-            int gen = ++_generation;    // a later close bumps this: stale continuations stop repainting
+            // Supersede: a running digest is detached (its continuations lose the
+            // right to repaint) and its request cancelled before the new one starts.
+            // This is how the arrows and Start "stop" a run - by starting the next.
+            if (_generating)
+            {
+                _generation++;
+                try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+            }
+
+            int last = RangeEnd();
+            int gen = ++_generation;
             _generating = true;
             _fullText = string.Empty;
-            _cts?.Dispose();
+            // The superseded source is deliberately NOT disposed: the detached loop is
+            // still polling its token, and a disposed source can throw from those
+            // polls. Garbage collection reclaims it.
             _cts = new CancellationTokenSource();
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
@@ -379,9 +527,8 @@ namespace Avalanche.Features.Summary
 
                                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
                                 FinishSuccess();
-                                // Reading chain: this stretch is read; the next click of a
-                                // chip starts where this digest ended.
-                                SetStartPage(last);
+                                // The field keeps showing the stretch just read; the
+                                // next arrow lands on the page after it.
                             }
 
                             break;
@@ -411,8 +558,8 @@ namespace Avalanche.Features.Summary
             }
             catch (OperationCanceledException)
             {
-                // The only cancel path is the window closing, which bumps the
-                // generation and clears the card; only repaint when still current.
+                // Cancellation means this run was superseded (or the window closed);
+                // both bump the generation, so only repaint when still current.
                 if (gen == _generation)
                 {
                     DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
@@ -432,8 +579,13 @@ namespace Avalanche.Features.Summary
             }
             finally
             {
-                _generating = false;
-                SetBusy(false);
+                // A superseded run must not clear the busy state of the run that
+                // replaced it - only the current generation owns the UI here.
+                if (gen == _generation)
+                {
+                    _generating = false;
+                    SetBusy(false);
+                }
             }
         }
 
@@ -467,12 +619,29 @@ namespace Avalanche.Features.Summary
             _cts = null;
         }
 
-        // While a run is in flight the whole navigator quiets down; Escape (close)
-        // and the window chrome stay live.
+        // Reset: the fourth generation owner. It stops any live run, clears the card
+        // and returns the navigator to the first stretch of the book - which is also
+        // the position this document reopens at.
+        private void ResetAll()
+        {
+            _generation++;
+            try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+            _generating = false;
+            _cts = null;
+            _fullText = string.Empty;
+            _flushPending = false;
+            DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
+            Overlay(null);
+            StatusText.Text = string.Empty;
+            SetStartPage(1);
+            SetBusy(false);
+        }
+
+        // While a run is in flight the parameter controls quiet down (they cannot
+        // start or stop a run, so they have nothing to do here). The four generation
+        // owners stay live: arrows and Start supersede the run, Reset ends it.
         private void SetBusy(bool busy)
         {
-            NavPrevBtn.IsEnabled = !busy;
-            NavNextBtn.IsEnabled = !busy;
             StartBox.IsEnabled = !busy;
             RangePanel.IsEnabled = !busy;
             WordsCombo.IsEnabled = !busy;
@@ -559,6 +728,46 @@ namespace Avalanche.Features.Summary
             {
                 // best-effort
             }
+        }
+
+        /// <summary>Right-clicking the toolbar's Summary button calls this: the window
+        /// returns to its default spot (centered on the owner) - position ONLY, the
+        /// size and every reading parameter stay as the reader left them. The saved
+        /// coordinates are dropped, so future opens center again too.</summary>
+        public void ResetPosition()
+        {
+            try
+            {
+                AppDataPaths.SetSetting("summary.win.left", string.Empty);
+                AppDataPaths.SetSetting("summary.win.top", string.Empty);
+
+                if (Owner is { } owner)
+                {
+                    Left = Math.Max(SystemParameters.VirtualScreenLeft,
+                        owner.Left + ((owner.ActualWidth - ActualWidth) / 2));
+                    Top = Math.Max(SystemParameters.VirtualScreenTop,
+                        owner.Top + ((owner.ActualHeight - ActualHeight) / 2));
+                }
+                else
+                {
+                    Left = SystemParameters.VirtualScreenLeft
+                        + ((SystemParameters.VirtualScreenWidth - ActualWidth) / 2);
+                    Top = SystemParameters.VirtualScreenTop
+                        + ((SystemParameters.VirtualScreenHeight - ActualHeight) / 2);
+                }
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        private static int ReadIntSetting(string name)
+        {
+            string? raw = AppDataPaths.GetSetting(name);
+            return int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
+                ? value
+                : 0;
         }
 
         private static bool TryGetSetting(string name, out double value)

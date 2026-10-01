@@ -911,9 +911,33 @@ namespace Avalanche
         // a floating companion window. Single instance; switching documents recycles it.
         // ============================================================
 
+        // The toolbar button is a switch, not a launcher: it opens the navigator and
+        // closes it again (right-click is the position reset - see below).
         private void SummarizeBtn_Click(object sender, RoutedEventArgs e)
         {
+            if (_summaryWindow is { } open)
+            {
+                open.Close();       // the Closed hook inside OpenSummaryWindow clears the field
+                return;
+            }
+
             OpenSummaryWindow();
+        }
+
+        // Right-click on the toolbar button: the summary window returns to its default
+        // spot (centered on the main window). Position ONLY - size, and every reading
+        // parameter, stay exactly as the reader left them. With no window open, the
+        // saved coordinates are dropped so the next open centers again.
+        private void SummarizeBtn_RightClick(object sender, RoutedEventArgs e)
+        {
+            if (_summaryWindow is { } open)
+            {
+                open.ResetPosition();
+                return;
+            }
+
+            Services.AppDataPaths.SetSetting("summary.win.left", string.Empty);
+            Services.AppDataPaths.SetSetting("summary.win.top", string.Empty);
         }
 
         private void OpenSummaryWindow()
@@ -939,7 +963,7 @@ namespace Avalanche
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
             string path = _currentFile;
             int pageCount = _doc.PageCount;
-            _summaryWindow = new Features.Summary.SummaryWindow(
+            var summary = new Features.Summary.SummaryWindow(
                 this,
                 path,
                 Features.AI.DocumentIndexer.ComputeDocumentId(path),
@@ -947,7 +971,18 @@ namespace Avalanche
                 () => _currentPage,
                 () => _aiSettingsViewModel!.ToGenConfig(),
                 Loc);
-            _summaryWindow.Show();
+            // A window closed from its own title bar must not leave a stale reference
+            // behind - the next toolbar click would poke a corpse (Activate on a
+            // closed window throws).
+            summary.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_summaryWindow, summary))
+                {
+                    _summaryWindow = null;
+                }
+            };
+            _summaryWindow = summary;
+            summary.Show();
         }
 
         private void OpenAiChat()

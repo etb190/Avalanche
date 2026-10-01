@@ -1161,6 +1161,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Бастау</sys:String>
+	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} сөз / {1} таңба</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} беттерден {0} таңба алынды</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">{0} беттерде мәтін қабаты жоқ. Алдымен оларға OCR жүргізіп, кейін қайта көріңіз.</sys:String>

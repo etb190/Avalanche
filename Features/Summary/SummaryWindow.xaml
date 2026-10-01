@@ -1,9 +1,10 @@
 <!-- Features/Summary/SummaryWindow.xaml — floating page-summary companion.
      The rounded chrome, title bar, fade-close and Escape handling come from
      DialogChrome.Frame (composed in code-behind); this file is the card body:
-     a reading navigator - a start-page stepper up top, a row of range chips
-     with word-limit and summary-language dropdowns, the justified digest,
-     and a status line - all in the house button language (rounded hover wash). -->
+     a reading navigator - the start-page stepper (arrows + the range field)
+     with Start/Reset beneath it, a row of range chips with word-limit and
+     summary-language dropdowns, and the justified digest - all in the house
+     button language (rounded hover wash). -->
 <Window x:Class="Avalanche.Features.Summary.SummaryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -19,8 +20,11 @@
                 <ResourceDictionary Source="pack://application:,,,/Controls/PickerStyles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Stepper arrows: repeat-press icon buttons that nudge the start page. -->
-            <Style x:Key="SumNavBtn" TargetType="RepeatButton">
+            <!-- Stepper arrows: one press moves the whole range by the selected span
+                 (40p -> 40 pages) and starts that digest, so each press is a jump to
+                 the next (or previous) stretch of the reading. Plain buttons, not
+                 repeaters: a held arrow would fire off a stack of generations. -->
+            <Style x:Key="SumNavBtn" TargetType="Button">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
                 <Setter Property="Width" Value="30"/>
@@ -29,7 +33,7 @@
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="Template">
                     <Setter.Value>
-                        <ControlTemplate TargetType="RepeatButton">
+                        <ControlTemplate TargetType="Button">
                             <Border x:Name="face" Background="{TemplateBinding Background}"
                                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                     CornerRadius="{DynamicResource ControlCornerRadius}"
@@ -53,7 +57,9 @@
                 </Setter>
             </Style>
 
-            <!-- Start-page field: small dark entry, centered digits, accent focus ring. -->
+            <!-- The range field: dark entry, centered digits, accent focus ring. It shows
+                 the page range at rest ("41-80") and the bare start page while edited;
+                 the width carries the widest range face a 5-digit document can produce. -->
             <Style x:Key="SumPageBox" TargetType="TextBox">
                 <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -64,7 +70,7 @@
                 <Setter Property="SelectionTextBrush" Value="{DynamicResource SelectionFg}"/>
                 <Setter Property="HorizontalAlignment" Value="Center"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="Width" Value="58"/>
+                <Setter Property="Width" Value="82"/>
                 <Setter Property="Height" Value="30"/>
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
@@ -94,6 +100,47 @@
                 </Setter>
             </Style>
 
+            <!-- Start and Reset: small pills under the stepper. With the two arrows they
+                 are the ONLY controls that may begin or end a generation. -->
+            <Style x:Key="SumActionBtn" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
+                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="MinWidth" Value="66"/>
+                <Setter Property="Padding" Value="12,0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="face" Background="{TemplateBinding Background}"
+                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                                    ToolTip="{TemplateBinding ToolTip}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                  Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="face" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                    <Setter TargetName="face" Property="BorderBrush" Value="{DynamicResource SelectionFg}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.35"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Range chip: quiet at rest, accent face when its range is the active one.
                  Checked is declared after hover so the active chip keeps its state face. -->
             <Style x:Key="SumRangeChip" TargetType="RadioButton">
@@ -103,7 +150,8 @@
                 <Setter Property="FontSize" Value="11.5"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="Cursor" Value="Hand"/>
-                <Setter Property="Padding" Value="9,5"/>
+                <Setter Property="Height" Value="28"/>
+                <Setter Property="Padding" Value="9,0"/>
                 <Setter Property="Margin" Value="0,0,5,0"/>
                 <Setter Property="MinWidth" Value="38"/>
                 <Setter Property="Focusable" Value="False"/>
@@ -142,37 +190,44 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Row 0: live range hint (left) + the start-page stepper (middle). -->
-        <Grid Grid.Row="0" Margin="14,12,14,4">
-            <TextBlock x:Name="PagesLabel" HorizontalAlignment="Left" VerticalAlignment="Center"
-                       MaxWidth="150" TextTrimming="CharacterEllipsis"
-                       FontFamily="{DynamicResource UiFont}" FontSize="12"
-                       Foreground="{DynamicResource MutedTextBrush}"/>
-            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                <RepeatButton x:Name="NavPrevBtn" Style="{StaticResource SumNavBtn}"
-                              ToolTip="{DynamicResource Str_SummaryPrevPage}">
-                    <TextBlock Text="&#xE76B;" FontFamily="{DynamicResource IconFont}" FontSize="11"
-                               Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
-                </RepeatButton>
-                <TextBox x:Name="StartBox" Style="{StaticResource SumPageBox}" Margin="8,0"
-                         MaxLength="5" InputScope="Number"
-                         ToolTip="{DynamicResource Str_SummaryStartPage}"/>
-                <RepeatButton x:Name="NavNextBtn" Style="{StaticResource SumNavBtn}"
-                              ToolTip="{DynamicResource Str_SummaryNextPage}">
-                    <TextBlock Text="&#xE76C;" FontFamily="{DynamicResource IconFont}" FontSize="11"
-                               Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
-                </RepeatButton>
-            </StackPanel>
-        </Grid>
+        <!-- Row 0: the start-page stepper, centered as a unit: arrow, field, arrow.
+             The field is the range - there is no other range display in the window. -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Orientation="Horizontal"
+                    Margin="14,12,14,0" VerticalAlignment="Center">
+            <Button x:Name="NavPrevBtn" Style="{StaticResource SumNavBtn}"
+                    ToolTip="{DynamicResource Str_SummaryPrevPage}">
+                <TextBlock Text="&#xE76B;" FontFamily="{DynamicResource IconFont}" FontSize="11"
+                           Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
+            </Button>
+            <TextBox x:Name="StartBox" Style="{StaticResource SumPageBox}" Margin="8,0"
+                     MaxLength="9" InputScope="Number"
+                     ToolTip="{DynamicResource Str_SummaryStartPage}"/>
+            <Button x:Name="NavNextBtn" Style="{StaticResource SumNavBtn}"
+                    ToolTip="{DynamicResource Str_SummaryNextPage}">
+                <TextBlock Text="&#xE76C;" FontFamily="{DynamicResource IconFont}" FontSize="11"
+                           Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
+            </Button>
+        </StackPanel>
 
-        <!-- Row 1: range chips (a click generates [start, start+N] at once), then the
-             word ceiling and the summary language; on narrow windows the dropdowns
-             wrap to a second line instead of squeezing. -->
-        <WrapPanel Grid.Row="1" Margin="14,4,14,2" VerticalAlignment="Center">
+        <!-- Row 1: Start and Reset, directly under the field they serve. -->
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Orientation="Horizontal" Margin="0,7,0,0">
+            <Button x:Name="StartBtn" Style="{StaticResource SumActionBtn}" Margin="0,0,6,0"
+                    Content="{DynamicResource Str_SummaryStart}"
+                    ToolTip="{DynamicResource Str_SummaryGo}"/>
+            <Button x:Name="ResetBtn" Style="{StaticResource SumActionBtn}"
+                    Content="{DynamicResource Str_SummaryReset}"
+                    ToolTip="{DynamicResource Str_SummaryReset}"/>
+        </StackPanel>
+
+        <!-- Row 2: range chips (they reshape the displayed range only), then the word
+             ceiling and the summary language - same face height as the chips; on narrow
+             windows the dropdowns wrap to a second line instead of squeezing. -->
+        <WrapPanel Grid.Row="2" Margin="14,7,14,2" VerticalAlignment="Center">
             <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
                 <RadioButton x:Name="RangeChip1" Style="{StaticResource SumRangeChip}" Tag="1"/>
                 <RadioButton x:Name="RangeChip5" Style="{StaticResource SumRangeChip}" Tag="5"/>
@@ -182,16 +237,16 @@
             </StackPanel>
             <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"
                     Margin="9,0,5,0" VerticalAlignment="Center" Opacity="0.7"/>
-            <ComboBox x:Name="WordsCombo" Style="{StaticResource DarkComboBox}" Width="90"
+            <ComboBox x:Name="WordsCombo" Style="{StaticResource DarkComboBox}" Width="90" Height="28"
                       Margin="0,0,8,0" VerticalAlignment="Center" MaxDropDownHeight="260"
                       ToolTip="{DynamicResource Str_SummaryWordsTT}"/>
-            <ComboBox x:Name="LangCombo" Style="{StaticResource DarkComboBox}" Width="112"
+            <ComboBox x:Name="LangCombo" Style="{StaticResource DarkComboBox}" Width="112" Height="28"
                       VerticalAlignment="Center" MaxDropDownHeight="260"
                       ToolTip="{DynamicResource Str_SummaryLangTT}"/>
         </WrapPanel>
 
-        <!-- Row 2: the digest - justified like a typeset page (Arabic mirrors RTL). -->
-        <Grid Grid.Row="2" Margin="14,6,14,2">
+        <!-- Row 3: the digest - justified like a typeset page (Arabic mirrors RTL). -->
+        <Grid Grid.Row="3" Margin="14,6,14,2">
             <RichTextBox x:Name="DocBox" ai:AiMarkdown.Text=""
                          ai:AiMarkdown.ParagraphAlignment="Justify"
                          IsReadOnly="True" IsDocumentEnabled="False"
@@ -206,8 +261,8 @@
                        Foreground="{DynamicResource MutedTextBrush}"/>
         </Grid>
 
-        <!-- Row 3: status line - progress while generating, word/character counts after -->
-        <TextBlock Grid.Row="3" x:Name="StatusText" Margin="14,4,14,12" VerticalAlignment="Center"
+        <!-- Row 4: status line - progress while generating, word/character counts after -->
+        <TextBlock Grid.Row="4" x:Name="StatusText" Margin="14,4,14,12" VerticalAlignment="Center"
                    FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                    FontFamily="{DynamicResource UiFont}"
                    Foreground="{DynamicResource MutedTextBrush}"/>

@@ -1149,6 +1149,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Indítás</sys:String>
+	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} szó / {1} karakter</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} karakter kinyerve a(z) {1}-{2}. oldalakról</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">A(z) {0} oldalakon nincs szövegréteg. Először futtasson rajtuk OCR-t, majd próbálja újra.</sys:String>
