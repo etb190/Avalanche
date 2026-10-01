@@ -1627,12 +1627,13 @@
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button x:Name="SearchBtn" Content="&#xE721;" Style="{StaticResource ToolbarButton}" Click="Search_Click" ToolTip="{DynamicResource Str_TT_Search}"/>
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
+                        <!-- The search button's clone for the summary navigator:
+                             first of the AI pair, sitting left of the chat clone. -->
+                        <Button x:Name="SummarizeBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"/>
                         <!-- The search button's clone for chat: glyph content, the
                              family style, no local overrides - the caption engine
                              dresses it exactly like Search in every mode. -->
                         <Button x:Name="AiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
-                        <!-- The search button's clone for the summary navigator. -->
-                        <Button x:Name="SummarizeBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"/>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->

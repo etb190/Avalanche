@@ -305,6 +305,11 @@ namespace Avalanche
             // The toolbar's default view vs the extended tool set (Tools switch).
             _toolsMode = Services.AppDataPaths.GetSetting("toolbar.tools") == "1";
             ApplyToolsMode();
+            // Companion-window memory: which AI surfaces were open at last close.
+            // Same store the session restore reads (OpenTabs), so a "close my tabs"
+            // answer and these flags always agree about what a launch shows.
+            _restoreChatOpen = App.GetSetting("ui.chat.open") == "1";
+            _summaryRestorePending = App.GetSetting("ui.summary.open") == "1";
             VersionLabel.Text = $"v{AppVersion.Display}";
             // Accept dropped files/folders/archives anywhere on the window (not just the empty drop zone),
             // so dropping onto an open document works too. The empty-state DropZone marks its own drop
@@ -464,6 +469,11 @@ namespace Avalanche
                 // Unconditional: the XAML default is small icons / no text, but the family default
                 // is Large/Under, so a first run needs the apply pass too.
                 ApplyToolbarAppearance();
+
+                // The chat rail was open at last close: bring it straight back before
+                // the session restore lands, so the incoming document binds into a
+                // visible rail through HandleDocumentSwitch like on any other open.
+                if (_restoreChatOpen) OpenAiChat();
 
                 FlushPendingExternalOpen();   // a forward that landed before the panes were wired
 
@@ -859,6 +869,11 @@ namespace Avalanche
         private Features.AI.AiChatViewModel? _aiChatViewModel;
         private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
         private Features.Summary.SummaryWindow? _summaryWindow;
+        // Companion-window memory: the chat rail and the summary navigator reopen
+        // with the app when they were open at last close (snapshot in OnClosing;
+        // the summary, which needs a document, reopens on the first one that lands).
+        private bool _restoreChatOpen;
+        private bool _summaryRestorePending;
 
         private void AiChatBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -1145,6 +1160,17 @@ namespace Avalanche
             _aiChatViewModel?.HandleDocumentSwitch(
                 filePath,
                 panelVisible: AiChatOverlay?.Visibility == Visibility.Visible);
+
+            // Session restore: the summary navigator was open at last close. It needs
+            // a document, so it reopens on the first one that comes up - by then
+            // _currentFile/_doc are live and the window boots straight into the file
+            // the reader left off in. One-shot: closing it afterwards stays closed.
+            if (_summaryRestorePending && filePath is not null &&
+                _summaryWindow is null && !string.IsNullOrEmpty(_currentFile) && _doc is not null)
+            {
+                _summaryRestorePending = false;
+                OpenSummaryWindow();
+            }
         }
 
         private void CloseAiChat()

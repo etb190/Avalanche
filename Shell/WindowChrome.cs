@@ -794,6 +794,11 @@ namespace Avalanche
                 App.SetSetting("RememberOpenFiles", closeTabs ? "0" : "1");
                 if (remember) App.SetSetting("RememberChoiceLocked", "1");
             }
+            // Companion-window memory: snapshot which AI surfaces are open as the app
+            // quits, so the next launch brings them straight back (chat rail instantly,
+            // summary navigator on the first restored document).
+            App.SetSetting("ui.chat.open", AiChatOverlay?.Visibility == Visibility.Visible ? "1" : "0");
+            App.SetSetting("ui.summary.open", _summaryWindow != null ? "1" : "0");
             SaveWindowSettings();
             // Fade the whole app out before it really closes (matches the dialog fade-out).
             e.Cancel = true;
