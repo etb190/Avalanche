@@ -1164,6 +1164,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCaption">Құралдар</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Құралдарды жабу</sys:String>
+	<sys:String x:Key="Str_TT_Tools">Кеңейтілген құралдар жиынын көрсету немесе жасыру</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} сөз / {1} таңба</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} беттерден {0} таңба алынды</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">{0} беттерде мәтін қабаты жоқ. Алдымен оларға OCR жүргізіп, кейін қайта көріңіз.</sys:String>

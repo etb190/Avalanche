@@ -1165,6 +1165,9 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCaption">Инструменты</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Закрыть инструменты</sys:String>
+	<sys:String x:Key="Str_TT_Tools">Показать или скрыть дополнительные инструменты</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} слов / {1} символов</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Извлечено {0} символов со страниц {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">На страницах {0} нет текстового слоя. Сначала выполните для них OCR и повторите попытку.</sys:String>

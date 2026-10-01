@@ -718,7 +718,7 @@ namespace Avalanche.Features.Summary
         // handler never mistakes a chip press for the start of a window move.
         private Button TitleChip(string glyph, string tooltipKey, Action onClick)
         {
-            var label = new TextBlock { FontSize = 11, Margin = new Thickness(0, -1, 0, 0), Text = glyph };
+            var label = new TextBlock { FontSize = 12, Margin = new Thickness(0, -1, 0, 0), Text = glyph };
             label.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
             label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
             var chip = new Button
@@ -736,6 +736,14 @@ namespace Avalanche.Features.Summary
             _digestFont = Math.Clamp(_digestFont + direction, 10, 24);
             DocBox.FontSize = _digestFont;
             AppDataPaths.SetSetting("summary.font", _digestFont.ToString(CultureInfo.InvariantCulture));
+            // The rendered document carries the old base face (BuildDocument bakes
+            // rtb.FontSize into the FlowDocument and headings set explicit sizes), so a
+            // bare FontSize change touched nothing the reader could see. Re-render at
+            // the new base: body and headings scale together.
+            if (_fullText.Length > 0)
+            {
+                AiMarkdown.Rebuild(DocBox, _fullText);
+            }
         }
 
         // The generated digest belongs to the reader, not to the window: it is saved
@@ -803,6 +811,14 @@ namespace Avalanche.Features.Summary
 
                 if (TryGetSetting("summary.win.left", out double left) && TryGetSetting("summary.win.top", out double top))
                 {
+                    // DialogChrome.Configure leaves WindowStartupLocation.CenterOwner in
+                    // place, and WPF applies the startup location at Show() REGARDLESS of
+                    // explicitly set Left/Top - CalculateWindowLocation overwrites them for
+                    // CenterOwner and CenterScreen alike. The restored place was being
+                    // clobbered on every open, so the window always reopened centered on
+                    // the reader instead of where they had dragged it. Manual hands the
+                    // position back to the saved coordinates.
+                    WindowStartupLocation = WindowStartupLocation.Manual;
                     double vsLeft = SystemParameters.VirtualScreenLeft;
                     double vsTop = SystemParameters.VirtualScreenTop;
                     double vsRight = vsLeft + SystemParameters.VirtualScreenWidth;

@@ -1165,6 +1165,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCaption">Công cụ</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Đóng công cụ</sys:String>
+	<sys:String x:Key="Str_TT_Tools">Hiện hoặc ẩn bộ công cụ mở rộng</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} từ / {1} ký tự</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Đã trích xuất {0} ký tự từ trang {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Các trang {0} không có lớp văn bản. Hãy chạy OCR trên chúng trước rồi thử lại.</sys:String>

@@ -1149,6 +1149,9 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCaption">工具</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCloseCaption">关闭工具</sys:String>
+	<sys:String x:Key="Str_TT_Tools">显示或隐藏扩展工具集</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} 词 / {1} 字符</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">已从第 {1}-{2} 页提取 {0} 个字符</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">第 {0} 页没有文本层。请先对这些页面运行 OCR，然后重试。</sys:String>

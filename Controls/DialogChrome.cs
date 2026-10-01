@@ -86,6 +86,11 @@ namespace Avalanche
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
+            // The wordmark's primary TextBlock, captured for the extras' size sync: the
+            // reading navigator squares its close mark and font chips to the wordmark's
+            // rendered height ("as tall as the string" on every theme and DPI).
+            TextBlock? measureText = null;
+
             // Build the wordmark row. A DropShadowEffect applied directly to text rasterizes it and
             // disables ClearType, which reads as blurry. So we LAYER it instead: a blurred black duplicate
             // sits behind a crisp, effect-free copy - soft shadow, sharp text. `shadow` paints the duplicate.
@@ -100,7 +105,7 @@ namespace Avalanche
                 {
                     // The "Avalanche" wordmark - same face and size as the main window logo -
                     // with the dialog suffix beside it sharing one baseline.
-                    sp.Children.Add(new TextBlock
+                    var mark = new TextBlock
                     {
                         Text = "Avalanche",
                         FontFamily = UiKit.UiFont,
@@ -108,7 +113,9 @@ namespace Avalanche
                         FontSize = 16.5,
                         Foreground = logo,
                         VerticalAlignment = VerticalAlignment.Center
-                    });
+                    };
+                    measureText ??= mark;
+                    sp.Children.Add(mark);
                     string after = fullTitle![(kp + "Avalanche".Length)..];
                     if (!string.IsNullOrEmpty(after))
                         sp.Children.Add(new TextBlock { Text = after, FontFamily = UiKit.MonoFont, FontSize = 14, Foreground = secondary, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 1, 0, 0) });
@@ -123,12 +130,14 @@ namespace Avalanche
             var title = new Grid { Margin = caption ? new Thickness(0) : new Thickness(16, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             if (caption)
             {
-                title.Children.Add(new TextBlock
+                var captionText = new TextBlock
                 {
                     Text = fullTitle ?? "Avalanche", FontFamily = Value(owner, "ChromeFontFamily", new FontFamily("Tahoma")),
                     FontSize = 11, FontWeight = FontWeights.Bold,
                     Foreground = Brush(owner, "ChromeTextBrush", Brushes.White), VerticalAlignment = VerticalAlignment.Center
-                });
+                };
+                measureText ??= captionText;
+                title.Children.Add(captionText);
             }
             else
             {
@@ -193,13 +202,41 @@ namespace Avalanche
             Grid.SetColumn(close, extraCount + 1);
             grid.Children.Add(close);
 
-            if (extras is { CloseButtonSize: > 0 })
+            if (extras is { CloseButtonSize: > 0 } sized)
             {
-                // Local sizes override the DialogCloseWidth/Height resource references:
-                // the reading navigator squares the close mark to the wordmark's height.
-                close.Width = extras.CloseButtonSize;
-                close.Height = extras.CloseButtonSize;
+                // Local sizes override the DialogCloseWidth/Height resource references.
+                // What the reader perceives is the VISIBLE face: the shared
+                // ChromeCloseButton template insets its face by CaptionButtonMargin, so a
+                // 24px button drew a ~13px mark that read as half the wordmark's height.
+                // ChromeCloseButtonSquared fills the button instead, and both the close
+                // mark and the chips track the wordmark's rendered height.
+                if (owner?.TryFindResource("ChromeCloseButtonSquared") is Style squaredClose)
+                {
+                    close.Style = squaredClose;
+                }
+
                 close.VerticalAlignment = VerticalAlignment.Center;
+                double floor = Math.Max(22.0, sized.CloseButtonSize);
+                void Sync()
+                {
+                    double h = Math.Ceiling(measureText?.ActualHeight ?? 0);
+                    if (h <= 0) h = floor;
+                    h = Math.Max(h, floor);
+                    if (bar.Height > 0) h = Math.Min(h, bar.Height - 4);
+                    close.Width = h;
+                    close.Height = h;
+                    foreach (UIElement extra in sized.BeforeClose)
+                    {
+                        if (extra is FrameworkElement fe)
+                        {
+                            fe.Width = h;
+                            fe.Height = h;
+                            fe.VerticalAlignment = VerticalAlignment.Center;
+                        }
+                    }
+                }
+                measureText?.SizeChanged += (_, _) => Sync();
+                bar.Loaded += (_, _) => Sync();
             }
 
             if (extras?.BottomSeparator == true)

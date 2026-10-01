@@ -357,6 +357,70 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Squared close mark for the reading navigator: unlike the caption close,
+             the face fills the button (1px inset instead of CaptionButtonMargin) so the
+             mark visibly matches the wordmark height DialogChrome syncs in, and the
+             corners round uniformly - the button sits centered, not in a corner. -->
+        <Style x:Key="ChromeCloseButtonSquared" TargetType="Button" BasedOn="{StaticResource ChromeCloseButton}">
+            <Setter Property="Tag">
+                <Setter.Value>
+                    <CornerRadius>3</CornerRadius>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Border x:Name="Bd" Margin="1"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"/>
+                            <Border x:Name="Face" Margin="1"
+                                    Background="{DynamicResource CaptionButtonBrush}"
+                                    CornerRadius="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}">
+                                <Grid>
+                                    <Border x:Name="capLight" IsHitTestVisible="False"
+                                            BorderBrush="{DynamicResource BevelLightBrush}"
+                                            BorderThickness="{DynamicResource ButtonBevelLightThickness}"/>
+                                    <Border x:Name="capDark" IsHitTestVisible="False"
+                                            BorderBrush="{DynamicResource BevelDarkBrush}"
+                                            BorderThickness="{DynamicResource ButtonBevelDarkThickness}"/>
+                                    <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               FontWeight="{DynamicResource CaptionGlyphWeight}"
+                                               Foreground="{TemplateBinding Foreground}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               Visibility="{DynamicResource CaptionFontGlyphVisibility}"/>
+                                    <Grid Width="8" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          Visibility="{DynamicResource CaptionDrawnGlyphVisibility}">
+                                        <Rectangle Width="10" Height="2" Fill="{TemplateBinding Foreground}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Rectangle.RenderTransform><RotateTransform Angle="45" CenterX="5" CenterY="1"/></Rectangle.RenderTransform>
+                                        </Rectangle>
+                                        <Rectangle Width="10" Height="2" Fill="{TemplateBinding Foreground}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Rectangle.RenderTransform><RotateTransform Angle="-45" CenterX="5" CenterY="1"/></Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Grid>
+                                    <Border x:Name="capGrain" IsHitTestVisible="False" Visibility="Collapsed"
+                                            CornerRadius="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource CaptionCloseHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource CaptionCloseHoverFgBrush}"/>
+                                <Setter TargetName="capGrain" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="capLight" Property="BorderBrush" Value="{DynamicResource BevelDarkBrush}"/>
+                                <Setter TargetName="capDark" Property="BorderBrush" Value="{DynamicResource BevelLightBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- Inset overlay close: the KillerNotes about-card geometry. Unlike the main
              caption close, its hover face rounds on all four corners. -->
         <Style x:Key="DialogCloseButton" TargetType="Button" BasedOn="{StaticResource ChromeCloseButton}">
@@ -1462,7 +1526,7 @@
                 <!-- File operations -->
                 <StackPanel x:Name="LeftBar" Orientation="Horizontal" HorizontalAlignment="Left">
                     <!-- File: New / Open / Close / Save / Print -->
-                    <Button Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
+                    <Button x:Name="NewFileBtn" Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
                     <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="{DynamicResource Str_TT_CloseFile}" IsEnabled="False"/>
                     <Button x:Name="OpenFileBtn" Content="&#xE8DA;" Style="{StaticResource ToolbarSplitMain}" Click="Open_Click" MouseRightButtonUp="OpenRecent_Click" ToolTip="{DynamicResource Str_TT_Open}"/>
                     <Button x:Name="OpenRecentBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OpenRecent_Click" ToolTip="{DynamicResource Str_TT_RecentFiles}"/>
@@ -1470,8 +1534,8 @@
                     <Button x:Name="SaveMenuBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="SaveMenu_Click" ToolTip="{DynamicResource Str_TT_SaveOptions}"/>
                     <Button x:Name="OcrBtn" Content="&#xEE6F;" Style="{StaticResource ToolbarSplitMain}" Click="Ocr_Click" MouseRightButtonUp="OcrMenu_Click" ToolTip="{DynamicResource Str_TT_Ocr}"/>
                     <Button x:Name="OcrMenuBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OcrMenu_Click" ToolTip="{DynamicResource Str_TT_OcrOptions}"/>
-                    <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="{DynamicResource Str_TT_SaveFlattened}"/>
-                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="{DynamicResource Str_TT_Print}"/>
+                    <Button x:Name="SaveFlattenedBtn" Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="{DynamicResource Str_TT_SaveFlattened}"/>
+                    <Button x:Name="PrintBtn" Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="{DynamicResource Str_TT_Print}"/>
                     <StackPanel x:Name="GrpCompare" Orientation="Horizontal">
                         <Button x:Name="ComparePdfBtn" Style="{StaticResource ToolbarButton}" Padding="8,6" Click="ComparePdf_Click" ToolTip="{DynamicResource Str_TT_ComparePDFs}">
                             <Grid Width="18" Height="16">
@@ -1486,9 +1550,32 @@
                     </StackPanel>
                     <StackPanel x:Name="GrpPageOps" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <Button Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="{DynamicResource Str_TT_MergePDFs}"/>
-                        <Button Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="{DynamicResource Str_TT_ExtractPages}"/>
+                        <Button x:Name="MergeBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="{DynamicResource Str_TT_MergePDFs}"/>
+                        <Button x:Name="ExtractBtn" Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="{DynamicResource Str_TT_ExtractPages}"/>
                     </StackPanel>
+                    <!-- The Tools switch: reveals or hides the extended toolbar set.
+                         Sits right after Extract pages, stays visible in both modes. -->
+                    <StackPanel x:Name="GrpToolsToggle" Orientation="Horizontal">
+                        <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
+                        <Button x:Name="ToolsBtn" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" Padding="0"
+                                ToolTip="{DynamicResource Str_TT_Tools}">
+                            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
+                                <Grid Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <Rectangle Grid.Row="0" Grid.Column="0" Width="6" Height="6" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="0" Grid.Column="1" Width="6" Height="6" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="1" Grid.Column="0" Width="6" Height="6" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    <Rectangle Grid.Row="1" Grid.Column="1" Width="6" Height="6" RadiusX="1" RadiusY="1" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                </Grid>
+                                <TextBlock x:Name="ToolsBtnCaption" Text="{DynamicResource Str_ToolbarToolsCaption}"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="9"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
                     <StackPanel x:Name="GrpPageEdit" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
                         <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="{DynamicResource Str_TT_DeletePages}"/>
@@ -1552,8 +1639,21 @@
                         <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"
                                 Padding="0">
                             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                                <TextBlock Text="&#xE8FD;" FontFamily="{DynamicResource IconFont}" FontSize="17"
-                                           Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
+                                <!-- Summary: a digest page - a sheet with its text
+                                     condensed to a few lines, the last one short.
+                                     Drawn like the Compare and Form tools instead of
+                                     a glyph, so the metaphor is exact. -->
+                                <Grid Width="17" Height="17" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Border Width="13" Height="15" CornerRadius="2"
+                                            BorderBrush="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                            BorderThickness="1.2"/>
+                                    <StackPanel Width="8" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,2,0,0">
+                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                        <Rectangle Height="1.4" RadiusX="0.7" RadiusY="0.7" Margin="0,1.5,0,0" Width="5" HorizontalAlignment="Left" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                                    </StackPanel>
+                                </Grid>
                                 <TextBlock Text="{DynamicResource Str_SummaryCaption}"
                                            FontFamily="{DynamicResource UiFont}" FontSize="9"
                                            Foreground="{DynamicResource TextBrush}"

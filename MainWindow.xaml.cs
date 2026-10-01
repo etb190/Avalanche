@@ -302,6 +302,9 @@ namespace Avalanche
         public MainWindow()
         {
             InitializeComponent();
+            // The toolbar's default view vs the extended tool set (Tools switch).
+            _toolsMode = Services.AppDataPaths.GetSetting("toolbar.tools") == "1";
+            ApplyToolsMode();
             VersionLabel.Text = $"v{AppVersion.Display}";
             // Accept dropped files/folders/archives anywhere on the window (not just the empty drop zone),
             // so dropping onto an open document works too. The empty-state DropZone marks its own drop

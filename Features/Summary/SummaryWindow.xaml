@@ -143,7 +143,9 @@
                  mark's overridden size. The bar's DragMove must not eat their clicks, so
                  code-behind takes them in the tunnel (PreviewMouseLeftButtonDown). -->
             <Style x:Key="SumTitleBtn" TargetType="Button">
-                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Width" Value="24"/>
                 <Setter Property="Height" Value="24"/>
                 <Setter Property="Focusable" Value="False"/>
@@ -152,6 +154,8 @@
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="face" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="{DynamicResource ControlCornerRadius}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -252,11 +256,11 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Button x:Name="StartBtn" Grid.Column="0" Style="{StaticResource SumActionBtn}"
-                    Background="#FF2E7D32" BorderBrush="#FF1B5E20"
+                    Background="#FF1B5E20" BorderBrush="#FF0F3D14"
                     Content="{DynamicResource Str_SummaryStart}"
                     ToolTip="{DynamicResource Str_SummaryGo}"/>
             <Button x:Name="ResetBtn" Grid.Column="2" Style="{StaticResource SumActionBtn}"
-                    Background="#FF1565C0" BorderBrush="#FF0D47A1"
+                    Background="#FF0D47A1" BorderBrush="#FF08306B"
                     Content="{DynamicResource Str_SummaryReset}"
                     ToolTip="{DynamicResource Str_SummaryReset}"/>
         </Grid>

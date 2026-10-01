@@ -72,15 +72,27 @@ namespace Avalanche.Features.AI
             if (d is not RichTextBox rtb)
                 return;
 
-            EnsureHandlers(rtb);
-
-            var text = e.NewValue as string ?? string.Empty;
-
             // User messages render verbatim; assistant/system messages render
             // as markdown. The DataContext is the ChatMessage from the template.
             bool parse = true;
             if (rtb.DataContext is ChatMessage msg)
                 parse = msg.MessageRole != ChatMessage.Role.User;
+
+            Render(rtb, e.NewValue as string ?? string.Empty, parse);
+        }
+
+        /// <summary>
+        /// Re-renders <paramref name="text"/> as markdown into <paramref name="rtb"/>,
+        /// bypassing the attached property's same-value short-circuit. The reading
+        /// navigator calls this after a font-size change: BuildDocument bakes the
+        /// host's FontSize into the document and headings scale from it, so the
+        /// document must be rebuilt for a new base face to take hold.
+        /// </summary>
+        internal static void Rebuild(RichTextBox rtb, string text) => Render(rtb, text, parse: true);
+
+        private static void Render(RichTextBox rtb, string text, bool parse)
+        {
+            EnsureHandlers(rtb);
 
             var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
             rtb.Document = doc;
@@ -281,7 +293,11 @@ namespace Avalanche.Features.AI
             var run = new Run(text)
             {
                 FontWeight = FontWeights.SemiBold,
-                FontSize = level switch { 1 => 15.0, 2 => 13.5, _ => 12.5 }
+                // Relative to the document's base face (BuildDocument seeds it from the
+                // host RichTextBox), so headings ride the reading navigator's font
+                // chips instead of sitting at absolute sizes a base change could not
+                // touch. At the 13px default these land on 15.5 / 14 / 12.5.
+                FontSize = doc.FontSize + level switch { 1 => 2.5, 2 => 1.0, _ => -0.5 }
             };
             run.SetResourceReference(TextElement.ForegroundProperty, "PrimaryBrush");
             p.Inlines.Add(run);

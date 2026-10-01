@@ -1145,6 +1145,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCaption">টুলস</sys:String>
+	<sys:String x:Key="Str_ToolbarToolsCloseCaption">টুলস বন্ধ করুন</sys:String>
+	<sys:String x:Key="Str_TT_Tools">অতিরিক্ত টুল দেখান বা লুকান</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} শব্দ / {1} অক্ষর</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} পৃষ্ঠা থেকে {0} টি অক্ষর বের করা হয়েছে</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">পৃষ্ঠা {0}-এ কোনো টেক্সট স্তর নেই। প্রথমে সেগুলিতে OCR চালান, তারপর আবার চেষ্টা করুন।</sys:String>
