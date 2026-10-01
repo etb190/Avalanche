@@ -91,7 +91,18 @@ namespace Avalanche.Features.Summary
             _configProvider = configProvider;
             _loc = loc;
 
-            DialogChrome.Configure(this, owner, resizable: true);
+            // fade:false - the navigator owns its own two-sided choreography (the
+            // pop-in entrance plus the pop-flavored fade close just below);
+            // Configure's generic close-only fade would stack a second Closing
+            // handler onto the same window and the two cancels would fight.
+            DialogChrome.Configure(this, owner, resizable: true, fade: false);
+            WindowFx.EnableFadeClose(this, WindowFx.PopMs, pop: true);
+
+            // The entrance: the window is born transparent and PlayOpenPop raises
+            // it on Loaded, so the first painted frame is already animating from
+            // zero - no flash of a fully drawn window before the motion starts.
+            Opacity = 0;
+            Loaded += (_, _) => WindowFx.PlayOpenPop(this);
             // Borderless windows (WindowStyle.None) have no native resize border - the same
             // WindowChrome PrintPreviewWindow uses restores edge resizing without a grip.
             System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome

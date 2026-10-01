@@ -32,6 +32,25 @@ namespace Avalanche
 
         public BitmapSource? Thumbnail => _thumb;
 
+        // The reading navigator's range paint: true while this page sits inside
+        // the summary window's reading range. Lives on the VM, NOT in the
+        // ListBox's selection state - selection is written by many independent
+        // programmatic paths (scroll sync, pane restore, paging, programmatic
+        // navigation), and any one of them collapsed a SelectedItems-based
+        // range back to a single green page. A VM flag survives them all.
+        private bool _isInRange;
+
+        public bool IsInRange
+        {
+            get => _isInRange;
+            set
+            {
+                if (_isInRange == value) return;
+                _isInRange = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsInRange)));
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>Called when the ListBox item becomes visible (via binding getter trigger).</summary>

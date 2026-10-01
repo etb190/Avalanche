@@ -125,13 +125,14 @@ namespace Avalanche
             // SyncPageListSelection helper today. The guard avoids re-entering the selection
             // handler when the list already agrees.
             if (pageIndex < 0 || PageList is null) return;
-            // While the reading navigator is open, the page list highlights the whole
-            // reading range (plus the page you are on) instead of the single page.
+            // While the reading navigator is open, the page list paints the whole
+            // reading range - and the selection still follows the page the way it
+            // always has, because the range paint no longer lives in the
+            // selection state (it is a flag on the item VM now).
             if (_summaryWindow is { IsVisible: true } summaryWindow
                 && summaryWindow.TryGetVisibleRange(out int rangeFirst, out int rangeLast))
             {
                 ApplyPageRangeHighlight(rangeFirst, rangeLast);
-                return;
             }
 
             if (PageList.SelectedIndex != pageIndex) PageList.SelectedIndex = pageIndex;

@@ -952,13 +952,14 @@ namespace Avalanche
         private bool _summaryHighlighting;
         private bool _summaryHighlightQueued;
 
-        // Every selection change the highlight does not make itself - paging, the
-        // scroll-driven sync, a click, a pane switch - collapses the list back to a
-        // single selection, and with the navigator open that would read as "the
-        // range highlight fell off after one page turn". The re-assert is queued at
-        // Normal priority, so the collapse is repaired in the same dispatcher round
-        // and never reaches the screen. With no navigator open nothing runs: the
-        // reader's own multi-select in the sidebar stays untouched.
+        // The range highlight lives on the item VMs (IsInRange), so selection
+        // changes can no longer touch it. This re-assert still runs on every
+        // selection change for the two jobs left: re-seating the flags after
+        // anything that rebuilt the list's ItemsSource (a re-assign clears the
+        // old VMs' paint with the old selection), and keeping the summary
+        // window's pages-left counter live as the reader moves. Queued at Normal
+        // priority, so it lands in the same dispatcher round and never reaches
+        // the screen late. With no navigator open nothing runs.
         private void QueueSummaryHighlightRefresh()
         {
             if (_summaryHighlightQueued || _summaryWindow is null)
@@ -1006,21 +1007,24 @@ namespace Avalanche
 
             int firstIdx = Math.Clamp(first - 1, 0, count - 1);
             int lastIdx = Math.Clamp(last - 1, 0, count - 1);
-            int current = Math.Clamp(_currentPage, 0, count - 1);
             _summaryHighlighting = true;
             try
             {
-                PageList.SelectedItems.Clear();
-                // The "you are here" marker rides along when the reader scrolled
-                // outside the range; inside it, the range itself is the marker.
-                if (current < firstIdx || current > lastIdx)
+                // Paint the range on the items themselves, not on the list's
+                // selection: selection is written by a dozen independent paths
+                // (scroll sync, pane restore, paging, the reader's own click) and
+                // every one of them wiped a SelectedItems-based highlight back
+                // down to a single green page. A VM flag cannot be collapsed by a
+                // selection write. The "you are here" marker needs no ride-along
+                // either - the selection already follows the reader's page through
+                // its own paths, so the whole range shows green with the current
+                // page's selection state layered on top.
+                for (int i = 0; i < count; i++)
                 {
-                    PageList.SelectedIndex = current;
-                }
-
-                for (int i = firstIdx; i <= lastIdx; i++)
-                {
-                    PageList.SelectedItems.Add(PageList.Items[i]);
+                    if (PageList.Items[i] is PageThumbnailVm vm)
+                    {
+                        vm.IsInRange = i >= firstIdx && i <= lastIdx;
+                    }
                 }
             }
             finally
@@ -1039,7 +1043,15 @@ namespace Avalanche
             _summaryHighlighting = true;
             try
             {
-                PageList.SelectedIndex = Math.Clamp(_currentPage, 0, PageList.Items.Count - 1);
+                // Selection stays exactly where the reader is - clearing the
+                // range only undoes the paint, it does not move the mark.
+                for (int i = 0; i < PageList.Items.Count; i++)
+                {
+                    if (PageList.Items[i] is PageThumbnailVm vm)
+                    {
+                        vm.IsInRange = false;
+                    }
+                }
             }
             finally
             {

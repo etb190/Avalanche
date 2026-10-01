@@ -107,6 +107,10 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Width" Value="36"/>
             <Setter Property="Height" Value="32"/>
+            <!-- Center, not stretch: the captioned buttons auto-size around
+                 their overflow-menu padding and set the bar's height; the fixed-
+                 32px buttons ride that height on its midline. -->
+            <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -215,6 +219,10 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Width" Value="36"/>
             <Setter Property="Height" Value="32"/>
+            <!-- Center, not stretch: the captioned buttons auto-size around
+                 their overflow-menu padding and set the bar's height; the fixed-
+                 32px buttons ride that height on its midline. -->
+            <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
@@ -881,6 +889,15 @@
                                               VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <!-- The reading navigator's range paint: every page of the
+                                 summary window's reading range, painted from the item
+                                 VM's IsInRange flag - NOT from ListBox selection, which
+                                 a dozen programmatic writers collapse at will. Painted
+                                 first so hover and the current page's own selection
+                                 state still read on top of it. -->
+                            <DataTrigger Binding="{Binding IsInRange}" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                            </DataTrigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
                             </Trigger>
@@ -1553,11 +1570,21 @@
                         <Button x:Name="MergeBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="{DynamicResource Str_TT_MergePDFs}"/>
                         <Button x:Name="ExtractBtn" Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="{DynamicResource Str_TT_ExtractPages}"/>
                     </StackPanel>
+                    <StackPanel x:Name="GrpPageEdit" Orientation="Horizontal">
+                        <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
+                        <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="{DynamicResource Str_TT_DeletePages}"/>
+                        <Button Content="&#xE74A;" Style="{StaticResource ToolbarButton}" Click="MoveUp_Click" ToolTip="{DynamicResource Str_TT_MovePageUp}"/>
+                        <Button Content="&#xE74B;" Style="{StaticResource ToolbarButton}" Click="MoveDown_Click" ToolTip="{DynamicResource Str_TT_MovePageDown}"/>
+                    </StackPanel>
                     <!-- The Tools switch: reveals or hides the extended toolbar set.
-                         Sits right after Extract pages, stays visible in both modes. -->
+                         Sits right after Move page down (the reader's placement),
+                         stays visible in both modes. -->
                     <StackPanel x:Name="GrpToolsToggle" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <Button x:Name="ToolsBtn" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" Padding="0"
+                        <!-- Same inset as the overflow menu rows (Add image & friends):
+                             8px of air either side of the content, 5px above and below,
+                             and the button sized by its content instead of a fixed 36x32. -->
+                        <Button x:Name="ToolsBtn" Style="{StaticResource ToolbarButton}" Click="ToolsBtn_Click" Padding="8,5" Width="Auto" Height="Auto"
                                 ToolTip="{DynamicResource Str_TT_Tools}">
                             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                                 <Grid Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -1574,13 +1601,6 @@
                                            HorizontalAlignment="Center" Margin="0,1,0,0"/>
                             </StackPanel>
                         </Button>
-                    </StackPanel>
-
-                    <StackPanel x:Name="GrpPageEdit" Orientation="Horizontal">
-                        <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
-                        <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="{DynamicResource Str_TT_DeletePages}"/>
-                        <Button Content="&#xE74A;" Style="{StaticResource ToolbarButton}" Click="MoveUp_Click" ToolTip="{DynamicResource Str_TT_MovePageUp}"/>
-                        <Button Content="&#xE74B;" Style="{StaticResource ToolbarButton}" Click="MoveDown_Click" ToolTip="{DynamicResource Str_TT_MovePageDown}"/>
                     </StackPanel>
                 </StackPanel>
                 <!-- Edit tools + zoom -->
@@ -1627,7 +1647,7 @@
                              (16px read visibly smaller). Padding=0 lets the caption
                              fit inside the standard 32px button height. -->
                         <Button x:Name="AiChatBtn" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
-                                Padding="0">
+                                Padding="8,5" Width="Auto" Height="Auto">
                             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                                 <ctrl:RobotIcon Width="18" Height="18" Foreground="{DynamicResource TextBrush}" HorizontalAlignment="Center"/>
                                 <TextBlock Text="{DynamicResource Str_AiChatCaption}"
@@ -1637,7 +1657,7 @@
                             </StackPanel>
                         </Button>
                         <Button x:Name="SummarizeBtn" Style="{StaticResource ToolbarButton}" Click="SummarizeBtn_Click" MouseRightButtonUp="SummarizeBtn_RightClick" ToolTip="{DynamicResource Str_TT_Summarize}"
-                                Padding="0">
+                                Padding="8,5" Width="Auto" Height="Auto">
                             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
                                 <!-- Summary: a digest page - a sheet with its text
                                      condensed to a few lines, the last one short.
@@ -1943,7 +1963,7 @@
                                 </LinearGradientBrush>
                             </Border.OpacityMask>
                             <ListBox x:Name="PageList" Style="{StaticResource PageListBox}"
-                                 BorderThickness="0" SelectionMode="Extended"
+                                 BorderThickness="0" SelectionMode="Extended" Cursor="Hand"
                                  VirtualizingPanel.IsVirtualizing="True"
                                  VirtualizingPanel.VirtualizationMode="Recycling"
                                  VirtualizingPanel.ScrollUnit="Pixel"

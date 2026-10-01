@@ -1139,7 +1139,7 @@ namespace Avalanche
         // ------------------------------------------------------------------
         // Tools mode. The toolbar shows ONE set at a time: the reader's everyday
         // set by default, the extended set while the Tools switch (left bar, right
-        // after Extract pages) is on - and the choice is remembered across sessions.
+        // after Move page down) is on - and the choice is remembered across sessions.
         // ------------------------------------------------------------------
         private bool _toolsMode;
 
