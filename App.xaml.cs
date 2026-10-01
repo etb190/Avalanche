@@ -82,13 +82,16 @@ namespace Avalanche
             AppDomain.CurrentDomain.UnhandledException      += OnDomainException;
             TaskScheduler.UnobservedTaskException           += OnUnobservedTaskException;
 
-            // Persistent render-mode policy (settings.json "render.mode"). SOFTWARE is the
-            // default: software rendering has no D3D device to lose, so the entire
-            // black-surface bug family (minimize/restore, monitor power, GPU TDR, HDR
-            // toggles) becomes structurally impossible instead of repaired after the
-            // fact. Hardware mode stays available for maximum compositing smoothness and
-            // is then guarded by SurfaceHealth's self-healing probes. Session-only CLI
-            // overrides: --hw-render / --sw-render.
+            // Persistent render-mode policy (settings.json "render.mode"). HARDWARE is
+            // the default as of v1.8.84. The forced-software era is over - field data
+            // (eight escalations in a single day, all COMException 0x88980406
+            // UCEERR_RENDERTHREADFAILURE) proved that the software HwndTarget's
+            // restore/resize path is the real killer, while SurfaceHealth's own rescue
+            // step (a SoftwareOnly->Default toggle, i.e. INTO hardware) recovered 8/8.
+            // The device-loss family software was meant to avoid is exactly the class
+            // SurfaceHealth was originally built to heal, and the v1.8.83 auto-restart
+            // net covers anything the ladder cannot. Software stays available via an
+            // explicit settings.json "render.mode"="software" or --sw-render.
             string renderMode;
             if (e.Args.Any(a => string.Equals(a, "--hw-render", StringComparison.OrdinalIgnoreCase)))
             {
@@ -100,7 +103,7 @@ namespace Avalanche
             }
             else
             {
-                renderMode = AppDataPaths.GetSetting("render.mode") ?? "software";
+                renderMode = AppDataPaths.GetSetting("render.mode") ?? "hardware";
             }
 
             if (string.Equals(renderMode, "software", StringComparison.OrdinalIgnoreCase))
