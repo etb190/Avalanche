@@ -72,6 +72,7 @@ namespace Avalanche.Features.Summary
         private string _language = "English";
         private int _startPage = 1;     // the anchor: first page of the displayed range
         private bool _editing;          // the field is showing the bare start page for editing
+        private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
 
         public SummaryWindow(
             MainWindow owner,
@@ -101,8 +102,20 @@ namespace Avalanche.Features.Summary
                 CornerRadius = new CornerRadius(0),
                 UseAeroCaptionButtons = false
             });
-            // The title bar carries only the Avalanche wordmark - the body speaks for itself.
-            var frame = DialogChrome.Frame(this, owner, "Avalanche", Close, BodyRoot);
+            // The title bar: the wordmark, two digest-font chips before the close mark,
+            // a close mark squared to the wordmark's height, and a hairline under the
+            // whole bar separating it from the navigator's body.
+            var frame = DialogChrome.Frame(this, owner, "Avalanche", Close, BodyRoot,
+                titleBarExtras: new DialogChrome.TitleBarExtras
+                {
+                    BottomSeparator = true,
+                    CloseButtonSize = 24,
+                    BeforeClose = new UIElement[]
+                    {
+                        TitleChip("\uE8E8", "Str_SummaryFontUp", () => AdjustDigestFont(+1)),
+                        TitleChip("\uE8E9", "Str_SummaryFontDown", () => AdjustDigestFont(-1))
+                    }
+                });
             // The lower corner squares have no visible pixels (transparent halo over the rounded
             // card corners), so the OS passes clicks straight through and WindowChrome's
             // geometric band never fires there - the upper corners sit on the title-bar band
@@ -207,12 +220,15 @@ namespace Avalanche.Features.Summary
             SelectCombo(WordsCombo, _targetWords);
             SelectCombo(LangCombo, _language);
             ApplyReadingDirection();
+            DocBox.FontSize = _digestFont;
+            RestoreDigest();                    // the last digest of this book, if any
 
             Closed += (_, _) =>
             {
                 _closed = true;
                 _generation++;      // a run cancelled by the close can't repaint either
                 _cts?.Cancel();
+                SaveDigest();       // the digest stays with the book across sessions
                 PersistPlacement();
             };
 
@@ -251,6 +267,10 @@ namespace Avalanche.Features.Summary
             };
         }
 
+        /// <summary>Raised whenever the displayed range changes (a chip, an arrow, the
+        /// start field, Reset, restore-on-open) - MainWindow re-highlights the page list.</summary>
+        public event Action? RangeVisualChanged;
+
         /// <summary>True when this window already summarizes the given document
         /// (MainWindow reuses the instance instead of opening a second one).</summary>
         public bool DocumentPathEquals(string path)
@@ -283,6 +303,12 @@ namespace Avalanche.Features.Summary
             if (!string.IsNullOrEmpty(lang) && LanguageChoices.Contains(lang))
             {
                 _language = lang;
+            }
+
+            if (double.TryParse(AppDataPaths.GetSetting("summary.font"), NumberStyles.Float, CultureInfo.InvariantCulture, out double font)
+                && font >= 10 && font <= 24)
+            {
+                _digestFont = font;
             }
 
             // Reading position of THIS document: the anchor is remembered across
@@ -328,13 +354,13 @@ namespace Avalanche.Features.Summary
         private void ShowRange()
         {
             UpdateNavEnabled();
-            if (_editing)
+            if (!_editing)
             {
-                return;     // never stomp the bare start page mid-edit
+                int last = RangeEnd();
+                StartBox.Text = string.Create(CultureInfo.InvariantCulture, $"{_startPage}-{last}");
             }
 
-            int last = RangeEnd();
-            StartBox.Text = string.Create(CultureInfo.InvariantCulture, $"{_startPage}-{last}");
+            RangeVisualChanged?.Invoke();
         }
 
         // Arrows dim at the ends of the book: nothing to move onto there.
@@ -615,6 +641,7 @@ namespace Avalanche.Features.Summary
             // The status line stays factual: word and character count, nothing else.
             StatusText.Text = string.Format(
                 _loc("Str_SummaryCounts"), PageSummarizer.CountWords(_fullText), _fullText.Length);
+            SaveDigest();       // the digest survives the window, the app, the session
             _cts?.Dispose();
             _cts = null;
         }
@@ -634,6 +661,7 @@ namespace Avalanche.Features.Summary
             Overlay(null);
             StatusText.Text = string.Empty;
             SetStartPage(1);
+            SaveDigest();       // the reset was the reader's action: forget the digest
             SetBusy(false);
         }
 
@@ -679,6 +707,80 @@ namespace Avalanche.Features.Summary
                 OverlayText.Visibility = Visibility.Visible;
                 DocBox.Visibility = Visibility.Collapsed;
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Title-bar font chips + digest persistence
+        // ------------------------------------------------------------------
+
+        // One 24px title-bar square: the glyph rides the shared icon font, the tooltip
+        // is localized, and the click is taken in the tunnel so the bar's DragMove
+        // handler never mistakes a chip press for the start of a window move.
+        private Button TitleChip(string glyph, string tooltipKey, Action onClick)
+        {
+            var label = new TextBlock { FontSize = 11, Margin = new Thickness(0, -1, 0, 0), Text = glyph };
+            label.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
+            label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            var chip = new Button
+            {
+                Style = (Style)FindResource("SumTitleBtn"),
+                Content = label,
+                ToolTip = _loc(tooltipKey)
+            };
+            chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
+            return chip;
+        }
+
+        private void AdjustDigestFont(int direction)
+        {
+            _digestFont = Math.Clamp(_digestFont + direction, 10, 24);
+            DocBox.FontSize = _digestFont;
+            AppDataPaths.SetSetting("summary.font", _digestFont.ToString(CultureInfo.InvariantCulture));
+        }
+
+        // The generated digest belongs to the reader, not to the window: it is saved
+        // with the document and shown again on reopen (word count and all) until the
+        // reader generates another one or resets. Empty text clears the saved copy.
+        private void SaveDigest()
+        {
+            try
+            {
+                AppDataPaths.SetSetting("summary.digest." + _documentId, _fullText);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        private void RestoreDigest()
+        {
+            try
+            {
+                string text = AppDataPaths.GetSetting("summary.digest." + _documentId) ?? string.Empty;
+                if (text.Length == 0)
+                {
+                    return;
+                }
+
+                _fullText = text;
+                DocBox.SetValue(AiMarkdown.TextProperty, text);
+                StatusText.Text = string.Format(
+                    _loc("Str_SummaryCounts"), PageSummarizer.CountWords(text), text.Length);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        /// <summary>The range the navigator is showing right now, for the page list's
+        /// reading-range highlight. False once the window is gone.</summary>
+        public bool TryGetVisibleRange(out int first, out int last)
+        {
+            first = _startPage;
+            last = RangeEnd();
+            return !_closed && IsVisible;
         }
 
         // ------------------------------------------------------------------

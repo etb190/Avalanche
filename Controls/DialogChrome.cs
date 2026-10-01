@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -11,6 +12,18 @@ namespace Avalanche
     // title bar + grain), and BuildTitleBar (the Avalanche wordmark + red close button).
     internal static class DialogChrome
     {
+        // Optional title-bar customization a window can ask for (currently the reading
+        // navigator): a hairline under the bar, buttons docked left of the close mark,
+        // and a fixed square size for the close mark itself.
+        internal sealed class TitleBarExtras
+        {
+            public bool BottomSeparator { get; init; }
+            public IReadOnlyList<UIElement> BeforeClose { get; init; } = Array.Empty<UIElement>();
+
+            // 0 leaves the theme's DialogCloseWidth/Height in charge.
+            public double CloseButtonSize { get; init; }
+        }
+
         // Keep generated dialog captions on the same close mark as the main window.
         // E711 renders noticeably smaller inside the 18x16 Win98 caption face; E8BB is
         // the shared chrome glyph used by the main title bar and fills that face correctly.
@@ -38,7 +51,7 @@ namespace Avalanche
         //   fullTitle  - the complete title, e.g. "Avalanche - Transform"; the "Avalanche" part becomes the
         //                wordmark and the remainder (" - Transform") is rendered in the courier title font
         //   onClose    - invoked when the red close button is clicked (e.g. set a result then Close())
-        public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose)
+        public static Border BuildTitleBar(Window win, Window? owner, string? fullTitle, Action onClose, TitleBarExtras? extras = null)
         {
             // Transparent (not null) background so the WHOLE bar is hit-testable and acts as a drag handle.
             bool caption = Value(owner, "UseDialogCaption", false);
@@ -167,10 +180,47 @@ namespace Avalanche
             System.Windows.Shell.WindowChrome.SetIsHitTestVisibleInChrome(close, true);
             // Get the click before the caption's DragMove handler starts its modal mouse loop.
             close.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClose(); };
-            Grid.SetColumn(close, 1);
+            // Extras dock left of the close mark: one auto column each, close shifts right.
+            int extraCount = extras?.BeforeClose.Count ?? 0;
+            for (int i = 0; i < extraCount; i++)
+            {
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                UIElement extra = extras!.BeforeClose[i];
+                Grid.SetColumn(extra, i + 1);
+                grid.Children.Add(extra);
+            }
+
+            Grid.SetColumn(close, extraCount + 1);
             grid.Children.Add(close);
 
-            bar.Child = grid;
+            if (extras is { CloseButtonSize: > 0 })
+            {
+                // Local sizes override the DialogCloseWidth/Height resource references:
+                // the reading navigator squares the close mark to the wordmark's height.
+                close.Width = extras.CloseButtonSize;
+                close.Height = extras.CloseButtonSize;
+                close.VerticalAlignment = VerticalAlignment.Center;
+            }
+
+            if (extras?.BottomSeparator == true)
+            {
+                var host = new Grid();
+                host.Children.Add(grid);
+                host.Children.Add(new Border
+                {
+                    Height = 1,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    IsHitTestVisible = false,
+                    Background = Brush(owner, "CardBorderBrush", Brushes.Gray),
+                    Opacity = 0.85
+                });
+                bar.Child = host;
+            }
+            else
+            {
+                bar.Child = grid;
+            }
+
             return bar;
         }
 
@@ -253,7 +303,7 @@ namespace Avalanche
         // Standard dialog: content is inset from the same five-layer frame used by KillerNotes.
         public static UIElement Frame(
             Window win, Window? owner, string title, Action onClose, UIElement body,
-            Thickness? haloMargin = null)
+            Thickness? haloMargin = null, TitleBarExtras? titleBarExtras = null)
         {
             // A body declared as the window's XAML content is still the window's logical
             // child when its ctor hands it over (SummaryWindow v1.8.71 crash: "Specified
@@ -282,7 +332,7 @@ namespace Avalanche
             };
 
             var root = new DockPanel();
-            var titleBar = BuildTitleBar(win, owner, title, onClose);
+            var titleBar = BuildTitleBar(win, owner, title, onClose, titleBarExtras);
             titleBar.Height = Value(owner, "DialogTitleBarHeight", 40.0);
             DockPanel.SetDock(titleBar, Dock.Top);
             root.Children.Add(titleBar);

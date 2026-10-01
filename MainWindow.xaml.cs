@@ -940,6 +940,83 @@ namespace Avalanche
             Services.AppDataPaths.SetSetting("summary.win.top", string.Empty);
         }
 
+        // ---- Summary reading-range highlight in the page list ------------------------------
+        // While the navigator is open, the sidebar highlights every page of the reading
+        // range (plus the page you are on when you scrolled outside it); closed, the
+        // list returns to the default single-page selection. _summaryHighlighting keeps
+        // the list's navigation handler asleep while the range is applied.
+
+        private bool _summaryHighlighting;
+
+        private void RefreshSummaryPageHighlight()
+        {
+            if (PageList is null)
+            {
+                return;
+            }
+
+            if (_summaryWindow is { IsVisible: true } summaryWindow
+                && summaryWindow.TryGetVisibleRange(out int first, out int last))
+            {
+                ApplyPageRangeHighlight(first, last);
+            }
+            else
+            {
+                ClearPageRangeHighlight();
+            }
+        }
+
+        private void ApplyPageRangeHighlight(int first, int last)
+        {
+            int count = PageList.Items.Count;
+            if (count == 0)
+            {
+                return;
+            }
+
+            int firstIdx = Math.Clamp(first - 1, 0, count - 1);
+            int lastIdx = Math.Clamp(last - 1, 0, count - 1);
+            int current = Math.Clamp(_currentPage, 0, count - 1);
+            _summaryHighlighting = true;
+            try
+            {
+                PageList.SelectedItems.Clear();
+                // The "you are here" marker rides along when the reader scrolled
+                // outside the range; inside it, the range itself is the marker.
+                if (current < firstIdx || current > lastIdx)
+                {
+                    PageList.SelectedIndex = current;
+                }
+
+                for (int i = firstIdx; i <= lastIdx; i++)
+                {
+                    PageList.SelectedItems.Add(PageList.Items[i]);
+                }
+            }
+            finally
+            {
+                _summaryHighlighting = false;
+            }
+        }
+
+        private void ClearPageRangeHighlight()
+        {
+            if (PageList is null || PageList.Items.Count == 0)
+            {
+                return;
+            }
+
+            _summaryHighlighting = true;
+            try
+            {
+                PageList.SelectedIndex = Math.Clamp(_currentPage, 0, PageList.Items.Count - 1);
+            }
+            finally
+            {
+                _summaryHighlighting = false;
+            }
+        }
+
         private void OpenSummaryWindow()
         {
             if (string.IsNullOrEmpty(_currentFile) || _doc is null)
@@ -974,8 +1051,10 @@ namespace Avalanche
             // A window closed from its own title bar must not leave a stale reference
             // behind - the next toolbar click would poke a corpse (Activate on a
             // closed window throws).
+            summary.RangeVisualChanged += RefreshSummaryPageHighlight;
             summary.Closed += (_, _) =>
             {
+                RefreshSummaryPageHighlight();      // the page list returns to the single page
                 if (ReferenceEquals(_summaryWindow, summary))
                 {
                     _summaryWindow = null;
@@ -983,6 +1062,7 @@ namespace Avalanche
             };
             _summaryWindow = summary;
             summary.Show();
+            RefreshSummaryPageHighlight();          // open: highlight the reading range now
         }
 
         private void OpenAiChat()

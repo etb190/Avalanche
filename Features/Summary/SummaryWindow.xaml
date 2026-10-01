@@ -76,7 +76,8 @@
                 <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
                 <Setter Property="FontSize" Value="13"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Padding" Value="0,1,0,0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="TextBox">
@@ -100,24 +101,23 @@
                 </Setter>
             </Style>
 
-            <!-- Start and Reset: small pills under the stepper. With the two arrows they
-                 are the ONLY controls that may begin or end a generation. -->
+            <!-- Start and Reset: full-width faces under the stepper. With the two arrows
+                 they are the ONLY controls that may begin or end a generation. The face
+                 color comes from the instance (green to begin, blue to reset); hover and
+                 press dim the face so the white text keeps its contrast on both. -->
             <Style x:Key="SumActionBtn" TargetType="Button">
-                <Setter Property="Background" Value="Transparent"/>
-                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
                 <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
-                <Setter Property="FontSize" Value="11.5"/>
+                <Setter Property="FontSize" Value="12"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
-                <Setter Property="Height" Value="24"/>
-                <Setter Property="MinWidth" Value="66"/>
-                <Setter Property="Padding" Value="12,0"/>
+                <Setter Property="Height" Value="28"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="Button">
                             <Border x:Name="face" Background="{TemplateBinding Background}"
-                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
                                     CornerRadius="{DynamicResource ControlCornerRadius}"
                                     ToolTip="{TemplateBinding ToolTip}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -125,15 +125,42 @@
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="face" Property="Opacity" Value="0.88"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="face" Property="Opacity" Value="0.75"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.35"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Title-bar chips (digest font up/down): 24px squares matching the close
+                 mark's overridden size. The bar's DragMove must not eat their clicks, so
+                 code-behind takes them in the tunnel (PreviewMouseLeftButtonDown). -->
+            <Style x:Key="SumTitleBtn" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Width" Value="24"/>
+                <Setter Property="Height" Value="24"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="face" Background="{TemplateBinding Background}"
+                                    CornerRadius="{DynamicResource ControlCornerRadius}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
                                     <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
                                     <Setter TargetName="face" Property="Background" Value="{DynamicResource SelectionBg}"/>
-                                    <Setter TargetName="face" Property="BorderBrush" Value="{DynamicResource SelectionFg}"/>
-                                    <Setter Property="Foreground" Value="{DynamicResource SelectionFg}"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Opacity" Value="0.35"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -193,6 +220,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Row 0: the start-page stepper, centered as a unit: arrow, field, arrow.
@@ -214,20 +242,30 @@
             </Button>
         </StackPanel>
 
-        <!-- Row 1: Start and Reset, directly under the field they serve. -->
-        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Orientation="Horizontal" Margin="0,7,0,0">
-            <Button x:Name="StartBtn" Style="{StaticResource SumActionBtn}" Margin="0,0,6,0"
+        <!-- Row 1: Start and Reset, full width under the field they serve (window width
+             minus the outer margins and the gap between them): green to begin, blue to
+             return to square one. -->
+        <Grid Grid.Row="1" Margin="14,8,14,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="StartBtn" Grid.Column="0" Style="{StaticResource SumActionBtn}"
+                    Background="#FF2E7D32" BorderBrush="#FF1B5E20"
                     Content="{DynamicResource Str_SummaryStart}"
                     ToolTip="{DynamicResource Str_SummaryGo}"/>
-            <Button x:Name="ResetBtn" Style="{StaticResource SumActionBtn}"
+            <Button x:Name="ResetBtn" Grid.Column="2" Style="{StaticResource SumActionBtn}"
+                    Background="#FF1565C0" BorderBrush="#FF0D47A1"
                     Content="{DynamicResource Str_SummaryReset}"
                     ToolTip="{DynamicResource Str_SummaryReset}"/>
-        </StackPanel>
+        </Grid>
 
         <!-- Row 2: range chips (they reshape the displayed range only), then the word
              ceiling and the summary language - same face height as the chips; on narrow
              windows the dropdowns wrap to a second line instead of squeezing. -->
-        <WrapPanel Grid.Row="2" Margin="14,7,14,2" VerticalAlignment="Center">
+        <WrapPanel Grid.Row="2" Margin="14,7,14,2" VerticalAlignment="Center"
+                   HorizontalAlignment="Center">
             <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
                 <RadioButton x:Name="RangeChip1" Style="{StaticResource SumRangeChip}" Tag="1"/>
                 <RadioButton x:Name="RangeChip5" Style="{StaticResource SumRangeChip}" Tag="5"/>
@@ -261,8 +299,12 @@
                        Foreground="{DynamicResource MutedTextBrush}"/>
         </Grid>
 
-        <!-- Row 4: status line - progress while generating, word/character counts after -->
-        <TextBlock Grid.Row="4" x:Name="StatusText" Margin="14,4,14,12" VerticalAlignment="Center"
+        <!-- Row 4: hairline separating the word/character counts from the digest. -->
+        <Rectangle Grid.Row="4" Height="1" Fill="{DynamicResource CardBorderBrush}"
+                   Margin="14,5,14,0" Opacity="0.85"/>
+
+        <!-- Row 5: status line - progress while generating, word/character counts after -->
+        <TextBlock Grid.Row="5" x:Name="StatusText" Margin="14,4,14,12" VerticalAlignment="Center"
                    FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
                    FontFamily="{DynamicResource UiFont}"
                    Foreground="{DynamicResource MutedTextBrush}"/>

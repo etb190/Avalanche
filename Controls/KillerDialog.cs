@@ -84,8 +84,7 @@ namespace Avalanche
             {
                 var wm = new StackPanel { Orientation = Orientation.Horizontal };
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-                wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
-                wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 19.5, Foreground = R("AccentLogo") });
+                wmTb.Inlines.Add(new System.Windows.Documents.Run("Avalanche") { FontFamily = UiKit.UiFont, FontWeight = FontWeights.Bold, FontSize = 16.5, Foreground = R("AccentLogo") });
                 if (title.Length > "Avalanche".Length)
                     wmTb.Inlines.Add(new System.Windows.Documents.Run("  " + title["Avalanche".Length..].TrimStart())
                     {
@@ -252,8 +251,7 @@ namespace Avalanche
             if (title == "Avalanche")
             {
                 var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-                wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
-                wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 19.5, Foreground = R("AccentLogo") });
+                wmTb.Inlines.Add(new System.Windows.Documents.Run("Avalanche") { FontFamily = UiKit.UiFont, FontWeight = FontWeights.Bold, FontSize = 16.5, Foreground = R("AccentLogo") });
                 titleBar.Child = wmTb;
             }
             else
@@ -399,8 +397,7 @@ namespace Avalanche
             titleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
             var wm = new StackPanel { Orientation = Orientation.Horizontal };
             var wmTb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
-            wmTb.Inlines.Add(new System.Windows.Documents.Run("Killer") { FontFamily = UiKit.WordmarkFont, FontWeight = FontWeights.Normal, FontSize = 15, Foreground = R("TextBrush") });
-            wmTb.Inlines.Add(new System.Windows.Documents.Run("PDF") { FontFamily = UiKit.WordmarkFontPdf, FontWeight = FontWeights.Bold, FontSize = 18, Foreground = R("AccentLogo") });
+            wmTb.Inlines.Add(new System.Windows.Documents.Run("Avalanche") { FontFamily = UiKit.UiFont, FontWeight = FontWeights.Bold, FontSize = 16.5, Foreground = R("AccentLogo") });
             wm.Children.Add(wmTb);
             titleBar.Child = wm;
             if (Application.Current.TryFindResource("UseDialogCaption") is true)

@@ -106,7 +106,10 @@ namespace Avalanche
         private void PageJumpBox_KeyDown(object sender, KeyEventArgs e) => ActiveViewer.PageJumpBoxKeyDownExt(sender, e);
         private void PageJumpBox_GotFocus(object sender, RoutedEventArgs e) => ActiveViewer.PageJumpBoxGotFocusExt(sender, e);
         private void PageList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-            => ActiveViewer.PageListSelectionChangedExt(sender, e);
+        {
+            if (_summaryHighlighting) return;   // programmatic range highlight, not a user pick
+            ActiveViewer.PageListSelectionChangedExt(sender, e);
+        }
         private void ShortcutHelp_Click(object sender, RoutedEventArgs e) => ActiveViewer.ShortcutHelpClickExt(sender, e);
         private void ShortcutOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
             => FadeOverlayOut(ShortcutOverlay);

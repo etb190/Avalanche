@@ -1163,6 +1163,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">開始</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
+	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
+	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} 語 / {1} 文字</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} ページから {0} 文字を抽出しました</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">ページ {0} にテキスト層がありません。先にOCRを実行してから、再試行してください。</sys:String>

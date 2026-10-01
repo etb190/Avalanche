@@ -1149,6 +1149,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Starten</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
+	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
+	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} Wörter / {1} Zeichen</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} Zeichen aus Seiten {1}-{2} extrahiert</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Seiten {0} haben keine Textebene. Führen Sie zuerst OCR darauf aus und versuchen Sie es erneut.</sys:String>
