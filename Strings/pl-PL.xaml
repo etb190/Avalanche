@@ -1154,9 +1154,11 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Narzędzia</sys:String>
-	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Zamknij narzędzia</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Pokaż lub ukryj rozszerzony zestaw narzędzi</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} słów / {1} znaków</sys:String>
+	<sys:String x:Key="Str_SummaryPagesLeft">pozostało {0} str.</sys:String>
+	<sys:String x:Key="Str_ChatEmptyTitle">Porozmawiaj ze swoim dokumentem</sys:String>
+	<sys:String x:Key="Str_ChatEmptySubtitle">Zapytaj o cokolwiek w tym dokumencie - streszczenia, wyjaśnienia, tłumaczenia. AI przeczytała każdą stronę.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Wyodrębniono {0} znaków ze stron {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Strony {0} nie mają warstwy tekstu. Najpierw uruchom na nich OCR, a następnie spróbuj ponownie.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

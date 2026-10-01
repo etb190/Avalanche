@@ -1153,9 +1153,11 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Eszközök</sys:String>
-	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Eszközök bezárása</sys:String>
 	<sys:String x:Key="Str_TT_Tools">A kibővített eszközkészlet megjelenítése vagy elrejtése</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} szó / {1} karakter</sys:String>
+	<sys:String x:Key="Str_SummaryPagesLeft">{0} oldal van hátra</sys:String>
+	<sys:String x:Key="Str_ChatEmptyTitle">Beszélgess a dokumentumoddal</sys:String>
+	<sys:String x:Key="Str_ChatEmptySubtitle">Kérdezz bármit a dokumentumról - összefoglalók, magyarázatok, fordítások. Az AI minden oldalt elolvasott.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} karakter kinyerve a(z) {1}-{2}. oldalakról</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">A(z) {0} oldalakon nincs szövegréteg. Először futtasson rajtuk OCR-t, majd próbálja újra.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

@@ -101,16 +101,25 @@ namespace Avalanche
 
     /// <summary>
     /// Converts an integer count to Visibility (Visible if > 0, Collapsed otherwise).
+    /// A "invert" parameter flips the answer (Visible exactly when the count is 0),
+    /// which is what the chat's empty-state invitation binds to.
     /// </summary>
     internal sealed class CountToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            if (value is int count)
-                return count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            if (value is long lcount)
-                return lcount > 0 ? Visibility.Visible : Visibility.Collapsed;
-            return Visibility.Collapsed;
+            bool present = value switch
+            {
+                int count => count > 0,
+                long lcount => lcount > 0,
+                _ => false
+            };
+            if (string.Equals(parameter as string, "invert", StringComparison.OrdinalIgnoreCase))
+            {
+                present = !present;
+            }
+
+            return present ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

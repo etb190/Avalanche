@@ -1148,9 +1148,11 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">工具</sys:String>
-	<sys:String x:Key="Str_ToolbarToolsCloseCaption">關閉工具</sys:String>
 	<sys:String x:Key="Str_TT_Tools">顯示或隱藏延伸工具集</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} 詞 / {1} 字元</sys:String>
+	<sys:String x:Key="Str_SummaryPagesLeft">剩餘 {0} 頁</sys:String>
+	<sys:String x:Key="Str_ChatEmptyTitle">與你的文件對話</sys:String>
+	<sys:String x:Key="Str_ChatEmptySubtitle">關於這份文件，想到什麼就問 - 摘要、解釋、翻譯，AI 已讀過每一頁。</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">已從第 {1}-{2} 頁提取 {0} 個字元</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">第 {0} 頁沒有文字層。請先對這些頁面執行 OCR，然後重試。</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

@@ -1166,9 +1166,11 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Outils</sys:String>
-	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Fermer les outils</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Afficher ou masquer les outils étendus</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} mots / {1} caractères</sys:String>
+	<sys:String x:Key="Str_SummaryPagesLeft">{0} pages restantes</sys:String>
+	<sys:String x:Key="Str_ChatEmptyTitle">Discutez avec votre document</sys:String>
+	<sys:String x:Key="Str_ChatEmptySubtitle">Posez toutes vos questions sur ce document - résumés, explications, traductions. L'IA a lu chaque page.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} caractères extraits des pages {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Les pages {0} n'ont pas de couche de texte. Exécutez d'abord l'OCR dessus, puis réessayez.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

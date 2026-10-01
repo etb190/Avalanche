@@ -1152,9 +1152,11 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Werkzeuge</sys:String>
-	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Werkzeuge schließen</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Erweiterte Werkzeuge ein- oder ausblenden</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} Wörter / {1} Zeichen</sys:String>
+	<sys:String x:Key="Str_SummaryPagesLeft">noch {0} Seiten</sys:String>
+	<sys:String x:Key="Str_ChatEmptyTitle">Sprich mit deinem Dokument</sys:String>
+	<sys:String x:Key="Str_ChatEmptySubtitle">Frag alles zu diesem Dokument - Zusammenfassungen, Erklärungen, Übersetzungen. Die KI hat jede Seite gelesen.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} Zeichen aus Seiten {1}-{2} extrahiert</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Seiten {0} haben keine Textebene. Führen Sie zuerst OCR darauf aus und versuchen Sie es erneut.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

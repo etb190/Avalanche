@@ -1146,9 +1146,11 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Araçlar</sys:String>
-	<sys:String x:Key="Str_ToolbarToolsCloseCaption">Araçları kapat</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Genişletilmiş araç setini göster veya gizle</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} kelime / {1} karakter</sys:String>
+	<sys:String x:Key="Str_SummaryPagesLeft">{0} sayfa kaldı</sys:String>
+	<sys:String x:Key="Str_ChatEmptyTitle">Belgenle sohbet et</sys:String>
+	<sys:String x:Key="Str_ChatEmptySubtitle">Bu belge hakkında her şeyi sor - özetler, açıklamalar, çeviriler. YZ her sayfayı okudu.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Sayfa {1}-{2} içinden {0} karakter çıkarıldı</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">{0} sayfalarının metin katmanı yok. Önce bunlarda OCR çalıştırın, sonra yeniden deneyin.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

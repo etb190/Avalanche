@@ -950,6 +950,29 @@ namespace Avalanche
         // the list's navigation handler asleep while the range is applied.
 
         private bool _summaryHighlighting;
+        private bool _summaryHighlightQueued;
+
+        // Every selection change the highlight does not make itself - paging, the
+        // scroll-driven sync, a click, a pane switch - collapses the list back to a
+        // single selection, and with the navigator open that would read as "the
+        // range highlight fell off after one page turn". The re-assert is queued at
+        // Normal priority, so the collapse is repaired in the same dispatcher round
+        // and never reaches the screen. With no navigator open nothing runs: the
+        // reader's own multi-select in the sidebar stays untouched.
+        private void QueueSummaryHighlightRefresh()
+        {
+            if (_summaryHighlightQueued || _summaryWindow is null)
+            {
+                return;
+            }
+
+            _summaryHighlightQueued = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
+            {
+                _summaryHighlightQueued = false;
+                RefreshSummaryPageHighlight();
+            }));
+        }
 
         private void RefreshSummaryPageHighlight()
         {
@@ -957,6 +980,10 @@ namespace Avalanche
             {
                 return;
             }
+
+            // The pages-left readout rides along with every visual refresh: it counts
+            // from the viewer's live page, which any of these paths may have moved.
+            _summaryWindow?.NotifyViewerPageChanged();
 
             if (_summaryWindow is { IsVisible: true } summaryWindow
                 && summaryWindow.TryGetVisibleRange(out int first, out int last))

@@ -1137,20 +1137,36 @@ namespace Avalanche
         internal void InvalidateToolbarReflow() => _lastReflowWidth = -1;
 
         // ------------------------------------------------------------------
-        // Tools mode. The default toolbar shows the reader's everyday set only;
-        // the Tools switch (left bar, right after Extract pages) reveals the
-        // extended set - and the choice is remembered across sessions.
+        // Tools mode. The toolbar shows ONE set at a time: the reader's everyday
+        // set by default, the extended set while the Tools switch (left bar, right
+        // after Extract pages) is on - and the choice is remembered across sessions.
         // ------------------------------------------------------------------
         private bool _toolsMode;
 
-        // Toolbar elements hidden on the default view. GrpToolsToggle (the switch
-        // itself) is exempt - it must stay reachable to toggle back.
+        // The two faces of the toolbar are mutually exclusive - the switch shows
+        // one OR the other, never both at once ("only one set of things at once,
+        // either default or tools").
+        //
+        // Elements of the extended set: on the bar only while Tools is on.
+        // GrpToolsToggle (the switch itself) lives in neither list - it stays
+        // reachable in both modes, or there would be no way back.
         private static readonly string[] ToolsModeElements =
         {
             "NewFileBtn", "OcrBtn", "OcrMenuBtn", "SaveFlattenedBtn", "PrintBtn",
             "GrpCompare", "GrpPageOps", "GrpPageEdit",
             "GrpSignature", "ToolCropBtn", "ToolRotateBtn", "ToolMeasureBtn",
             "ToolStampBtn", "GrpFormField"
+        };
+
+        // Elements of the default everyday set: on the bar only while Tools is off.
+        // Same shape as ToolsModeElements - Close/Open/Save (with their split
+        // chevrons) on the left bar, the reader's tool row (Select through Add
+        // Image) plus Undo/Clear/Search/Chat/Summary on the right.
+        private static readonly string[] DefaultModeElements =
+        {
+            "CloseFileBtn", "OpenFileBtn", "OpenRecentBtn", "SaveAsBtn", "SaveMenuBtn",
+            "ToolSelectBtn", "ToolTextBtn", "ToolHighlightBtn", "ToolUnderlineBtn",
+            "ToolShapeBtn", "ToolDrawBtn", "ToolImageBtn", "GrpUndo"
         };
 
         // Reflow order entries whose popup mirrors must never surface while the
@@ -1161,6 +1177,19 @@ namespace Avalanche
             ReferenceEquals(bar, GrpPageEdit) || ReferenceEquals(bar, GrpSignature) ||
             ReferenceEquals(bar, GrpFormField) || ReferenceEquals(bar, ToolCropBtn) ||
             ReferenceEquals(bar, ToolMeasureBtn) || ReferenceEquals(bar, ToolStampBtn);
+
+        // Reflow-order entries that belong to the default everyday set (see
+        // DefaultModeElements): the reflow must not resurrect them in Tools mode.
+        private bool IsDefaultGroup(UIElement bar) =>
+            ReferenceEquals(bar, GrpUndo) || ReferenceEquals(bar, ToolTextBtn) ||
+            ReferenceEquals(bar, ToolHighlightBtn) || ReferenceEquals(bar, ToolUnderlineBtn) ||
+            ReferenceEquals(bar, ToolShapeBtn) || ReferenceEquals(bar, ToolDrawBtn) ||
+            ReferenceEquals(bar, ToolImageBtn);
+
+        // The visibility law of the bar: in default mode the extended set is off
+        // it, in Tools mode the default set is - one set on the bar, never two.
+        private bool IsModeHidden(UIElement bar) =>
+            (!_toolsMode && IsToolsGroup(bar)) || (_toolsMode && IsDefaultGroup(bar));
 
         private void ToolsBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -1187,7 +1216,16 @@ namespace Avalanche
                     el.Visibility = _toolsMode ? Visibility.Visible : Visibility.Collapsed;
                 }
             }
-            ToolsBtnCaption.Text = Loc(_toolsMode ? "Str_ToolbarToolsCloseCaption" : "Str_ToolbarToolsCaption");
+            // The switch reads "Tools" in both modes - the state lives in what the
+            // bar shows, not in the caption (the reader's call). The XAML's
+            // DynamicResource keeps it localized without code help.
+            foreach (string name in DefaultModeElements)
+            {
+                if (FindName(name) is FrameworkElement el)
+                {
+                    el.Visibility = _toolsMode ? Visibility.Collapsed : Visibility.Visible;
+                }
+            }
         }
 
         private void QueueReflowToolbar()
@@ -1263,10 +1301,10 @@ namespace Avalanche
                 };
 
                 // Start fully expanded (everything in the bar, nothing in the popup) -
-                // except the groups the Tools mode keeps off the default view.
+                // except the groups the current mode keeps off the bar (see IsModeHidden).
                 foreach (var (grp, items) in order)
                 {
-                    grp.Visibility = !_toolsMode && IsToolsGroup(grp) ? Visibility.Collapsed : Visibility.Visible;
+                    grp.Visibility = IsModeHidden(grp) ? Visibility.Collapsed : Visibility.Visible;
                     foreach (var it in items) it.Visibility = Visibility.Collapsed;
                 }
                 MeasureToolbarBars();
@@ -1307,7 +1345,7 @@ namespace Avalanche
                     foreach (var (grp, items) in order)
                     {
                         if (ReferenceEquals(grp, activeToolBar)) continue;   // never collapse the active tool
-                        if (!_toolsMode && IsToolsGroup(grp)) continue;      // hidden by Tools mode: never in the popup
+                        if (IsModeHidden(grp)) continue;      // mode-hidden set: never in the popup
                         grp.Visibility = Visibility.Collapsed;          // pull this group out of the bar
                         foreach (var it in items) it.Visibility = Visibility.Visible;  // ...into the popup
                         MeasureToolbarBars();
@@ -1331,7 +1369,7 @@ namespace Avalanche
                 }
 
                 bool anyCollapsed = order.Any(o => o.bar.Visibility != Visibility.Visible
-                                                   && !(!_toolsMode && IsToolsGroup(o.bar)));
+                                                   && !IsModeHidden(o.bar));
                 OverflowChevron.Visibility = anyCollapsed ? Visibility.Visible : Visibility.Collapsed;
                 if (!anyCollapsed) OverflowChevron.IsChecked = false;
 

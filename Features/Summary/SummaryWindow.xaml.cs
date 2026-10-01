@@ -112,8 +112,12 @@ namespace Avalanche.Features.Summary
                     CloseButtonSize = 24,
                     BeforeClose = new UIElement[]
                     {
-                        TitleChip("\uE8E8", "Str_SummaryFontUp", () => AdjustDigestFont(+1)),
-                        TitleChip("\uE8E9", "Str_SummaryFontDown", () => AdjustDigestFont(-1))
+                        // The pair the reader asked for: minus on the left, a clear gap
+                        // between the two, and the increase chip on the right, nearest
+                        // the close mark. Plain + and - faces (E710 Add / E738 Remove),
+                        // not font glyphs.
+                        TitleChip("\uE738", "Str_SummaryFontDown", () => AdjustDigestFont(-1), new Thickness(0, 0, 6, 0)),
+                        TitleChip("\uE710", "Str_SummaryFontUp", () => AdjustDigestFont(+1))
                     }
                 });
             // The lower corner squares have no visible pixels (transparent halo over the rounded
@@ -349,6 +353,19 @@ namespace Avalanche.Features.Summary
             return Math.Min(_startPage + _rangePages - 1, _pageCount);
         }
 
+        // The right end of the status line: pages remaining before the range's last
+        // page - counted from the page the viewer is sitting on right now, shown as
+        // "[X] pages left". The page provider is read live, so the count tracks the
+        // reading as it happens; MainWindow pokes NotifyViewerPageChanged on every
+        // page move, and every range repaint re-runs it here.
+        private void UpdatePagesLeft()
+        {
+            int current = Math.Clamp(_currentPageProvider() + 1, 1, _pageCount);
+            int left = Math.Max(0, RangeEnd() - current);
+            PagesLeftText.Text = string.Format(
+                _loc("Str_SummaryPagesLeft"), left.ToString(CultureInfo.InvariantCulture));
+        }
+
         // The field's at-rest face: the page range the next digest will cover, e.g.
         // "41-80". The range appears nowhere else in the window - the field IS it.
         private void ShowRange()
@@ -360,6 +377,7 @@ namespace Avalanche.Features.Summary
                 StartBox.Text = string.Create(CultureInfo.InvariantCulture, $"{_startPage}-{last}");
             }
 
+            UpdatePagesLeft();
             RangeVisualChanged?.Invoke();
         }
 
@@ -716,7 +734,7 @@ namespace Avalanche.Features.Summary
         // One 24px title-bar square: the glyph rides the shared icon font, the tooltip
         // is localized, and the click is taken in the tunnel so the bar's DragMove
         // handler never mistakes a chip press for the start of a window move.
-        private Button TitleChip(string glyph, string tooltipKey, Action onClick)
+        private Button TitleChip(string glyph, string tooltipKey, Action onClick, Thickness? margin = null)
         {
             var label = new TextBlock { FontSize = 12, Margin = new Thickness(0, -1, 0, 0), Text = glyph };
             label.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
@@ -725,6 +743,7 @@ namespace Avalanche.Features.Summary
             {
                 Style = (Style)FindResource("SumTitleBtn"),
                 Content = label,
+                Margin = margin ?? new Thickness(0),
                 ToolTip = _loc(tooltipKey)
             };
             chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
@@ -790,6 +809,10 @@ namespace Avalanche.Features.Summary
             last = RangeEnd();
             return !_closed && IsVisible;
         }
+
+        /// <summary>The viewer moved to another page (MainWindow pokes this from the
+        /// page list's selection changes): the pages-left counter recomputes at once.</summary>
+        public void NotifyViewerPageChanged() => UpdatePagesLeft();
 
         // ------------------------------------------------------------------
         // Placement persistence

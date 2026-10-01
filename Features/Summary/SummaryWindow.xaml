@@ -307,10 +307,22 @@
         <Rectangle Grid.Row="4" Height="1" Fill="{DynamicResource CardBorderBrush}"
                    Margin="14,5,14,0" Opacity="0.85"/>
 
-        <!-- Row 5: status line - progress while generating, word/character counts after -->
-        <TextBlock Grid.Row="5" x:Name="StatusText" Margin="14,4,14,12" VerticalAlignment="Center"
-                   FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
-                   FontFamily="{DynamicResource UiFont}"
-                   Foreground="{DynamicResource MutedTextBrush}"/>
+        <!-- Row 5: status line - progress while generating, word/character counts
+             after; the right end belongs to the reading itself: how many pages are
+             left before the range's last page. -->
+        <Grid Grid.Row="5" Margin="14,4,14,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" x:Name="StatusText" VerticalAlignment="Center"
+                       FontSize="11" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                       FontFamily="{DynamicResource UiFont}"
+                       Foreground="{DynamicResource MutedTextBrush}"/>
+            <TextBlock Grid.Column="1" x:Name="PagesLeftText" Margin="12,0,0,0" VerticalAlignment="Center"
+                       FontSize="11" TextWrapping="NoWrap"
+                       FontFamily="{DynamicResource UiFont}"
+                       Foreground="{DynamicResource MutedTextBrush}"/>
+        </Grid>
     </Grid>
 </Window>

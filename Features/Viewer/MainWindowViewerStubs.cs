@@ -109,6 +109,7 @@ namespace Avalanche
         {
             if (_summaryHighlighting) return;   // programmatic range highlight, not a user pick
             ActiveViewer.PageListSelectionChangedExt(sender, e);
+            QueueSummaryHighlightRefresh();     // the reading-range highlight survives every selection change
         }
         private void ShortcutHelp_Click(object sender, RoutedEventArgs e) => ActiveViewer.ShortcutHelpClickExt(sender, e);
         private void ShortcutOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
