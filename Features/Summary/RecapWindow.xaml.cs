@@ -49,6 +49,21 @@ namespace Avalanche.Features.Summary
         private double _recapFont = 13.5;           // the reading font, persisted in recap.font
         private string _lastText = string.Empty;    // the painted paragraph (a font step re-renders it)
 
+        // The F key, forwarded while the companion itself holds the focus: put
+        // the window away. Same route as the navigator's press - one voice.
+        private void TryRecapHotkeyFromCompanion(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.F
+                || System.Windows.Input.Keyboard.Modifiers != System.Windows.Input.ModifierKeys.None
+                || System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase { IsReadOnly: false })
+            {
+                return;
+            }
+
+            e.Handled = true;
+            (Owner as MainWindow)?.ToggleRecapCompanion();
+        }
+
         public RecapWindow(MainWindow owner, string filePath, int pageCount, Func<string, string> loc)
         {
             InitializeComponent();
@@ -67,6 +82,12 @@ namespace Avalanche.Features.Summary
             WindowFx.EnableFadeClose(this, WindowFx.PopMs, pop: true);
             Opacity = 0;
             Loaded += (_, _) => WindowFx.PlayOpenPop(this);
+
+            // F belongs to the AI summary windows - never to the PDF editor:
+            // the reader's cursor is clicked in the companion, one press puts
+            // it away (page turns keep it put away until F summons it back
+            // from the navigator). The read-only page never traps the key.
+            PreviewKeyDown += TryRecapHotkeyFromCompanion;
             // Borderless windows (WindowStyle.None) have no native resize border
             // - the same WindowChrome the navigator uses restores edge resizing
             // without a grip.

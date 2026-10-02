@@ -1213,11 +1213,14 @@ namespace Avalanche
             return (fallbackPage, fallbackPage);
         }
 
-        // F - the reader's hand on the companion: one press puts the recap window
-        // away (page turns keep it put away), the next brings it back over the
+        // F - the reader's hand on the companion, pressed where the companion
+        // lives: the AI summary windows (the navigator or the recap window
+        // itself) forward the key here while one of them holds the focus - the
+        // PDF editor never answers F. One press puts the recap window away
+        // (page turns keep it put away), the next brings it back over the
         // stretch on screen. The navigator's Recap switch owns the automatic
         // following; F owns the window itself, Recap mode on or off.
-        private void ToggleRecapCompanion()
+        internal void ToggleRecapCompanion()
         {
             if (_doc is null || string.IsNullOrEmpty(_currentFile))
             {

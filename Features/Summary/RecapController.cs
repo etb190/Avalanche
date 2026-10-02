@@ -9,9 +9,11 @@
 //     persisted in "recap.enabled"; unchecking dismisses any open recap,
 //   * the condensation cache is keyed by the navigator's WHOLE range - a
 //     stretch recapped once never costs a second request (0 ms on return),
-//   * the F key commands the window itself: one press puts it away (page
-//     turns keep it put away), the next brings it back over the stretch on
-//     screen - the navigator's switch still owns the automatic following,
+//   * the F key commands the window itself - pressed inside the AI summary
+//     windows (the navigator or the companion), never the PDF editor: one
+//     press puts it away (page turns keep it put away), the next brings it
+//     back over the stretch on screen - the navigator's switch still owns
+//     the automatic following,
 //   * the request is one lightweight OpenAI-compatible call at temperature 0
 //     over the page's extracted text (PageSummarizer.ExtractRangeAsync),
 //   * an already-open window updates in place - pages never stack windows.
@@ -126,7 +128,8 @@ namespace Avalanche.Features.Summary
         /// a closed one - only page turns and F do that.</summary>
         internal static bool HasOpenWindow => _window is { IsVisible: true };
 
-        /// <summary>The reader's hand on the companion (the F key): one press
+        /// <summary>The reader's hand on the companion (the F key, forwarded by
+        /// the AI summary windows while one of them holds the focus): one press
         /// puts the window away - and page turns keep it put away, whatever the
         /// navigator's Recap switch says - the next brings it back over the
         /// stretch on screen, a cached range painting in 0 ms. The switch still

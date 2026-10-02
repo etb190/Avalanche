@@ -117,6 +117,13 @@ namespace Avalanche.Features.Summary
             // zero - no flash of a fully drawn window before the motion starts.
             Opacity = 0;
             Loaded += (_, _) => WindowFx.PlayOpenPop(this);
+
+            // F belongs to the AI summary windows now - never to the PDF
+            // editor (the reader asked for exactly that): while the navigator
+            // holds the focus, one press toggles the recap companion - open
+            // over the stretch on screen, or put away. Typing in the start
+            // field types; F stays a letter there.
+            PreviewKeyDown += TryRecapHotkeyFromNavigator;
             // Borderless windows (WindowStyle.None) have no native resize border - the same
             // WindowChrome PrintPreviewWindow uses restores edge resizing without a grip.
             System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome
@@ -1317,6 +1324,22 @@ namespace Avalanche.Features.Summary
         /// returns to its default spot (centered on the owner) - position ONLY, the
         /// size and every reading parameter stay as the reader left them. The saved
         /// coordinates are dropped, so future opens center again too.</summary>
+        // The F key, forwarded while the navigator holds the focus: toggle the
+        // recap companion over the stretch on screen. A caret inside an
+        // editable field (the range start box) keeps its letters.
+        private void TryRecapHotkeyFromNavigator(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.F
+                || Keyboard.Modifiers != ModifierKeys.None
+                || Keyboard.FocusedElement is TextBoxBase { IsReadOnly: false })
+            {
+                return;
+            }
+
+            e.Handled = true;
+            (Owner as MainWindow)?.ToggleRecapCompanion();
+        }
+
         public void ResetPosition()
         {
             try

@@ -524,18 +524,6 @@ namespace Avalanche
                 OpenContextMenuAtSelection();
                 e.Handled = true;
             }
-            // F - the Recap companion's key: one press closes the window while it
-            // follows the reading, the next opens it again over the current stretch.
-            // Same guards as the tool switches below (a document open, no overlay,
-            // no modifier - and not while typing, guarded at the top of the handler).
-            else if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.None
-                     && _doc is not null
-                     && ShortcutOverlay.Visibility != Visibility.Visible
-                     && AboutOverlay.Visibility != Visibility.Visible)
-            {
-                ToggleRecapCompanion();
-                e.Handled = true;
-            }
             // Bare-key tool switches. Only when a document is open, no modifier is held, and no
             // overlay is up (and not while typing - guarded at the top of this handler).
             else if (Keyboard.Modifiers == ModifierKeys.None && _doc is not null

@@ -182,6 +182,21 @@ namespace Avalanche
             to = 0;
             string raw = (text ?? string.Empty).Trim().Replace('\u2013', '-');
             int dash = raw.IndexOf('-');
+            if (dash < 0)
+            {
+                // "124" instead of "45-124": a lone number spans the head of
+                // the book, from the very first page of the pdf through that
+                // page - the pair the box would have held as "1-124".
+                if (!TryParseNotesHeadRange(raw, pageCount, out int head))
+                {
+                    return false;
+                }
+
+                from = 1;
+                to = head;
+                return true;
+            }
+
             if (dash <= 0 ||
                 !int.TryParse(raw[..dash].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int start) ||
                 !int.TryParse(raw[(dash + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int end) ||
@@ -192,6 +207,22 @@ namespace Avalanche
 
             from = start;
             to = end;
+            return true;
+        }
+
+        // A lone number ("124") is the head of the book: page 1 through that
+        // page. The number must sit inside the document to be a real range.
+        private static bool TryParseNotesHeadRange(string raw, int pageCount, out int to)
+        {
+            to = 0;
+            if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int head)
+                || head < 1
+                || head > Math.Max(1, pageCount))
+            {
+                return false;
+            }
+
+            to = head;
             return true;
         }
 
