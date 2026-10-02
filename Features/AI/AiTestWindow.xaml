@@ -280,27 +280,43 @@
             </StackPanel>
         </StackPanel>
 
-        <!-- Row 1: the probe controls - the mode switch, then the span chips or
-             the custom range field, then Run. Span mode reshare the summary
+        <!-- Row 1: the probe controls. The mode switch lives in its own container
+             pinned to the FAR LEFT of the row - it never moves, wraps or slides,
+             whichever face is on - and a vertical hairline border (0,0,1,0) closes
+             the container's right side, cleanly separating it from the span chips,
+             the custom range field and Run. Span mode reshare the summary
              navigator's localized span labels (20p/60p/100p); the fourth chip is
              the whole document. Range mode probes exactly the page stretch the
              field names, one [start]-[end] pair. -->
-        <WrapPanel Grid.Row="1" Margin="16,10,16,2" HorizontalAlignment="Center"
-                   VerticalAlignment="Center">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock x:Name="ModePagesLabel" FontSize="11.5" FontWeight="SemiBold"
-                           VerticalAlignment="Center" Margin="0,0,7,0"
-                           FontFamily="{DynamicResource UiFont}"
-                           Foreground="{DynamicResource MutedTextBrush}"
-                           Text="{DynamicResource Str_AiTest_ModePages}"/>
-                <ToggleButton x:Name="RangeToggle" Style="{StaticResource TestModeToggle}"
-                              Margin="0,0,7,0" VerticalAlignment="Center"
-                              ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
-                <TextBlock x:Name="ModeRangeLabel" FontSize="11.5" FontWeight="SemiBold"
-                           VerticalAlignment="Center" Margin="0,0,10,0"
-                           FontFamily="{DynamicResource UiFont}"
-                           Foreground="{DynamicResource MutedTextBrush}"
-                           Text="{DynamicResource Str_AiTest_ModeRange}"/>
+        <Grid Grid.Row="1" Margin="16,10,16,2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <!-- The pinned mode switch: Pages on the left, the toggle, Range on
+                 the right - a fixed island at the row's far left. -->
+            <Border Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0"
+                    Padding="0,0,10,0"
+                    BorderBrush="{DynamicResource CardBorderBrush}"
+                    BorderThickness="0,0,1,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="ModePagesLabel" FontSize="11.5" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="0,0,7,0"
+                               FontFamily="{DynamicResource UiFont}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Text="{DynamicResource Str_AiTest_ModePages}"/>
+                    <ToggleButton x:Name="RangeToggle" Style="{StaticResource TestModeToggle}"
+                                  Margin="0,0,7,0" VerticalAlignment="Center"
+                                  ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
+                    <TextBlock x:Name="ModeRangeLabel" FontSize="11.5" FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               FontFamily="{DynamicResource UiFont}"
+                               Foreground="{DynamicResource MutedTextBrush}"
+                               Text="{DynamicResource Str_AiTest_ModeRange}"/>
+                </StackPanel>
+            </Border>
+            <WrapPanel Grid.Column="1" HorizontalAlignment="Center"
+                       VerticalAlignment="Center">
                 <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
                     <RadioButton x:Name="Chip20" Style="{StaticResource TestRangeChip}" Tag="20"/>
                     <RadioButton x:Name="Chip60" Style="{StaticResource TestRangeChip}" Tag="60"/>
@@ -312,15 +328,15 @@
                     <TextBox x:Name="RangeBox" Style="{StaticResource TestRangeBox}" Width="112"
                              ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
                 </StackPanel>
-            </StackPanel>
-            <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"
-                    Margin="9,0" VerticalAlignment="Center" Opacity="0.7"/>
-            <Button x:Name="RunBtn" Style="{StaticResource TestActionBtn}"
-                    Background="#FF1B5E20" BorderBrush="#FF0F3D14"
-                    Content="{DynamicResource Str_AiTest_Run}" MinWidth="96"
-                    Padding="12,0" Margin="0,0,8,0"
-                    ToolTip="{DynamicResource Str_TT_AiTest}"/>
-        </WrapPanel>
+                <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"
+                        Margin="9,0" VerticalAlignment="Center" Opacity="0.7"/>
+                <Button x:Name="RunBtn" Style="{StaticResource TestActionBtn}"
+                        Background="#FF1B5E20" BorderBrush="#FF0F3D14"
+                        Content="{DynamicResource Str_AiTest_Run}" MinWidth="96"
+                        Padding="12,0" Margin="0,0,8,0"
+                        ToolTip="{DynamicResource Str_TT_AiTest}"/>
+            </WrapPanel>
+        </Grid>
 
         <!-- Row 2: the results card, top to bottom: the verdict banner (color-coded,
              hidden until a probe completes), the token audit grid, and the boundary

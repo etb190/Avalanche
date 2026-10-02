@@ -938,6 +938,53 @@
             </Setter>
         </Style>
 
+        <!-- The Pages/Notes segmented tabs: wide, bold, high-contrast. The active
+             tab (Tag="on", set by the two switch methods) wears the solid green
+             accent face with bright text; the inactive one stays a quiet bordered
+             chip with dimmer text - the switch reads at a glance and instantly. -->
+        <Style x:Key="SidebarSegmentTab" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="12,3"/>
+            <Setter Property="MinWidth" Value="68"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="face" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="on">
+                    <Setter Property="Background" Value="#FF1B5E20"/>
+                    <Setter Property="BorderBrush" Value="#FF0F3D14"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- (The outline tree's styles went with the Outlines tab, replaced by the Notes panel.) -->
         <!-- General-purpose themed text button -->
         <Style x:Key="DarkButton" TargetType="Button">
@@ -1712,18 +1759,17 @@
                     <DockPanel x:Name="SidebarContentPanel">
                         <!-- Sticky header - lives outside the ScrollViewer so it never scrolls away -->
                         <!-- Tab row: PAGES (left) | NOTES (right) -->
-                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Height="20" Margin="10,6,8,0">
+                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Height="26" Margin="10,5,8,2">
                             <Button x:Name="SidebarPagesTab" Content="{DynamicResource Str_TabPages}"
                                     DockPanel.Dock="Left"
-                                    Style="{StaticResource SidebarTabBtn}"
+                                    Style="{StaticResource SidebarSegmentTab}"
                                     VerticalAlignment="Center"
-                                    Foreground="{DynamicResource PrimaryBrush}"
+                                    Tag="on"
                                     Click="SidebarPagesTab_Click"/>
                             <Button x:Name="SidebarNotesTab" Content="{DynamicResource Str_TabNotes}"
                                     DockPanel.Dock="Right"
-                                    Style="{StaticResource SidebarTabBtn}"
+                                    Style="{StaticResource SidebarSegmentTab}"
                                     VerticalAlignment="Center"
-                                    Foreground="{DynamicResource MutedTextBrush}"
                                     Click="SidebarNotesTab_Click"/>
                         </DockPanel>
                         <!-- Page controls row (hidden in notes mode) -->
@@ -1898,7 +1944,8 @@
                                            VerticalAlignment="Center" Margin="0,0,4,0"
                                            FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
                                 <TextBox x:Name="NotesFromBox" Grid.Column="1"
-                                         Height="20" VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                         Width="82" Height="30" HorizontalAlignment="Center"
+                                         VerticalAlignment="Center" VerticalContentAlignment="Center"
                                          TextAlignment="Center" FontFamily="Consolas" FontSize="11"
                                          Background="{DynamicResource PaneBrush}"
                                          Foreground="{DynamicResource TextBrush}"
@@ -1913,7 +1960,8 @@
                                            VerticalAlignment="Center" Margin="8,0,4,0"
                                            FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
                                 <TextBox x:Name="NotesToBox" Grid.Column="3"
-                                         Height="20" VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                         Width="82" Height="30" HorizontalAlignment="Center"
+                                         VerticalAlignment="Center" VerticalContentAlignment="Center"
                                          TextAlignment="Center" FontFamily="Consolas" FontSize="11"
                                          Background="{DynamicResource PaneBrush}"
                                          Foreground="{DynamicResource TextBrush}"
@@ -1925,16 +1973,17 @@
                                          KeyDown="NotesBox_KeyDown"
                                          ToolTip="{DynamicResource Str_Notes_To}"/>
                                 <Button x:Name="NotesGenerateBtn" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
-                                        Margin="0,6,0,0" HorizontalAlignment="Stretch"
+                                        Margin="0,6,0,0" HorizontalAlignment="Stretch" Height="28"
                                         Content="{DynamicResource Str_Notes_Generate}"
-                                        Background="{DynamicResource SelectionAccent}"
-                                        Foreground="{DynamicResource SelectionFg}"
-                                        FontWeight="SemiBold" FontSize="11" Padding="10,4"
+                                        Background="#FF1B5E20" BorderBrush="#FF0F3D14"
+                                        Foreground="White"
+                                        FontWeight="SemiBold" FontSize="12" Padding="10,0"
                                         Style="{StaticResource DarkButton}"
                                         FocusVisualStyle="{x:Null}"
                                         Click="NotesGenerate_Click"/>
                                 <Button x:Name="NotesCopyAllBtn" Grid.Row="1" Grid.Column="3"
                                         Margin="6,6,0,0" HorizontalAlignment="Right"
+                                        Background="#FF2E7D32" Foreground="White"
                                         Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="12"
                                         Width="26" Height="22" Padding="0"
                                         Style="{StaticResource DarkButton}"
@@ -1945,6 +1994,10 @@
                             <TextBlock x:Name="NotesStatusText" DockPanel.Dock="Top" Visibility="Collapsed"
                                        Margin="12,4,8,0" FontSize="11" TextWrapping="Wrap"
                                        Foreground="{DynamicResource MutedTextBrush}"/>
+                            <!-- Hairline between the controls group and the cards below - the
+                                 same separator shape the summary navigator's status row uses. -->
+                            <Rectangle DockPanel.Dock="Top" Height="1" Fill="{DynamicResource CardBorderBrush}"
+                                       Margin="12,6,8,2" Opacity="0.85"/>
                             <ScrollViewer x:Name="NotesScrollViewer"
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled">

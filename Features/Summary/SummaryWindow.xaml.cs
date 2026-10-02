@@ -77,6 +77,16 @@ namespace Avalanche.Features.Summary
         private int _runFirstPage = 1;  // the range the current/last digest covered; the
         private int _runLastPage = 1;   // verification badge maps its audit onto these pages
 
+        // The 30-second prefetch buffer: the NEXT sequential range, fetched in
+        // the background while the reader digests the current one. A ready
+        // buffer -> the next arrow paints with zero lag; an in-flight fetch ->
+        // the arrow attaches to it; any manual range move discards both.
+        private DispatcherTimer? _prefetchTimer;    // the 30s read delay, one-shot
+        private CancellationTokenSource? _prefetchCts;
+        private Task<string>? _prefetchFlight;      // the in-flight fetch
+        private string? _prefetchText;              // the completed buffer (null = none)
+        private int _prefetchFirst, _prefetchLast;  // the stretch the buffer covers
+
         public SummaryWindow(
             MainWindow owner,
             string filePath,
@@ -219,6 +229,7 @@ namespace Avalanche.Features.Summary
                 {
                     _targetWords = words;
                     AppDataPaths.SetSetting("summary.words", words.ToString(CultureInfo.InvariantCulture));
+                    InvalidatePrefetch();   // the buffer was fetched for the old ceiling
                 }
             };
 
@@ -239,6 +250,7 @@ namespace Avalanche.Features.Summary
                 {
                     _language = language;
                     AppDataPaths.SetSetting("summary.lang", language);
+                    InvalidatePrefetch();   // the buffer was fetched for the old language
                     ApplyReadingDirection();
                 }
             };
@@ -251,11 +263,22 @@ namespace Avalanche.Features.Summary
             DocBox.FontSize = _digestFont;
             RestoreDigest();                    // the last digest of this book, if any
 
+            // The prefetch clock: one-shot. Thirty seconds after a digest lands,
+            // while the reader is reading, the NEXT sequential stretch starts in
+            // the background so the next arrow can land on a ready page.
+            _prefetchTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            _prefetchTimer.Tick += (_, _) =>
+            {
+                _prefetchTimer.Stop();
+                StartPrefetch();
+            };
+
             Closed += (_, _) =>
             {
                 _closed = true;
                 _generation++;      // a run cancelled by the close can't repaint either
                 _cts?.Cancel();
+                InvalidatePrefetch();   // the clock and the flight die with the window
                 SaveDigest();       // the digest stays with the book across sessions
                 PersistPlacement();
             };
@@ -349,18 +372,19 @@ namespace Avalanche.Features.Summary
                 _digestFont = font;
             }
 
-            // Reading position of THIS document: the anchor is remembered across
-            // restarts, so a book resumes where the reader left it. First visit
-            // falls back to the page the viewer is sitting on.
-            int savedStart = ReadIntSetting("summary.start." + _documentId);
-            if (savedStart >= 1 && savedStart <= _pageCount)
+            // The opening anchor is the page the reader is LOOKING at: the
+            // navigator starts at the viewer's active page - not at page one,
+            // not at a stale bookmark. Only when the viewer cannot say (no page
+            // rendered yet) does the remembered anchor - or page one - step in.
+            int current = _currentPageProvider();
+            if (current >= 0)
             {
-                _startPage = savedStart;
+                _startPage = Math.Clamp(current + 1, 1, _pageCount);
             }
             else
             {
-                int current = _currentPageProvider();
-                _startPage = current >= 0 ? Math.Clamp(current + 1, 1, _pageCount) : 1;
+                int savedStart = ReadIntSetting("summary.start." + _documentId);
+                _startPage = savedStart >= 1 && savedStart <= _pageCount ? savedStart : 1;
             }
         }
 
@@ -436,6 +460,11 @@ namespace Avalanche.Features.Summary
                 }
 
                 SetStartPage(end + 1);
+                PageNavigationRequested?.Invoke(_startPage);
+                if (ConsumePrefetch())
+                {
+                    return;     // the buffer (or its flight) served the new stretch
+                }
             }
             else
             {
@@ -446,11 +475,10 @@ namespace Avalanche.Features.Summary
                 }
 
                 SetStartPage(previous);
+                PageNavigationRequested?.Invoke(_startPage);
+                InvalidatePrefetch();   // backward: the next-stretch buffer no longer fits
             }
 
-            // The document view glides to the new stretch's first page - the
-            // reader reads along while the digest runs.
-            PageNavigationRequested?.Invoke(_startPage);
             StartGeneration();
         }
 
@@ -506,6 +534,7 @@ namespace Avalanche.Features.Summary
             // the field) must not yank the reader anywhere.
             if (_startPage != previous)
             {
+                InvalidatePrefetch();   // a hand-typed anchor retires the buffer
                 PageNavigationRequested?.Invoke(_startPage);
             }
         }
@@ -537,6 +566,7 @@ namespace Avalanche.Features.Summary
         {
             _rangePages = pages;
             AppDataPaths.SetSetting("summary.range", pages.ToString(CultureInfo.InvariantCulture));
+            InvalidatePrefetch();   // the buffered stretch no longer matches the span
             ShowRange();        // reshape the displayed range - never a generation trigger
         }
 
@@ -559,6 +589,8 @@ namespace Avalanche.Features.Summary
             {
                 return;
             }
+
+            InvalidatePrefetch();   // a manual run retires the buffer and its flight
 
             int first = _startPage;     // always clamped by SetStartPage
             if (first < 1 || first > _pageCount)
@@ -714,6 +746,7 @@ namespace Avalanche.Features.Summary
             SaveDigest();       // the digest survives the window, the app, the session
             _cts?.Dispose();
             _cts = null;
+            SchedulePrefetch(); // 30s from now, the next stretch fetches itself
         }
 
         // The post-run status line. With provider usage: the verification badge -
@@ -749,9 +782,11 @@ namespace Avalanche.Features.Summary
                 _loc("Str_SummaryBadgeVerified"), pages, tokens, words);
         }
 
-        // Reset: the fourth generation owner. It stops any live run, clears the card
-        // and returns the navigator to the first stretch of the book - which is also
-        // the position this document reopens at.
+        // Reset: the fourth generation owner. It stops any live run, clears the
+        // card and returns the navigator to idle/ready - and NOTHING else: the
+        // selected range stays exactly where the reader left it, waiting for
+        // Start. A reset that also yanked the anchor back to page one would
+        // punish a reader who only wanted a clean slate of TEXT, not of place.
         private void ResetAll()
         {
             _generation++;
@@ -763,7 +798,7 @@ namespace Avalanche.Features.Summary
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             StatusText.Text = string.Empty;
-            SetStartPage(1);
+            InvalidatePrefetch();   // the reset was manual: the buffer goes too
             SaveDigest();       // the reset was the reader's action: forget the digest
             SetBusy(false);
         }
@@ -810,6 +845,199 @@ namespace Avalanche.Features.Summary
                 OverlayText.Visibility = Visibility.Visible;
                 DocBox.Visibility = Visibility.Collapsed;
             }
+        }
+
+        // ------------------------------------------------------------------
+        // The 30-second prefetch buffer
+        // ------------------------------------------------------------------
+
+        // While the reader is busy with the digest just delivered, the navigator
+        // quietly fetches the NEXT sequential stretch: 30 seconds after a run
+        // finishes, the following range (same span, clipped at the document)
+        // starts in the background. The next arrow then lands on a ready digest
+        // - shown with zero lag - or attaches to the still-running fetch; any
+        // manual range move discards both.
+
+        private void SchedulePrefetch()
+        {
+            InvalidatePrefetch();
+            if (_closed || _generating || RangeEnd() >= _pageCount)
+            {
+                return;     // the book has no next stretch (or a run is already live)
+            }
+
+            _prefetchTimer?.Stop();
+            _prefetchTimer?.Start();
+        }
+
+        private void StartPrefetch()
+        {
+            InvalidatePrefetch();
+            if (_closed || _generating)
+            {
+                return;
+            }
+
+            int first = RangeEnd() + 1;
+            if (first > _pageCount)
+            {
+                return;
+            }
+
+            int last = Math.Min(first + _rangePages - 1, _pageCount);
+            _prefetchFirst = first;
+            _prefetchLast = last;
+            _prefetchText = null;
+            _prefetchCts = new CancellationTokenSource();
+            CancellationToken ct = _prefetchCts.Token;
+            var request = new SummaryRequest(
+                _filePath, _documentId, first, last, _targetWords, _language, BypassCache: false);
+            AiProviderConfig config = _configProvider();
+            Func<string, string> loc = _loc;
+            _prefetchFlight = Task.Run(
+                async () =>
+                {
+                    var buffer = new System.Text.StringBuilder();
+                    await foreach (SummaryUpdate update in
+                        PageSummarizer.GenerateAsync(request, config, loc, ct).ConfigureAwait(false))
+                    {
+                        if (update.Kind == "delta")
+                        {
+                            buffer.Append(update.Text);
+                        }
+                        else if (update.Kind == "done")
+                        {
+                            return update.Text.Length > 0 ? update.Text : buffer.ToString();
+                        }
+                        else if (update.Kind is "notext" or "error")
+                        {
+                            throw new InvalidOperationException(
+                                update.Kind == "notext" ? "notext" : update.Text);
+                        }
+                    }
+
+                    return buffer.ToString();
+                },
+                ct);
+            _ = _prefetchFlight.ContinueWith(
+                t => _prefetchText = t.IsCompletedSuccessfully ? t.Result : null,
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.FromCurrentSynchronizationContext());
+        }
+
+        // The next arrow's shortcut. True when the buffer served the new stretch:
+        // a ready digest paints at once (and earns the same verification badge a
+        // fresh run would), an in-flight one is attached to with the progress
+        // live; anything else falls through to a fresh generation.
+        private bool ConsumePrefetch()
+        {
+            if (_prefetchFirst != _startPage)
+            {
+                return false;
+            }
+
+            if (_prefetchText is { Length: > 0 } ready)
+            {
+                _generation++;      // any stray continuation of the old run loses the card
+                _generating = false;
+                _fullText = ready;
+                _runFirstPage = _prefetchFirst;
+                _runLastPage = _prefetchLast;
+                Overlay(null);
+                DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                StatusText.Text = VerificationStatusLine();
+                SaveDigest();
+                InvalidatePrefetch();
+                return true;
+            }
+
+            if (_prefetchFlight is { IsCompleted: false } flight)
+            {
+                AttachPrefetch(flight);
+                return true;
+            }
+
+            return false;
+        }
+
+        // The prefetch is still running: park the card in the busy state and let
+        // the flight finish into it - no second request, no duplicate spend. A
+        // flight that dies (network, provider) falls back to a fresh run; a
+        // flight that reports "notext" shows the same verdict a live run would.
+        private async void AttachPrefetch(Task flight)
+        {
+            int gen = ++_generation;
+            _generating = true;
+            _fullText = string.Empty;
+            DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
+            Overlay(null);
+            SetBusy(true);
+            StatusText.Text = string.Format(
+                _loc("Str_SummaryPreparing"), _prefetchFirst, _prefetchLast);
+            try
+            {
+                await flight.ConfigureAwait(true);
+            }
+            catch (Exception ex)
+            {
+                if (gen == _generation && !_closed)
+                {
+                    _generating = false;
+                    SetBusy(false);
+                    InvalidatePrefetch();
+                    if (ex.Message == "notext")
+                    {
+                        Overlay(_loc("Str_SummaryNoText"));
+                        return;
+                    }
+
+                    StartGeneration();      // the fetch died: run the stretch fresh
+                }
+
+                return;
+            }
+
+            if (gen != _generation || _closed)
+            {
+                return;     // superseded, or the window closed meanwhile
+            }
+
+            _generating = false;
+            SetBusy(false);
+            string? text = flight is Task<string> typed && typed.IsCompletedSuccessfully
+                ? typed.Result
+                : _prefetchText;
+            if (!string.IsNullOrEmpty(text))
+            {
+                _fullText = text;
+                _runFirstPage = _prefetchFirst;
+                _runLastPage = _prefetchLast;
+                DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                StatusText.Text = VerificationStatusLine();
+                SaveDigest();
+            }
+            else
+            {
+                Overlay(_loc("Str_SummaryNoText"));
+            }
+
+            InvalidatePrefetch();
+        }
+
+        // Kill the clock, the flight and the buffer. Every manual navigation,
+        // parameter change, reset, new run and close funnels through here, so
+        // stale text can never surface.
+        private void InvalidatePrefetch()
+        {
+            _prefetchTimer?.Stop();
+            try { _prefetchCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _prefetchCts?.Dispose();
+            _prefetchCts = null;
+            _prefetchFlight = null;
+            _prefetchText = null;
+            _prefetchFirst = 0;
+            _prefetchLast = 0;
         }
 
         // ------------------------------------------------------------------

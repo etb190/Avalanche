@@ -28,8 +28,8 @@ namespace Avalanche
             PageList.Visibility = Visibility.Visible;
             NotesPanel.Visibility = Visibility.Collapsed;
             PageControlsRow.Visibility = _doc != null ? Visibility.Visible : Visibility.Collapsed;   // no empty box when nothing is open
-            SidebarPagesTab.Foreground = (Brush)FindResource("PrimaryBrush");
-            SidebarNotesTab.Foreground = (Brush)FindResource("MutedTextBrush");
+            SidebarPagesTab.Tag = "on";     // the segmented style paints the active face
+            SidebarNotesTab.Tag = null;
             // Save current notes width before snapping back to pages.
             if (!_sidebarCollapsed && _sidebarCol.ActualWidth > 0)
                 _savedNotesWidth = Math.Min(_sidebarCol.ActualWidth, SbPx(SidebarMaxNotes));

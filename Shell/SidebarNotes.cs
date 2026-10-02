@@ -43,8 +43,8 @@ namespace Avalanche
             PageList.Visibility = Visibility.Collapsed;
             NotesPanel.Visibility = Visibility.Visible;
             PageControlsRow.Visibility = Visibility.Collapsed;
-            SidebarPagesTab.Foreground = (Brush)FindResource("MutedTextBrush");
-            SidebarNotesTab.Foreground = (Brush)FindResource("PrimaryBrush");
+            SidebarPagesTab.Tag = null;
+            SidebarNotesTab.Tag = "on";     // the segmented style paints the active face
             SidebarSplitter.IsEnabled = true;
             _sidebarCol.MaxWidth = SbPx(SidebarMaxNotes);
             if (!_sidebarCollapsed)
@@ -271,6 +271,8 @@ namespace Avalanche
                 Padding = new Thickness(0),
                 Margin = new Thickness(6, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)),
+                Foreground = Brushes.White,
                 Style = (Style)FindResource("DarkButton"),
                 ToolTip = Loc("Str_Notes_CopyCard"),
                 Tag = card,

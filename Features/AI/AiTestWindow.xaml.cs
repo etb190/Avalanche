@@ -102,6 +102,18 @@ namespace Avalanche.Features.AI
             RangeToggle.Checked += (_, _) => ApplyRangeMode();
             RangeToggle.Unchecked += (_, _) => ApplyRangeMode();
             RangeBox.PreviewTextInput += (_, e) => e.Handled = !e.Text.All(IsRangeChar);
+            // A click on the field must replace, not place: focusing selects the
+            // whole pair ("84-120"), and the swallowed first click cannot park
+            // the caret behind the selection - the summary field's own manner.
+            RangeBox.GotFocus += (_, _) => RangeBox.SelectAll();
+            RangeBox.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                if (!RangeBox.IsKeyboardFocused)
+                {
+                    RangeBox.Focus();
+                    e.Handled = true;
+                }
+            };
             System.Windows.DataObject.AddPastingHandler(RangeBox, (_, e) =>
             {
                 if (e.DataObject.GetData(System.Windows.DataFormats.UnicodeText) is string pasted &&
@@ -111,6 +123,20 @@ namespace Avalanche.Features.AI
                 }
             });
 
+            // The probe's shape comes back with the window: the mode last used
+            // (span chips or the [start]-[end] field) and the stretch last typed -
+            // across reopenings AND restarts, like the placement below.
+            if (AppDataPaths.GetSetting("aitest.mode") == "range")
+            {
+                RangeToggle.IsChecked = true;   // fires Checked -> ApplyRangeMode
+            }
+
+            string? savedRange = AppDataPaths.GetSetting("aitest.range");
+            if (!string.IsNullOrWhiteSpace(savedRange))
+            {
+                RangeBox.Text = savedRange;
+            }
+
             ModelValue.Text = _configProvider().Model ?? string.Empty;
             DocValue.Text = System.IO.Path.GetFileName(filePath);
             DocValue.ToolTip = filePath;
@@ -119,7 +145,6 @@ namespace Avalanche.Features.AI
             StatusText.Text = _loc("Str_AiTest_Waiting");
 
             RestorePlacement();
-            RestoreResult();    // the last receipt reopens with the window
             RestoreResult();    // the last receipt reopens with the window
 
             // Placement follows the window live (debounced), the navigator's own
@@ -203,6 +228,14 @@ namespace Avalanche.Features.AI
             base.OnClosed(e);
             _closed = true;
             PersistPlacement();     // the window's place survives restarts
+            try
+            {
+                AppDataPaths.SetSetting("aitest.range", RangeBox.Text);
+            }
+            catch
+            {
+                // best-effort
+            }
             _generation++;
             // Cancel only, never dispose: the detached probe still polls the token,
             // and a disposed source can throw from those polls. GC reclaims it.
@@ -232,6 +265,17 @@ namespace Avalanche.Features.AI
 
             int first = range.Value.first;
             int last = range.Value.last;
+
+            // The stretch that ran is the stretch remembered (the restored field
+            // opens with it next time).
+            try
+            {
+                AppDataPaths.SetSetting("aitest.range", RangeBox.Text);
+            }
+            catch
+            {
+                // best-effort
+            }
 
             _running = true;
             int gen = ++_generation;
@@ -346,6 +390,15 @@ namespace Avalanche.Features.AI
                 custom ? "MutedTextBrush" : "TextBrush");
             ModeRangeLabel.SetResourceReference(TextBlock.ForegroundProperty,
                 custom ? "TextBrush" : "MutedTextBrush");
+            // The mode is state, not a whim: it survives the window and the app.
+            try
+            {
+                AppDataPaths.SetSetting("aitest.mode", custom ? "range" : "pages");
+            }
+            catch
+            {
+                // best-effort
+            }
         }
 
         private void RenderResult(AiTestProbeResult probe)

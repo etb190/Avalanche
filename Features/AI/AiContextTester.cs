@@ -108,6 +108,8 @@ namespace Avalanche.Features.AI
             including its first sentence-ending punctuation mark. The last sentence means:
             the closing words of the text, from its final sentence start to the very end
             (even if the text ends mid-sentence). Quote both verbatim.
+            CRITICAL: Do NOT write extensive internal thinking, analysis, or deliberation.
+            Immediately locate the first sentence and last sentence of the text and output ONLY the JSON object.
             """;
 
         /// <summary>Truncation audit shared with the SummaryWindow badge: a model that
@@ -294,6 +296,12 @@ namespace Avalanche.Features.AI
         // the Ollama placeholder) - a deliberate local copy: the probe's budget
         // and temperature are its own, and the summarizer's HTTP plumbing stays
         // untouched.
+        // The probe's output budget: the configured ceiling, floored at 16384 -
+        // a reasoning model's deliberation shares this budget with the answer,
+        // and a large document needs the answer to survive the deliberation.
+        private static int ProbeTokenBudget(AiProviderConfig config) =>
+            Math.Max(config.MaxTokens, 16384);
+
         private static HttpRequestMessage BuildProbeRequest(AiProviderConfig config, string userText)
         {
             var body = new Dictionary<string, object?>
@@ -307,7 +315,15 @@ namespace Avalanche.Features.AI
                 // A recall probe wants determinism: temperature 0, no sampling games
                 // between the text and the verdict about the text.
                 ["temperature"] = 0,
-                ["max_tokens"] = Math.Max(config.MaxTokens, 8192),
+                // Reasoning models split the output budget between hidden
+                // deliberation and the answer: an 80k-token probe died at the old
+                // 8192 ceiling with finish_reason=length and an empty content -
+                // "no answer". 16384 gives the deliberation room to end, and the
+                // second and third spellings reach every bridge (OpenAI's newer
+                // name; Ollama's native options.num_predict).
+                ["max_tokens"] = ProbeTokenBudget(config),
+                ["max_completion_tokens"] = ProbeTokenBudget(config),
+                ["options"] = new Dictionary<string, object?> { ["num_predict"] = ProbeTokenBudget(config) },
                 ["stream"] = false
             };
             var request = new HttpRequestMessage(
@@ -677,8 +693,11 @@ namespace Avalanche.Features.AI
         // Response parsing
         // ------------------------------------------------------------------
 
-        /// <summary>choices[0].message.content of a completion body, when present
-        /// (reasoning-only answers yield null - the caller reports "no answer").</summary>
+        /// <summary>choices[0].message.content of a completion body. A spent
+        /// output budget can leave the content empty while the answer (or the
+        /// deliberation that carries it) sits in the reasoning field - so the
+        /// OpenAI-compatible "reasoning_content" (and the bare "reasoning"
+        /// spelling) ride as fallbacks before the caller reports "no answer".</summary>
         public static string? ExtractReplyContent(string json)
         {
             try
@@ -687,11 +706,26 @@ namespace Avalanche.Features.AI
                 var root = doc.RootElement;
                 if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("choices", out var choices) &&
                     choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0 &&
-                    choices[0].TryGetProperty("message", out var message) &&
-                    message.TryGetProperty("content", out var content) &&
-                    content.ValueKind == JsonValueKind.String)
+                    choices[0].TryGetProperty("message", out var message))
                 {
-                    return content.GetString();
+                    if (message.TryGetProperty("content", out var content) &&
+                        content.ValueKind == JsonValueKind.String &&
+                        !string.IsNullOrWhiteSpace(content.GetString()))
+                    {
+                        return content.GetString();
+                    }
+
+                    // The budget went to hidden reasoning: some bridges write the
+                    // answer at the tail of the reasoning field. It parses the same.
+                    foreach (string field in new[] { "reasoning_content", "reasoning" })
+                    {
+                        if (message.TryGetProperty(field, out var reasoning) &&
+                            reasoning.ValueKind == JsonValueKind.String &&
+                            !string.IsNullOrWhiteSpace(reasoning.GetString()))
+                        {
+                            return reasoning.GetString();
+                        }
+                    }
                 }
             }
             catch
@@ -833,9 +867,51 @@ namespace Avalanche.Features.AI
         private static string? ExtractJsonBlock(string content)
         {
             string text = (content ?? string.Empty).Trim();
+            string? json = BalancedJson(text);
+            if (json is null && text.Contains("<think>", StringComparison.Ordinal))
+            {
+                // The bridge routed the answer through the deliberation: search
+                // the think payload itself (a spent token budget often leaves it
+                // unclosed - everything after the last <think> is the payload).
+                int open = text.LastIndexOf("<think>", StringComparison.Ordinal);
+                json = BalancedJson(text[(open + "<think>".Length)..]);
+            }
+
+            return json;
+        }
+
+        // The model's JSON object: the outermost {...} span that actually
+        // parses. Reasoning replies wrap the object in ``` fences, prose or
+        // deliberation text, so every '{' gets one attempt (against the last
+        // '}', the likeliest object end) before the next one - a deliberation
+        // that merely mentions braces must not win over the real object.
+        private static string? BalancedJson(string text)
+        {
+            string? fallback = null;
             int start = text.IndexOf('{');
-            int end = text.LastIndexOf('}');
-            return start >= 0 && end > start ? text[start..(end + 1)] : null;
+            for (int attempts = 0; start >= 0 && attempts < 8; attempts++)
+            {
+                int end = text.LastIndexOf('}');
+                if (end <= start)
+                {
+                    break;
+                }
+
+                string candidate = text[start..(end + 1)];
+                try
+                {
+                    using var _ = JsonDocument.Parse(candidate);
+                    return candidate;
+                }
+                catch
+                {
+                    fallback ??= candidate;
+                }
+
+                start = text.IndexOf('{', start + 1);
+            }
+
+            return fallback;
         }
 
         private static string? Str(JsonElement element, string name) =>
