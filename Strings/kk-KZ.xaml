@@ -1059,7 +1059,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
         <sys:String x:Key="Str_AiTest_AllPages">Барлық беттер</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">ӨТТІ — Толық контекст расталды ({0}% көрілді)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">СӘТСТІК — Мәтінді Ollama қысқартты</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">ЕСКЕРТУ — Соңғы шекара сәйкес емес</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">ЕСКЕРТУ — Шекара сәйкес емес ({0}% оқылды)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">ЕСКЕРТУ — Бірінші шекара сәйкес емес ({0}% оқылды)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">ЕСКЕРТУ — Соңғы шекара сәйкес емес ({0}% оқылды)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI оқыған токендер</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Болжамды жіберілген токендер</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Жіберілген таңбалар</sys:String>

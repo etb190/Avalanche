@@ -60,7 +60,9 @@
         <sys:String x:Key="Str_AiTest_AllPages">All Pages</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">PASS — Full Context Verified ({0}% Seen)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">FAIL — Text Truncated by Ollama</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">WARNING — Last Boundary Mismatch</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">WARNING — Boundary Mismatch ({0}% Seen)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">WARNING — First Boundary Mismatch ({0}% Seen)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">WARNING — Last Boundary Mismatch ({0}% Seen)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokens read by AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Estimated tokens sent</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Characters sent</sys:String>

@@ -1045,7 +1045,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
         <sys:String x:Key="Str_AiTest_AllPages">Všechny strany</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">PROŠLO — Úplný kontext ověřen ({0}% viděno)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">SELHALO — Text zkrácen Ollamou</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">UPOZORNĚNÍ — Neshoda poslední hranice</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">UPOZORNĚNÍ — Neshoda hranice ({0}% přečteno)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">UPOZORNĚNÍ — Neshoda první hranice ({0}% přečteno)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">UPOZORNĚNÍ — Neshoda poslední hranice ({0}% přečteno)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokeny přečtené AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Odhadované odeslané tokeny</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Odeslané znaky</sys:String>

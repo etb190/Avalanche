@@ -1060,7 +1060,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
         <sys:String x:Key="Str_AiTest_AllPages">全ページ</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">合格 — 全コンテキスト検証済み（表示率 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">失敗 — Ollamaがテキストを切り詰めました</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">警告 — 末尾の境界が一致しません</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">警告 — 境界が一致しません（{0}% 読み取り）</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">警告 — 先頭の境界が一致しません（{0}% 読み取り）</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">警告 — 末尾の境界が一致しません（{0}% 読み取り）</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AIが読み取ったトークン数</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">推定送信トークン数</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">送信文字数</sys:String>

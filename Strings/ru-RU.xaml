@@ -1060,7 +1060,9 @@ Avalanche не будет создавать две установленные �
         <sys:String x:Key="Str_AiTest_AllPages">Все страницы</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">ПРОЙДЕНО — Полный контекст подтверждён (увидено {0}%)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">ПРОВАЛ — Текст усечён Ollama</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">ПРЕДУПРЕЖДЕНИЕ — Расхождение последней границы</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">ПРЕДУПРЕЖДЕНИЕ — Расхождение границы ({0}% прочитано)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">ПРЕДУПРЕЖДЕНИЕ — Расхождение первой границы ({0}% прочитано)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">ПРЕДУПРЕЖДЕНИЕ — Расхождение последней границы ({0}% прочитано)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Токенов прочитано ИИ</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Оценочно отправлено токенов</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Отправлено символов</sys:String>

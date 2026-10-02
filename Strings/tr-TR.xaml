@@ -1040,7 +1040,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
         <sys:String x:Key="Str_AiTest_AllPages">Tüm sayfalar</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">GEÇTİ — Tam bağlam doğrulandı (%{0} görüldü)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">BAŞARISIZ — Metin Ollama tarafından kısaltıldı</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">UYARI — Son sınır uyuşmazlığı</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">UYARI — Sınır uyuşmazlığı ({0}% okundu)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">UYARI — İlk sınır uyuşmazlığı ({0}% okundu)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">UYARI — Son sınır uyuşmazlığı ({0}% okundu)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI'nın okuduğu tokenler</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Tahmini gönderilen tokenler</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Gönderilen karakterler</sys:String>

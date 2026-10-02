@@ -245,7 +245,22 @@ namespace Avalanche.Features.AI
                     color = "#B3261E";
                     break;
                 default:
-                    verdictKey = "Str_AiTest_Warn";
+                    // The banner names WHICH boundary mismatched - a failed first
+                    // boundary under a "last boundary mismatch" headline sent
+                    // readers hunting for a truncation that never happened.
+                    if (probe.FirstMatch < 80 && probe.LastMatch >= 80)
+                    {
+                        verdictKey = "Str_AiTest_WarnFirst";
+                    }
+                    else if (probe.LastMatch < 80 && probe.FirstMatch >= 80)
+                    {
+                        verdictKey = "Str_AiTest_WarnLast";
+                    }
+                    else
+                    {
+                        verdictKey = "Str_AiTest_Warn";
+                    }
+
                     color = "#B3660F";
                     break;
             }

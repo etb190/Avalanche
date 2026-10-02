@@ -1046,7 +1046,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
         <sys:String x:Key="Str_AiTest_AllPages">Alle Seiten</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">BESTANDEN — Vollständiger Kontext verifiziert ({0}% gesehen)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">FEHLGESCHLAGEN — Text von Ollama abgeschnitten</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">WARNUNG — Letzte Satzgrenze weicht ab</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">WARNUNG — Satzgrenze weicht ab ({0}% gelesen)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">WARNUNG — Erste Satzgrenze weicht ab ({0}% gelesen)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">WARNUNG — Letzte Satzgrenze weicht ab ({0}% gelesen)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Von der KI gelesene Token</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Geschätzte gesendete Token</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Gesendete Zeichen</sys:String>

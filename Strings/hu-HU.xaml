@@ -1047,7 +1047,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
         <sys:String x:Key="Str_AiTest_AllPages">Minden oldal</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">SIKER — Teljes kontextus ellenőrizve ({0}% látszott)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">HIBA — Az Ollama csonkolta a szöveget</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">FIGYELMEZTETÉS — Az utolsó határ eltér</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">FIGYELMEZTETÉS — A határ eltér ({0}% olvasva)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">FIGYELMEZTETÉS — Az első határ eltér ({0}% olvasva)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">FIGYELMEZTETÉS — Az utolsó határ eltér ({0}% olvasva)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Az AI által olvasott tokenek</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Becsült elküldött tokenek</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Elküldött karakterek</sys:String>

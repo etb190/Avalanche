@@ -1042,7 +1042,9 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
         <sys:String x:Key="Str_AiTest_AllPages">所有頁面</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">通過 — 完整上下文已驗證（已看到 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">失敗 — 文字被 Ollama 截斷</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">警告 — 末尾邊界不符</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">警告 — 邊界不符（已讀 {0}%）</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">警告 — 起始邊界不符（已讀 {0}%）</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">警告 — 末尾邊界不符（已讀 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI 讀取的權杖數</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">估計送出的權杖數</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">送出的字元數</sys:String>

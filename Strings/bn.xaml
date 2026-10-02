@@ -1059,7 +1059,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
         <sys:String x:Key="Str_AiTest_AllPages">সব পৃষ্ঠা</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">উত্তীর্ণ — সম্পূর্ণ প্রসঙ্গ যাচাই হয়েছে ({0}% দেখা গেছে)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">ব্যর্থ — Ollama পাঠ কেটে ফেলেছে</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">সতর্কতা — শেষ সীমানার অমিল</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">সতর্কতা — সীমানার অমিল ({0}% পড়া হয়েছে)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">সতর্কতা — প্রথম সীমানার অমিল ({0}% পড়া হয়েছে)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">সতর্কতা — শেষ সীমানার অমিল ({0}% পড়া হয়েছে)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI যতটি টোকেন পড়েছে</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">আনুমানিক প্রেরিত টোকেন</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">প্রেরিত অক্ষর</sys:String>

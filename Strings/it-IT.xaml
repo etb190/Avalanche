@@ -1060,7 +1060,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
         <sys:String x:Key="Str_AiTest_AllPages">Tutte le pagine</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">SUPERATO — Contesto completo verificato ({0}% visto)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">FALLITO — Testo troncato da Ollama</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">ATTENZIONE — Discrepanza sull'ultimo confine</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">ATTENZIONE — Discrepanza sul confine ({0}% letto)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">ATTENZIONE — Discrepanza sul primo confine ({0}% letto)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">ATTENZIONE — Discrepanza sull'ultimo confine ({0}% letto)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Token letti dall'IA</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Token stimati inviati</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Caratteri inviati</sys:String>

@@ -1040,7 +1040,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
         <sys:String x:Key="Str_AiTest_AllPages">Todas las páginas</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">APROBADO — Contexto completo verificado ({0}% visto)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">FALLIDO — Texto truncado por Ollama</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">ADVERTENCIA — Discrepancia en la última frontera</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">ADVERTENCIA — Discrepancia de frontera ({0}% leído)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">ADVERTENCIA — Discrepancia en la primera frontera ({0}% leído)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">ADVERTENCIA — Discrepancia en la última frontera ({0}% leído)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokens leídos por la IA</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Tokens estimados enviados</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Caracteres enviados</sys:String>

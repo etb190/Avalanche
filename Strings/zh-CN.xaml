@@ -1044,7 +1044,9 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
         <sys:String x:Key="Str_AiTest_AllPages">所有页面</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">通过 — 完整上下文已验证（已看到 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">失败 — 文本被 Ollama 截断</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">警告 — 末尾边界不匹配</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">警告 — 边界不匹配（已读 {0}%）</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">警告 — 起始边界不匹配（已读 {0}%）</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">警告 — 末尾边界不匹配（已读 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI 读取的令牌数</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">估算发送的令牌数</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">发送的字符数</sys:String>

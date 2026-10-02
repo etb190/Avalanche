@@ -137,9 +137,33 @@ namespace Avalanche.Features.AI
             }
 
             // Boundary expectations, extracted straight from the PDF's text layer -
-            // independent of anything the model says.
-            string firstExpected = AiProbeLogic.FirstSentence(PageBlock(rangeText, firstPage));
-            string lastExpected = AiProbeLogic.LastSentence(PageBlock(rangeText, lastPage));
+            // independent of anything the model says. The model is asked to quote
+            // from the very start (and the very end) of the TEXT, not of a page, so
+            // the expectation is computed the same way: over the whole flattened
+            // range with the [[p. N]] markers stripped. A blank cover, an image-only
+            // leaf or an un-punctuated title page then cannot empty the expectation
+            // - the quote runs through them to the first real punctuation mark.
+            // The per-page walk is the belt-and-braces layer: when the whole-range
+            // flattening somehow yields nothing, scan forward/backward to the
+            // nearest page that still carries prose.
+            string flatRange = AiProbeLogic.Flatten(rangeText);
+            string firstExpected = AiProbeLogic.FirstSentence(flatRange);
+            if (firstExpected.Length == 0)
+            {
+                for (int p = firstPage; p <= lastPage && firstExpected.Length == 0; p++)
+                {
+                    firstExpected = AiProbeLogic.FirstSentence(PageBlock(rangeText, p));
+                }
+            }
+
+            string lastExpected = AiProbeLogic.LastSentence(flatRange);
+            if (lastExpected.Length == 0)
+            {
+                for (int p = lastPage; p >= firstPage && lastExpected.Length == 0; p--)
+                {
+                    lastExpected = AiProbeLogic.LastSentence(PageBlock(rangeText, p));
+                }
+            }
 
             progress?.Report("probe");
             var clock = Stopwatch.StartNew();
@@ -292,14 +316,17 @@ namespace Avalanche.Features.AI
         // Boundary sentences
         // ------------------------------------------------------------------
 
-        /// <summary>Strips the [[H]]/[[/H]] heading wrappers and collapses every
-        /// whitespace run to a single space, so both sides of the comparison quote
-        /// from the same flattened surface.</summary>
+        /// <summary>Strips the [[p. N]] page markers and the [[H]]/[[/H]] heading
+        /// wrappers, then collapses every whitespace run to a single space, so both
+        /// sides of the comparison quote from the same flattened surface - and a
+        /// model that quotes the [[p. 2]] scaffolding verbatim is not taxed for
+        /// characters that were never part of the sentence.</summary>
         public static string Flatten(string pageText)
         {
-            string noWrappers = System.Text.RegularExpressions.Regex.Replace(
-                pageText ?? string.Empty, @"\[\[/?H\]\]", string.Empty);
-            return System.Text.RegularExpressions.Regex.Replace(noWrappers, @"\s+", " ").Trim();
+            string clean = System.Text.RegularExpressions.Regex.Replace(
+                pageText ?? string.Empty, @"\[\[p\.\s*\d+\]\]", string.Empty);
+            clean = System.Text.RegularExpressions.Regex.Replace(clean, @"\[\[/?H\]\]", string.Empty);
+            return System.Text.RegularExpressions.Regex.Replace(clean, @"\s+", " ").Trim();
         }
 
         /// <summary>What the model should quote as the text's first sentence: from the
@@ -308,7 +335,9 @@ namespace Avalanche.Features.AI
         /// shorter than six characters are treated as abbreviation fragments ("St.",
         /// "Fig.", "p. 47") and skipped - a genuine first sentence is never that
         /// short, and the fragment rule keeps "St. Augustine wrote..." from cutting
-        /// at its very first mark.</summary>
+        /// at its very first mark. A title page without any sentence-ending mark
+        /// never yields an empty quote: its opening prose (the first 200 characters)
+        /// comes back instead.</summary>
         public static string FirstSentence(string pageText)
         {
             string flat = Flatten(pageText);
@@ -392,20 +421,39 @@ namespace Avalanche.Features.AI
         // ------------------------------------------------------------------
 
         /// <summary>Similarity of two quotes as a percentage: Levenshtein distance
-        /// over the normalized strings (lowercased, everything but letters, digits
-        /// and underscores removed - cut points and punctuation stop mattering,
-        /// only the words the model actually recalled do).</summary>
+        /// over the normalized strings (flattened - markup and page markers gone -
+        /// then lowercased, everything but letters, digits and underscores removed;
+        /// cut points and punctuation stop mattering, only the words the model
+        /// actually recalled do). Verbatim containment scores as a full match.</summary>
         public static int SimilarityPercent(string expected, string recalled)
         {
-            string a = Normalize(expected);
-            string b = Normalize(recalled);
+            // Flatten first: the [[p. N]] markers must leave both quotes before the
+            // word-character strip, or "[[p. 1]] [[p. 2]]" survives as "p1p2" and
+            // taxes an otherwise verbatim recall.
+            string a = Normalize(Flatten(expected));
+            string b = Normalize(Flatten(recalled));
             if (a.Length == 0 || b.Length == 0)
             {
                 return 0;
             }
 
             int distance = Levenshtein(a, b);
-            return (int)Math.Round(100.0 * (1.0 - (double)distance / Math.Max(a.Length, b.Length)));
+            int similarity = (int)Math.Round(100.0 * (1.0 - (double)distance / Math.Max(a.Length, b.Length)));
+
+            // Containment credit: a model that faithfully quotes MORE than the
+            // expected sentence (title + subtitle + the first sentence one page
+            // later) or a valid verbatim sub-phrase of it has still recalled the
+            // boundary word for word - the shorter normalized string living inside
+            // the longer one is a full match. Only quotes with real substance
+            // (16+ word characters) earn the credit, so a stray two-letter token
+            // cannot ride a long sentence to a pass.
+            if (Math.Min(a.Length, b.Length) >= 16 &&
+                (a.Contains(b, StringComparison.Ordinal) || b.Contains(a, StringComparison.Ordinal)))
+            {
+                similarity = Math.Max(similarity, 100);
+            }
+
+            return similarity;
         }
 
         private static string Normalize(string text) =>

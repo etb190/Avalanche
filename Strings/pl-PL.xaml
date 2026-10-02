@@ -1048,7 +1048,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
         <sys:String x:Key="Str_AiTest_AllPages">Wszystkie strony</sys:String>
         <sys:String x:Key="Str_AiTest_Pass">ZALICZONY — Pełny kontekst zweryfikowany ({0}% widziane)</sys:String>
         <sys:String x:Key="Str_AiTest_Fail">NIEZALICZONY — Tekst skrócony przez Ollamę</sys:String>
-        <sys:String x:Key="Str_AiTest_Warn">OSTRZEŻENIE — Niezgodność ostatniej granicy</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">OSTRZEŻENIE — Niezgodność granicy ({0}% przeczytane)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnFirst">OSTRZEŻENIE — Niezgodność pierwszej granicy ({0}% przeczytane)</sys:String>
+        <sys:String x:Key="Str_AiTest_WarnLast">OSTRZEŻENIE — Niezgodność ostatniej granicy ({0}% przeczytane)</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokeny przeczytane przez AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Szacowane wysłane tokeny</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Wysłane znaki</sys:String>
