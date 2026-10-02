@@ -881,6 +881,19 @@ namespace Avalanche
         // never name a page of the wrong book. Updated even when Recap mode is
         // off, so the first turn after enabling names the right page.
         private int _recapLastPage = -1;
+        // Which book the tracker counts for: a page report that belongs
+        // to any other document is a landing, never a turn - a tab switch
+        // fires its incoming book's first reports while the shared fields
+        // are already flipped and the old book's page still sits in the
+        // tracker, so page numbers alone cannot be trusted across books.
+        private string? _recapLastPageDoc;
+        // The landing grace: page reports this many milliseconds after
+        // the active document changed are the restored scroll position
+        // settling into place, not the reader turning anything - the
+        // companion stays quiet through them. TickCount64 baseline, so
+        // wall-clock edits are moot.
+        private const int RecapLandingGraceMs = 1200;
+        private long _recapGraceUntilTick;
         // Companion-window memory: the chat rail and the summary navigator reopen
         // with the app when they were open at last close (snapshot in OnClosing;
         // the summary, which needs a document, reopens on the first one that lands).
@@ -1134,10 +1147,29 @@ namespace Avalanche
         private void RecapOnPageTurn(int newPage)
         {
             int oldPage = _recapLastPage;
+            // The tracker counts turns for ONE book: a report from another
+            // document - a tab switch's incoming book reporting while the
+            // shared fields are already flipped - is a landing, whatever the
+            // numbers say. Re-arm on the reported book every time.
+            string? reportedDoc = _currentFile;
+            bool newBook = !string.Equals(
+                reportedDoc, _recapLastPageDoc, StringComparison.OrdinalIgnoreCase);
             _recapLastPage = newPage;
+            _recapLastPageDoc = reportedDoc;
             // The first report after open (or a document switch) has no "left
-            // behind" page; same-page re-reports (zoom, scroll sync) are not turns.
-            if (oldPage < 0 || newPage < 0 || oldPage == newPage)
+            // behind" page; same-page re-reports (zoom, scroll sync) are not turns;
+            // a report from another book is the landing itself.
+            if (oldPage < 0 || newPage < 0 || oldPage == newPage || newBook)
+            {
+                return;
+            }
+
+            // Landing on a book is window management, not reading: the restored
+            // scroll position reports itself in the moments right after the
+            // switch, and that snap opens nothing. Only a turn the reader makes
+            // once the dust has settled brings the companion along - F and the
+            // navigator's next/before controls answer regardless of this window.
+            if (Environment.TickCount64 < _recapGraceUntilTick)
             {
                 return;
             }
@@ -1558,6 +1590,8 @@ namespace Avalanche
             // die with the old document, and the turn tracker forgets the old
             // book's page so the first turn here never recaps across documents.
             _recapLastPage = -1;
+            _recapLastPageDoc = null;
+            _recapGraceUntilTick = Environment.TickCount64 + RecapLandingGraceMs;
             Features.Summary.RecapController.NotifyDocumentChanged();
             // The AI test window probes ONE document; switching documents would
             // leave it auditing a stale file, so it goes with the old one.

@@ -876,6 +876,9 @@ namespace Avalanche.Controls
             _doc = null;
 
             _sessions.Remove(s);
+            // A closed book takes its notes history with it: the sidebar's
+            // per-document store must never resurrect it if the file reopens.
+            Host?.NotesHistoryDiscarded(s.CurrentFile);
             _renderLru.Remove(s);    // don't pin a closed tab's render cache in the LRU list
             s.RenderCache.Clear();
             s.RenderCacheSize.Clear();
@@ -928,6 +931,7 @@ namespace Avalanche.Controls
             _doc = null;
 
             _sessions.Clear();
+            Host?.NotesHistoryDiscarded(null);   // every tab at once: the whole history dies
             App.RemoveSetting("LastFile");   // a manually emptied window won't reopen on launch
             var blank2 = new DocumentSession();
             _sessions.Add(blank2);

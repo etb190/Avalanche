@@ -56,6 +56,8 @@ namespace Avalanche
 
         void IViewerHost.ActiveDocumentChanged(string? filePath)
             => ActiveDocumentChanged(filePath);
+        void IViewerHost.NotesHistoryDiscarded(string? filePath)
+            => DiscardNotesForClosedDocument(filePath);
         void IViewerHost.HighlightSearchResultsOnCurrentPage() => HighlightSearchResultsOnCurrentPage();
         void IViewerHost.ShowTextSettings() => ShowTextSettings();
         void IViewerHost.HideTextSettings() => HideTextSettings();

@@ -118,6 +118,38 @@ namespace Avalanche
             }
         }
 
+        /// <summary>A closed tab takes its notes history with it: the book's
+        /// parked cards are evicted for good, so reopening the same file
+        /// starts fresh. The store exists so tab FLITS never burn a
+        /// generation - it is not an archive, and closing every tab (or the
+        /// window itself, null) clears the whole history. The live stage is
+        /// dropped with the path so the park in ResetNotesForDocument can
+        /// never re-add what was just evicted.</summary>
+        internal void DiscardNotesForClosedDocument(string? filePath)
+        {
+            if (filePath is null)
+            {
+                _notesByDocument.Clear();
+            }
+            else
+            {
+                _notesByDocument.Remove(
+                    Features.AI.DocumentIndexer.ComputeDocumentId(filePath));
+            }
+
+            if (filePath is null
+                || string.Equals(_notesDocumentPath, filePath, StringComparison.Ordinal))
+            {
+                _notesDocumentPath = null;
+                CancelNotesRun();
+                _notesBusy = false;
+                SetNotesBusy(false);
+                _noteCards.Clear();
+                ShowNotesEmpty();
+                HideNotesStatus();
+            }
+        }
+
         private void CancelNotesRun()
         {
             _notesRun++;

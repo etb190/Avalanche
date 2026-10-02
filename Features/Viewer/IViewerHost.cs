@@ -88,6 +88,12 @@ namespace Avalanche.Features
         /// <summary>The active document changed (tab switch, open, close) -
         /// lets the AI chat re-bind to the current file.</summary>
         void ActiveDocumentChanged(string? filePath);
+
+        /// <summary>A document tab was closed (null: every tab at once) -
+        /// the sidebar's notes history for that book is evicted, so
+        /// reopening the file starts fresh and nothing the reader
+        /// generated outlives the tab it was generated in.</summary>
+        void NotesHistoryDiscarded(string? filePath);
         void HighlightSearchResultsOnCurrentPage();
         void ShowTextSettings();
         void HideTextSettings();
