@@ -1,0 +1,693 @@
+// Features/AI/AiContextTester.cs — the engine behind the "AI Test" window.
+//
+// Purpose: mathematical proof that the model actually SAW the pages it was
+// asked to read. The summary pipeline trusts Ollama to evaluate every token
+// of the extracted text; a silent context truncation (a num_ctx smaller than
+// the input, a bridge capping the payload) still returns a fluent, confident
+// digest - of half the book. This probe turns that trust into evidence:
+//   * it extracts the page range exactly like the summarizer does (the same
+//     TextRunService reading-order runs, the same [[p. N]] markers),
+//   * sends the text to the model with a verbatim-recall instruction (report
+//     the first and the last sentence of the text),
+//   * audits usage.prompt_tokens (or Ollama's native prompt_eval_count)
+//     against a CJK-aware token estimate of what was sent, and
+//   * fuzzy-compares the recalled boundary sentences with the ones extracted
+//     directly from the PDF (>= 80% similarity each).
+// Verdicts: PASS (full context verified), FAIL (tokens read far below what
+// was sent - Ollama truncated the document), WARNING (tokens look complete
+// but a boundary sentence mismatched). The scoring helpers live in the pure
+// static AiProbeLogic so they stay unit-testable without WPF or the PDF
+// engine; the SummaryWindow verification badge reuses them too.
+
+namespace Avalanche.Features.AI
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Globalization;
+    using System.Net.Http;
+    using System.Net.Http.Headers;
+    using System.Text;
+    using System.Text.Json;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using Avalanche.Features.Summary;
+    using Avalanche.Services;
+
+    /// <summary>One finished probe run. Ok=false means the probe itself could not
+    /// produce evidence (no text layer, or the model refused to answer); every
+    /// other field then carries the page range and, when available, the extracted
+    /// boundary expectations so the window can still show what it knows.</summary>
+    internal sealed record AiTestProbeResult(
+        bool Ok,
+        string? Error,
+        int FirstPage,
+        int LastPage,
+        string FirstExpected,
+        string LastExpected,
+        string? FirstRecalled,
+        string? LastRecalled,
+        int FirstMatch,
+        int LastMatch,
+        long PromptTokens,
+        bool TokensKnown,
+        long TokensEstimated,
+        int CharsSent,
+        double Seconds,
+        double TokensPerSecond,
+        int SeenPercent,
+        bool Truncated,
+        string Verdict)
+    {
+        public static AiTestProbeResult Notext(int firstPage, int lastPage) => new(
+            Ok: false, Error: "notext", FirstPage: firstPage, LastPage: lastPage,
+            FirstExpected: string.Empty, LastExpected: string.Empty,
+            FirstRecalled: null, LastRecalled: null, FirstMatch: 0, LastMatch: 0,
+            PromptTokens: 0, TokensKnown: false, TokensEstimated: 0, CharsSent: 0,
+            Seconds: 0, TokensPerSecond: 0, SeenPercent: 0, Truncated: false,
+            Verdict: "error");
+
+        public static AiTestProbeResult Fault(
+            int firstPage, int lastPage, string firstExpected, string lastExpected, string error) => new(
+            Ok: false, Error: error, FirstPage: firstPage, LastPage: lastPage,
+            FirstExpected: firstExpected, LastExpected: lastExpected,
+            FirstRecalled: null, LastRecalled: null, FirstMatch: 0, LastMatch: 0,
+            PromptTokens: 0, TokensKnown: false, TokensEstimated: 0, CharsSent: 0,
+            Seconds: 0, TokensPerSecond: 0, SeenPercent: 0, Truncated: false,
+            Verdict: "error");
+    }
+
+    internal static class AiContextTester
+    {
+        private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
+
+        // The probe's contract with the model: verbatim recall, JSON only. The
+        // marker note matters - the extracted text is seeded with [[p. N]] page
+        // markers and [[H]]/[[/H]] heading wrappers, and a model that quotes the
+        // markup as "the first sentence" would fail an otherwise perfect run.
+        private const string ProbeSystemPrompt =
+            """
+            You are a context verification probe. Read the provided text and output a JSON object:
+            {
+              "first_sentence_seen": "<exact first sentence of the text>",
+              "last_sentence_seen": "<exact last sentence of the text>",
+              "first_page_marker": "<e.g. [[p. 1]]>",
+              "last_page_marker": "<e.g. [[p. 100]]>"
+            }
+            Do not summarize. Return ONLY the JSON object.
+            The text carries internal markup markers: ignore the [[p. N]], [[H]] and [[/H]]
+            wrappers when quoting - they are scaffolding, not part of the sentences.
+            The first sentence means: everything from the very start of the text up to and
+            including its first sentence-ending punctuation mark. The last sentence means:
+            the closing words of the text, from its final sentence start to the very end
+            (even if the text ends mid-sentence). Quote both verbatim.
+            """;
+
+        /// <summary>Truncation audit shared with the SummaryWindow badge: a model that
+        /// read fewer than 55% of the estimated input tokens never saw the whole range.
+        /// The threshold rides well under the estimate's own slack (chars/4 is generous
+        /// for Latin prose, so a full read lands near or above 100%).</summary>
+        public static (bool Truncated, int SeenPct) Audit(long promptTokens, long estimated) =>
+            AiProbeLogic.DecideAudit(promptTokens, estimated);
+
+        /// <summary>The provider-agnostic error wording the summary path already uses
+        /// (status codes, timeouts, provider busy) - the test window shows the same
+        /// friendly shape for the same failures.</summary>
+        public static string FriendlyError(Exception ex) => PageSummarizer.FriendlyError(ex);
+
+        public static async Task<AiTestProbeResult> RunProbeAsync(
+            AiProviderConfig config,
+            string filePath,
+            int firstPage,
+            int lastPage,
+            IProgress<string>? progress,
+            CancellationToken ct)
+        {
+            progress?.Report("extract");
+            string rangeText = await PageSummarizer.ExtractRangeAsync(filePath, firstPage, lastPage, ct)
+                .ConfigureAwait(false);
+
+            // The same absolute floor the summarizer uses: a range with (almost) no
+            // letters at all has nothing to probe (scanned book without OCR).
+            string body = System.Text.RegularExpressions.Regex.Replace(
+                rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+            if (AiProbeLogic.CountLetters(body) < 250)
+            {
+                return AiTestProbeResult.Notext(firstPage, lastPage);
+            }
+
+            // Boundary expectations, extracted straight from the PDF's text layer -
+            // independent of anything the model says.
+            string firstExpected = AiProbeLogic.FirstSentence(PageBlock(rangeText, firstPage));
+            string lastExpected = AiProbeLogic.LastSentence(PageBlock(rangeText, lastPage));
+
+            progress?.Report("probe");
+            var clock = Stopwatch.StartNew();
+            using var request = BuildProbeRequest(config, rangeText);
+            using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            clock.Stop();
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "ai test: POST model={0} pages={1}-{2} chars={3} -> {4} ms",
+                config.Model,
+                firstPage,
+                lastPage,
+                rangeText.Length,
+                clock.ElapsedMilliseconds));
+
+            string? content = AiProbeLogic.ExtractReplyContent(json);
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                string? err = AiProbeLogic.ExtractErrorBody(json);
+                return AiTestProbeResult.Fault(
+                    firstPage, lastPage, firstExpected, lastExpected,
+                    string.IsNullOrEmpty(err)
+                        ? "the model returned no answer (its whole budget may have gone to hidden reasoning)"
+                        : err!);
+            }
+
+            var reply = AiProbeLogic.ParseProbeReply(content);
+            string? firstRecalled = reply?.FirstSeen;
+            string? lastRecalled = reply?.LastSeen;
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "ai test: reply parsed: first={0}ch last={1}ch",
+                firstRecalled?.Length ?? 0,
+                lastRecalled?.Length ?? 0));
+
+            int firstMatch = string.IsNullOrEmpty(firstRecalled)
+                ? 0
+                : AiProbeLogic.SimilarityPercent(firstExpected, firstRecalled);
+            int lastMatch = string.IsNullOrEmpty(lastRecalled)
+                ? 0
+                : AiProbeLogic.SimilarityPercent(lastExpected, lastRecalled);
+
+            long estimated = AiProbeLogic.EstimateTokens(rangeText);
+            long? promptTokens = AiProbeLogic.ExtractUsageTokens(json);
+            long tokens = promptTokens ?? 0;
+            bool tokensKnown = promptTokens.HasValue;
+            (bool truncated, int seenPct) = AiProbeLogic.DecideAudit(tokens, estimated);
+            string verdict;
+            if (tokensKnown && truncated)
+            {
+                verdict = "fail";
+            }
+            else if (firstMatch >= 80 && lastMatch >= 80)
+            {
+                // Tokens unknown (the bridge omitted usage): the boundary recall alone
+                // still earns a pass - the model demonstrably saw both ends.
+                verdict = "pass";
+            }
+            else
+            {
+                verdict = "warn";
+            }
+
+            return new AiTestProbeResult(
+                Ok: true, Error: null, FirstPage: firstPage, LastPage: lastPage,
+                FirstExpected: firstExpected, LastExpected: lastExpected,
+                FirstRecalled: firstRecalled, LastRecalled: lastRecalled,
+                FirstMatch: firstMatch, LastMatch: lastMatch,
+                PromptTokens: tokens, TokensKnown: tokensKnown,
+                TokensEstimated: estimated, CharsSent: rangeText.Length,
+                Seconds: clock.Elapsed.TotalSeconds,
+                TokensPerSecond: completionTokens(json, clock) ,
+                SeenPercent: seenPct, Truncated: truncated, Verdict: verdict);
+
+            static double completionTokens(string json, Stopwatch clock)
+            {
+                long? completion = AiProbeLogic.ExtractCompletionTokens(json);
+                return completion is long c && c > 0 && clock.Elapsed.TotalSeconds > 0
+                    ? c / clock.Elapsed.TotalSeconds
+                    : 0;
+            }
+        }
+
+        /// <summary>The raw text of one page inside the extracted range: from its
+        /// [[p. N]] marker to the next marker (or the end of the text).</summary>
+        private static string PageBlock(string rangeText, int page)
+        {
+            var marker = System.Text.RegularExpressions.Regex.Match(
+                rangeText, @"\[\[p\.\s*" + page.ToString(CultureInfo.InvariantCulture) + @"\]\]");
+            if (!marker.Success)
+            {
+                return string.Empty;
+            }
+
+            int start = marker.Index + marker.Length;
+            int end = rangeText.Length;
+            // Instance Match(input, startat): the static overloads only accept
+            // RegexOptions, not a start offset.
+            var pageMarker = new System.Text.RegularExpressions.Regex(@"\[\[p\.\s*\d+\]\]");
+            var next = pageMarker.Match(rangeText, start);
+            if (next.Success)
+            {
+                end = next.Index;
+            }
+
+            return rangeText[start..end];
+        }
+
+        // Same wire shape as the summary's BuildRequest (OpenAI-compatible chat
+        // completions against the configured base URL, Bearer key defaulting to
+        // the Ollama placeholder) - a deliberate local copy: the probe's budget
+        // and temperature are its own, and the summarizer's HTTP plumbing stays
+        // untouched.
+        private static HttpRequestMessage BuildProbeRequest(AiProviderConfig config, string userText)
+        {
+            var body = new Dictionary<string, object?>
+            {
+                ["model"] = config.Model,
+                ["messages"] = new object[]
+                {
+                    new { role = "system", content = ProbeSystemPrompt },
+                    new { role = "user", content = userText }
+                },
+                // A recall probe wants determinism: temperature 0, no sampling games
+                // between the text and the verdict about the text.
+                ["temperature"] = 0,
+                ["max_tokens"] = Math.Max(config.MaxTokens, 8192),
+                ["stream"] = false
+            };
+            var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                (config.BaseUrl ?? string.Empty).TrimEnd('/') + "/chat/completions")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
+            };
+            string key = string.IsNullOrWhiteSpace(config.ApiKey) ? "ollama" : config.ApiKey;
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
+            return request;
+        }
+    }
+
+    /// <summary>Pure scoring logic of the context probe: boundary-sentence extraction,
+    /// fuzzy similarity, the CJK-aware token estimate and the truncation decision.
+    /// No WPF, no PDF engine, no I/O - everything here is unit-testable on its own.</summary>
+    internal static class AiProbeLogic
+    {
+        // ------------------------------------------------------------------
+        // Boundary sentences
+        // ------------------------------------------------------------------
+
+        /// <summary>Strips the [[H]]/[[/H]] heading wrappers and collapses every
+        /// whitespace run to a single space, so both sides of the comparison quote
+        /// from the same flattened surface.</summary>
+        public static string Flatten(string pageText)
+        {
+            string noWrappers = System.Text.RegularExpressions.Regex.Replace(
+                pageText ?? string.Empty, @"\[\[/?H\]\]", string.Empty);
+            return System.Text.RegularExpressions.Regex.Replace(noWrappers, @"\s+", " ").Trim();
+        }
+
+        /// <summary>What the model should quote as the text's first sentence: from the
+        /// start up to and including the first sentence-ending mark followed by a
+        /// space (or the end of the text), capped at 200 characters. Sentence ends
+        /// shorter than six characters are treated as abbreviation fragments ("St.",
+        /// "Fig.", "p. 47") and skipped - a genuine first sentence is never that
+        /// short, and the fragment rule keeps "St. Augustine wrote..." from cutting
+        /// at its very first mark.</summary>
+        public static string FirstSentence(string pageText)
+        {
+            string flat = Flatten(pageText);
+            if (flat.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            for (int i = 0; i < flat.Length; i++)
+            {
+                bool terminator = flat[i] is '.' or '!' or '?';
+                bool boundary = terminator && (i == flat.Length - 1 || flat[i + 1] == ' ');
+                if (!boundary)
+                {
+                    continue;
+                }
+
+                int fragmentLength = i + 1;      // includes the terminator itself
+                if (fragmentLength < 6)
+                {
+                    continue;                     // abbreviation fragment, not a sentence
+                }
+
+                return flat[..Math.Min(fragmentLength, 200)].Trim();
+            }
+
+            return flat.Length <= 200 ? flat : flat[..200];
+        }
+
+        /// <summary>The closing words of the text: everything after the LAST
+        /// sentence-ending mark that is followed by a space - "from the final
+        /// sentence start to the very end, even mid-sentence", exactly the rule the
+        /// probe prompt states. A text with no interior boundary stays whole; a
+        /// degenerate tail (stray marks, fragments under six characters) reaches
+        /// back one boundary; the result is capped at the final 200 characters.</summary>
+        public static string LastSentence(string pageText)
+        {
+            string flat = Flatten(pageText);
+            if (flat.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            int last = -1;
+            for (int i = 0; i < flat.Length - 1; i++)
+            {
+                if (flat[i] is '.' or '!' or '?' && flat[i + 1] == ' ')
+                {
+                    last = i;
+                }
+            }
+
+            if (last < 0)
+            {
+                return flat.Length <= 200 ? flat : flat[^200..];
+            }
+
+            string tail = flat[(last + 1)..].Trim();
+            if (tail.Length < 6)
+            {
+                int previous = -1;
+                for (int i = 0; i < last; i++)
+                {
+                    if (flat[i] is '.' or '!' or '?' && flat[i + 1] == ' ')
+                    {
+                        previous = i;
+                    }
+                }
+
+                if (previous >= 0)
+                {
+                    tail = flat[(previous + 1)..].Trim();
+                }
+            }
+
+            return tail.Length <= 200 ? tail : tail[^200..];
+        }
+
+        // ------------------------------------------------------------------
+        // Fuzzy comparison
+        // ------------------------------------------------------------------
+
+        /// <summary>Similarity of two quotes as a percentage: Levenshtein distance
+        /// over the normalized strings (lowercased, everything but letters, digits
+        /// and underscores removed - cut points and punctuation stop mattering,
+        /// only the words the model actually recalled do).</summary>
+        public static int SimilarityPercent(string expected, string recalled)
+        {
+            string a = Normalize(expected);
+            string b = Normalize(recalled);
+            if (a.Length == 0 || b.Length == 0)
+            {
+                return 0;
+            }
+
+            int distance = Levenshtein(a, b);
+            return (int)Math.Round(100.0 * (1.0 - (double)distance / Math.Max(a.Length, b.Length)));
+        }
+
+        private static string Normalize(string text) =>
+            System.Text.RegularExpressions.Regex.Replace(
+                (text ?? string.Empty).ToLowerInvariant(), @"[^\w]+", string.Empty);
+
+        private static int Levenshtein(string a, string b)
+        {
+            if (a == b)
+            {
+                return 0;
+            }
+
+            if (a.Length == 0)
+            {
+                return b.Length;
+            }
+
+            if (b.Length == 0)
+            {
+                return a.Length;
+            }
+
+            var previous = new int[b.Length + 1];
+            var current = new int[b.Length + 1];
+            for (int j = 0; j <= b.Length; j++)
+            {
+                previous[j] = j;
+            }
+
+            for (int i = 1; i <= a.Length; i++)
+            {
+                current[0] = i;
+                for (int j = 1; j <= b.Length; j++)
+                {
+                    int substitute = previous[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1);
+                    int insert = previous[j] + 1;
+                    int delete = current[j - 1] + 1;
+                    current[j] = Math.Min(substitute, Math.Min(insert, delete));
+                }
+
+                (previous, current) = (current, previous);
+            }
+
+            return previous[b.Length];
+        }
+
+        // ------------------------------------------------------------------
+        // Token estimate + truncation decision
+        // ------------------------------------------------------------------
+
+        /// <summary>Rough token count of the text the model was sent: Latin-style
+        /// prose runs about four characters per token, CJK prose about one token
+        /// per character (o200k-family tokenizers). Good enough to catch a bridge
+        /// that silently read 4,096 of 62,000 tokens - which is the only thing
+        /// this estimate must catch.</summary>
+        public static long EstimateTokens(string text)
+        {
+            long cjk = 0;
+            long other = 0;
+            foreach (char c in text ?? string.Empty)
+            {
+                if (IsCjk(c))
+                {
+                    cjk++;
+                }
+                else
+                {
+                    other++;
+                }
+            }
+
+            return cjk + (other + 3) / 4;
+        }
+
+        private static bool IsCjk(char c) =>
+            (c >= 0x3040 && c <= 0x30FF) ||    // hiragana + katakana
+            (c >= 0x3400 && c <= 0x4DBF) ||    // CJK extension A
+            (c >= 0x4E00 && c <= 0x9FFF) ||    // CJK unified
+            (c >= 0xAC00 && c <= 0xD7AF) ||    // hangul syllables
+            (c >= 0xF900 && c <= 0xFAFF) ||    // CJK compatibility
+            (c >= 0xFF66 && c <= 0xFF9D);      // half-width katakana
+
+        /// <summary>The truncation decision shared by the AI test window and the
+        /// summary's verification badge: below 55% of the estimated tokens the model
+        /// demonstrably never saw the whole input.</summary>
+        public static (bool Truncated, int SeenPct) DecideAudit(long promptTokens, long estimated)
+        {
+            if (estimated <= 0)
+            {
+                return (false, 0);
+            }
+
+            bool truncated = promptTokens * 100 < estimated * 55;
+            int seenPct = (int)Math.Min(100L, promptTokens * 100 / estimated);
+            return (truncated, seenPct);
+        }
+
+        // ------------------------------------------------------------------
+        // Response parsing
+        // ------------------------------------------------------------------
+
+        /// <summary>choices[0].message.content of a completion body, when present
+        /// (reasoning-only answers yield null - the caller reports "no answer").</summary>
+        public static string? ExtractReplyContent(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("choices", out var choices) &&
+                    choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0 &&
+                    choices[0].TryGetProperty("message", out var message) &&
+                    message.TryGetProperty("content", out var content) &&
+                    content.ValueKind == JsonValueKind.String)
+                {
+                    return content.GetString();
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>usage.prompt_tokens (OpenAI-compatible body) or prompt_eval_count
+        /// (Ollama native body), when the response carries one.</summary>
+        public static long? ExtractUsageTokens(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    return null;
+                }
+
+                if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object &&
+                    usage.TryGetProperty("prompt_tokens", out var promptTokens) &&
+                    promptTokens.TryGetInt64(out long prompt))
+                {
+                    return prompt;
+                }
+
+                if (root.TryGetProperty("prompt_eval_count", out var evalCount) &&
+                    evalCount.TryGetInt64(out long count))
+                {
+                    return count;
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>usage.completion_tokens (or Ollama's eval_count) for the
+        /// tokens/sec figure; null when the response omits it.</summary>
+        public static long? ExtractCompletionTokens(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    return null;
+                }
+
+                if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object &&
+                    usage.TryGetProperty("completion_tokens", out var completionTokens) &&
+                    completionTokens.TryGetInt64(out long completion))
+                {
+                    return completion;
+                }
+
+                if (root.TryGetProperty("eval_count", out var evalCount) &&
+                    evalCount.TryGetInt64(out long count))
+                {
+                    return count;
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>The "error" message of a 200 body that is actually a failure.</summary>
+        public static string? ExtractErrorBody(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("error", out var err))
+                {
+                    if (err.ValueKind == JsonValueKind.String)
+                    {
+                        return err.GetString();
+                    }
+
+                    if (err.ValueKind == JsonValueKind.Object &&
+                        err.TryGetProperty("message", out var message) &&
+                        message.ValueKind == JsonValueKind.String)
+                    {
+                        return message.GetString();
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        /// <summary>Parses the model's JSON object out of its reply: reasoning models
+        /// like to wrap the object in ``` fences or prefix prose, so the parser takes
+        /// the span from the first '{' to the last '}' and reads the four probe
+        /// fields. Null when the reply holds no parseable object.</summary>
+        public static (string? FirstSeen, string? LastSeen, string? FirstMarker, string? LastMarker)? ParseProbeReply(
+            string content)
+        {
+            string? json = ExtractJsonBlock(content);
+            if (json is null)
+            {
+                return null;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    return null;
+                }
+
+                return (
+                    Str(root, "first_sentence_seen"),
+                    Str(root, "last_sentence_seen"),
+                    Str(root, "first_page_marker"),
+                    Str(root, "last_page_marker"));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string? ExtractJsonBlock(string content)
+        {
+            string text = (content ?? string.Empty).Trim();
+            int start = text.IndexOf('{');
+            int end = text.LastIndexOf('}');
+            return start >= 0 && end > start ? text[start..(end + 1)] : null;
+        }
+
+        private static string? Str(JsonElement element, string name) =>
+            element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
+                ? value.GetString()
+                : null;
+
+        /// <summary>Letters only - the same absolute floor the summarizer applies
+        /// before believing a range carries prose.</summary>
+        public static int CountLetters(string text)
+        {
+            int count = 0;
+            foreach (char c in text ?? string.Empty)
+            {
+                if (char.IsLetter(c))
+                {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+    }
+}

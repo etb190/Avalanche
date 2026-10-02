@@ -1634,6 +1634,10 @@
                              family style, no local overrides - the caption engine
                              dresses it exactly like Search in every mode. -->
                         <Button x:Name="AiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
+                        <!-- The search button's clone for the AI context test: the
+                             verifier that probes what the model actually saw - the
+                             third member of the AI pair, right of the chat clone. -->
+                        <Button x:Name="AiTestBtn" Content="&#xE9D9;" Style="{StaticResource ToolbarButton}" Click="AiTestBtn_Click" ToolTip="{DynamicResource Str_TT_AiTest}"/>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
@@ -1736,6 +1740,9 @@
                                 </Button>
                                 <Button x:Name="MiAiChat" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="AiChatBtn_Click">
                                     <StackPanel Orientation="Horizontal"><ctrl:RobotIcon Width="16" Height="16" Margin="4,0,4,0" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/><TextBlock Text="{DynamicResource Str_Lbl_AiChat}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                                <Button x:Name="MiAiTest" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="AiTestBtn_Click">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/><TextBlock Text="{DynamicResource Str_Lbl_AiTest}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                             </StackPanel>
                             </Grid>

@@ -68,6 +68,25 @@ namespace Avalanche.Features.Summary
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
 
         // ------------------------------------------------------------------
+        // Token audit (the SummaryWindow verification badge)
+        // ------------------------------------------------------------------
+        // The badge under the digest is only honest if its numbers belong to the
+        // run being shown. The Gate serializes summary runs, so run-scoped counters
+        // on this class are safe: GenerateAsync resets them when a run starts, the
+        // pass functions accumulate, and the window reads them when "done" arrives.
+
+        /// <summary>Prompt tokens the provider reported reading for the current run,
+        /// summed over its passes (single-pass: the digest pass; map-reduce: the
+        /// notes passes plus fusion). Known=false when no response carried usage.</summary>
+        public static long RunPromptTokens { get; private set; }
+
+        public static bool RunPromptTokensKnown { get; private set; }
+
+        /// <summary>CJK-aware token estimate of the user content actually sent during
+        /// the current run (chars/4 for Latin-style prose, ~1/char for CJK).</summary>
+        public static long RunTokensEstimated { get; private set; }
+
+        // ------------------------------------------------------------------
         // Extraction
         // ------------------------------------------------------------------
 
@@ -331,6 +350,9 @@ namespace Avalanche.Features.Summary
             [EnumeratorCancellation] CancellationToken ct)
         {
             await Gate.WaitAsync(ct).ConfigureAwait(false);
+            RunPromptTokens = 0;
+            RunPromptTokensKnown = false;
+            RunTokensEstimated = 0;
             try
             {
                 await foreach (SummaryUpdate update in GenerateCoreAsync(request, config, loc, ct))
@@ -855,6 +877,30 @@ namespace Avalanche.Features.Summary
             - The ONLY exception: if the source text itself uses an abbreviation (e.g., "DNA", "NASA", "MIS 6"), you may use it as the source does.
             """;
 
+        // The extension's nonfiction checklist, transplanted verbatim (prompt_ai_test
+        // Part 1): the old generic "cover the core arguments" rule let models quietly
+        // drop the author's analogies, debate positions and named case studies - the
+        // very tools the argument rides on. It lives in the SHARED head of the digest
+        // prompt, so both paths inherit it: the single-pass digest and the fusion
+        // pass over the map-reduce notes alike.
+        private const string DetailChecklist =
+            """
+            WHAT COUNTS AS "DETAILS" — ALL of these must be covered:
+            - Facts: names, dates, numbers, places, definitions — reproduced exactly.
+            - Arguments: the author's claims, thesis, and core reasoning.
+            - Evidence: the data, studies, examples, and cases the author uses to support claims.
+            - Interpretations: how the author reads the evidence — what they argue it means.
+            - Comparisons: EVERY comparison the author makes. If the author compares X to Y, your summary must include that comparison.
+            - Parallels and analogies: EVERY parallel or analogy the author draws (historical, biological, or cross-cultural analogies). These are often the author's primary explanatory tools — NEVER omit them.
+            - Counterarguments: positions the author disagrees with, debates, and disproves.
+            - Specific artifacts, sites, and case studies: every named artifact, site, experiment, courtroom trial, or specific case study. If the author names it, it must appear in the summary.
+
+            FORBIDDEN:
+            - Dropping the author's argument and keeping only the raw facts.
+            - Merging multiple distinct arguments, comparisons, or parallels into one vague sentence.
+            - Replacing a specific parallel or case study with a generic statement like "the author draws parallels" or "studies demonstrate".
+            """;
+
         private static string DigestSystemPrompt(int targetWords, string language, bool fromNotes)
         {
             // Word-for-word transplant of the extension's nonfiction_classic
@@ -879,6 +925,7 @@ namespace Avalanche.Features.Summary
                 "2. State content directly as facts and findings — never describe the text or the author.\n" +
                 "3. Keep the summary focused, dense, and close to " + targetWords +
                 " words — do NOT exceed " + targetWords + " words.\n\n" +
+                DetailChecklist + "\n\n" +
                 AntiMeta + "\n\n" +
                 "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
                 "commentary about the text or about summarizing.\n\n" +
@@ -1216,6 +1263,8 @@ namespace Avalanche.Features.Summary
             {
                 // Endpoint ignored stream:true and answered with one JSON body.
                 string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                CollectRunUsage(json);
+                CollectRunSent(user);
                 string whole = ExtractMessageContent(json) ?? string.Empty;
                 if (whole.Length > 0)
                 {
@@ -1230,6 +1279,7 @@ namespace Avalanche.Features.Summary
                 yield break;
             }
 
+            CollectRunSent(user);
             using Stream stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
             using var reader = new StreamReader(stream);
             var reasoningBuf = new StringBuilder();   // reasoning models stream their think first
@@ -1253,6 +1303,14 @@ namespace Avalanche.Features.Summary
                 if (payload == "[DONE]")
                 {
                     break;
+                }
+
+                // Bridges that honor include_usage append the usage frame to the
+                // final chunk; the Contains pre-filter keeps per-frame parsing to
+                // that one frame instead of every delta.
+                if (payload.Contains("\"usage\"", StringComparison.Ordinal))
+                {
+                    CollectRunUsage(payload);
                 }
 
                 string? delta = ExtractDeltaContent(payload);
@@ -1309,6 +1367,8 @@ namespace Avalanche.Features.Summary
             using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            CollectRunUsage(json);
+            CollectRunSent(user);
             string? content = ExtractMessageContent(json);
             SurfaceHealthLog.Log(string.Format(
                 CultureInfo.InvariantCulture,
@@ -1331,6 +1391,59 @@ namespace Avalanche.Features.Summary
 
             SurfaceHealthLog.Log("summary: no content in body; snippet: " + Snippet(json, 240));
             return string.Empty;
+        }
+
+        /// <summary>Joins usage.prompt_tokens (OpenAI-compatible) or prompt_eval_count
+        /// (Ollama native) out of a response body or SSE frame into the run's token
+        /// audit. Bodies without usage - some bridges omit it - simply leave the
+        /// counters untouched; the badge then keeps the plain word count instead of
+        /// inventing numbers.</summary>
+        private static void CollectRunUsage(string json)
+        {
+            long? tokens = ExtractRunPromptTokens(json);
+            if (tokens is long t)
+            {
+                RunPromptTokens += t;
+                RunPromptTokensKnown = true;
+            }
+        }
+
+        /// <summary>Counts one pass's user content into the run's "what was sent"
+        /// estimate - the CJK-aware chars/4 approximation the badge compares against.</summary>
+        private static void CollectRunSent(string user)
+        {
+            RunTokensEstimated += AiProbeLogic.EstimateTokens(user);
+        }
+
+        private static long? ExtractRunPromptTokens(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                {
+                    return null;
+                }
+
+                if (root.TryGetProperty("usage", out var usage) && usage.ValueKind == JsonValueKind.Object &&
+                    usage.TryGetProperty("prompt_tokens", out var promptTokens) &&
+                    promptTokens.TryGetInt64(out long prompt))
+                {
+                    return prompt;
+                }
+
+                if (root.TryGetProperty("prompt_eval_count", out var evalCount) &&
+                    evalCount.TryGetInt64(out long count))
+                {
+                    return count;
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
         }
 
         private static string? ExtractDeltaContent(string json)

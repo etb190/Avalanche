@@ -73,6 +73,8 @@ namespace Avalanche.Features.Summary
         private int _startPage = 1;     // the anchor: first page of the displayed range
         private bool _editing;          // the field is showing the bare start page for editing
         private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
+        private int _runFirstPage = 1;  // the range the current/last digest covered; the
+        private int _runLastPage = 1;   // verification badge maps its audit onto these pages
 
         public SummaryWindow(
             MainWindow owner,
@@ -559,6 +561,8 @@ namespace Avalanche.Features.Summary
 
             var request = new SummaryRequest(
                 _filePath, _documentId, first, last, _targetWords, _language, BypassCache: false);
+            _runFirstPage = first;
+            _runLastPage = last;
             try
             {
                 await foreach (SummaryUpdate update in PageSummarizer.GenerateAsync(
@@ -671,12 +675,49 @@ namespace Avalanche.Features.Summary
         private void FinishSuccess()
         {
             Overlay(null);
-            // The status line stays factual: word and character count, nothing else.
-            StatusText.Text = string.Format(
-                _loc("Str_SummaryCounts"), PageSummarizer.CountWords(_fullText), _fullText.Length);
+            // The status line stays factual - and, when the provider reported its
+            // usage, upgrades into the verification badge: how many prompt tokens
+            // the model actually read against how many the extracted pages
+            // estimate. A provider that silently truncated the input can no longer
+            // hide behind a fluent digest; without usage the plain word/character
+            // count remains.
+            StatusText.Text = VerificationStatusLine();
             SaveDigest();       // the digest survives the window, the app, the session
             _cts?.Dispose();
             _cts = null;
+        }
+
+        // The post-run status line. With provider usage: the verification badge -
+        // "[ v N pages verified ] | T tokens read | W words", or the red-flag
+        // truncation line naming the page the text was cut at. The audit rides on
+        // PageSummarizer's run counters (reset and accumulated inside the gate, so
+        // they belong to exactly the run that just finished). Without usage: the
+        // plain word/character count, exactly as before.
+        private string VerificationStatusLine()
+        {
+            int words = PageSummarizer.CountWords(_fullText);
+            if (!PageSummarizer.RunPromptTokensKnown || PageSummarizer.RunTokensEstimated <= 0)
+            {
+                return string.Format(
+                    _loc("Str_SummaryCounts"), words, _fullText.Length);
+            }
+
+            (bool truncated, _) = AiContextTester.Audit(
+                PageSummarizer.RunPromptTokens, PageSummarizer.RunTokensEstimated);
+            int pages = Math.Max(1, _runLastPage - _runFirstPage + 1);
+            string tokens = PageSummarizer.RunPromptTokens.ToString("N0", CultureInfo.InvariantCulture);
+            if (truncated)
+            {
+                // Walk the token shortfall through the page span: the fraction of
+                // the estimated tokens the model actually read maps onto the range.
+                double fraction = (double)PageSummarizer.RunPromptTokens / PageSummarizer.RunTokensEstimated;
+                int cutPage = Math.Min(_runLastPage, _runFirstPage + (int)(fraction * (pages - 1)));
+                return string.Format(
+                    _loc("Str_SummaryBadgeTruncated"), cutPage, _runLastPage, tokens);
+            }
+
+            return string.Format(
+                _loc("Str_SummaryBadgeVerified"), pages, tokens, words);
         }
 
         // Reset: the fourth generation owner. It stops any live run, clears the card

@@ -51,6 +51,32 @@
     <sys:String x:Key="Str_TT_About">About Avalanche (F12)</sys:String>
     <sys:String x:Key="Str_TT_AiChat">AI Chat Assistant (Ctrl+Shift+A)</sys:String>
     <sys:String x:Key="Str_Lbl_AiChat">AI Chat</sys:String>
+        <sys:String x:Key="Str_TT_AiTest">AI Context Test — probe what the model actually saw</sys:String>
+        <sys:String x:Key="Str_Lbl_AiTest">AI Test</sys:String>
+        <sys:String x:Key="Str_AiTest_Title">AI Context &amp; Verification Test</sys:String>
+        <sys:String x:Key="Str_AiTest_Model">Model:</sys:String>
+        <sys:String x:Key="Str_AiTest_Document">Document:</sys:String>
+        <sys:String x:Key="Str_AiTest_Run">Run Test</sys:String>
+        <sys:String x:Key="Str_AiTest_AllPages">All Pages</sys:String>
+        <sys:String x:Key="Str_AiTest_Pass">PASS — Full Context Verified ({0}% Seen)</sys:String>
+        <sys:String x:Key="Str_AiTest_Fail">FAIL — Text Truncated by Ollama</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">WARNING — Last Boundary Mismatch</sys:String>
+        <sys:String x:Key="Str_AiTest_TokensRead">Tokens read by AI</sys:String>
+        <sys:String x:Key="Str_AiTest_TokensSent">Estimated tokens sent</sys:String>
+        <sys:String x:Key="Str_AiTest_CharsSent">Characters sent</sys:String>
+        <sys:String x:Key="Str_AiTest_Speed">Response time</sys:String>
+        <sys:String x:Key="Str_AiTest_FirstExpected">First sentence expected (page 1)</sys:String>
+        <sys:String x:Key="Str_AiTest_FirstRecalled">First sentence AI recalled</sys:String>
+        <sys:String x:Key="Str_AiTest_LastExpected">Last sentence expected (last page)</sys:String>
+        <sys:String x:Key="Str_AiTest_LastRecalled">Last sentence AI recalled</sys:String>
+        <sys:String x:Key="Str_AiTest_MatchScore">match: {0}%</sys:String>
+        <sys:String x:Key="Str_AiTest_Waiting">Not run yet</sys:String>
+        <sys:String x:Key="Str_AiTest_Boundary">Boundary Verification</sys:String>
+        <sys:String x:Key="Str_AiTest_NoDoc">Open a document first — the AI test probes the open PDF's pages.</sys:String>
+        <sys:String x:Key="Str_AiTest_Running">Probing the model's context…</sys:String>
+        <sys:String x:Key="Str_AiTest_Failed">Test failed: {0}</sys:String>
+        <sys:String x:Key="Str_SummaryBadgeVerified">[ ✓ {0} Pages Verified ]  |  {1} tokens read  |  {2} words</sys:String>
+        <sys:String x:Key="Str_SummaryBadgeTruncated">[ ⚠ Truncated at ~page {0} of {1} ]  |  {2} tokens read  |  Digest incomplete</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSION</sys:String>

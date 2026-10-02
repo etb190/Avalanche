@@ -1050,6 +1050,32 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">এই পৃষ্ঠায় উদ্ধৃত অংশটি খুঁজে পাওয়া যায়নি।</sys:String>
 <sys:String x:Key="Str_AiChatSourceTip">পৃষ্ঠা {0} — উদ্ধৃত অংশ দেখান</sys:String>
     <sys:String x:Key="Str_Lbl_AiChat">AI চ্যাট</sys:String>
+        <sys:String x:Key="Str_TT_AiTest">AI প্রসঙ্গ পরীক্ষা — মডেল প্রকৃতপক্ষে কী দেখেছে তা অনুসন্ধান করুন</sys:String>
+        <sys:String x:Key="Str_Lbl_AiTest">AI পরীক্ষা</sys:String>
+        <sys:String x:Key="Str_AiTest_Title">AI প্রসঙ্গ ও যাচাই পরীক্ষা</sys:String>
+        <sys:String x:Key="Str_AiTest_Model">মডেল:</sys:String>
+        <sys:String x:Key="Str_AiTest_Document">নথি:</sys:String>
+        <sys:String x:Key="Str_AiTest_Run">পরীক্ষা চালান</sys:String>
+        <sys:String x:Key="Str_AiTest_AllPages">সব পৃষ্ঠা</sys:String>
+        <sys:String x:Key="Str_AiTest_Pass">উত্তীর্ণ — সম্পূর্ণ প্রসঙ্গ যাচাই হয়েছে ({0}% দেখা গেছে)</sys:String>
+        <sys:String x:Key="Str_AiTest_Fail">ব্যর্থ — Ollama পাঠ কেটে ফেলেছে</sys:String>
+        <sys:String x:Key="Str_AiTest_Warn">সতর্কতা — শেষ সীমানার অমিল</sys:String>
+        <sys:String x:Key="Str_AiTest_TokensRead">AI যতটি টোকেন পড়েছে</sys:String>
+        <sys:String x:Key="Str_AiTest_TokensSent">আনুমানিক প্রেরিত টোকেন</sys:String>
+        <sys:String x:Key="Str_AiTest_CharsSent">প্রেরিত অক্ষর</sys:String>
+        <sys:String x:Key="Str_AiTest_Speed">প্রতিক্রিয়ার সময়</sys:String>
+        <sys:String x:Key="Str_AiTest_FirstExpected">প্রত্যাশিত প্রথম বাক্য (পৃষ্ঠা ১)</sys:String>
+        <sys:String x:Key="Str_AiTest_FirstRecalled">AI যে প্রথম বাক্য স্মরণ করেছে</sys:String>
+        <sys:String x:Key="Str_AiTest_LastExpected">প্রত্যাশিত শেষ বাক্য (শেষ পৃষ্ঠা)</sys:String>
+        <sys:String x:Key="Str_AiTest_LastRecalled">AI যে শেষ বাক্য স্মরণ করেছে</sys:String>
+        <sys:String x:Key="Str_AiTest_MatchScore">মিল: {0}%</sys:String>
+        <sys:String x:Key="Str_AiTest_Waiting">এখনো চালানো হয়নি</sys:String>
+        <sys:String x:Key="Str_AiTest_Boundary">সীমানা যাচাই</sys:String>
+        <sys:String x:Key="Str_AiTest_NoDoc">প্রথমে একটি নথি খুলুন — AI পরীক্ষা খোলা PDF-এর পৃষ্ঠাগুলি পরীক্ষা করে।</sys:String>
+        <sys:String x:Key="Str_AiTest_Running">মডেলের প্রসঙ্গ পরীক্ষা চলছে…</sys:String>
+        <sys:String x:Key="Str_AiTest_Failed">পরীক্ষা ব্যর্থ: {0}</sys:String>
+        <sys:String x:Key="Str_SummaryBadgeVerified">[ ✓ {0} পৃষ্ঠা যাচাই হয়েছে ]  |  {1} টোকেন পড়া হয়েছে  |  {2} শব্দ</sys:String>
+        <sys:String x:Key="Str_SummaryBadgeTruncated">[ ⚠ ~পৃষ্ঠা {0}/{1}-এ কাটা হয়েছে ]  |  {2} টোকেন পড়া হয়েছে  |  সারসংক্ষেপ অসম্পূর্ণ</sys:String>
     <sys:String x:Key="Str_TT_AiChat">AI চ্যাট সহায়ক (Ctrl+Shift+A)</sys:String>
 
     <!-- ── AI Settings / Ollama ───────────────────────────────────────────── -->

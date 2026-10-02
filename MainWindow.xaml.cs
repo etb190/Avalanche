@@ -869,6 +869,7 @@ namespace Avalanche
         private Features.AI.AiChatViewModel? _aiChatViewModel;
         private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
         private Features.Summary.SummaryWindow? _summaryWindow;
+        private Features.AI.AiTestWindow? _aiTestWindow;
         // Companion-window memory: the chat rail and the summary navigator reopen
         // with the app when they were open at last close (snapshot in OnClosing;
         // the summary, which needs a document, reopens on the first one that lands).
@@ -920,6 +921,8 @@ namespace Avalanche
             ShutdownSurfaceHealth();
             _summaryWindow?.Close();
             _summaryWindow = null;
+            _aiTestWindow?.Close();
+            _aiTestWindow = null;
             _aiChatViewModel?.Dispose();
             _aiChatViewModel = null;
         }
@@ -957,6 +960,51 @@ namespace Avalanche
             Services.AppDataPaths.SetSetting("summary.win.left", string.Empty);
             Services.AppDataPaths.SetSetting("summary.win.top", string.Empty);
         }
+
+        // ============================================================
+        // AI Context Test (Features/AI): the verification window probing what the
+        // model actually saw - tokens audited against the estimate, boundary
+        // sentences recalled and fuzzy-compared. Single instance; the toolbar
+        // button toggles it exactly like the summary navigator's.
+        // ============================================================
+
+        private void AiTestBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_aiTestWindow is { } open)
+            {
+                open.Close();
+                return;
+            }
+
+            OpenAiTestWindow();
+        }
+
+        private void OpenAiTestWindow()
+        {
+            if (string.IsNullOrEmpty(_currentFile) || _doc is null)
+            {
+                SetStatusHeld(Loc("Str_AiTest_NoDoc"));
+                return;
+            }
+
+            _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            var test = new Features.AI.AiTestWindow(
+                this,
+                _currentFile,
+                _doc.PageCount,
+                () => _aiSettingsViewModel!.ToGenConfig(),
+                Loc);
+            test.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_aiTestWindow, test))
+                {
+                    _aiTestWindow = null;
+                }
+            };
+            _aiTestWindow = test;
+            test.Show();
+        }
+
 
         // ---- Summary reading-range highlight in the page list ------------------------------
         // While the navigator is open, the sidebar highlights every page of the reading
@@ -1157,6 +1205,14 @@ namespace Avalanche
         private void ActiveDocumentChanged(string? filePath)
         {
             ClearAiSourceHighlight();
+            // The AI test window probes ONE document; switching documents would
+            // leave it auditing a stale file, so it goes with the old one.
+            if (_aiTestWindow is { } test &&
+                (filePath is null || !test.DocumentPathEquals(filePath)))
+            {
+                test.Close();
+            }
+
             _aiChatViewModel?.HandleDocumentSwitch(
                 filePath,
                 panelVisible: AiChatOverlay?.Visibility == Visibility.Visible);
