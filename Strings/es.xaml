@@ -1043,6 +1043,10 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
         <sys:String x:Key="Str_AiTest_Warn">ADVERTENCIA — Discrepancia de frontera ({0}% leído)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">ADVERTENCIA — Discrepancia en la primera frontera ({0}% leído)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">ADVERTENCIA — Discrepancia en la última frontera ({0}% leído)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Rango personalizado</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Inicio</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Fin</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Las páginas deben estar entre 1 y {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokens leídos por la IA</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Tokens estimados enviados</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Caracteres enviados</sys:String>

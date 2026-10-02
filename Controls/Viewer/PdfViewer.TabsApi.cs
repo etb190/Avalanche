@@ -203,6 +203,21 @@ namespace Avalanche.Controls
             }
         }
 
+        /// <summary>The animated twin of NavigateToPageExt: continuous view glides
+        /// to the page top (the summary navigator's arrows), every other mode
+        /// flips exactly as before.</summary>
+        internal void NavigateToPageAnimatedExt(int pageIndex)
+        {
+            if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount) return;
+            if (_viewMode == ViewMode.Continuous)
+                NavigateContinuousToPageAnimated(pageIndex);
+            else
+            {
+                _currentPage = pageIndex;
+                RenderPage(_viewMode == ViewMode.Grid ? 0 : pageIndex);
+            }
+        }
+
         internal void SyncPageListSelection(int? preservedPage = null)
         {
             if (preservedPage.HasValue) State.CurrentPage = preservedPage.Value;

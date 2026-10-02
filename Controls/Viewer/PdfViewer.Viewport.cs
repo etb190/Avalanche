@@ -65,7 +65,13 @@ namespace Avalanche.Controls
         /// PagePreviewPanel is inside this control's namescope now, so the control does it - called
         /// from the MainWindow ctor at the point the += used to sit.</summary>
         internal void WireScrollChanged()
-            => PagePreviewPanel.ScrollChanged += PagePreviewPanel_ScrollChanged;
+        {
+            PagePreviewPanel.ScrollChanged += PagePreviewPanel_ScrollChanged;
+            // A wheel or touch scroll is a hand on the wheel: any glide in
+            // flight stops the moment the reader reaches for the document
+            // themselves.
+            PagePreviewPanel.PreviewMouseWheel += (_, _) => StopGlide();
+        }
 
         /// <summary>Drop the per-page image-rect cache (the night-mode carve-out). Called by the
         /// window's FlushAllRenderCaches when the invert state flips; it re-fills lazily.</summary>
@@ -103,6 +109,79 @@ namespace Avalanche.Controls
                     SyncCurrentPageTo(pageIndex);
                 }));
             }));
+        }
+
+        // ── Smooth range navigation (the summary navigator's arrows) ──────────────────────
+        // The same landing point as NavigateContinuousToPage, but the scroll itself
+        // glides: an ease-out run of a fraction of a second - fast enough to feel
+        // like a jump, smooth enough that the eye keeps its place. The navigation-
+        // target pin stays held for the whole glide so scroll-driven page tracking
+        // cannot fight the animation, the sidebar selection moves at the START
+        // (the reader sees where they are going while it moves), and the last
+        // frame lands exactly on the page's top edge.
+        private System.Windows.Threading.DispatcherTimer? _glideTimer;
+
+        internal void NavigateContinuousToPageAnimated(int pageIndex)
+        {
+            if (_doc is null || pageIndex < 0 || pageIndex >= _doc.PageCount) return;
+            if (_viewMode != ViewMode.Continuous || pageIndex >= _continuousTops.Count)
+            {
+                NavigateContinuousToPage(pageIndex);   // single / two-page / grid: instant flip
+                return;
+            }
+
+            StopGlide();
+            double target = Math.Clamp(_continuousTops[pageIndex] * _zoomLevel,
+                0, Math.Max(0, PagePreviewPanel.ScrollableHeight));
+            double from = PagePreviewPanel.VerticalOffset;
+            _continuousNavigationTarget = pageIndex;
+            SyncCurrentPageTo(pageIndex);              // sidebar + jump box lead the motion
+            if (Math.Abs(target - from) < 2)
+            {
+                // Already there: settle the pin and the status line, no motion.
+                ScrollContinuousToPage(pageIndex);
+                _continuousNavigationTarget = -1;
+                SyncCurrentPageTo(pageIndex);
+                return;
+            }
+
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var glide = new System.Windows.Threading.DispatcherTimer(
+                System.Windows.Threading.DispatcherPriority.Render)
+            { Interval = TimeSpan.FromMilliseconds(16) };
+            _glideTimer = glide;
+            glide.Tick += (_, _) =>
+            {
+                if (_glideTimer != glide || _doc is null)   // superseded or document gone
+                {
+                    glide.Stop();
+                    return;
+                }
+
+                double t = Math.Min(1.0, clock.Elapsed.TotalMilliseconds / 340.0);
+                double eased = 1.0 - (1.0 - t) * (1.0 - t);      // ease-out quad
+                PagePreviewPanel.ScrollToVerticalOffset(from + (target - from) * eased);
+                if (t >= 1.0)
+                {
+                    glide.Stop();
+                    _glideTimer = null;
+                    ScrollContinuousToPage(pageIndex);           // land exactly on the page top
+                    if (_continuousNavigationTarget == pageIndex)
+                    {
+                        _continuousNavigationTarget = -1;
+                        SyncCurrentPageTo(pageIndex);
+                    }
+                }
+            };
+            glide.Start();
+        }
+
+        // Cancels a glide in flight - the wheel handler and any newer navigation
+        // call this before taking over the scroll position.
+        private void StopGlide()
+        {
+            _glideTimer?.Stop();
+            _glideTimer = null;
         }
 
         // ── Current-page badge (#197, thanks Ryokoxx) ─────────────────────────────────────────

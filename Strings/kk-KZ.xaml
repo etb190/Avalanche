@@ -1062,6 +1062,10 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
         <sys:String x:Key="Str_AiTest_Warn">ЕСКЕРТУ — Шекара сәйкес емес ({0}% оқылды)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">ЕСКЕРТУ — Бірінші шекара сәйкес емес ({0}% оқылды)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">ЕСКЕРТУ — Соңғы шекара сәйкес емес ({0}% оқылды)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Өз диапазоны</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Бастау</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Аяқтау</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Парақтар 1-ден {0}-ге дейін болуы керек.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI оқыған токендер</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Болжамды жіберілген токендер</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Жіберілген таңбалар</sys:String>

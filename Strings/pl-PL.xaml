@@ -1051,6 +1051,10 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
         <sys:String x:Key="Str_AiTest_Warn">OSTRZEŻENIE — Niezgodność granicy ({0}% przeczytane)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">OSTRZEŻENIE — Niezgodność pierwszej granicy ({0}% przeczytane)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">OSTRZEŻENIE — Niezgodność ostatniej granicy ({0}% przeczytane)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Zakres niestandardowy</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Początek</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Koniec</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Strony muszą być między 1 a {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokeny przeczytane przez AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Szacowane wysłane tokeny</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Wysłane znaki</sys:String>

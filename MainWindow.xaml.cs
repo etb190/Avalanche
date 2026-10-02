@@ -1060,6 +1060,19 @@ namespace Avalanche
             }
         }
 
+        // The navigator's arrows ask for a smooth, fast glide to the new range's
+        // first page: the viewer's animated navigation lands it at the very top
+        // of the viewport, and the sidebar selection rides the page sync.
+        private void NavigateSummaryRangeStart(int pageNumber)
+        {
+            if (_doc is null)
+            {
+                return;
+            }
+
+            ActiveViewer?.NavigateToPageAnimatedExt(Math.Clamp(pageNumber - 1, 0, _doc.PageCount - 1));
+        }
+
         private void ApplyPageRangeHighlight(int first, int last)
         {
             int count = PageList.Items.Count;
@@ -1157,6 +1170,9 @@ namespace Avalanche
             // behind - the next toolbar click would poke a corpse (Activate on a
             // closed window throws).
             summary.RangeVisualChanged += RefreshSummaryPageHighlight;
+            // The arrows move the reading range; the document glides along to
+            // the new stretch's first page.
+            summary.PageNavigationRequested += NavigateSummaryRangeStart;
             summary.Closed += (_, _) =>
             {
                 RefreshSummaryPageHighlight();      // the page list returns to the single page

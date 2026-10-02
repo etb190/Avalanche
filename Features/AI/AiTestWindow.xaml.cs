@@ -90,6 +90,32 @@ namespace Avalanche.Features.AI
             Chip100.Content = _loc("Str_SummaryR100p");
             ChipAll.Content = _loc("Str_AiTest_AllPages");
 
+            // Custom-range mode: the toggle swaps the preset chips for a
+            // start/end pair. The fields seed with the whole document (page 1
+            // through the last page) and accept digits only - anything else dies
+            // at the input or at the paste gate, and the run validates them
+            // against the document before spending a request.
+            RangeToggle.ToolTip = _loc("Str_AiTest_CustomRange");
+            RangeInputLabel.Text = _loc("Str_AiTest_CustomRange");
+            StartCaption.Text = _loc("Str_AiTest_StartPage");
+            EndCaption.Text = _loc("Str_AiTest_EndPage");
+            StartBox.Text = "1";
+            EndBox.Text = _pageCount.ToString(CultureInfo.InvariantCulture);
+            RangeToggle.Checked += (_, _) => ApplyRangeMode();
+            RangeToggle.Unchecked += (_, _) => ApplyRangeMode();
+            foreach (var box in new[] { StartBox, EndBox })
+            {
+                box.PreviewTextInput += (_, e) => e.Handled = !e.Text.All(char.IsAsciiDigit);
+                System.Windows.DataObject.AddPastingHandler(box, (_, e) =>
+                {
+                    if (e.DataObject.GetData(System.Windows.DataFormats.UnicodeText) is string pasted &&
+                        !pasted.All(char.IsAsciiDigit))
+                    {
+                        e.CancelCommand();
+                    }
+                });
+            }
+
             ModelValue.Text = _configProvider().Model ?? string.Empty;
             DocValue.Text = System.IO.Path.GetFileName(filePath);
             DocValue.ToolTip = filePath;
@@ -128,11 +154,17 @@ namespace Avalanche.Features.AI
                 return;
             }
 
-            // The probe always starts at page 1: the same stretch a reader's first
-            // summary would cover, deterministic across runs.
-            int span = SelectedSpan();
-            int last = Math.Min(span <= 0 ? _pageCount : span, _pageCount);
-            const int first = 1;
+            // Span mode reads the checked preset chip (from page 1); range mode
+            // reads the start/end pair. A malformed range never starts a run -
+            // the status line says what the fields accept instead.
+            (int first, int last)? range = ResolveProbeRange();
+            if (range is null)
+            {
+                return;
+            }
+
+            int first = range.Value.first;
+            int last = range.Value.last;
 
             _running = true;
             int gen = ++_generation;
@@ -186,17 +218,48 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private int SelectedSpan()
+        // Span mode: the checked chip (tag 20/60/100/-1). Range mode: the two
+        // numeric fields, validated against the document - null (with the status
+        // line explaining) when they do not name a real stretch of pages.
+        private (int first, int last)? ResolveProbeRange()
         {
-            foreach (RadioButton chip in new[] { Chip20, Chip60, Chip100, ChipAll })
+            if (RangeToggle.IsChecked != true)
             {
-                if (chip.IsChecked == true && int.TryParse(chip.Tag as string, out int span))
+                int span = 100;
+                foreach (RadioButton chip in new[] { Chip20, Chip60, Chip100, ChipAll })
                 {
-                    return span;    // -1 = the whole document
+                    if (chip.IsChecked == true && int.TryParse(chip.Tag as string, out int value))
+                    {
+                        span = value;    // -1 = the whole document
+                        break;
+                    }
                 }
+
+                return (1, Math.Min(span <= 0 ? _pageCount : span, _pageCount));
             }
 
-            return 100;
+            if (!int.TryParse(StartBox.Text.Trim(), out int start) ||
+                !int.TryParse(EndBox.Text.Trim(), out int end) ||
+                start < 1 || end < start || end > _pageCount)
+            {
+                StatusText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    _loc("Str_AiTest_BadRange"),
+                    _pageCount);
+                return null;
+            }
+
+            return (start, end);
+        }
+
+        // The mode toggle's two faces: span mode shows the preset chips, range
+        // mode swaps them for the start/end pair. Flipping the switch never
+        // wipes what the reader typed into the fields.
+        private void ApplyRangeMode()
+        {
+            bool custom = RangeToggle.IsChecked == true;
+            RangePanel.Visibility = custom ? Visibility.Collapsed : Visibility.Visible;
+            RangeInputPanel.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void RenderResult(AiTestProbeResult probe)
@@ -304,7 +367,9 @@ namespace Avalanche.Features.AI
         // up as the only control that can end the run besides closing the window.
         private void SetBusy(bool busy)
         {
+            RangeToggle.IsEnabled = !busy;
             RangePanel.IsEnabled = !busy;
+            RangeInputPanel.IsEnabled = !busy;
             RunBtn.IsEnabled = !busy;
             CancelBtn.IsEnabled = busy;
         }
@@ -352,6 +417,14 @@ namespace Avalanche.Features.AI
 
             close.Style = (Style)FindResource("TestCloseBtn");
             close.Content = x;
+            // The summary navigator's exact close-mark placement: guaranteed air
+            // between the chip and the window's right edge (most themes leave
+            // DialogCaptionButtonsMargin at zero) - same margin, same position,
+            // same alignment as the navigator the window was cloned from.
+            var chromeMargin = Application.Current.TryFindResource("DialogCaptionButtonsMargin") is Thickness m
+                ? m
+                : new Thickness(0);
+            close.Margin = new Thickness(chromeMargin.Left, chromeMargin.Top, Math.Max(chromeMargin.Right, 5), chromeMargin.Bottom);
         }
     }
 }

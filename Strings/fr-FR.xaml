@@ -1063,6 +1063,10 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
         <sys:String x:Key="Str_AiTest_Warn">ATTENTION — Divergence de frontière ({0}% lu)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">ATTENTION — Divergence de la première frontière ({0}% lu)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">ATTENTION — Divergence de la dernière frontière ({0}% lu)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Plage personnalisée</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Début</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Fin</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Les pages doivent être entre 1 et {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Jetons lus par l'IA</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Jetons estimés envoyés</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Caractères envoyés</sys:String>

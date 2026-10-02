@@ -11,8 +11,12 @@
 //     the first and the last sentence of the text),
 //   * audits usage.prompt_tokens (or Ollama's native prompt_eval_count)
 //     against a CJK-aware token estimate of what was sent, and
-//   * fuzzy-compares the recalled boundary sentences with the ones extracted
-//     directly from the PDF (>= 80% similarity each).
+//   * verifies the recalled boundary quotes by window containment: the first
+//     quote must live inside the opening 2,000 characters of the flattened
+//     text, the last quote inside the closing 2,000 - verbatim, or >= 80%
+//     fuzzy against the best-aligned slice of that window. Front matter
+//     (covers, copyright pages) and back matter (URLs, watermarks) then
+//     cannot split the comparison the way single-sentence regexes did.
 // Verdicts: PASS (full context verified), FAIL (tokens read far below what
 // was sent - Ollama truncated the document), WARNING (tokens look complete
 // but a boundary sentence mismatched). The scoring helpers live in the pure
@@ -201,12 +205,19 @@ namespace Avalanche.Features.AI
                 firstRecalled?.Length ?? 0,
                 lastRecalled?.Length ?? 0));
 
+            // Window containment, not sentence regexes: the model reports WHERE
+            // its memory of the text starts and ends, and front/back matter
+            // (covers, copyright pages, URLs, watermarks) makes any exact
+            // single-sentence expectation disagree with a faithful recall. The
+            // quote only has to live inside the opening / closing window.
             int firstMatch = string.IsNullOrEmpty(firstRecalled)
                 ? 0
-                : AiProbeLogic.SimilarityPercent(firstExpected, firstRecalled);
+                : AiProbeLogic.BoundaryMatchPercent(
+                    firstRecalled, AiProbeLogic.OpeningWindow(flatRange));
             int lastMatch = string.IsNullOrEmpty(lastRecalled)
                 ? 0
-                : AiProbeLogic.SimilarityPercent(lastExpected, lastRecalled);
+                : AiProbeLogic.BoundaryMatchPercent(
+                    lastRecalled, AiProbeLogic.ClosingWindow(flatRange));
 
             long estimated = AiProbeLogic.EstimateTokens(rangeText);
             long? promptTokens = AiProbeLogic.ExtractUsageTokens(json);
@@ -454,6 +465,107 @@ namespace Avalanche.Features.AI
             }
 
             return similarity;
+        }
+
+        // ------------------------------------------------------------------
+        // Window containment (the boundary verdict)
+        // ------------------------------------------------------------------
+
+        // How much of each end of the flattened text the recall must live in.
+        // 2,000 characters reaches past any cover, copyright page or closing
+        // URL/watermark block, yet stays small enough that a quote from the
+        // book's middle cannot ride a boundary window to a pass.
+        public const int BoundaryWindowChars = 2000;
+
+        /// <summary>The opening window: the flattened text's first 2,000 characters
+        /// (the whole text when it is shorter). A faithful first-quote recall must
+        /// be found in here.</summary>
+        public static string OpeningWindow(string flatRange) =>
+            Window(flatRange, fromEnd: false);
+
+        /// <summary>The closing window: the flattened text's last 2,000 characters.
+        /// A faithful last-quote recall must be found in here.</summary>
+        public static string ClosingWindow(string flatRange) =>
+            Window(flatRange, fromEnd: true);
+
+        private static string Window(string flatRange, bool fromEnd)
+        {
+            string text = flatRange ?? string.Empty;
+            if (text.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            int take = Math.Min(BoundaryWindowChars, text.Length);
+            return fromEnd ? text[^take..] : text[..take];
+        }
+
+        /// <summary>Does the recalled quote sit inside the boundary window? Exact
+        /// verbatim containment (either direction - a model that quotes past the
+        /// window proves the same thing) scores 100; otherwise the best-aligned
+        /// same-length slice of the window is fuzzy-compared (a coarse stride
+        /// sweep, refined to single positions around the winner), so a recall
+        /// with a few divergent characters still clears the 80% pass line the
+        /// verdict uses. Quotes shorter than eight normalized characters carry
+        /// no evidence worth a verdict and score 0.</summary>
+        public static int BoundaryMatchPercent(string recalled, string windowText)
+        {
+            string window = Normalize(Flatten(windowText));
+            string quote = Normalize(Flatten(recalled));
+            if (window.Length == 0 || quote.Length == 0 || quote.Length < 8)
+            {
+                return 0;
+            }
+
+            if (window.Contains(quote, StringComparison.Ordinal) ||
+                quote.Contains(window, StringComparison.Ordinal))
+            {
+                return 100;
+            }
+
+            if (quote.Length >= window.Length)
+            {
+                // A recall longer than the window has no slice to align against;
+                // the whole-window comparison is the only honest one left.
+                return SimilarityPercent(window, quote);
+            }
+
+            int best = 0;
+            int bestStart = 0;
+            int stride = Math.Max(1, (window.Length - quote.Length) / 32);
+            for (int start = 0; start + quote.Length <= window.Length; start += stride)
+            {
+                int sim = SimilarityPercent(quote, window.Substring(start, quote.Length));
+                if (sim > best)
+                {
+                    best = sim;
+                    bestStart = start;
+                    if (best >= 100)
+                    {
+                        return best;
+                    }
+                }
+            }
+
+            // Refine around the coarse winner: the stride can land up to half a
+            // stride off the true alignment, and that misalignment alone must
+            // not cost a faithful recall its pass.
+            int from = Math.Max(0, bestStart - stride + 1);
+            int to = Math.Min(window.Length - quote.Length, bestStart + stride - 1);
+            for (int start = from; start <= to; start++)
+            {
+                int sim = SimilarityPercent(quote, window.Substring(start, quote.Length));
+                if (sim > best)
+                {
+                    best = sim;
+                    if (best >= 100)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return best;
         }
 
         private static string Normalize(string text) =>

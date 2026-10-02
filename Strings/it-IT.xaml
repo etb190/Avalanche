@@ -1063,6 +1063,10 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
         <sys:String x:Key="Str_AiTest_Warn">ATTENZIONE — Discrepanza sul confine ({0}% letto)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">ATTENZIONE — Discrepanza sul primo confine ({0}% letto)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">ATTENZIONE — Discrepanza sull'ultimo confine ({0}% letto)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Intervallo personalizzato</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Inizio</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Fine</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Le pagine devono essere tra 1 e {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Token letti dall'IA</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Token stimati inviati</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Caratteri inviati</sys:String>

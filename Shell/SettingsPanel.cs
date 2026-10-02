@@ -754,6 +754,7 @@ namespace Avalanche
             ["\uE71D"] = "Str_ToolbarToolsCaption",   // tile grid - the Tools switch
             ["\uE8BD"] = "Str_AiChatCaption",         // comment bubble - AI chat
             ["\uE8A5"] = "Str_SummaryCaption",        // document - summary navigator
+            ["\uE9D9"] = "Str_Lbl_AiTest",            // probe glyph - AI test
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.

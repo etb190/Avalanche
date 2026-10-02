@@ -55,8 +55,9 @@ namespace Avalanche.Features.Summary
         private readonly string _filePath;
         private readonly string _documentId;
         private readonly int _pageCount;
-        private readonly Func<int> _currentPageProvider;   // 0-based, -1 when closed
 
+
+        private readonly Func<int> _currentPageProvider;   // 0-based, -1 when closed
         private readonly Func<AiProviderConfig> _configProvider;
         private readonly Func<string, string> _loc;
 
@@ -292,6 +293,11 @@ namespace Avalanche.Features.Summary
         /// start field, Reset, restore-on-open) - MainWindow re-highlights the page list.</summary>
         public event Action? RangeVisualChanged;
 
+        // Raised when the arrows move the reading range (the 1-based first page
+        // of the new range): the document follows - a smooth, fast scroll that
+        // parks the new stretch's first page at the top of the viewport.
+        public event Action<int>? PageNavigationRequested;
+
         /// <summary>True when this window already summarizes the given document
         /// (MainWindow reuses the instance instead of opening a second one).</summary>
         public bool DocumentPathEquals(string path)
@@ -370,15 +376,15 @@ namespace Avalanche.Features.Summary
             return Math.Min(_startPage + _rangePages - 1, _pageCount);
         }
 
-        // The right end of the status line: pages remaining before the range's last
-        // page - counted from the page the viewer is sitting on right now, shown as
-        // "[X] pages left". The page provider is read live, so the count tracks the
-        // reading as it happens; MainWindow pokes NotifyViewerPageChanged on every
-        // page move, and every range repaint re-runs it here.
+        // The right end of the status line: how many pages of the document remain
+        // AFTER the range currently on screen - total pages minus the range's
+        // last page, floored at zero. The count follows the range, not the
+        // reader's cursor: stepping to the next stretch refills it, reaching the
+        // end of the book empties it. MainWindow pokes NotifyViewerPageChanged
+        // on every page move, and every range repaint re-runs it here.
         private void UpdatePagesLeft()
         {
-            int current = Math.Clamp(_currentPageProvider() + 1, 1, _pageCount);
-            int left = Math.Max(0, RangeEnd() - current);
+            int left = Math.Max(0, _pageCount - RangeEnd());
             PagesLeftText.Text = string.Format(
                 _loc("Str_SummaryPagesLeft"), left.ToString(CultureInfo.InvariantCulture));
         }
@@ -431,6 +437,9 @@ namespace Avalanche.Features.Summary
                 SetStartPage(previous);
             }
 
+            // The document view glides to the new stretch's first page - the
+            // reader reads along while the digest runs.
+            PageNavigationRequested?.Invoke(_startPage);
             StartGeneration();
         }
 

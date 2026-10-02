@@ -1048,6 +1048,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
         <sys:String x:Key="Str_AiTest_Warn">UPOZORNĚNÍ — Neshoda hranice ({0}% přečteno)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">UPOZORNĚNÍ — Neshoda první hranice ({0}% přečteno)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">UPOZORNĚNÍ — Neshoda poslední hranice ({0}% přečteno)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Vlastní rozsah</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Začátek</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Konec</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Strany musí být mezi 1 a {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokeny přečtené AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Odhadované odeslané tokeny</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Odeslané znaky</sys:String>

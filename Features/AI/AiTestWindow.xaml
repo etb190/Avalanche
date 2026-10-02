@@ -149,6 +149,100 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- The mode switch: an iOS-style sliding toggle. The 16px thumb glides
+             along a 40px track in 150ms - accent track when custom range is on,
+             quiet track when the preset chips are showing. -->
+        <Style x:Key="TestModeToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="track" CornerRadius="11"
+                                    Background="{DynamicResource RowHoverBrush}"
+                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"/>
+                            <Ellipse x:Name="thumb" Width="16" Height="16" Fill="White"
+                                     HorizontalAlignment="Left" Margin="3,0,0,0">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform X="0"/>
+                                </Ellipse.RenderTransform>
+                                <Ellipse.Effect>
+                                    <DropShadowEffect ShadowDepth="1" BlurRadius="3" Opacity="0.35"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="track" Property="BorderBrush" Value="{DynamicResource SelectionFg}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="track" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                <Setter TargetName="track" Property="BorderBrush" Value="{DynamicResource SelectionBg}"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="thumb"
+                                                             Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.X)"
+                                                             To="18" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="thumb"
+                                                             Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.X)"
+                                                             To="0" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Custom range fields: the same bordered face as the chips, centered digits. -->
+        <Style x:Key="TestRangeBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="Width" Value="52"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="face" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="{DynamicResource ControlCornerRadius}">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"
+                                          HorizontalAlignment="Center" Focusable="False"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="face" Property="BorderBrush" Value="{DynamicResource SelectionFg}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid x:Name="BodyRoot">
@@ -186,16 +280,39 @@
             </StackPanel>
         </StackPanel>
 
-        <!-- Row 1: the probe controls - span chips, then Run and Cancel. The chips
-             reshare the summary navigator's localized span labels (20p/60p/100p);
-             the fourth chip is the whole document. -->
+        <!-- Row 1: the probe controls - the mode switch, then the span chips or
+             the custom start/end pair, then Run and Cancel. Span mode reshare the
+             summary navigator's localized span labels (20p/60p/100p); the fourth
+             chip is the whole document. Range mode probes exactly the page
+             stretch the two fields name. -->
         <WrapPanel Grid.Row="1" Margin="16,10,16,2" HorizontalAlignment="Center"
                    VerticalAlignment="Center">
-            <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
-                <RadioButton x:Name="Chip20" Style="{StaticResource TestRangeChip}" Tag="20"/>
-                <RadioButton x:Name="Chip60" Style="{StaticResource TestRangeChip}" Tag="60"/>
-                <RadioButton x:Name="Chip100" Style="{StaticResource TestRangeChip}" Tag="100" IsChecked="True"/>
-                <RadioButton x:Name="ChipAll" Style="{StaticResource TestRangeChip}" Tag="-1"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ToggleButton x:Name="RangeToggle" Style="{StaticResource TestModeToggle}"
+                              Margin="0,0,8,0" VerticalAlignment="Center"
+                              ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
+                <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
+                    <RadioButton x:Name="Chip20" Style="{StaticResource TestRangeChip}" Tag="20"/>
+                    <RadioButton x:Name="Chip60" Style="{StaticResource TestRangeChip}" Tag="60"/>
+                    <RadioButton x:Name="Chip100" Style="{StaticResource TestRangeChip}" Tag="100" IsChecked="True"/>
+                    <RadioButton x:Name="ChipAll" Style="{StaticResource TestRangeChip}" Tag="-1"/>
+                </StackPanel>
+                <StackPanel x:Name="RangeInputPanel" Orientation="Horizontal"
+                            VerticalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock x:Name="RangeInputLabel" FontSize="11.5" VerticalAlignment="Center"
+                               Margin="2,0,8,0" FontFamily="{DynamicResource UiFont}"
+                               Foreground="{DynamicResource MutedTextBrush}"/>
+                    <TextBlock x:Name="StartCaption" FontSize="11.5" VerticalAlignment="Center"
+                               Margin="0,0,5,0" FontFamily="{DynamicResource UiFont}"
+                               Foreground="{DynamicResource MutedTextBrush}"/>
+                    <TextBox x:Name="StartBox" Style="{StaticResource TestRangeBox}"
+                             ToolTip="{DynamicResource Str_AiTest_StartPage}"/>
+                    <TextBlock x:Name="EndCaption" FontSize="11.5" VerticalAlignment="Center"
+                               Margin="8,0,5,0" FontFamily="{DynamicResource UiFont}"
+                               Foreground="{DynamicResource MutedTextBrush}"/>
+                    <TextBox x:Name="EndBox" Style="{StaticResource TestRangeBox}"
+                             ToolTip="{DynamicResource Str_AiTest_EndPage}"/>
+                </StackPanel>
             </StackPanel>
             <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"
                     Margin="9,0" VerticalAlignment="Center" Opacity="0.7"/>

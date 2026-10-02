@@ -316,7 +316,25 @@ namespace Avalanche
             }
             else if (e.Key == Key.G && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                if (!e.IsRepeat) OpenSummaryWindow();   // floating page-summary window
+                // Ctrl+G toggles the summary navigator: open when closed, closed
+                // when open - the same switch the toolbar button is.
+                if (!e.IsRepeat) SummarizeBtn_Click(this, e);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.A &&
+                     Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                // Ctrl+Shift+A toggles the AI chat rail - the gesture its tooltip
+                // has promised all along. Open when closed, closed when open.
+                if (!e.IsRepeat) ToggleAiChat();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.T &&
+                     Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+            {
+                // Ctrl+Shift+T toggles the AI context test window, exactly like
+                // its toolbar button does.
+                if (!e.IsRepeat) AiTestBtn_Click(this, e);
                 e.Handled = true;
             }
             else if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control)

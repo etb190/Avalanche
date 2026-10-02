@@ -1062,6 +1062,10 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
         <sys:String x:Key="Str_AiTest_Warn">সতর্কতা — সীমানার অমিল ({0}% পড়া হয়েছে)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">সতর্কতা — প্রথম সীমানার অমিল ({0}% পড়া হয়েছে)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">সতর্কতা — শেষ সীমানার অমিল ({0}% পড়া হয়েছে)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">কাস্টম পরিসর</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">শুরু</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">শেষ</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">পৃষ্ঠাগুলি 1 থেকে {0} এর মধ্যে হতে হবে।</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI যতটি টোকেন পড়েছে</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">আনুমানিক প্রেরিত টোকেন</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">প্রেরিত অক্ষর</sys:String>

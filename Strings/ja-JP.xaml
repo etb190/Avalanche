@@ -1063,6 +1063,10 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
         <sys:String x:Key="Str_AiTest_Warn">警告 — 境界が一致しません（{0}% 読み取り）</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">警告 — 先頭の境界が一致しません（{0}% 読み取り）</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">警告 — 末尾の境界が一致しません（{0}% 読み取り）</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">カスタム範囲</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">開始</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">終了</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">ページは 1 から {0} の間で指定してください。</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AIが読み取ったトークン数</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">推定送信トークン数</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">送信文字数</sys:String>

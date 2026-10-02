@@ -1043,6 +1043,10 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
         <sys:String x:Key="Str_AiTest_Warn">UYARI — Sınır uyuşmazlığı ({0}% okundu)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">UYARI — İlk sınır uyuşmazlığı ({0}% okundu)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">UYARI — Son sınır uyuşmazlığı ({0}% okundu)</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Özel Aralık</sys:String>
+        <sys:String x:Key="Str_AiTest_StartPage">Başlangıç</sys:String>
+        <sys:String x:Key="Str_AiTest_EndPage">Bitiş</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Sayfalar 1 ile {0} arasında olmalı.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI'nın okuduğu tokenler</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Tahmini gönderilen tokenler</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Gönderilen karakterler</sys:String>
