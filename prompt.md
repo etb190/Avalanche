@@ -1,81 +1,102 @@
-# TASK: Fix AI Test Verification, UI Styling, Custom Range Toggle & Summary Window Polish
+# TASK: Replace Outlines with "Notes" Sidebar Tab (50-Page Chunked Digest)
 
 Repository: `https://github.com/etb190/Avalanche`  
 Auth Token: `ghp_***` (provided via environment / push URL)
 
 ---
 
-### 1. Fix Boundary Verification in AI Context Tester (`Features/AI/AiContextTester.cs`)
+### Overview & Objective
+In the left sidebar of `MainWindow.xaml`, replace the existing **Outlines** tab with a new feature called **Notes**.
 
-#### The Issue
-In our real-world document test (*Ancient Mesopotamia*, 320,838 chars, 77,656 tokens evaluated), the model successfully ingested **96.8% of the book** in 10.1s. However, the probe reported a boundary mismatch (`match: 10%` and `match: 9%`) because rigid sentence regexes disagree with LLMs on front/back matter:
-* **Start of Book:** The PDF opens with a title and copyright page (`© Copyright 2022. All Rights Reserved.`). The C# regex grabbed the first 200 characters of the title, while the LLM quoted the first grammatical sentence: `All Rights Reserved.` (10% match).
-* **End of Book:** The bibliography ends with an academic citation followed by a URL/watermark (`...In Journal of Near Eastern Studies, 61, no. 2 (2002): 111–15. http://... OceanofPDF.com`). The C# regex split at the period and expected the trailing URL, while the LLM quoted the actual citation sentence (9% match).
-
-#### The Fix
-Do not rely on fragile exact single-sentence regex boundaries. Instead, verify window containment:
-* Check whether the AI's recalled first quote exists within the **first 2,000 characters** of the document (`flatRange[..Math.Min(2000, flatRange.Length)]`).
-* Check whether the AI's recalled last quote exists within the **last 2,000 characters** of the document (`flatRange[^Math.Min(2000, flatRange.Length)..]`).
-* If normalized `recalledFirst` is found in (or has >= 80% fuzzy match with) the opening window, and `recalledLast` is found in the closing window, award **100% full match** (`PASS — Full Context Verified`).
+The **Notes** panel allows the reader to input an arbitrary page range (e.g., `From: 80` to `To: 200`) and generates dense, comprehensive, high-retention notes broken into **50-page chunks (~200 words per chunk)**. This is designed for rapid recall and review of what was already read, maintaining high density and zero fluff.
 
 ---
 
-### 2. Match Toolbar Icon Style and Height for "AI Test" (`MainWindow.xaml`, `Shell/SettingsPanel.cs`)
+### 1. UI Replacement in `MainWindow.xaml` (`Sidebar` Section)
 
-#### How This Was Previously Fixed (Reminding You of the Engine Pattern)
-The app has a **caption engine** that builds every toolbar button's face (the default is large icons with text underneath). Custom hardcoded XAML stacks fail to match. The Search button was cloned for the other AI tools:
-> *"Copied the Search button three times and changed only the name and the click:  
-> Search → Tools (tile-grid glyph), Chat (comment-bubble glyph), Summary (document glyph).  
-> Zero custom sizes, paddings, or stacks left — they are string-glyph buttons on the exact same style, so the caption engine now dresses them identically to Search in every mode: text under the icon (default), beside, text-only, icons-only, plus the same caption-shedding when the window narrows."*
-
-#### Requirements
-* Ensure `AiTestBtn` in `MainWindow.xaml` uses the exact same `Style="{StaticResource ToolbarButton}"` and glyph structure as `SearchBtn`, `SummarizeBtn`, and `AiChatBtn`.
-* In `Shell/SettingsPanel.cs`, register the glyph `\uE9D9` to `"Str_Lbl_AiTest"` in `_toolbarButtons` and caption dictionary so the caption engine handles its size, height, text label, and layout identically to the other buttons in every mode.
-
----
-
-### 3. Align "X" Close Button on `AiTestWindow` (`Features/AI/AiTestWindow.xaml`)
-
-* Move the "X" close button in `AiTestWindow` to the left to match the exact margin, position, and alignment of the close chip in `SummaryWindow`.
-
----
-
-### 4. Custom Page Range Input with iOS-Style Toggle in `AiTestWindow`
-
-Add custom range testing to `AiTestWindow`:
-* **iOS-Style Toggle Switch:** Add a smooth iOS-style sliding toggle switch placed immediately to the **left** of where the `20p` chip sits (and to the left of the range inputs).
-* **Two Modes:**
-  1. **Span Mode (Default):** Displays the preset chips (`20p`, `60p`, `100p`, `All Pages`).
-  2. **Range Mode:** When the toggle is switched, hides the preset chips and displays a **"Start Range"** section with two numeric inputs:
-     * **Start Page** (defaults to 1)
-     * **End Page** (defaults to document page count or span)
-* When in Range mode, clicking "Run Test" extracts and verifies the exact page span specified by the start and end inputs.
+1. **Tab Strip Header:**
+   - In `MainWindow.xaml` (around line 1829), replace `SidebarOutlinesTab` with `SidebarNotesTab`:
+     - Text: Localized string `Str_TabNotes` ("Notes").
+     - Retain identical tab button styling matching `SidebarPagesTab`.
+2. **Body Replacement:**
+   - Replace `OutlineScrollViewer` / `OutlineTree` with a dedicated `NotesScrollViewer` and `NotesPanel`:
+   - **Controls Header (Pinned at top of Notes tab):**
+     - Inputs: `From` page textbox and `To` page textbox (numeric validation, defaulting to `1` and `totalPages` or the currently viewed page range).
+     - Action Button: `"Generate Notes"` (`AccentButton` style).
+     - Global Action: `"Copy All Notes"` icon button (`⧉`).
+   - **Notes Card List (Scrollable):**
+     - Dynamic stack of note cards for each 50-page interval.
+     - Each card includes:
+       - Header: `Pages {start} – {end}` with an individual Copy button (`⧉`).
+       - Content area rendering the formatted markdown note (~200 words).
+       - Empty state when no notes have been generated yet.
+       - Loading indicator with progress text while generating.
 
 ---
 
-### 5. Fix "Pages Left" Counter in `SummaryWindow` (`Features/Summary/SummaryWindow.xaml.cs`)
+### 2. Slicing & Boundary-Aware LLM Strategy
 
-* On `SummaryWindow`, the **"Pages left"** indicator is currently broken and always displays `0`.
-* Correct the calculation: `Math.Max(0, totalPages - currentEndPage)` so that it accurately displays how many pages remain after the current range.
+#### Solving Boundary Cutoffs with 128k Context
+When reading Pages 80 to 200, an argument or narrative event that starts on Page 129 may finish on Page 130. Slicing blindly into isolated requests creates dangling fragments and orphaned thoughts.
+
+Because `gpt-oss:120b-cloud` supports a **128k context window**:
+1. **Send the full continuous text of the requested range (e.g. Pages 80–200)** to the model in **one single prompt**.
+2. Because the model sees the entire text seamlessly, it has full continuity across all page transitions and never gets confused by sentence boundaries.
+3. The prompt explicitly instructs the model to return structured output broken into **discrete 50-page chunks**:
+   * Chunk 1: Pages 80 – 129 (50 pages $\rightarrow$ ~200 words)
+   * Chunk 2: Pages 130 – 179 (50 pages $\rightarrow$ ~200 words)
+   * Chunk 3: Pages 180 – 200 (remaining pages $\rightarrow$ proportional word count)
 
 ---
 
-### 6. Toggle Open/Close on Keyboard Shortcuts (`MainWindow.xaml.cs`)
+### 3. Prompt Design: The 200-Word Recall Schema
 
-* For all AI-related keyboard shortcuts (`Ctrl+Shift+A` for AI Chat, shortcuts for Summary, and shortcut for AI Test):
-  * If the companion window is **already open**, pressing the shortcut must **close** it.
-  * If closed, pressing the shortcut opens it.
+For each 50-page chunk, the model must produce a dense, high-yield ~200-word card following this 3-tier structure:
+
+```text
+You are a master analytical reader creating high-yield, comprehensive review notes.
+For each 50-page block, generate a dense note of STRICTLY under 200 words following this exact structure:
+
+1. CORE ARC (30–40 words):
+   The central premise, thesis, or primary narrative shift across these 50 pages.
+2. CHRONOLOGICAL PROGRESSION (120–130 words):
+   The sequence of ideas, events, and evidence, anchored by page milestones:
+   - [pp. X-Y] ...
+   - [pp. Y-Z] ...
+   - [pp. Z-End] ...
+3. MEMORY PEGS & SPECIFICS (30–40 words):
+   The 2–3 most distinct specifics that anchor memory: exact names, central analogies, key case studies, formulas, or pivotal counterarguments.
+
+RULES:
+- Be dense, concrete, and substantive. Do not use generic filler ("the author discusses", "this section covers").
+- State the actual arguments, findings, and events directly.
+- Strictly adhere to the word ceiling per card.
+```
 
 ---
 
-### 7. Smooth Fast Scroll to First Page of Range on "Next" (`Features/Summary/SummaryWindow.xaml.cs`)
+### 4. Implementation Details in `Features/Notes/` or `Features/Summary/`
 
-* When the user clicks **"Next" / "Next Range"** in `SummaryWindow`:
-  * As the PDF view and the left thumbnail sidebar advance to the next range, the document view must scroll **smoothly and fast** so that the **first page of the new range is positioned right at the top/first visible position**.
+1. Create a service / handler `NotesGenerator.cs` (or extend existing AI services):
+   - Extracts the requested page span using `TextRunService` (with `[[p. N]]` markers).
+   - Calculates the 50-page chunk boundaries.
+   - Builds the OpenAI-compatible `/chat/completions` request against `AiProviderConfig`.
+   - Parses the model's response into individual card items.
+2. Copy button interactions:
+   - Individual card copy button copies `**Pages X-Y**\n\n{content}` to clipboard with temporary `✓` feedback.
+   - Global copy button copies all generated cards concatenated.
+3. Add required localized strings across `Strings/en-US.xaml` and all other 15 language dictionaries:
+   - `Str_TabNotes`: `"Notes"`
+   - `Str_Notes_From`: `"From"`
+   - `Str_Notes_To`: `"To"`
+   - `Str_Notes_Generate`: `"Generate Notes"`
+   - `Str_Notes_CopyAll`: `"Copy All Notes"`
+   - `Str_Notes_Empty`: `"Select a page range and click Generate Notes to create review cards."`
+   - `Str_Notes_Generating`: `"Generating notes for pages {0} to {1}…"`
 
 ---
 
 ### Verification
 1. Run `dotnet build` with zero errors.
-2. Run `dotnet test` and ensure all tests pass.
-3. Push to `origin/main`.
+2. Run `dotnet test` and ensure all tests (including localization parity) pass.
+3. Test with a PDF: verify entering `80` to `200` generates 3 distinct, copyable ~200-word cards in the sidebar.
