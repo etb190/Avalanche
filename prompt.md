@@ -1,90 +1,84 @@
-# TASK: Implement "Recap" Mode in Avalanche (Replicating pdf-summarizer-extension)
+# TASK: Implement "Recap" Companion in Avalanche (SummaryWindow Styling + Top Bar Toggle)
 
 Repository: `https://github.com/etb190/Avalanche`  
 Auth Token: `ghp_***` (provided via environment / push URL)
 
 ---
 
-### Overview & Objective
-Implement the **Recap** feature in Avalanche, faithfully replicating the exact behavior, navigation trigger mechanism, AI condensation prompt, and floating popup UI from `pdf-summarizer-extension`.
+### Overview & Core Architecture
+Implement the **Recap** feature in Avalanche as a clean companion window that gives the reader an immediate 3–4 sentence memory bridge of the page they just left when turning pages.
 
-Recap is an automatic page-turn memory refresher: when **Recap Mode** is enabled, navigating to a new page (`Page 10` $\rightarrow$ `Page 11`) automatically opens a floating, draggable, resizable card showing a dense **3–4 sentence recap of what happened on the page just left (`Page 10`)**, keeping the immediate context fresh as the reader begins the next page.
+Unlike the browser extension's floating popup, the Recap window in Avalanche must **look exactly like `SummaryWindow`** (built with `DialogChrome.Frame`, rounded card, theme styling, pop-in entrance animation, Escape-to-close), but **minus the controls — just the clean content**.
 
----
-
-### 1. Header / Toolbar Toggle: "Recap Mode"
-* Add a `Recap` toggle button/checkbox to the toolbar or viewer header (beside the AI controls):
-  * Label: `Recap` (localized key: `Str_Lbl_RecapMode`).
-  * Tooltip: `Show a quick recap popup of the previous pages on navigation.` (`Str_TT_RecapMode`).
-  * State: Boolean `recapMode`, persisted in user settings (`recap.enabled`).
-  * When toggled OFF, immediately dismisses any open recap popup.
+The toggle switch to enable/disable Recap is placed **in the top middle bar of `SummaryWindow`**, across from "Avalanche" on the left and across from the AI Tester beaker icon on the right, using the exact same iOS-style sliding toggle designed for `AiTestWindow`.
 
 ---
 
-### 2. Navigation Trigger Mechanism
-In the document viewer navigation handler (e.g. `OnPageChanged(int oldPage, int newPage)`):
-* If `recapMode` is true AND `oldPage != newPage`:
-  * Trigger `ShowRecapPopup(oldPage)` for the page the reader just left.
-  * If a recap popup is already open from a previous turn, dismiss/replace it cleanly.
+### 1. The Recap Toggle in `SummaryWindow` Title Bar
+* In `Features/Summary/SummaryWindow.xaml.cs` (in `DialogChrome.Frame` title bar extras):
+  * Position a toggle switch in the **top middle bar**, centered between the "Avalanche" title wordmark on the far left and the AI Tester beaker button on the right.
+  * Use the **exact same iOS-style sliding toggle** (`TestModeToggle` from `AiTestWindow.xaml`):
+    * 40px track, 16px white thumb gliding 18px in 150ms on check/uncheck.
+    * Paired with a bold label `Recap` (`Str_Lbl_RecapMode`).
+  * State: Persisted in user settings (`recap.enabled`).
+  * Checked = Recap mode active; Unchecked = Recap mode inactive (dismisses any open Recap window).
 
 ---
 
-### 3. AI Condensation Pipeline (`Features/AI/` or `Features/Summary/`)
-
-1. **Text Source:**
-   * Uses the text or summary of `oldPage` (extracted via `PageSummarizer.ExtractRangeAsync(path, oldPage, oldPage, ct)` or `MarkdownNormalizer`).
-2. **In-Memory Cache:**
-   * Maintain a `Dictionary<int, string> _recapCache`.
-   * If `oldPage` already has a cached recap, display it **instantly (0 ms)** without calling the AI.
-3. **The LLM Request:**
-   * If not cached, send an OpenAI-compatible completion request using `AiProviderConfig`:
-   ```text
-   Condense the following text into a single short paragraph of 3-4 sentences.
-   Capture only the essential points — the most important facts, findings, events, or takeaways.
-   Drop all detail, examples, and elaboration.
-   Write it as flowing prose, not bullets.
-
-   Respond in {language} only.
-
-   Text to condense:
-   {pageText}
-   ```
-   * Low temperature (`0`), fast single-pass completion.
-   * Cache the resulting 3–4 sentence string in `_recapCache[oldPage]`.
+### 2. The Recap Window (`Features/Summary/RecapWindow.xaml`, `RecapWindow.xaml.cs`)
+Create an owned companion window styled identically to `SummaryWindow`:
+1. **Window Chrome:**
+   * Composed with `DialogChrome.Frame(this, owner, title, Close, BodyRoot, ...)`:
+     * Title: `Recap — Page {oldPage}` (or `Recap — Pages {start}–{end}`).
+     * Title bar includes the standard close button (`✕`) styled via `DressCloseChip`.
+     * Hit-testable corner resize grips via `WindowChrome` (two-axis resizing).
+     * Pop-in entrance animation (`WindowFx.PlayOpenPop`), fade close, and Escape-to-close.
+2. **Body (Content-Only, Zero Clutter):**
+   * **No controls:** No range chips, no word count dropdowns, no stepper arrows, no reset buttons.
+   * **Content Area:** Clean, comfortable reading surface displaying the 3–4 sentence recap:
+     * Dark theme background (`PaneBrush`), smooth line height (1.6x), clean typography.
+     * Shows a subtle indicator while condensing: `"Condensing page…"` (`Str_Recap_Loading`).
+     * Internal smooth scrollbar if text expands.
+3. **Placement & Memory:**
+   * Remembers position and dimensions across sessions via user settings (`recap.win.left`, `recap.win.top`, etc.).
 
 ---
 
-### 4. Floating Popup Window / Overlay (`RecapPopupWindow.xaml`)
+### 3. Navigation Trigger Mechanism
+In the document viewer navigation handler (e.g. `MainWindowViewerHost.cs` or `MainWindow.xaml.cs` page change event):
+* When `recapMode` is enabled and the user navigates to a new page (`oldPage != newPage`):
+  * Trigger `ShowRecap(oldPage)` for the page the reader just left.
+  * If `RecapWindow` is already open, smoothly update its content to the new page recap rather than stacking windows.
 
-Style and behavior replicating `.pn-recap-popup` from `pdf-summarizer-extension`:
+---
 
-1. **Visual Styling:**
-   * Floating card with rounded corners (`CornerRadius="12"`), dark glass background (`#0F0F14` / theme `PaneBrush` with backdrop blur), subtle hairline border (`BorderBrush="{DynamicResource ControlBorderBrush}"` or accent tint), and drop shadow.
-   * Pop-in entrance animation (0.3s cubic ease-out scale & fade).
-2. **Header Bar:**
-   * **Title:** Bold uppercase title: `RECAP — PAGE {oldPage}` (or `RECAP — PAGES {start}–{end}` if multi-page).
-   * **Font Size Controls:**
-     * `A-` button: Decreases recap body font size by 1px (minimum 10px).
-     * `A+` button: Increases recap body font size by 1px (maximum 22px).
-     * Persist `recap.fontsize` in user settings.
-   * **Close Button:** `✕` icon button that dismisses the popup.
-3. **Draggable & Resizable:**
-   * The header acts as a drag handle (clicking and dragging moves the popup smoothly around the window).
-   * Resizable via edge/corner grips.
-   * Persist last position and dimensions (`recap.left`, `recap.top`, `recap.width`, `recap.height`) so it reopens where the user placed it.
-4. **Body Area:**
-   * Shows a smooth loading spinner while generating: `"Condensing page…"`
-   * Renders the 3–4 sentence recap with comfortable reading line height (1.6x) and clean typography.
-   * Internal thin scrollbar for long text.
-5. **Dismissal:**
-   * Closes on clicking `✕`, pressing `Escape`, or turning Recap mode OFF.
+### 4. AI Condensation Pipeline & Caching
+1. **In-Memory Cache:**
+   * Maintain `Dictionary<int, string> _recapCache`.
+   * If `oldPage` already has a cached recap, update `RecapWindow` **instantly (0 ms)** without calling the AI.
+2. **Lightweight LLM Request:**
+   * If not cached, extract the text of `oldPage` using `MarkdownNormalizer` / `PageSummarizer.ExtractRangeAsync`.
+   * Send an OpenAI-compatible request using `AiProviderConfig`:
+     ```text
+     Condense the following text into a single short paragraph of 3-4 sentences.
+     Capture only the essential points — the most important facts, findings, events, or takeaways.
+     Drop all detail, examples, and elaboration.
+     Write it as flowing prose, not bullets.
+
+     Respond in {language} only.
+
+     Text to condense:
+     {pageText}
+     ```
+   * Low temperature (`0`), fast single-pass response.
+   * Cache the resulting text in `_recapCache[oldPage]`.
 
 ---
 
 ### 5. Localization Parity
 Add all required keys across `Strings/en-US.xaml` and all other 15 language dictionaries:
 * `Str_Lbl_RecapMode`: `"Recap"`
-* `Str_TT_RecapMode`: `"Show a quick recap popup of the previous pages on navigation."`
+* `Str_TT_RecapMode`: `"Toggle automatic recap companion when turning pages"`
 * `Str_Recap_Title`: `"Recap — Page {0}"`
 * `Str_Recap_RangeTitle`: `"Recap — Pages {0}–{1}"`
 * `Str_Recap_Loading`: `"Condensing page…"`
@@ -94,9 +88,10 @@ Add all required keys across `Strings/en-US.xaml` and all other 15 language dict
 
 ### Verification
 1. Run `dotnet build` with zero errors.
-2. Run `dotnet test` and ensure all tests (including localization parity) pass.
-3. Open a PDF, toggle `Recap` ON, and advance from Page 1 to Page 2:
-   * Verify the floating recap card pops in with `"Recap — Page 1"`.
-   * Verify font controls (`A-` / `A+`) resize the text.
-   * Verify dragging and close (`✕` / `Escape`) work smoothly.
-   * Flip back to Page 1 and forward again: verify the recap loads instantly from cache (0 ms).
+2. Run `dotnet test` and ensure all tests pass (including localization parity).
+3. Open `SummaryWindow`: verify the Recap toggle switch sits in the top middle bar across from "Avalanche" and the AI Tester button.
+4. Toggle Recap ON, read a PDF, and navigate from Page 1 to Page 2:
+   * Verify `RecapWindow` opens dressed like `SummaryWindow` with title `"Recap — Page 1"`, displaying the 3–4 sentence condensation without any control bars.
+   * Navigate to Page 3: verify the window updates to Page 2 seamlessly.
+   * Navigate back to Page 2: verify it loads instantly from cache (0 ms).
+   * Toggle Recap OFF: verify the window closes.
