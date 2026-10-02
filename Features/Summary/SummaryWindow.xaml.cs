@@ -124,6 +124,11 @@ namespace Avalanche.Features.Summary
             // over the stretch on screen, or put away. Typing in the start
             // field types; F stays a letter there.
             PreviewKeyDown += TryRecapHotkeyFromNavigator;
+            // The reader's hands on the digest: bare W/S ease it up/down, bare
+            // A/D step the reading range (the arrows' own move). Only while
+            // THIS window holds the focus - the editor never hears them - and
+            // never with a modifier attached (Shift+W is someone else's chord).
+            PreviewKeyDown += TryReadingNavigatorKey;
             // Borderless windows (WindowStyle.None) have no native resize border - the same
             // WindowChrome PrintPreviewWindow uses restores edge resizing without a grip.
             System.Windows.Shell.WindowChrome.SetWindowChrome(this, new System.Windows.Shell.WindowChrome
@@ -181,6 +186,11 @@ namespace Avalanche.Features.Summary
             // starts the digest for the new stretch - "next page of the reading".
             NavPrevBtn.Click += (_, _) => MoveRange(-1);
             NavNextBtn.Click += (_, _) => MoveRange(+1);
+
+            // The reading rail: up/down ease the digest through the viewport,
+            // one comfortable step per press, the same trip the keys take.
+            ScrollUpBtn.Click += (_, _) => SmoothScrollDigest(-1);
+            ScrollDownBtn.Click += (_, _) => SmoothScrollDigest(+1);
 
             // The field shows the range at rest; the first click swaps it for the bare
             // start page, fully selected, so typing replaces it in one stroke.
@@ -1338,6 +1348,65 @@ namespace Avalanche.Features.Summary
 
             e.Handled = true;
             (Owner as MainWindow)?.ToggleRecapCompanion();
+        }
+
+        // The reading keys, forwarded while the navigator holds the focus.
+        // Bare W/S scroll the digest (smoothly), bare A/D are the stepper
+        // arrows; a modifier disqualifies the chord, a caret in the start
+        // field keeps its letters, and the editor never sees any of them.
+        private void TryReadingNavigatorKey(object sender, KeyEventArgs e)
+        {
+            if (Keyboard.Modifiers != ModifierKeys.None
+                || Keyboard.FocusedElement is TextBoxBase { IsReadOnly: false })
+            {
+                return;
+            }
+
+            switch (e.Key)
+            {
+                case Key.W: e.Handled = SmoothScrollDigest(-1); break;
+                case Key.S: e.Handled = SmoothScrollDigest(+1); break;
+                case Key.A: MoveRange(-1); e.Handled = true; break;
+                case Key.D: MoveRange(+1); e.Handled = true; break;
+            }
+        }
+
+        // The digest scroll rides a proxy property: the animation eases the
+        // value and every step lands on the reader's RichTextBox - TextBoxBase
+        // has no smooth scroll of its own. A held animation is replaced by the
+        // next press from the live offset, so rapid W/S chain instead of fight.
+        private static readonly DependencyProperty DigestOffsetProperty =
+            DependencyProperty.Register("DigestOffset", typeof(double), typeof(SummaryWindow),
+                new PropertyMetadata(0.0, (d, e) =>
+                    ((SummaryWindow)d).DocBox.ScrollToVerticalOffset((double)e.NewValue)));
+
+        private bool SmoothScrollDigest(int direction)
+        {
+            double extent = DocBox.ExtentHeight;
+            double viewport = DocBox.ViewportHeight;
+            if (extent <= viewport + 0.5)
+            {
+                return false;   // the page fits: the key belongs to no one
+            }
+
+            double from = DocBox.VerticalOffset;
+            double target = Math.Clamp(
+                from + (direction * Math.Max(viewport * 0.85, 40.0)), 0.0, extent - viewport);
+            if (Math.Abs(target - from) < 0.5)
+            {
+                return true;    // parked at an edge: swallow, nothing to move
+            }
+
+            BeginAnimation(DigestOffsetProperty, new System.Windows.Media.Animation.DoubleAnimation(
+                from, target, TimeSpan.FromMilliseconds(340))
+            {
+                EasingFunction = new System.Windows.Media.Animation.CubicEase
+                {
+                    EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut
+                },
+                FillBehavior = System.Windows.Media.Animation.FillBehavior.HoldEnd
+            });
+            return true;
         }
 
         public void ResetPosition()

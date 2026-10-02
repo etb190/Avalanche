@@ -1179,6 +1179,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_SummaryStart">Başlat</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
+	<sys:String x:Key="Str_SummaryScrollUp">Yukarı kaydır</sys:String>
+	<sys:String x:Key="Str_SummaryScrollDown">Aşağı kaydır</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Araçlar</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Genişletilmiş araç setini göster veya gizle</sys:String>

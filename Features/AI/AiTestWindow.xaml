@@ -326,6 +326,7 @@
                 <StackPanel x:Name="RangeInputPanel" Orientation="Horizontal"
                             VerticalAlignment="Center" Visibility="Collapsed">
                     <TextBox x:Name="RangeBox" Style="{StaticResource TestRangeBox}" Width="112"
+                             Cursor="IBeam" ForceCursor="True"
                              ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
                 </StackPanel>
                 <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"

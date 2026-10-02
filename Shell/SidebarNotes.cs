@@ -28,6 +28,13 @@ namespace Avalanche
 
         private readonly List<NoteCard> _noteCards = [];
         private string? _notesDocumentPath;           // the cards on screen belong to this document
+
+        // Generated notes belong to the document that paid for them: a tab
+        // flit parks the cards (and the typed range) under the old book's id
+        // and brings the new book's own cards back - switching tabs never
+        // burns a generation, and two books never see each other's cards.
+        private sealed record NotesSnapshot(List<NoteCard> Cards, string RangeText);
+        private readonly Dictionary<string, NotesSnapshot> _notesByDocument = [];
         private CancellationTokenSource? _notesCts;
         private int _notesRun;                        // bumped on cancel/document switch: stale continuations bail
         private bool _notesBusy;
@@ -63,10 +70,11 @@ namespace Avalanche
         // Document lifecycle
         // ------------------------------------------------------------------
 
-        /// <summary>The document changed (open / tab switch / close): the cards
-        /// on screen audited the OLD document, so they go, and the From/To pair
-        /// reseeds to the new document's full span. Same-path no-ops keep tab
-        /// flits from wiping notes for nothing.</summary>
+        /// <summary>The document changed (open / tab switch / close): the old
+        /// book's cards park under its id, and the new book's own cards come
+        /// back if it has parked ones - a fresh book reseeds the range pair
+        /// and opens empty. Same-path no-ops keep tab flits from wiping notes
+        /// for nothing.</summary>
         internal void ResetNotesForDocument(string? filePath)
         {
             if (string.Equals(_notesDocumentPath, filePath, StringComparison.Ordinal))
@@ -74,17 +82,40 @@ namespace Avalanche
                 return;
             }
 
+            // Park the outgoing book's generation before anything moves: the
+            // cards on screen are the ones the reader paid requests for.
+            if (!string.IsNullOrEmpty(_notesDocumentPath) && _noteCards.Count > 0)
+            {
+                string oldId = Features.AI.DocumentIndexer.ComputeDocumentId(_notesDocumentPath);
+                _notesByDocument[oldId] = new NotesSnapshot(
+                    new List<NoteCard>(_noteCards), NotesRangeBox.Text);
+            }
+
             _notesDocumentPath = filePath;
             CancelNotesRun();
-            _noteCards.Clear();
-            ShowNotesEmpty();
-            HideNotesStatus();
             _notesBusy = false;
             SetNotesBusy(false);
+
             int pages = _doc?.PageCount ?? 0;
-            NotesRangeBox.Text = pages > 0
-                ? "1-" + pages.ToString(CultureInfo.InvariantCulture)
-                : string.Empty;
+            if (!string.IsNullOrEmpty(filePath) &&
+                _notesByDocument.TryGetValue(
+                    Features.AI.DocumentIndexer.ComputeDocumentId(filePath),
+                    out NotesSnapshot? saved))
+            {
+                // A returning book: its own cards take the stage again.
+                RenderNoteCards(saved.Cards);
+                NotesRangeBox.Text = saved.RangeText;
+            }
+            else
+            {
+                // A fresh book: empty stage, the pair reseeds to its full span.
+                _noteCards.Clear();
+                ShowNotesEmpty();
+                HideNotesStatus();
+                NotesRangeBox.Text = pages > 0
+                    ? "1-" + pages.ToString(CultureInfo.InvariantCulture)
+                    : string.Empty;
+            }
         }
 
         private void CancelNotesRun()

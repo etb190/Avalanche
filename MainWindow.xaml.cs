@@ -1567,6 +1567,19 @@ namespace Avalanche
                 test.Close();
             }
 
+            // The summary navigator reads ONE book too: a tab switch parks it,
+            // and its Closed hook saves the digest under the old book's id plus
+            // hands the page list back to the single-page highlight. Reopening
+            // on a book restores that book's own digest - the new book never
+            // sees the old one's paragraph, and the old book keeps everything
+            // the reader generated on it. Same-path reactivations keep the
+            // window up.
+            if (_summaryWindow is { } navigator &&
+                (filePath is null || !navigator.DocumentPathEquals(filePath)))
+            {
+                navigator.Close();
+            }
+
             // The notes cards audited the previous document; the new one
             // reseeds the From/To pair and empties the panel.
             ResetNotesForDocument(filePath);
