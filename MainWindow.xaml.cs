@@ -1128,8 +1128,8 @@ namespace Avalanche
         }
 
         // Every page report funnels through here: a real turn - a different page
-        // than last time - opens (or retargets) the Recap companion over the page
-        // that was just left. The companion is the summary family's quietest
+        // than last time - opens (or retargets) the Recap companion over the
+        // navigator's whole range. The companion is the summary family's quietest
         // member: no controls, one paragraph, shown while the reader reads on.
         private void RecapOnPageTurn(int newPage)
         {
@@ -1149,12 +1149,114 @@ namespace Avalanche
             }
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            (int recapFirst, int recapLast) = GetRecapRange(oldPage + 1);
             Features.Summary.RecapController.ShowRecap(
                 this,
                 _currentFile,
                 _doc.PageCount,
-                oldPage + 1,
-                oldPage + 1,
+                recapFirst,
+                recapLast,
+                () => _aiSettingsViewModel.ToGenConfig(),
+                Loc);
+        }
+
+        // The stretch the Recap companion covers: the summary navigator's WHOLE
+        // displayed range - the memory bridge spans everything the reader is
+        // reading, not the one page they just left. The navigator answers live
+        // while it is open; once closed, its last range is still on file (the
+        // per-document start anchor plus the selected span - 20 pages until a
+        // chip says otherwise). With no navigator history at all, the bridge
+        // falls back to the single page that was just left.
+        private (int First, int Last) GetRecapRange(int fallbackPage)
+        {
+            if (_doc is null || string.IsNullOrEmpty(_currentFile))
+            {
+                fallbackPage = Math.Max(1, fallbackPage);
+                return (fallbackPage, fallbackPage);
+            }
+
+            int pages = _doc.PageCount;
+            if (_summaryWindow is { } summary
+                && summary.TryGetVisibleRange(out int first, out int last))
+            {
+                first = Math.Clamp(first, 1, pages);
+                return (first, Math.Clamp(last, first, pages));
+            }
+
+            try
+            {
+                int span = 20;
+                string? rawSpan = Services.AppDataPaths.GetSetting("summary.range");
+                if (rawSpan is not null
+                    && int.TryParse(rawSpan, out int savedSpan)
+                    && savedSpan >= 1)
+                {
+                    span = savedSpan;
+                }
+
+                string? rawStart = Services.AppDataPaths.GetSetting(
+                    "summary.start." + Features.AI.DocumentIndexer.ComputeDocumentId(_currentFile));
+                if (rawStart is not null
+                    && int.TryParse(rawStart, out int start)
+                    && start >= 1)
+                {
+                    first = Math.Clamp(start, 1, pages);
+                    return (first, Math.Min(first + span - 1, pages));
+                }
+            }
+            catch
+            {
+                // settings are best-effort
+            }
+
+            fallbackPage = Math.Clamp(fallbackPage, 1, pages);
+            return (fallbackPage, fallbackPage);
+        }
+
+        // F - the reader's hand on the companion: one press puts the recap window
+        // away (page turns keep it put away), the next brings it back over the
+        // stretch on screen. The navigator's Recap switch owns the automatic
+        // following; F owns the window itself, Recap mode on or off.
+        private void ToggleRecapCompanion()
+        {
+            if (_doc is null || string.IsNullOrEmpty(_currentFile))
+            {
+                return;
+            }
+
+            _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            (int first, int last) = GetRecapRange(_currentPage + 1);
+            Features.Summary.RecapController.ToggleWindow(
+                this,
+                _currentFile,
+                _doc.PageCount,
+                first,
+                last,
+                () => _aiSettingsViewModel.ToGenConfig(),
+                Loc);
+        }
+
+        // The navigator's range moved (chips, arrows, a retyped start): a recap
+        // window that is already showing follows it, so the bridge always spans
+        // the stretch the reader is actually reading. A closed window stays
+        // closed - only page turns and F ever open one.
+        private void RefreshRecapForRangeChange()
+        {
+            if (_doc is null || string.IsNullOrEmpty(_currentFile)
+                || !Features.Summary.RecapController.Enabled
+                || !Features.Summary.RecapController.HasOpenWindow)
+            {
+                return;
+            }
+
+            _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            (int first, int last) = GetRecapRange(_currentPage + 1);
+            Features.Summary.RecapController.ShowRecap(
+                this,
+                _currentFile,
+                _doc.PageCount,
+                first,
+                last,
                 () => _aiSettingsViewModel.ToGenConfig(),
                 Loc);
         }
@@ -1398,6 +1500,9 @@ namespace Avalanche
             // The beaker chip in the navigator's title bar: probe the exact
             // stretch on screen with the AI test.
             summary.TestRangeRequested += OpenAiTestForRange;
+            // A recap window that is already showing follows the navigator's
+            // range when it moves (chips, arrows, a retyped start).
+            summary.RangeVisualChanged += RefreshRecapForRangeChange;
             summary.Closed += (_, _) =>
             {
                 RefreshSummaryPageHighlight();      // the page list returns to the single page

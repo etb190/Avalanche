@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Переместить страницу вниз (изменить порядок)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Выберите инструмент - щелкните аннотации, перетащите, чтобы выделить текст, дважды щелкните, чтобы отредактировать (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Текстовый инструмент - нажмите, чтобы добавить текст (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Заполняемое текстовое поле - создание, выбор, перемещение, изменение размера или удаление; щелкните правой кнопкой, чтобы изменить цвет заливки (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Заполняемое текстовое поле - создание, выбор, перемещение, изменение размера или удаление; щелкните правой кнопкой, чтобы изменить цвет заливки</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Инструмент выделения - перетащите его, чтобы выделить (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Зачеркивание - перетаскивание по тексту</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Подчеркивание - перетаскивание по тексту</sys:String>
@@ -285,7 +285,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_MoveUp">Вверх</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Вниз</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Текст</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Поля форм (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Поля форм</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Маркер</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Зачеркнуть</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Подчеркнуть</sys:String>
@@ -1254,6 +1254,6 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_TT_RecapMode">Включить или выключить автоматический краткий пересказ при перелистывании страниц</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Страница {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Страницы {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Сжатие страницы…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">На этой странице нет читаемого текста для краткого пересказа.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Сжатие…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">В этом диапазоне нет читаемого текста для краткого пересказа.</sys:String>
 </ResourceDictionary>

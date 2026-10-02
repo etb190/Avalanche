@@ -183,11 +183,11 @@ namespace Avalanche.Tests
         }
 
         [Fact]
-        public void FormFieldAndStampShortcutsAreOnTheMap()
+        public void RecapAndStampShortcutsAreOnTheMap()
         {
             var map = ShortcutTable.BuildMap()[KbLayer.Base];
 
-            Assert.Equal("Str_KS_FormField", map["F"].Label);
+            Assert.Equal("Str_Lbl_RecapMode", map["F"].Label);
             Assert.Equal("Str_Ctx_StampPages", map["D0"].Label);
             Assert.Equal("Str_Ctx_StampPages", map["S"].Label);
         }

@@ -7,8 +7,11 @@
 // exactly:
 //   * the toggle lives in the summary navigator's title bar (Recap mode),
 //     persisted in "recap.enabled"; unchecking dismisses any open recap,
-//   * the condensation cache is a Dictionary<int, string> - a page recapped
-//     once never costs a second request (0 ms on return),
+//   * the condensation cache is keyed by the navigator's WHOLE range - a
+//     stretch recapped once never costs a second request (0 ms on return),
+//   * the F key commands the window itself: one press puts it away (page
+//     turns keep it put away), the next brings it back over the stretch on
+//     screen - the navigator's switch still owns the automatic following,
 //   * the request is one lightweight OpenAI-compatible call at temperature 0
 //     over the page's extracted text (PageSummarizer.ExtractRangeAsync),
 //   * an already-open window updates in place - pages never stack windows.
@@ -36,12 +39,15 @@ namespace Avalanche.Features.Summary
 
     internal static class RecapController
     {
-        // The condensation cache: page (1-based) -> the 3-4 sentence paragraph.
-        // A cache hit paints in 0 ms and never spends a request. An empty string
-        // is a cached verdict too: this page has no readable text, and re-asking
-        // (the extractor, let alone the model) would answer the same. The cache
-        // belongs to ONE document - NotifyDocumentChanged empties it.
-        private static readonly Dictionary<int, string> Cache = new();
+        // The condensation cache: (first, last) of the navigator's range ->
+        // the 3-4 sentence paragraph. The recap spans the whole stretch the
+        // reader is reading, not the single page they just left, so the range
+        // pair is the identity. A cache hit paints in 0 ms and never spends a
+        // request. An empty string is a cached verdict too: this range has no
+        // readable text, and re-asking (the extractor, let alone the model)
+        // would answer the same. The cache belongs to ONE document -
+        // NotifyDocumentChanged empties it.
+        private static readonly Dictionary<(int First, int Last), string> Cache = new();
 
         private static RecapWindow? _window;
         private static bool? _enabled;
@@ -50,6 +56,7 @@ namespace Avalanche.Features.Summary
         private static Task? _flight;       // the in-flight condensation (null when none)
         private static int _flightFirst;    // the stretch the flight condenses
         private static int _flightLast;
+        private static bool _suppressed;    // F-dismissed: page turns keep the window down until F summons it back
 
         /// <summary>Recap mode's persisted state, read lazily so the companion
         /// also works when the summary navigator has not been opened yet.</summary>
@@ -67,6 +74,9 @@ namespace Avalanche.Features.Summary
                 // best-effort
             }
 
+            // A fresh check lifts the F-silence too: turning Recap on means
+            // the companion follows the reading from the very next page turn.
+            _suppressed = false;
             if (!value)
             {
                 Dismiss();      // unchecking dismisses any recap window that is showing
@@ -89,6 +99,7 @@ namespace Avalanche.Features.Summary
         // belong to the old book, and a page number without its book is meaningless.
         internal static void NotifyDocumentChanged()
         {
+            _suppressed = false;
             Cache.Clear();
             Dismiss();
         }
@@ -110,11 +121,18 @@ namespace Avalanche.Features.Summary
             }
         }
 
-        /// <summary>The page turn itself: the reader moved from <paramref name="first"/>
-        /// (..<paramref name="last"/>) to somewhere else, and this stretch deserves its
-        /// memory bridge. Shows (or retargets) the companion, serves a cache hit at
-        /// once, otherwise starts - or keeps - the condensation flight.</summary>
-        internal static void ShowRecap(
+        /// <summary>True while a recap window is actually showing. The
+        /// navigator's range changes refresh a showing window; they never open
+        /// a closed one - only page turns and F do that.</summary>
+        internal static bool HasOpenWindow => _window is { IsVisible: true };
+
+        /// <summary>The reader's hand on the companion (the F key): one press
+        /// puts the window away - and page turns keep it put away, whatever the
+        /// navigator's Recap switch says - the next brings it back over the
+        /// stretch on screen, a cached range painting in 0 ms. The switch still
+        /// owns the automatic following; F owns the window itself, with Recap
+        /// off too.</summary>
+        internal static void ToggleWindow(
             MainWindow owner,
             string filePath,
             int pageCount,
@@ -123,7 +141,32 @@ namespace Avalanche.Features.Summary
             Func<AiProviderConfig> configProvider,
             Func<string, string> loc)
         {
-            if (!Enabled)
+            if (_window is { IsVisible: true } open && open.DocumentPathEquals(filePath))
+            {
+                _suppressed = true;
+                Dismiss();
+                return;
+            }
+
+            ShowRecap(owner, filePath, pageCount, first, last, configProvider, loc, manual: true);
+        }
+
+        /// <summary>The page turn itself: the reader moved on, and the navigator's
+        /// whole stretch (<paramref name="first"/>..<paramref name="last"/>) deserves
+        /// its memory bridge. Shows (or retargets) the companion, serves a cache hit
+        /// at once, otherwise starts - or keeps - the condensation flight. A manual
+        /// summon (F) bypasses the mode gate and lifts the F-silence.</summary>
+        internal static void ShowRecap(
+            MainWindow owner,
+            string filePath,
+            int pageCount,
+            int first,
+            int last,
+            Func<AiProviderConfig> configProvider,
+            Func<string, string> loc,
+            bool manual = false)
+        {
+            if (!manual && (!Enabled || _suppressed))
             {
                 return;
             }
@@ -162,7 +205,7 @@ namespace Avalanche.Features.Summary
                 _window.Show();
             }
 
-            if (Cache.TryGetValue(first, out string? ready))
+            if (Cache.TryGetValue((first, last), out string? ready))
             {
                 // 0 ms: the page was condensed before. Non-empty paints the
                 // paragraph; the cached empty verdict repaints itself - either
@@ -220,14 +263,14 @@ namespace Avalanche.Features.Summary
         {
             try
             {
-                // The page's own text, extracted the same way the navigator's
+                // The range's own text, extracted the same way the navigator's
                 // digest is: normalized markdown with the [p. N] anchors.
-                string pageText = await PageSummarizer.ExtractRangeAsync(filePath, first, last, ct)
+                string rangeText = await PageSummarizer.ExtractRangeAsync(filePath, first, last, ct)
                     .ConfigureAwait(true);
                 ct.ThrowIfCancellationRequested();
-                if (!HasReadableText(pageText))
+                if (!HasReadableText(rangeText))
                 {
-                    Cache[first] = string.Empty;    // the verdict is cached too
+                    Cache[(first, last)] = string.Empty;    // the verdict is cached too
                     if (generation == _generation)
                     {
                         _window?.ShowRecapEmpty(first, last);
@@ -239,7 +282,7 @@ namespace Avalanche.Features.Summary
                 string condensed = (await PageSummarizer.CondenseAsync(
                         config,
                         CondenseSystemPrompt(ReadLanguage()),
-                        "Text to condense:\n" + pageText,
+                        "Text to condense:\n" + rangeText,
                         ct)
                     .ConfigureAwait(true)).Trim();
                 if (condensed.Length == 0)
@@ -253,7 +296,7 @@ namespace Avalanche.Features.Summary
                     return;
                 }
 
-                Cache[first] = condensed;
+                Cache[(first, last)] = condensed;
                 if (generation == _generation)
                 {
                     _window?.ShowRecapText(first, last, condensed);

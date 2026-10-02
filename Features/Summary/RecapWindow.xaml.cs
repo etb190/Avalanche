@@ -4,10 +4,11 @@
 // Owned by MainWindow, single instance (RecapController keeps the reference),
 // dressed exactly like the summary navigator - DialogChrome rounded card,
 // themed title bar, close chip, hit-testable corner resize grips, pop-in
-// entrance, pop-flavored fade close, Escape-close - but with ZERO controls:
-// no range chips, no word ceilings, no steppers, no reset. The body is one
-// reading surface, and the only things that ever change on it are the page
-// number in the title and the 3-4 sentence paragraph inside.
+// entrance, pop-flavored fade close, Escape-close - with the same digest
+// font up/down chips in the bar and ZERO body controls: no range chips, no
+// word ceilings, no steppers, no reset. The body is one reading surface -
+// the window is the container - and the only things that ever change on it
+// are the range in the title and the 3-4 sentence paragraph inside.
 //
 // RecapController drives everything: NavigateTo retargets the window (the
 // title follows, the body parks on the "Condensing page..." line),
@@ -45,6 +46,8 @@ namespace Avalanche.Features.Summary
         private bool _closed;
         private int _firstPage = 1;     // the stretch currently on screen (1-based)
         private int _lastPage = 1;
+        private double _recapFont = 13.5;           // the reading font, persisted in recap.font
+        private string _lastText = string.Empty;    // the painted paragraph (a font step re-renders it)
 
         public RecapWindow(MainWindow owner, string filePath, int pageCount, Func<string, string> loc)
         {
@@ -80,6 +83,14 @@ namespace Avalanche.Features.Summary
                 {
                     BottomSeparator = true,
                     CloseButtonSize = 24,
+                    // The reading font lives in the bar, the navigator's way:
+                    // minus on the left, plus nearer the close mark, the same
+                    // air between the pair the navigator keeps.
+                    BeforeClose = new UIElement[]
+                    {
+                        TitleChip(plus: false, "Str_SummaryFontDown", () => AdjustRecapFont(-1), new Thickness(0, 0, 6, 0)),
+                        TitleChip(plus: true, "Str_SummaryFontUp", () => AdjustRecapFont(+1), new Thickness(0, 0, 8, 0))
+                    },
                     CloseCreated = DressCloseChip,
                     TitleTextCreated = block => _titleTexts.Add(block)
                 });
@@ -99,6 +110,25 @@ namespace Avalanche.Features.Summary
             };
 
             RestorePlacement();
+
+            // The reading font rides its own setting (the navigator's
+            // summary.font pattern): 10 through 24, 13.5 until the chips say
+            // otherwise.
+            try
+            {
+                if (double.TryParse(AppDataPaths.GetSetting("recap.font"), NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double font)
+                    && font >= 10 && font <= 24)
+                {
+                    _recapFont = font;
+                }
+            }
+            catch
+            {
+                // best-effort
+            }
+
+            DocBox.FontSize = _recapFont;
 
             // Placement follows the window live (debounced), the navigator's own
             // pattern: a killed app still finds the window where the reader left it.
@@ -175,6 +205,7 @@ namespace Avalanche.Features.Summary
             }
 
             Overlay(null);
+            _lastText = text;
             DocBox.SetValue(AiMarkdown.TextProperty, text);
             ApplyReadingRhythm();
             DocBox.ScrollToHome();
@@ -236,6 +267,7 @@ namespace Avalanche.Features.Summary
             }
             else
             {
+                _lastText = string.Empty;   // the parked paragraph leaves with its stretch
                 OverlayText.Text = message;
                 OverlayText.Visibility = Visibility.Visible;
                 DocBox.Visibility = Visibility.Collapsed;
@@ -258,6 +290,66 @@ namespace Avalanche.Features.Summary
             };
             System.Windows.Shell.WindowChrome.SetResizeGripDirection(grip, direction);
             return grip;
+        }
+
+        // ------------------------------------------------------------------
+        // Reading-font chips (the navigator's pair)
+        // ------------------------------------------------------------------
+
+        // One 24px title-bar square: the drawn minus or plus - rectangles
+        // center exactly, no font metrics to guess - the tooltip localized,
+        // and the click taken in the tunnel so the bar's DragMove never
+        // mistakes a chip press for the start of a window move. The same
+        // builder the navigator's title bar uses, on the recap's own style.
+        private Button TitleChip(bool plus, string tooltipKey, Action onClick, Thickness? margin = null)
+        {
+            const double t = 1.6;   // stroke, in control px
+            var mark = new Grid { Width = 10, Height = 10 };
+            var bar = new Rectangle { Width = 10, Height = t, RadiusX = t / 2, RadiusY = t / 2 };
+            bar.SetResourceReference(Shape.FillProperty, "TextBrush");
+            mark.Children.Add(bar);
+            if (plus)
+            {
+                var stem = new Rectangle { Width = t, Height = 10, RadiusX = t / 2, RadiusY = t / 2 };
+                stem.SetResourceReference(Shape.FillProperty, "TextBrush");
+                mark.Children.Add(stem);
+            }
+
+            var chip = new Button
+            {
+                Style = (Style)FindResource("RecapTitleBtn"),
+                Content = mark,
+                Margin = margin ?? new Thickness(0),
+                ToolTip = _loc(tooltipKey)
+            };
+            chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
+            return chip;
+        }
+
+        // The reading font steps one size per press, clamped to the navigator's
+        // 10..24 band, persisted immediately. The painted paragraph re-renders
+        // at the new base (AiMarkdown bakes the box's font size into the
+        // FlowDocument it builds) and the 1.6x line rhythm is re-applied on
+        // top; while a loading or verdict line is up there is nothing to
+        // re-render - the next paint takes the new size anyway.
+        private void AdjustRecapFont(int direction)
+        {
+            _recapFont = Math.Clamp(_recapFont + direction, 10, 24);
+            DocBox.FontSize = _recapFont;
+            try
+            {
+                AppDataPaths.SetSetting("recap.font", _recapFont.ToString(CultureInfo.InvariantCulture));
+            }
+            catch
+            {
+                // best-effort
+            }
+
+            if (_lastText.Length > 0)
+            {
+                AiMarkdown.Rebuild(DocBox, _lastText);
+                ApplyReadingRhythm();
+            }
         }
 
         // The close mark wears the same bordered chip the navigator's close

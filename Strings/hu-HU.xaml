@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Oldal mozgatása lefelé (átrendezés)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Kijelölő eszköz - kattintson a jegyzetekre, húzással jelöljön ki szöveget, dupla kattintással szerkeszthet (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Szöveg eszköz - kattintson szöveg hozzáadásához (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Kitölthető szövegmező - mezők létrehozása, kijelölése, mozgatása, átméretezése vagy törlése; jobb kattintással módosítható a kitöltés színe (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Kitölthető szövegmező - mezők létrehozása, kijelölése, mozgatása, átméretezése vagy törlése; jobb kattintással módosítható a kitöltés színe</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Kiemelő eszköz - húzással emelhet ki (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Áthúzás - húzza végig a szövegen</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Aláhúzás - húzza végig a szövegen</sys:String>
@@ -285,7 +285,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Lbl_MoveUp">Oldal felfelé</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Oldal lefelé</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Szöveg</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Űrlapok (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Űrlapok</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Kiemelés</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Áthúzás</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Aláhúzás</sys:String>
@@ -1241,6 +1241,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_RecapMode">Automatikus összefoglaló be- vagy kikapcsolása lapozáskor</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — {0}. oldal</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — {0}–{1}. oldal</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Oldal sűrítése…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Ezen az oldalon nincs olvasható szöveg az összefoglaláshoz.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Sűrítés…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Ezen a tartományon nincs olvasható szöveg az összefoglaláshoz.</sys:String>
 </ResourceDictionary>

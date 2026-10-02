@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Di chuyển trang xuống dưới (sắp xếp lại)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Công cụ chọn - nhấp vào chú thích, kéo để chọn văn bản, nhấp đúp để chỉnh sửa (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Công cụ văn bản - nhấp để thêm văn bản (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Trường văn bản điền được - tạo, chọn, di chuyển, thay đổi kích thước hoặc xóa các trường; nhấp chuột phải để đổi màu tô (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Trường văn bản điền được - tạo, chọn, di chuyển, thay đổi kích thước hoặc xóa các trường; nhấp chuột phải để đổi màu tô</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Công cụ đánh dấu - kéo để tô sáng văn bản (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Gạch ngang - kéo qua văn bản</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Gạch chân - kéo qua văn bản</sys:String>
@@ -285,7 +285,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Lbl_MoveUp">Di chuyển trang lên trên</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Di chuyển trang xuống dưới</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Văn bản</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Biểu mẫu (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Biểu mẫu</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Đánh dấu</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Gạch ngang</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Gạch chân</sys:String>
@@ -1254,6 +1254,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_TT_RecapMode">Bật hoặc tắt phần tóm tắt tự động khi lật trang</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Trang {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Các trang {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Đang cô đọng trang…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Không có văn bản đọc được trên trang này để tóm tắt.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Đang cô đọng…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Không có văn bản đọc được trong phạm vi này để tóm tắt.</sys:String>
 </ResourceDictionary>

@@ -524,6 +524,18 @@ namespace Avalanche
                 OpenContextMenuAtSelection();
                 e.Handled = true;
             }
+            // F - the Recap companion's key: one press closes the window while it
+            // follows the reading, the next opens it again over the current stretch.
+            // Same guards as the tool switches below (a document open, no overlay,
+            // no modifier - and not while typing, guarded at the top of the handler).
+            else if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.None
+                     && _doc is not null
+                     && ShortcutOverlay.Visibility != Visibility.Visible
+                     && AboutOverlay.Visibility != Visibility.Visible)
+            {
+                ToggleRecapCompanion();
+                e.Handled = true;
+            }
             // Bare-key tool switches. Only when a document is open, no modifier is held, and no
             // overlay is up (and not while typing - guarded at the top of this handler).
             else if (Keyboard.Modifiers == ModifierKeys.None && _doc is not null
@@ -734,7 +746,6 @@ namespace Avalanche
                 // Illustrator / Figma convention) - its digit went to Text so Shapes could take 4 and
                 // the digits keep mirroring the toolbar order.
                 case Key.V: SetTool(EditTool.Select); return true;
-                case Key.F: SetTool(EditTool.FormField); return true;
                 case Key.T: case Key.D1: case Key.NumPad1: SetTool(EditTool.Text); return true;
                 case Key.H: case Key.D2: case Key.NumPad2: SetTool(EditTool.Highlight); return true;
                 case Key.L: case Key.U: case Key.D3: case Key.NumPad3: SetTool(EditTool.Line); return true;
@@ -761,8 +772,9 @@ namespace Avalanche
                 if (btn == null || TryFindResource(key) is not string s) return;
                 btn.ToolTip = string.IsNullOrEmpty(n) ? s : $"{s} ({n})";
             }
-            // Select and Form Field already carry their letter shortcuts in the localized base
-            // text. Only add the numeric aliases that are not already present there.
+            // Select carries its letter shortcut in the localized base text
+            // (Form Field's F went to the Recap companion in 1.13.1). Only add
+            // the numeric aliases that are not already present there.
             Set(ToolSelectBtn, "Str_TT_SelectTool", null);
             Set(ToolTextBtn, "Str_TT_TextTool", "1");
             Set(ToolHighlightBtn, "Str_TT_HighlightTool", "2");

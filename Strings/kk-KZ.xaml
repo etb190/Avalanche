@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Бетті төмен жылжыту (қайта реттеу)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Таңдау құралы - ескертпелерді басыңыз, мәтінді таңдау үшін сүйреңіз, өңдеу үшін екі рет басыңыз (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Мәтін құралы - мәтін қосу үшін басыңыз (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Толтырылатын мәтін өрісі - өрістерді жасау, таңдау, жылжыту, өлшемін өзгерту немесе жою; толтыру түсін өзгерту үшін оң жақ батырмамен басыңыз (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Толтырылатын мәтін өрісі - өрістерді жасау, таңдау, жылжыту, өлшемін өзгерту немесе жою; толтыру түсін өзгерту үшін оң жақ батырмамен басыңыз</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Бояп белгілеу құралы - белгілеу үшін сүйреңіз (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Сызып тастау - мәтіннің үстінен сүйреңіз</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Астын сызу - мәтіннің үстінен сүйреңіз</sys:String>
@@ -284,7 +284,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Lbl_MoveUp">Бетті жоғары жылжыту</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Бетті төмен жылжыту</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Мәтін</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Пішіндер (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Пішіндер</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Бояп белгілеу</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Сызып тастау</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Астын сызу</sys:String>
@@ -1253,6 +1253,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_RecapMode">Беттерді айналдырғандағы автоматты қорытындыны қосу немесе өшіру</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — {0}-бет</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — {0}–{1}-беттер</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Бет қысқартылуда…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Бұл бетте қорытынды жасауға жарамды мәтін жоқ.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Қысқартылуда…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Бұл ауқымда қорытынды жасауға жарамды мәтін жоқ.</sys:String>
 </ResourceDictionary>

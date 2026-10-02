@@ -28,7 +28,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">向下移動頁面（重新排序）</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">選取工具 - 點選注釋、拖曳選取文字、雙擊編輯 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">文字工具 - 點選以新增文字 (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">可填寫文字欄位 - 建立、選取、移動、調整大小或刪除欄位；按右鍵可變更填滿色彩 (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">可填寫文字欄位 - 建立、選取、移動、調整大小或刪除欄位；按右鍵可變更填滿色彩</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">螢光筆工具 - 拖曳以螢光標記 (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">刪除線 - 拖曳劃過文字</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">底線 - 拖曳劃過文字</sys:String>
@@ -231,7 +231,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">向上移動頁面</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">向下移動頁面</sys:String>
     <sys:String x:Key="Str_Lbl_Text">文字</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">表單 (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">表單</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">螢光標記</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">刪除線</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">底線</sys:String>
@@ -1236,6 +1236,6 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">切換翻頁時自動產生的上一頁回顧</sys:String>
     <sys:String x:Key="Str_Recap_Title">回顧 — 第 {0} 頁</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">回顧 — 第 {0}–{1} 頁</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">正在濃縮本頁…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">本頁沒有可讀取的文字，無法產生回顧。</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">正在濃縮…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">此範圍沒有可讀取的文字，無法產生回顧。</sys:String>
 </ResourceDictionary>

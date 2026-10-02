@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">向下移动页面（重新排序）</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">选取工具 - 点击注释、拖曳选取文本、双击编辑 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">文本工具 - 点击以添加文本 (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">可填写文本字段 - 创建、选择、移动、调整大小或删除字段；右键单击可更改填充颜色 (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">可填写文本字段 - 创建、选择、移动、调整大小或删除字段；右键单击可更改填充颜色</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">高亮笔工具 - 拖曳以高亮标记 (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">删除线 - 拖曳划过文本</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">底线 - 拖曳划过文本</sys:String>
@@ -229,7 +229,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">向上移动页面</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">向下移动页面</sys:String>
     <sys:String x:Key="Str_Lbl_Text">文本</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">表单 (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">表单</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">高亮标记</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">删除线</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">下划线</sys:String>
@@ -1238,6 +1238,6 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">切换翻页时自动生成的上一页回顾</sys:String>
     <sys:String x:Key="Str_Recap_Title">回顾 — 第 {0} 页</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">回顾 — 第 {0}–{1} 页</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">正在浓缩本页…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">本页没有可读取的文本，无法生成回顾。</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">正在浓缩…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">此范围没有可读取的文本，无法生成回顾。</sys:String>
 </ResourceDictionary>

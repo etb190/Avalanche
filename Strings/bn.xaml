@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">পৃষ্ঠা নিচে সরান (পুনর্বিন্যাস)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">নির্বাচন টুল - অ্যানোটেশনে ক্লিক করুন, টেক্সট নির্বাচনে টেনে আনুন, সম্পাদনার জন্য ডাবল-ক্লিক করুন (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">টেক্সট টুল - টেক্সট যোগ করতে ক্লিক করুন (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">পূরণযোগ্য টেক্সট ক্ষেত্র - ক্ষেত্র তৈরি, নির্বাচন, সরানো, আকার পরিবর্তন বা মুছুন; পূরণের রঙ বদলাতে ডান-ক্লিক করুন (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">পূরণযোগ্য টেক্সট ক্ষেত্র - ক্ষেত্র তৈরি, নির্বাচন, সরানো, আকার পরিবর্তন বা মুছুন; পূরণের রঙ বদলাতে ডান-ক্লিক করুন</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">হাইলাইট টুল - হাইলাইট করতে টেনে আনুন (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">স্ট্রাইকথ্রু - লেখার উপর দিয়ে টেনে আনুন</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">আন্ডারলাইন - লেখার উপর দিয়ে টেনে আনুন</sys:String>
@@ -229,7 +229,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Lbl_MoveUp">পৃষ্ঠা উপরে সরান</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">পৃষ্ঠা নিচে সরান</sys:String>
     <sys:String x:Key="Str_Lbl_Text">টেক্সট</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">ফর্ম (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">ফর্ম</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">হাইলাইট</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">স্ট্রাইকথ্রু</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">আন্ডারলাইন</sys:String>
@@ -1234,6 +1234,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_RecapMode">পৃষ্ঠা উল্টানোর সময় স্বয়ংক্রিয় সংক্ষিপ্ত সারাংশ চালু বা বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_Recap_Title">রিক্যাপ — পৃষ্ঠা {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">রিক্যাপ — পৃষ্ঠা {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">পৃষ্ঠা সংক্ষিপ্ত করা হচ্ছে…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">এই পৃষ্ঠায় সারাংশের জন্য কোনো পাঠযোগ্য লেখা নেই।</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">সংক্ষিপ্ত করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">এই অংশে সারাংশের জন্য কোনো পাঠযোগ্য লেখা নেই।</sys:String>
 </ResourceDictionary>

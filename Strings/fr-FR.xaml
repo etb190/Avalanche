@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Déplacer la page vers le bas (réorganiser)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Outil Sélection - cliquer sur les annotations, glisser pour sélectionner du texte, double-cliquer pour modifier (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Outil Texte - cliquer pour ajouter du texte (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Champ de texte remplissable – créer, sélectionner, déplacer, redimensionner ou supprimer des champs ; clic droit pour modifier la couleur de remplissage (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Champ de texte remplissable – créer, sélectionner, déplacer, redimensionner ou supprimer des champs ; clic droit pour modifier la couleur de remplissage</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Outil Surlignage - glisser pour surligner (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Barré - glisser sur le texte</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Souligné - glisser sur le texte</sys:String>
@@ -285,7 +285,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Lbl_MoveUp">Monter la page</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Descendre la page</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Texte</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formulaires (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formulaires</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Surligner</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Barré</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Souligné</sys:String>
@@ -1254,6 +1254,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_TT_RecapMode">Activer le récapitulatif automatique au changement de page</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Page {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Pages {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Condensation de la page…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Aucun texte lisible sur cette page à récapituler.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Condensation…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Aucun texte lisible dans cette plage à récapituler.</sys:String>
 </ResourceDictionary>

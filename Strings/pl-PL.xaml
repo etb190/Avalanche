@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Przesuń stronę w dół (zmiana kolejności)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Wybierz Narzędzie - kliknij adnotacje, przeciągnij, aby zaznaczyć tekst, kliknij dwukrotnie, aby edytować (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Narzędzie Tekstu - kliknij, aby dodać tekst (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Wypełnialne pole tekstowe - twórz, zaznaczaj, przesuwaj, zmieniaj rozmiar lub usuwaj pola; kliknij prawym przyciskiem, aby zmienić kolor wypełnienia (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Wypełnialne pole tekstowe - twórz, zaznaczaj, przesuwaj, zmieniaj rozmiar lub usuwaj pola; kliknij prawym przyciskiem, aby zmienić kolor wypełnienia</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Narzędzie Podświetl - przeciągnij, aby podświetlić (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Przekreślenie - przeciągnij po tekście</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Podkreślenie - przeciągnij po tekście</sys:String>
@@ -277,7 +277,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Lbl_MoveUp">Przesuń stronę w górę</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Przesuń stronę w dół</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Tekst</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formularze (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formularze</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Podświetl</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Przekreśl</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Podkreśl</sys:String>
@@ -1242,6 +1242,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_RecapMode">Włącz lub wyłącz automatyczne podsumowanie przy przewracaniu stron</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Strona {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strony {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Kondensowanie strony…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Na tej stronie nie ma czytelnego tekstu do podsumowania.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Kondensowanie…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">W tym zakresie nie ma czytelnego tekstu do podsumowania.</sys:String>
 </ResourceDictionary>

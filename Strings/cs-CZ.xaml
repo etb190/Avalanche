@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Posunout stránku dolů (změna pořadí)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Nástroj výběru - klikněte na anotace, tažením vyberte text, dvojklikem upravte (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Textový nástroj - kliknutím přidáte text (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Vyplnitelné textové pole - vytváření, výběr, přesun, změna velikosti nebo odstranění polí; pravým tlačítkem změníte barvu výplně (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Vyplnitelné textové pole - vytváření, výběr, přesun, změna velikosti nebo odstranění polí; pravým tlačítkem změníte barvu výplně</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Zvýrazňovač - tažením zvýrazněte (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Přeškrtnutí - táhněte přes text</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Podtržení - táhněte přes text</sys:String>
@@ -284,7 +284,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Lbl_MoveUp">Posunout stránku nahoru</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Posunout stránku dolů</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Text</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formuláře (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formuláře</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Zvýraznění</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Přeškrtnutí</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Podtržení</sys:String>
@@ -1239,6 +1239,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_TT_RecapMode">Zapnout nebo vypnout automatické shrnutí při listování stránkami</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Strana {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strany {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Zhušťování stránky…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Na této stránce není žádný čitelný text k shrnutí.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Zhušťování…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">V tomto rozsahu není žádný čitelný text k shrnutí.</sys:String>
 </ResourceDictionary>

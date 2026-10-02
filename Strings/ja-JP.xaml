@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">ページを下に移動 (並べ替え)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">選択ツール - 注釈をクリック、テキストをドラッグして選択、ダブルクリックで編集 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">テキストツール - クリックしてテキストを追加 (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド。フィールドの作成、選択、移動、サイズ変更、削除。右クリックで塗りつぶしの色を変更 (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド。フィールドの作成、選択、移動、サイズ変更、削除。右クリックで塗りつぶしの色を変更</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">ハイライトツール - ドラッグしてハイライト (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">打消し線 - テキスト上をドラッグ</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">下線 - テキスト上をドラッグ</sys:String>
@@ -285,7 +285,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">ページを上に移動</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">ページを下に移動</sys:String>
     <sys:String x:Key="Str_Lbl_Text">テキスト</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">フォーム (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">フォーム</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">ハイライト</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">打消し線</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">下線</sys:String>
@@ -1254,6 +1254,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">ページをめくったときの自動サマリーを切り替えます</sys:String>
     <sys:String x:Key="Str_Recap_Title">リキャップ — {0} ページ</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">リキャップ — {0}–{1} ページ</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">ページを要約中…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">このページには要約できるテキストがありません。</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">要約中…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">この範囲には要約できるテキストがありません。</sys:String>
 </ResourceDictionary>

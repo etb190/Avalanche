@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Seite nach unten verschieben (Reihenfolge ändern)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Auswahlwerkzeug - Anmerkungen anklicken, Text markieren, doppelklicken zum Bearbeiten (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Textwerkzeug - klicken, um Text hinzuzufügen (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Ausfüllbares Textfeld - Felder erstellen, auswählen, verschieben, skalieren oder löschen; Rechtsklick ändert die Füllfarbe (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Ausfüllbares Textfeld - Felder erstellen, auswählen, verschieben, skalieren oder löschen; Rechtsklick ändert die Füllfarbe</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Markierungswerkzeug - ziehen zum Hervorheben (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Durchstreichen - über Text ziehen</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Unterstreichen - über Text ziehen</sys:String>
@@ -229,7 +229,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Lbl_MoveUp">Seite nach oben</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Seite nach unten</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Text</sys:String>
-    <sys:String x:Key="Str_Lbl_FormField">Formulare (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Formulare</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Hervorheben</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Durchstreichen</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Unterstreichen</sys:String>
@@ -1240,6 +1240,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_TT_RecapMode">Automatische Zusammenfassung beim Umblättern ein- oder ausschalten</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Seite {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Seiten {0}–{1}</sys:String>
-    <sys:String x:Key="Str_Recap_Loading">Seite wird verdichtet…</sys:String>
-    <sys:String x:Key="Str_Recap_Empty">Auf dieser Seite gibt es keinen lesbaren Text für eine Zusammenfassung.</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Wird verdichtet…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">In diesem Bereich gibt es keinen lesbaren Text für eine Zusammenfassung.</sys:String>
 </ResourceDictionary>
