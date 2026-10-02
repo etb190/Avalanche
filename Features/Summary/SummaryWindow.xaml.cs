@@ -1094,7 +1094,7 @@ namespace Avalanche.Features.Summary
             {
                 Style = (Style)FindResource("SumTitleBtn"),
                 Content = glyph,
-                Margin = new Thickness(0, 0, 14, 0),    // the gap before the minus
+                Margin = new Thickness(0, 0, 6, 0),     // the gap before the minus - the same air the minus keeps before the plus
                 ToolTip = _loc("Str_SummaryTestRange")
             };
             chip.PreviewMouseLeftButtonDown += (_, e) =>

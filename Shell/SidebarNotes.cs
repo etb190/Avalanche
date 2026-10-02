@@ -2,13 +2,14 @@
 // recall digest) and its tab switch. Replaces the old outlines tab: the
 // reader names a page span, Generate asks the model for dense ~200-word
 // review cards over 50-page blocks (Features/Notes/NotesGenerator), and the
-// cards render as markdown with a per-card and a global copy button.
+// cards render as markdown, each with its own copy chip.
 
 namespace Avalanche
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Linq;
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
@@ -30,11 +31,13 @@ namespace Avalanche
         private CancellationTokenSource? _notesCts;
         private int _notesRun;                        // bumped on cancel/document switch: stale continuations bail
         private bool _notesBusy;
+        private bool _notesRangeWired;                // the range field's input gates wire once
 
         private void SidebarNotesTab_Click(object sender, RoutedEventArgs e) => SwitchSidebarToNotesTab();
 
         private void SwitchSidebarToNotesTab()
         {
+            EnsureNotesRangeWired();
             // Save current pages width, then restore (or seed) the notes width.
             if (!_sidebarCollapsed && _sidebarCol.ActualWidth > 0)
                 _savedPagesWidth = Math.Min(_sidebarCol.ActualWidth, SbPx(SidebarMaxPages));
@@ -79,8 +82,9 @@ namespace Avalanche
             _notesBusy = false;
             SetNotesBusy(false);
             int pages = _doc?.PageCount ?? 0;
-            NotesFromBox.Text = pages > 0 ? "1" : string.Empty;
-            NotesToBox.Text = pages > 0 ? pages.ToString(CultureInfo.InvariantCulture) : string.Empty;
+            NotesRangeBox.Text = pages > 0
+                ? "1-" + pages.ToString(CultureInfo.InvariantCulture)
+                : string.Empty;
         }
 
         private void CancelNotesRun()
@@ -109,9 +113,7 @@ namespace Avalanche
             }
 
             int pages = _doc.PageCount;
-            if (!TryParsePage(NotesFromBox.Text, pages, out int from) ||
-                !TryParsePage(NotesToBox.Text, pages, out int to) ||
-                from > to)
+            if (!TryParseNotesRange(NotesRangeBox.Text, pages, out int from, out int to))
             {
                 ShowNotesStatus(string.Format(Loc("Str_SummaryInvalidRange"), pages));
                 return;
@@ -170,25 +172,71 @@ namespace Avalanche
             return first.Length <= 160 ? first : first[..160];
         }
 
-        private static bool TryParsePage(string? text, int pageCount, out int page)
+        // The notes range speaks the AI tester's dialect: one [start]-[end]
+        // pair ("84-120"), digits and the dash only, en-dash tolerated, the
+        // pair validated against the document (start >= 1, end >= start,
+        // end <= pages) before Generate spends a request.
+        private static bool TryParseNotesRange(string? text, int pageCount, out int from, out int to)
         {
-            page = 0;
-            if (!int.TryParse((text ?? string.Empty).Trim(), NumberStyles.Integer,
-                    CultureInfo.InvariantCulture, out int value))
+            from = 0;
+            to = 0;
+            string raw = (text ?? string.Empty).Trim().Replace('\u2013', '-');
+            int dash = raw.IndexOf('-');
+            if (dash <= 0 ||
+                !int.TryParse(raw[..dash].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int start) ||
+                !int.TryParse(raw[(dash + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int end) ||
+                start < 1 || end < start || end > Math.Max(1, pageCount))
             {
                 return false;
             }
 
-            if (value < 1 || value > Math.Max(1, pageCount))
-            {
-                return false;
-            }
-
-            page = value;
+            from = start;
+            to = end;
             return true;
         }
 
-        /// <summary>Enter in either page box starts the generation.</summary>
+        // The range field's alphabet, the tester's own: digits and the dash
+        // (minus or en-dash), spaces tolerated around the dash - anything else
+        // dies at the input or at the paste gate.
+        private static bool IsNotesRangeChar(char c)
+        {
+            return char.IsAsciiDigit(c) || c == '-' || c == '\u2013' || c == ' ';
+        }
+
+        /// <summary>The one-time input gates for the notes range field, wired on
+        /// the first switch to the NOTES tab: the alphabet filter, the paste
+        /// gate, and the tester's field manner - focusing selects the whole
+        /// pair ("84-120") so typing replaces it in one stroke, and the
+        /// swallowed first click cannot park the caret behind the selection.</summary>
+        private void EnsureNotesRangeWired()
+        {
+            if (_notesRangeWired)
+            {
+                return;
+            }
+
+            _notesRangeWired = true;
+            NotesRangeBox.PreviewTextInput += (_, e) => e.Handled = !e.Text.All(IsNotesRangeChar);
+            NotesRangeBox.GotFocus += (_, _) => NotesRangeBox.SelectAll();
+            NotesRangeBox.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                if (!NotesRangeBox.IsKeyboardFocused)
+                {
+                    NotesRangeBox.Focus();
+                    e.Handled = true;
+                }
+            };
+            System.Windows.DataObject.AddPastingHandler(NotesRangeBox, (_, e) =>
+            {
+                if (e.DataObject.GetData(System.Windows.DataFormats.UnicodeText) is string pasted &&
+                    !pasted.All(IsNotesRangeChar))
+                {
+                    e.CancelCommand();
+                }
+            });
+        }
+
+        /// <summary>Enter in the range field starts the generation.</summary>
         private void NotesBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter && !_notesBusy)
@@ -201,8 +249,7 @@ namespace Avalanche
         private void SetNotesBusy(bool busy)
         {
             NotesGenerateBtn.IsEnabled = !busy;
-            NotesFromBox.IsEnabled = !busy;
-            NotesToBox.IsEnabled = !busy;
+            NotesRangeBox.IsEnabled = !busy;
         }
 
         private void ShowNotesStatus(string text)
@@ -272,6 +319,7 @@ namespace Avalanche
                 Margin = new Thickness(6, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center,
                 Background = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)),
+                BorderThickness = new Thickness(0),   // the flat chip look: no dark outline
                 Foreground = Brushes.White,
                 Style = (Style)FindResource("DarkButton"),
                 ToolTip = Loc("Str_Notes_CopyCard"),
@@ -342,17 +390,6 @@ namespace Avalanche
 
             CopyNotesToClipboard([card]);
             FlashCopyButton(btn);
-        }
-
-        private void NotesCopyAll_Click(object sender, RoutedEventArgs e)
-        {
-            if (_noteCards.Count == 0)
-            {
-                return;
-            }
-
-            CopyNotesToClipboard(_noteCards);
-            FlashCopyButton(NotesCopyAllBtn);
         }
 
         /// <summary>Copies "**Pages X - Y**\n\n{content}" per card - the same

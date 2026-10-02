@@ -1758,20 +1758,28 @@
                     <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
                     <DockPanel x:Name="SidebarContentPanel">
                         <!-- Sticky header - lives outside the ScrollViewer so it never scrolls away -->
-                        <!-- Tab row: PAGES (left) | NOTES (right) -->
-                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Height="26" Margin="10,5,8,2">
+                        <!-- Tab row: PAGES | NOTES as one segmented strip. Both tabs
+                             share the row in two equal stretches (a 4px seam between),
+                             so each grows as wide as its space allows - in the wide
+                             notes sidebar the pair stays close instead of drifting to
+                             opposite edges. -->
+                        <Grid DockPanel.Dock="Top" Height="26" Margin="10,5,8,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
                             <Button x:Name="SidebarPagesTab" Content="{DynamicResource Str_TabPages}"
-                                    DockPanel.Dock="Left"
+                                    Grid.Column="0" HorizontalAlignment="Stretch" Margin="0,0,2,0"
                                     Style="{StaticResource SidebarSegmentTab}"
                                     VerticalAlignment="Center"
                                     Tag="on"
                                     Click="SidebarPagesTab_Click"/>
                             <Button x:Name="SidebarNotesTab" Content="{DynamicResource Str_TabNotes}"
-                                    DockPanel.Dock="Right"
+                                    Grid.Column="1" HorizontalAlignment="Stretch" Margin="2,0,0,0"
                                     Style="{StaticResource SidebarSegmentTab}"
                                     VerticalAlignment="Center"
                                     Click="SidebarNotesTab_Click"/>
-                        </DockPanel>
+                        </Grid>
                         <!-- Page controls row (hidden in notes mode) -->
                         <DockPanel x:Name="PageControlsRow" DockPanel.Dock="Top" LastChildFill="False" Margin="12,2,8,4" Visibility="Collapsed">
                             <TextBox x:Name="PageJumpBox" DockPanel.Dock="Left"
@@ -1903,10 +1911,11 @@
                         </Border>
                         </Grid>
                         <!-- Notes panel (visible when the NOTES tab is active). The
-                             controls header is pinned outside the ScrollViewer: a From/To
-                             page pair, the accent Generate button and the copy-all chip.
-                             The cards themselves (one per 50-page block, markdown-rendered
-                             by AiMarkdown) are built in Shell/SidebarNotes.cs. -->
+                             controls header is pinned outside the ScrollViewer: one
+                             [start]-[end] range field speaking the AI tester's dialect
+                             and the accent Generate button. The cards themselves (one
+                             per 50-page block, markdown-rendered by AiMarkdown) are
+                             built in Shell/SidebarNotes.cs. -->
                         <DockPanel x:Name="NotesPanel" Visibility="Collapsed">
                             <Grid DockPanel.Dock="Top" Margin="12,2,8,0">
                                 <Grid.Resources>
@@ -1934,17 +1943,12 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{DynamicResource Str_Notes_From}"
-                                           VerticalAlignment="Center" Margin="0,0,4,0"
-                                           FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
-                                <TextBox x:Name="NotesFromBox" Grid.Column="1"
-                                         Width="82" Height="30" HorizontalAlignment="Center"
+                                <!-- One field, one stretch: the same [start]-[end] pair the
+                                     AI tester's range mode takes (digits and the dash, e.g.
+                                     150-100), validated against the document before
+                                     Generate spends a request. -->
+                                <TextBox x:Name="NotesRangeBox"
+                                         Height="30" HorizontalAlignment="Stretch"
                                          VerticalAlignment="Center" VerticalContentAlignment="Center"
                                          TextAlignment="Center" FontFamily="Consolas" FontSize="11"
                                          Background="{DynamicResource PaneBrush}"
@@ -1955,24 +1959,8 @@
                                          FocusVisualStyle="{x:Null}"
                                          Style="{StaticResource NotesPageBox}"
                                          KeyDown="NotesBox_KeyDown"
-                                         ToolTip="{DynamicResource Str_Notes_From}"/>
-                                <TextBlock Text="{DynamicResource Str_Notes_To}" Grid.Column="2"
-                                           VerticalAlignment="Center" Margin="8,0,4,0"
-                                           FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
-                                <TextBox x:Name="NotesToBox" Grid.Column="3"
-                                         Width="82" Height="30" HorizontalAlignment="Center"
-                                         VerticalAlignment="Center" VerticalContentAlignment="Center"
-                                         TextAlignment="Center" FontFamily="Consolas" FontSize="11"
-                                         Background="{DynamicResource PaneBrush}"
-                                         Foreground="{DynamicResource TextBrush}"
-                                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
-                                         CaretBrush="{DynamicResource PrimaryBrush}"
-                                         SelectionBrush="{DynamicResource RowSelectedBrush}"
-                                         FocusVisualStyle="{x:Null}"
-                                         Style="{StaticResource NotesPageBox}"
-                                         KeyDown="NotesBox_KeyDown"
-                                         ToolTip="{DynamicResource Str_Notes_To}"/>
-                                <Button x:Name="NotesGenerateBtn" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                         ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
+                                <Button x:Name="NotesGenerateBtn" Grid.Row="1"
                                         Margin="0,6,0,0" HorizontalAlignment="Stretch" Height="28"
                                         Content="{DynamicResource Str_Notes_Generate}"
                                         Background="#FF1B5E20" BorderBrush="#FF0F3D14"
@@ -1981,15 +1969,6 @@
                                         Style="{StaticResource DarkButton}"
                                         FocusVisualStyle="{x:Null}"
                                         Click="NotesGenerate_Click"/>
-                                <Button x:Name="NotesCopyAllBtn" Grid.Row="1" Grid.Column="3"
-                                        Margin="6,6,0,0" HorizontalAlignment="Right"
-                                        Background="#FF2E7D32" Foreground="White"
-                                        Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                        Width="26" Height="22" Padding="0"
-                                        Style="{StaticResource DarkButton}"
-                                        FocusVisualStyle="{x:Null}"
-                                        ToolTip="{DynamicResource Str_Notes_CopyAll}"
-                                        Click="NotesCopyAll_Click"/>
                             </Grid>
                             <TextBlock x:Name="NotesStatusText" DockPanel.Dock="Top" Visibility="Collapsed"
                                        Margin="12,4,8,0" FontSize="11" TextWrapping="Wrap"

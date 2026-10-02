@@ -2,8 +2,10 @@
 // crash chase. surface-health.log uploads keep failing in the user's chat
 // channel while pasted text arrives fine, so the app produces and transports
 // the evidence itself:
-//   * Desktop\avalanche-diagnostics-<timestamp>.txt (timestamped, newest 5 kept,
-//     so a false-positive can never overwrite real evidence)
+//   * %LOCALAPPDATA%\Avalanche\diagnostics\avalanche-diagnostics-<timestamp>.txt
+//     (timestamped, newest 5 kept, so a false-positive can never overwrite real
+//     evidence) - deliberately OUT of the Desktop: diagnostics are app plumbing,
+//     not user files, and the desktop is the reader's own territory.
 //   * clipboard copy - caller on the UI thread only (SetDataObject copy:true
 //     keeps the text alive after the process is killed)
 // Bundle = env header + surface-health.log tail (+ .old) + latest crash log.
@@ -25,7 +27,8 @@ namespace Avalanche.Services
         private const int CrashTailLines = 80;
         private const int KeepDumps = 5;
 
-        /// <summary>Builds the bundle and writes a timestamped file to the Desktop.
+        /// <summary>Builds the bundle and writes a timestamped file into
+        /// %LOCALAPPDATA%\Avalanche\diagnostics (never the Desktop).
         /// Returns the text (clipboard copying is the caller's job and must run on
         /// the UI thread).</summary>
         public static string Dump(string reason)
@@ -33,8 +36,12 @@ namespace Avalanche.Services
             string text = Build(reason);
             try
             {
+                string dir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Avalanche", "diagnostics");
+                Directory.CreateDirectory(dir);
                 string path = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                    dir,
                     "avalanche-diagnostics-" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".txt");
                 File.WriteAllText(path, text);
                 PruneOldDumps();
@@ -171,9 +178,15 @@ namespace Avalanche.Services
         {
             try
             {
-                var desktop = new DirectoryInfo(
-                    Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
-                var dumps = desktop.GetFiles("avalanche-diagnostics-*.txt")
+                var dumpDir = new DirectoryInfo(Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "Avalanche", "diagnostics"));
+                if (!dumpDir.Exists)
+                {
+                    return;
+                }
+
+                var dumps = dumpDir.GetFiles("avalanche-diagnostics-*.txt")
                                    .OrderByDescending(f => f.LastWriteTime)
                                    .ToList();
                 for (int i = KeepDumps; i < dumps.Count; i++)
