@@ -1181,8 +1181,6 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryStart">開始</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">向上捲動</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">向下捲動</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">工具</sys:String>
 	<sys:String x:Key="Str_TT_Tools">顯示或隱藏延伸工具集</sys:String>

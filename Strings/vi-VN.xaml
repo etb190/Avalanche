@@ -1199,8 +1199,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryStart">Bắt đầu</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">Cuộn lên</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">Cuộn xuống</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Công cụ</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Hiện hoặc ẩn bộ công cụ mở rộng</sys:String>

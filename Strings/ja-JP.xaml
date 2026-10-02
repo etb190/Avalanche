@@ -1199,8 +1199,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryStart">開始</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">上へスクロール</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">下へスクロール</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">ツール</sys:String>
 	<sys:String x:Key="Str_TT_Tools">拡張ツールの表示を切り替えます</sys:String>

@@ -1199,8 +1199,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryStart">Démarrer</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">Faire défiler vers le haut</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">Faire défiler vers le bas</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Outils</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Afficher ou masquer les outils étendus</sys:String>

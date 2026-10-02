@@ -1186,8 +1186,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryStart">Indítás</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">Görgess fel</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">Görgess le</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Eszközök</sys:String>
 	<sys:String x:Key="Str_TT_Tools">A kibővített eszközkészlet megjelenítése vagy elrejtése</sys:String>

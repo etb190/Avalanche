@@ -1,32 +1,35 @@
 ﻿// Features/Summary/RecapController.cs — the Recap companion's brain.
 //
-// Recap is the memory bridge between pages: when the reader turns the page,
-// the page they just LEFT condenses into a single 3-4 sentence paragraph and
+// Recap is the memory bridge between pages: the stretch the reader names in
+// the summary navigator condenses into a single 3-4 sentence paragraph and
 // surfaces in a navigator-styled companion window - so what they were just
-// reading stays with them while they read on. The feature spec's shape, kept
-// exactly:
+// reading stays with them while they read on. The feature spec's shape,
+// with the trigger map narrowed to the reader's own hand (reading itself
+// never summons the companion):
 //   * the toggle lives in the summary navigator's title bar (Recap mode),
 //     persisted in "recap.enabled"; unchecking dismisses any open recap,
 //   * the condensation cache is keyed by the navigator's WHOLE range - a
 //     stretch recapped once never costs a second request (0 ms on return),
-//   * the F key commands the window itself - pressed inside the AI summary
-//     windows (the navigator or the companion), never the PDF editor: one
-//     press puts it away (page turns keep it put away), the next brings it
-//     back over the stretch on screen - the navigator's switch still owns
-//     the automatic following,
+//   * the triggers are the reader's own hand and nothing else: F commands
+//     the window itself - pressed inside the AI summary windows (the
+//     navigator or the companion), never the PDF editor: one press puts
+//     it away, the next brings it back over the stretch on screen - and
+//     a range move (the steppers, keyboard Left/Right or A/D, a retyped
+//     anchor, a span chip) opens a closed window or follows along one
+//     already showing, while Recap mode is on and F has not put it away,
 //   * the request is one lightweight OpenAI-compatible call at temperature 0
 //     over the page's extracted text (PageSummarizer.ExtractRangeAsync),
 //   * an already-open window updates in place - pages never stack windows.
 //
-// One flight at a time: a newer uncached page turn supersedes (cancels) the
+// One flight at a time: a newer uncached stretch supersedes (cancels) the
 // older fetch, because its result could only matter if the reader came back -
-// and coming back starts a fresh flight for exactly that turn. A completed
+// and coming back starts a fresh flight for exactly that stretch. A completed
 // result paints only when its stretch is still the one on screen. Everything
-// dies with the document: a switch (or close) empties the cache, closes the
-// window and forgets the page, so no recap ever names a page of the wrong
-// book. The UI-thread rule: ShowRecap runs on the dispatcher (the page-turn
-// path), and the flight's awaits resume there too (no ConfigureAwait(false)),
-// so every paint is a legal UI touch.
+// dies with the document: a switch (or close) empties the cache and closes
+// the window, so no recap ever names a stretch of the wrong book. The
+// UI-thread rule: ShowRecap runs on the UI thread (the range-move path),
+// and the flight's awaits resume there too (no ConfigureAwait(false)), so
+// every paint is a legal UI touch.
 
 namespace Avalanche.Features.Summary
 {
@@ -58,7 +61,7 @@ namespace Avalanche.Features.Summary
         private static Task? _flight;       // the in-flight condensation (null when none)
         private static int _flightFirst;    // the stretch the flight condenses
         private static int _flightLast;
-        private static bool _suppressed;    // F-dismissed: page turns keep the window down until F summons it back
+        private static bool _suppressed;    // F-dismissed: range moves keep the window down until F summons it back
 
         /// <summary>Recap mode's persisted state, read lazily so the companion
         /// also works when the summary navigator has not been opened yet.</summary>
@@ -77,7 +80,7 @@ namespace Avalanche.Features.Summary
             }
 
             // A fresh check lifts the F-silence too: turning Recap on means
-            // the companion follows the reading from the very next page turn.
+            // the companion follows the very next range move.
             _suppressed = false;
             if (!value)
             {
@@ -124,17 +127,17 @@ namespace Avalanche.Features.Summary
         }
 
         /// <summary>True while a recap window is actually showing. The
-        /// navigator's range changes refresh a showing window; they never open
-        /// a closed one - only page turns and F do that.</summary>
+        /// navigator's range moves and F are the only things that ever
+        /// open one - reading itself never does.</summary>
         internal static bool HasOpenWindow => _window is { IsVisible: true };
 
         /// <summary>The reader's hand on the companion (the F key, forwarded by
         /// the AI summary windows while one of them holds the focus): one press
-        /// puts the window away - and page turns keep it put away, whatever the
-        /// navigator's Recap switch says - the next brings it back over the
-        /// stretch on screen, a cached range painting in 0 ms. The switch still
-        /// owns the automatic following; F owns the window itself, with Recap
-        /// off too.</summary>
+        /// puts the window away - and range moves keep it put away, whatever
+        /// the navigator's Recap switch says - the next brings it back over
+        /// the stretch on screen, a cached range painting in 0 ms. The
+        /// navigator's range moves own the summons; F owns the window
+        /// itself, with Recap off too.</summary>
         internal static void ToggleWindow(
             MainWindow owner,
             string filePath,
@@ -154,11 +157,12 @@ namespace Avalanche.Features.Summary
             ShowRecap(owner, filePath, pageCount, first, last, configProvider, loc, manual: true);
         }
 
-        /// <summary>The page turn itself: the reader moved on, and the navigator's
-        /// whole stretch (<paramref name="first"/>..<paramref name="last"/>) deserves
-        /// its memory bridge. Shows (or retargets) the companion, serves a cache hit
-        /// at once, otherwise starts - or keeps - the condensation flight. A manual
-        /// summon (F) bypasses the mode gate and lifts the F-silence.</summary>
+        /// <summary>A range move: the reading window moved (the navigator's
+        /// steppers, keyboard Left/Right or A/D, a retyped anchor, a span chip),
+        /// and its whole stretch (<paramref name="first"/>..<paramref name="last"/>)
+        /// deserves its memory bridge. Shows (or retargets) the companion, serves a
+        /// cache hit at once, otherwise starts - or keeps - the condensation flight.
+        /// A manual summon (F) bypasses the mode gate and lifts the F-silence.</summary>
         internal static void ShowRecap(
             MainWindow owner,
             string filePath,

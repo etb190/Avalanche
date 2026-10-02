@@ -1184,8 +1184,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryStart">Spustit</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">Posunout nahoru</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">Posunout dolů</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Nástroje</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Zobrazit nebo skrýt rozšířené nástroje</sys:String>

@@ -187,11 +187,6 @@ namespace Avalanche.Features.Summary
             NavPrevBtn.Click += (_, _) => MoveRange(-1);
             NavNextBtn.Click += (_, _) => MoveRange(+1);
 
-            // The reading rail: up/down ease the digest through the viewport,
-            // one comfortable step per press, the same trip the keys take.
-            ScrollUpBtn.Click += (_, _) => SmoothScrollDigest(-1);
-            ScrollDownBtn.Click += (_, _) => SmoothScrollDigest(+1);
-
             // The field shows the range at rest; the first click swaps it for the bare
             // start page, fully selected, so typing replaces it in one stroke.
             StartBox.PreviewMouseLeftButtonDown += (_, e) =>
@@ -343,6 +338,15 @@ namespace Avalanche.Features.Summary
         /// start field, Reset, restore-on-open) - MainWindow re-highlights the page list.</summary>
         public event Action? RangeVisualChanged;
 
+        // The range MOVED - the visible (first, last) pair changed since the
+        // window last painted one: the stepper arrows, a keyboard Left/Right
+        // or A/D, a retyped anchor, a span chip. The window's first paint and
+        // an Escape revert repaint the same pair and stay silent, so the
+        // recap answers to real moves only (and to F, which never comes
+        // through here).
+        public event Action? RangeMoved;
+        private (int First, int Last)? _notifiedRange;
+
         // Raised when the arrows move the reading range (the 1-based first page
         // of the new range): the document follows - a smooth, fast scroll that
         // parks the new stretch's first page at the top of the viewport.
@@ -458,6 +462,13 @@ namespace Avalanche.Features.Summary
 
             UpdatePagesLeft();
             RangeVisualChanged?.Invoke();
+            (int, int) pair = (_startPage, RangeEnd());
+            if (_notifiedRange is { } seen && seen != pair)
+            {
+                RangeMoved?.Invoke();
+            }
+
+            _notifiedRange = pair;
         }
 
         // Arrows dim at the ends of the book: nothing to move onto there.
@@ -1351,23 +1362,27 @@ namespace Avalanche.Features.Summary
         }
 
         // The reading keys, forwarded while the navigator holds the focus.
-        // Bare W/S scroll the digest (smoothly), bare A/D are the stepper
-        // arrows; a modifier disqualifies the chord, a caret in the start
-        // field keeps its letters, and the editor never sees any of them.
+        // Bare W/S and the keyboard UP/DOWN arrows scroll the digest
+        // (smoothly); bare A/D and the keyboard LEFT/RIGHT arrows are the
+        // stepper arrows - the keys and their letter twins are the same
+        // hand. A modifier disqualifies the chord, a caret in the start
+        // field keeps its letters, an open combo keeps its own arrow
+        // selection, and the editor never sees any of them.
         private void TryReadingNavigatorKey(object sender, KeyEventArgs e)
         {
             if (Keyboard.Modifiers != ModifierKeys.None
-                || Keyboard.FocusedElement is TextBoxBase { IsReadOnly: false })
+                || Keyboard.FocusedElement is TextBoxBase { IsReadOnly: false }
+                || Keyboard.FocusedElement is System.Windows.Controls.ComboBox)
             {
                 return;
             }
 
             switch (e.Key)
             {
-                case Key.W: e.Handled = SmoothScrollDigest(-1); break;
-                case Key.S: e.Handled = SmoothScrollDigest(+1); break;
-                case Key.A: MoveRange(-1); e.Handled = true; break;
-                case Key.D: MoveRange(+1); e.Handled = true; break;
+                case Key.W or Key.Up: e.Handled = SmoothScrollDigest(-1); break;
+                case Key.S or Key.Down: e.Handled = SmoothScrollDigest(+1); break;
+                case Key.A or Key.Left: MoveRange(-1); e.Handled = true; break;
+                case Key.D or Key.Right: MoveRange(+1); e.Handled = true; break;
             }
         }
 

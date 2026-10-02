@@ -1183,8 +1183,6 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryStart">开始</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
 	<sys:String x:Key="Str_SummaryFontUp">Increase summary text size</sys:String>
-	<sys:String x:Key="Str_SummaryScrollUp">向上滚动</sys:String>
-	<sys:String x:Key="Str_SummaryScrollDown">向下滚动</sys:String>
 	<sys:String x:Key="Str_SummaryFontDown">Decrease summary text size</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">工具</sys:String>
 	<sys:String x:Key="Str_TT_Tools">显示或隐藏扩展工具集</sys:String>

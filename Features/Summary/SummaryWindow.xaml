@@ -383,13 +383,13 @@
                       ToolTip="{DynamicResource Str_SummaryLangTT}"/>
         </WrapPanel>
 
-        <!-- Row 3: the digest - justified like a typeset page (Arabic mirrors RTL) -
-             with a reading rail at its right edge: up/down ease the digest through
-             the viewport; left/right stay the stepper arrows above. -->
+        <!-- Row 3: the digest - justified like a typeset page (Arabic mirrors
+             RTL). The reading keys live on the keyboard: W/S and the up/down
+             arrows ease the digest through the viewport; A/D and left/right
+             are the stepper arrows above. -->
         <Grid Grid.Row="3" Margin="14,6,14,2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <RichTextBox x:Name="DocBox" Grid.Column="0" ai:AiMarkdown.Text=""
                          ai:AiMarkdown.ParagraphAlignment="Justify"
@@ -403,18 +403,6 @@
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        FontFamily="{DynamicResource UiFont}"
                        Foreground="{DynamicResource MutedTextBrush}"/>
-            <StackPanel Grid.Column="1" Width="30" Margin="6,0,0,0" VerticalAlignment="Bottom">
-                <Button x:Name="ScrollUpBtn" Style="{StaticResource SumNavBtn}"
-                        ToolTip="{DynamicResource Str_SummaryScrollUp}">
-                    <TextBlock Text="&#xE70E;" FontFamily="{DynamicResource IconFont}" FontSize="11"
-                               Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
-                </Button>
-                <Button x:Name="ScrollDownBtn" Style="{StaticResource SumNavBtn}" Margin="0,4,0,0"
-                        ToolTip="{DynamicResource Str_SummaryScrollDown}">
-                    <TextBlock Text="&#xE70D;" FontFamily="{DynamicResource IconFont}" FontSize="11"
-                               Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
-                </Button>
-            </StackPanel>
         </Grid>
 
         <!-- Row 4: hairline separating the word/character counts from the digest. -->
