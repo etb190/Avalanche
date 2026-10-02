@@ -1191,6 +1191,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryR20p">20p</sys:String>
 	<sys:String x:Key="Str_SummaryR40p">40p</sys:String>
 	<sys:String x:Key="Str_SummaryR60p">60p</sys:String>
+	<sys:String x:Key="Str_SummaryR80p">80p</sys:String>
+	<sys:String x:Key="Str_SummaryR100p">100p</sys:String>
+	<sys:String x:Key="Str_SummaryExcluded">Summary excludes pages {0} due to provider timeout.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>

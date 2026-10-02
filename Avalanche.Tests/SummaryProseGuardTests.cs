@@ -109,4 +109,20 @@ public sealed class SummaryProseGuardTests
         Assert.EndsWith("Closing prose.", prose);
         Assert.DoesNotContain("\n-", prose);
     }
+
+    [Fact]
+    public void ConvertBullets_ConnectiveFragmentsFlowIntoOneSentence()
+    {
+        // Continuation clauses (because..., and...) flow into the same sentence
+        // with a comma instead of being chopped into staccato fragments.
+        string prose = ProseGuard.ConvertBulletsToProse(
+            "- the mint operated for two centuries\n" +
+            "- because silver never ran short\n" +
+            "- and the temples kept the standard weights");
+
+        Assert.DoesNotContain("\n-", prose);
+        Assert.Contains(
+            "The mint operated for two centuries, because silver never ran short, " +
+            "and the temples kept the standard weights", prose);
+    }
 }

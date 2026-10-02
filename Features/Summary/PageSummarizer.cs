@@ -5,9 +5,11 @@
 //    FILTER, and filtering is the enemy of "miss nothing". We extract the pages' text
 //    layer deterministically (TextRunService reading-order runs, same source the
 //    selection/search machinery uses) and hand all of it to the chat LLM.
-//  * <= ~45k chars of text: one streaming pass. Bigger ranges: map-reduce - exhaustive
-//    ~250-word notes per ~10-page segment, then a fusion pass that writes the final
-//    digest. Progress for every phase is streamed to the window.
+//  * <= ~300k chars of text (a 100-page stretch fits the 128k-token model's context):
+//    one direct streaming pass over the author's full argumentative arc - no
+//    "telephone game" of summarizing rough notes twice. Bigger ranges: map-reduce -
+//    exhaustive notes per whole-page segment, then a fusion pass that writes the
+//    final digest. Progress for every phase is streamed to the window.
 //  * Output contract (v1.8.85): the book's OWN printed section headings are detected
 //    deterministically in the text layer (heading = short line whose largest glyph is
 //    clearly bigger than the page's median body font; repeated running heads filtered)
@@ -56,7 +58,10 @@ namespace Avalanche.Features.Summary
 
     internal static class PageSummarizer
     {
-        private const int SinglePassCharBudget = 45000;
+        // gpt-oss:120b-cloud runs a 128k-token context window: 100 pages (~250k chars)
+        // fit in ONE pass, so the single-pass budget rides at ~300k chars and the
+        // map-reduce slicing below only wakes up for truly enormous ranges.
+        private const int SinglePassCharBudget = 300000;
         private const int SegmentCharBudget = 30000;
 
         private static readonly SemaphoreSlim Gate = new(1, 1);
@@ -275,7 +280,12 @@ namespace Avalanche.Features.Summary
                     pages.Add(page);
                 }
 
-                int threshold = Math.Max(3, (int)Math.Ceiling(pageCount * 0.4));
+                // Furniture repeats across chapter-length spans: a head seen on 5+
+                // pages of the range is a running head, never a section title (the cap
+                // keeps big ranges honest, the floor keeps single strays alive). The
+                // old 40% floor needed 40 pages of a 100-page range before it fired,
+                // so chapter heads flooding 20-30 pages sailed through.
+                int threshold = Math.Max(3, Math.Min((int)Math.Ceiling(pageCount * 0.15), 5));
                 foreach (var (norm, pages) in byText)
                 {
                     if (pages.Count >= threshold)
@@ -367,57 +377,34 @@ namespace Avalanche.Features.Summary
                     CountLetters(bodyText),
                     request.FilePath,
                     Preview(bodyText)));
-                if (CountLetters(bodyText) < 60)
+                // Low-text pages: front matter, full-page diagrams, charts, blank
+                // chapter plates, scanned leaves. A 100-page stretch of a real book
+                // easily carries 30+ of them, and the old gates aborted the WHOLE run
+                // at >= 30% such pages (or when the average fell under 100 letters per
+                // page) - figure-heavy books were simply unsummarizable. They are now
+                // logged and OMITTED from the extraction instead, and the run proceeds
+                // over every content-bearing page.
+                List<int> lowText = LowTextPages(rangeText, request.FirstPage, request.LastPage);
+                if (lowText.Count > 0)
+                {
+                    SurfaceHealthLog.Log(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "summary: omitting {0} of {1} low-text pages (< 100 letters): {2}",
+                        lowText.Count,
+                        request.LastPage - request.FirstPage + 1,
+                        DescribeRanges(lowText)));
+                    rangeText = OmitPages(rangeText, request.FirstPage, request.LastPage, lowText);
+                    bodyText = System.Text.RegularExpressions.Regex.Replace(
+                        rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                }
+
+                // The absolute gate now stands alone: with the thin pages gone, every
+                // remaining page carries real prose, so the run aborts only when the
+                // whole range holds (almost) no letters at all.
+                if (CountLetters(bodyText) < 250)
                 {
                     yield return new SummaryUpdate("notext");
                     yield break;
-                }
-
-                // Thin extraction: letters exist but there is no prose to digest
-                // (headers, page numbers, a broken text layer). The absolute gate
-                // above only catches < 60 letters TOTAL, so a 60-page range of
-                // ~40-letter pages sailed through, collapsed into ONE segment, and
-                // the model answered with the digest-framed refusal "no text
-                // provided" (seen in the field). Proportional floor: ~100 letters
-                // per page - real prose pages run 1000+, so nothing anyone would
-                // want summarized is lost.
-                int rangedPages = request.LastPage - request.FirstPage + 1;
-                if (CountLetters(bodyText) < 100 * rangedPages)
-                {
-                    SurfaceHealthLog.Log(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "summary: extraction too thin: {0} letters across {1} pages (< 100/page) - aborting",
-                        CountLetters(bodyText),
-                        rangedPages));
-                    yield return new SummaryUpdate(
-                        "error",
-                        string.Format(
-                            loc("Str_SummaryNoTextRange"),
-                            DescribeRanges(Enumerable.Range(request.FirstPage, rangedPages).ToList())));
-                    yield break;
-                }
-
-                // Pages that yielded (almost) no text: a digest built anyway would
-                // silently skip them, and the reader would trust coverage the model
-                // never saw. Log the holes; at >= 30% textless pages the run cannot
-                // miss nothing, so it fails with the exact ranges instead of
-                // shipping a digest that quietly ignores part of the range.
-                List<int> textless = TextlessPages(rangeText, request.FirstPage, request.LastPage);
-                if (textless.Count > 0)
-                {
-                    SurfaceHealthLog.Log(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "summary: {0} of {1} pages have no text layer: {2}",
-                        textless.Count,
-                        request.LastPage - request.FirstPage + 1,
-                        DescribeRanges(textless)));
-                    if (textless.Count * 10 >= (request.LastPage - request.FirstPage + 1) * 3)
-                    {
-                        yield return new SummaryUpdate(
-                            "error",
-                            string.Format(loc("Str_SummaryNoTextRange"), DescribeRanges(textless)));
-                        yield break;
-                    }
                 }
 
                 yield return new SummaryUpdate(
@@ -472,8 +459,8 @@ namespace Avalanche.Features.Summary
                     // Buffered on purpose: the digest is inspected - and, when needed,
                     // escalated or mechanically flattened - BEFORE anything is shown.
                     finalText = await SolidDigestAsync(
-                        config, DigestSystemPrompt(request.TargetWords, request.Language, fromNotes: false), rangeText, ct)
-                        .ConfigureAwait(false);
+                        config, DigestSystemPrompt(request.TargetWords, request.Language, fromNotes: false),
+                        rangeText, ct, request.TargetWords).ConfigureAwait(false);
                 }
                 else
                 {
@@ -560,18 +547,21 @@ namespace Avalanche.Features.Summary
                         yield break;
                     }
 
-                    // Partial coverage is a failure, not a summary: fusing the survivors
-                    // ships a digest that quietly skips every dead segment (the "only
-                    // pages 91-100 came back" report). Name the holes instead of
-                    // pretending the range is covered.
+                    // Fault tolerance: a full map-reduce run can take minutes, and one
+                    // dead segment (provider timeout, empty 200, think-only answer -
+                    // each already retried in place) must not throw away the survivors.
+                    // The fusion goes ahead over the notes that DID come back, and the
+                    // finished digest carries an explicit note naming the pages the
+                    // provider never covered - the reader sees the hole instead of a
+                    // silently partial range.
                     if (missing.Count > 0)
                     {
-                        yield return new SummaryUpdate(
-                            "error",
-                            "segment passes returned no content for pages " + DescribeRanges(missing) +
-                            " - the digest was aborted instead of silently covering part of " +
-                            "the range. Try again; if it repeats, switch AI models.");
-                        yield break;
+                        SurfaceHealthLog.Log(string.Format(
+                            CultureInfo.InvariantCulture,
+                            "summary: {0} of {1} segments returned no content; synthesizing anyway (missing: {2})",
+                            missing.Count,
+                            segments.Count,
+                            DescribeRanges(missing)));
                     }
 
                     yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
@@ -584,8 +574,13 @@ namespace Avalanche.Features.Summary
                         segments.Count,
                         fuseInput.Length));
                     finalText = await SolidDigestAsync(
-                        config, DigestSystemPrompt(request.TargetWords, request.Language, fromNotes: true), fuseInput, ct)
-                        .ConfigureAwait(false);
+                        config, DigestSystemPrompt(request.TargetWords, request.Language, fromNotes: true),
+                        fuseInput, ct, request.TargetWords).ConfigureAwait(false);
+                    if (missing.Count > 0 && !string.IsNullOrWhiteSpace(finalText))
+                    {
+                        finalText += "\n\n" + string.Format(
+                            loc("Str_SummaryExcluded"), DescribeRanges(missing));
+                    }
                 }
 
                 if (string.IsNullOrWhiteSpace(finalText))
@@ -887,7 +882,10 @@ namespace Avalanche.Features.Summary
                 AntiMeta + "\n\n" +
                 "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
                 "commentary about the text or about summarizing.\n\n" +
-                "Format: dense flowing prose paragraphs. No bullet lists, no page tags, no markdown " +
+                "Format: dense flowing prose paragraphs. Connect the sentences with natural " +
+                "transitional phrasing (however, moreover, in practice, as a result) so each " +
+                "paragraph reads as one continuous argument rather than stacked fragments. " +
+                "No bullet lists, no page tags, no markdown " +
                 "decorations of any kind - with exactly one exception: the book's own section " +
                 "headings may appear as '### ' headings, as described below.\n\n";
             return head + (fromNotes
@@ -936,11 +934,30 @@ namespace Avalanche.Features.Summary
 
         private static List<string> SegmentPages(string rangeText)
         {
+            // Under the single-pass budget the WHOLE range travels as one segment: one
+            // direct digest pass over the author's full argumentative arc. Beyond it the
+            // range is sliced into SegmentCharBudget-sized segments, strictly on
+            // whole-page boundaries - the [[p. N]] marker of every page is a segment
+            // start, so a segment never opens with an orphaned paragraph. (The old
+            // "\n\n" split cleaved through pages' internal paragraph breaks and left
+            // marker-less fragments in the next segment.)
+            if (rangeText.Length <= SinglePassCharBudget)
+            {
+                return new List<string> { rangeText };
+            }
+
             var segments = new List<string>();
             var current = new StringBuilder();
-            foreach (string page in rangeText.Split("\n\n", StringSplitOptions.RemoveEmptyEntries))
+            foreach (string page in System.Text.RegularExpressions.Regex.Split(
+                rangeText, @"(?=\[\[p\.\s*\d+\]\])"))
             {
-                if (current.Length > 0 && current.Length + page.Length > SegmentCharBudget)
+                string block = page.Trim();
+                if (block.Length == 0)
+                {
+                    continue;
+                }
+
+                if (current.Length > 0 && current.Length + block.Length + 2 > SegmentCharBudget)
                 {
                     segments.Add(current.ToString());
                     current.Clear();
@@ -951,7 +968,7 @@ namespace Avalanche.Features.Summary
                     current.Append("\n\n");
                 }
 
-                current.Append(page);
+                current.Append(block);
             }
 
             if (current.Length > 0)
@@ -962,11 +979,13 @@ namespace Avalanche.Features.Summary
             return segments;
         }
 
-        /// <summary>Pages in [firstPage..lastPage] whose extracted text is essentially
-        /// empty (fewer than ~20 letters): the model would see nothing for them.</summary>
-        private static List<int> TextlessPages(string rangeText, int firstPage, int lastPage)
+        /// <summary>Pages in [firstPage..lastPage] whose extracted text is too thin to
+        /// summarize (fewer than ~100 letters): front matter, full-page diagrams,
+        /// charts, blank chapter plates, scanned leaves. The model would see nothing
+        /// (or page furniture only) for them, so they are omitted from the run.</summary>
+        private static List<int> LowTextPages(string rangeText, int firstPage, int lastPage)
         {
-            var textless = new List<int>();
+            var lowText = new List<int>();
             string[] chunks = System.Text.RegularExpressions.Regex.Split(
                 rangeText, @"\[\[p\.\s*\d+\]\]");
             for (int i = 1; i < chunks.Length; i++)
@@ -977,13 +996,49 @@ namespace Avalanche.Features.Summary
                     break;
                 }
 
-                if (CountLetters(chunks[i]) < 20)
+                if (CountLetters(chunks[i]) < 100)
                 {
-                    textless.Add(page);
+                    lowText.Add(page);
                 }
             }
 
-            return textless;
+            return lowText;
+        }
+
+        /// <summary>Rebuilds the marked range text without the given pages: the text is
+        /// split strictly on page markers, so every kept page keeps its own whole
+        /// [[p. N]] block and every segment built from the result still starts at a
+        /// page boundary.</summary>
+        private static string OmitPages(string rangeText, int firstPage, int lastPage, List<int> omit)
+        {
+            var drop = new HashSet<int>(omit);
+            var kept = new StringBuilder();
+            foreach (string block in System.Text.RegularExpressions.Regex.Split(
+                rangeText, @"(?=\[\[p\.\s*\d+\]\])"))
+            {
+                string trimmed = block.Trim();
+                if (trimmed.Length == 0)
+                {
+                    continue;
+                }
+
+                var marker = System.Text.RegularExpressions.Regex.Match(
+                    trimmed, @"^\[\[p\.\s*(\d+)\]\]");
+                if (marker.Success && int.TryParse(marker.Groups[1].Value, out int page) &&
+                    page >= firstPage && page <= lastPage && drop.Contains(page))
+                {
+                    continue;
+                }
+
+                if (kept.Length > 0)
+                {
+                    kept.Append("\n\n");
+                }
+
+                kept.Append(trimmed);
+            }
+
+            return kept.ToString();
         }
 
         /// <summary>"40-44, 47, 50-53": consecutive page runs compressed for messages.</summary>
@@ -1076,7 +1131,9 @@ namespace Avalanche.Features.Summary
         private const string ProseEscalation =
             "\n\nREJECTED: your previous answer for this exact request was a bullet list. That is " +
             "a total failure. Write the summary again as flowing prose: full sentences grouped " +
-            "into plain paragraphs, like pages in a book. Not one line may start with \"- \", " +
+            "into plain paragraphs, like pages in a book, with connective phrasing between " +
+            "the sentences so each paragraph reads as one continuous argument. Not one line " +
+            "may start with \"- \", " +
             "\"* \", \"+ \", \"• \" or a number followed by \".\" or \")\". Keep the '### ' headings " +
             "exactly as instructed; everything under them is paragraphs, not lists.";
 
@@ -1090,9 +1147,12 @@ namespace Avalanche.Features.Summary
         /// bullet-dominant answer is mechanically flattened by ProseGuard. Nothing
         /// bullet-shaped survives, regardless of how badly the model behaves.</summary>
         private static async Task<string> SolidDigestAsync(
-            AiProviderConfig config, string system, string user, CancellationToken ct)
+            AiProviderConfig config, string system, string user, CancellationToken ct, int targetWords)
         {
-            int budget = Math.Max(config.MaxTokens, 10000);
+            // Reasoning models split max_tokens between their think and the answer,
+            // and a 4,500-word ceiling needs real room: floor at 3k + 4 tokens per
+            // target word, never below 10k. Caps only cost when they are used.
+            int budget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * targetWords)));
             string digest = await RunBufferedPassAsync(config, system, user, ct, budget).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(digest))

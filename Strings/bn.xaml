@@ -1171,6 +1171,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryR20p">20p</sys:String>
 	<sys:String x:Key="Str_SummaryR40p">40p</sys:String>
 	<sys:String x:Key="Str_SummaryR60p">60p</sys:String>
+	<sys:String x:Key="Str_SummaryR80p">80p</sys:String>
+	<sys:String x:Key="Str_SummaryR100p">100p</sys:String>
+	<sys:String x:Key="Str_SummaryExcluded">সারসংক্ষেপে {0} পৃষ্ঠা বাদ পড়েছে — প্রোভাইডারের সময়সীমা শেষ হয়েছে।</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>

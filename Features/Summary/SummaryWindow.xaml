@@ -307,6 +307,8 @@
                 <RadioButton x:Name="RangeChip20" Style="{StaticResource SumRangeChip}" Tag="20"/>
                 <RadioButton x:Name="RangeChip40" Style="{StaticResource SumRangeChip}" Tag="40"/>
                 <RadioButton x:Name="RangeChip60" Style="{StaticResource SumRangeChip}" Tag="60"/>
+                <RadioButton x:Name="RangeChip80" Style="{StaticResource SumRangeChip}" Tag="80"/>
+                <RadioButton x:Name="RangeChip100" Style="{StaticResource SumRangeChip}" Tag="100"/>
             </StackPanel>
             <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"
                     Margin="9,0,5,0" VerticalAlignment="Center" Opacity="0.7"/>

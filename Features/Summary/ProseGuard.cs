@@ -10,8 +10,9 @@
 //    starting with -, *, +, •, ·, –, — or "N."/"N)" markers).
 //  * ConvertBulletsToProse flattens such an answer: markers stripped, each run of
 //    bullet lines fused into one flowing paragraph (missing terminal punctuation
-//    repaired, sentence starts capitalized), markdown headings and ordinary prose
-//    preserved as-is.
+//    repaired, sentence starts capitalized, continuation clauses joined with a
+//    comma so the sentence flows instead of stacking staccato fragments),
+//    markdown headings and ordinary prose preserved as-is.
 //
 // Deliberately dependency-free (no logging, no WPF, no I/O) so the test project
 // compiles it directly - see SummaryProseGuardTests.
@@ -144,6 +145,13 @@ namespace Avalanche.Features.Summary
                     {
                         sentence.Append(' ').Append(fragment);
                     }
+                    else if (StartsContinuation(fragment))
+                    {
+                        // "because silver never ran short" continues the previous
+                        // clause - a comma keeps the sentence flowing where the old
+                        // build slammed a period down and capitalized the fragment.
+                        sentence.Append(", ").Append(fragment);
+                    }
                     else
                     {
                         sentence.Append(". ").Append(CapitalizeFirst(fragment));
@@ -199,6 +207,35 @@ namespace Avalanche.Features.Summary
             FlushBullets();
             FlushPlain();
             return string.Join("\n\n", blocks);
+        }
+
+        // Continuation openers: a lowercase fragment starting with one of these is
+        // a CONTINUING clause, not a new sentence - joined with a comma it turns a
+        // flattened bullet stack into one flowing sentence. Uppercase starts are
+        // read as the sentence breaks the model wrote and keep the period join.
+        private static readonly HashSet<string> ContinuationOpeners = new(StringComparer.Ordinal)
+        {
+            "and", "but", "or", "nor", "so", "yet",
+            "because", "since", "while", "whereas", "although", "though",
+            "which", "who", "whom", "whose", "where", "until", "unless",
+            "besides", "moreover", "furthermore", "meanwhile", "thus", "hence",
+            "then", "also", "plus", "with", "without"
+        };
+
+        private static bool StartsContinuation(string fragment)
+        {
+            if (fragment.Length == 0 || !char.IsLower(fragment[0]))
+            {
+                return false;
+            }
+
+            int i = 1;
+            while (i < fragment.Length && char.IsLetter(fragment[i]))
+            {
+                i++;
+            }
+
+            return ContinuationOpeners.Contains(fragment[..i]);
         }
 
         private static int SkipPrefixes(string line)
