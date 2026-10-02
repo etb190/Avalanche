@@ -59,6 +59,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PÁGINAS</sys:String>
     <sys:String x:Key="Str_TabOutlines">ESQUEMA</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTAS</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Contraer todo</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Expandir todo</sys:String>
 
@@ -1218,4 +1219,13 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Desde</sys:String>
+    <sys:String x:Key="Str_Notes_To">Hasta</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Generar notas</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Copiar todas las notas</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Copiar tarjeta</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Elige un rango de páginas y pulsa Generar notas para crear tarjetas de repaso.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Generando notas para las páginas {0} a {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Error en las notas: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Páginas {0} – {1}</sys:String>
 </ResourceDictionary>

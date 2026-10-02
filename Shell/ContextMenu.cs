@@ -615,17 +615,12 @@ namespace Avalanche
             e.Handled = true;
         }
 
-        // Right-click on any other part of the sidebar - the PAGES/OUTLINES header, the page
-        // controls row, the outline panel's empty space, the toggle strip - reaches this handler
-        // on the two container Borders (SidebarBorder, SidebarToggleStrip). The page list's own
-        // handler above marks its clicks handled, so they never double up; the outline TREE is
-        // ceded entirely, because its bookmark menu opens on Preview mouse DOWN and does not mark
-        // the Up handled - without the guard this would open a second menu over it.
+        // Right-click on any other part of the sidebar - the PAGES/NOTES header, the page
+        // controls row, the notes panel, the toggle strip - reaches this handler on the two
+        // container Borders (SidebarBorder, SidebarToggleStrip). The page list's own handler
+        // above marks its clicks handled, so they never double up.
         private void SidebarArea_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
-            if (e.OriginalSource is DependencyObject d)
-                for (var n = d; n != null; n = VisualTreeHelper.GetParent(n))
-                    if (ReferenceEquals(n, OutlineTree)) return;
             var menu = MakeThemedMenu();
             if (_doc is not null) FillPageAgnosticMenu(menu);
             AppendSidebarSideSection(menu);

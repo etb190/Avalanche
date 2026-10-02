@@ -61,6 +61,7 @@
     <!-- ── サイドバータブ ────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">ページ</sys:String>
     <sys:String x:Key="Str_TabOutlines">アウトライン</sys:String>
+    <sys:String x:Key="Str_TabNotes">ノート</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">すべて折りたたむ</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">すべて展開</sys:String>
     <sys:String x:Key="Str_PageLabel">ページ {0}</sys:String>
@@ -1238,4 +1239,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">開始</sys:String>
+    <sys:String x:Key="Str_Notes_To">終了</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">ノートを生成</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">すべてのノートをコピー</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">カードをコピー</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">ページ範囲を選んで「ノートを生成」をクリックすると、復習カードが作成されます。</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">{0} ページから {1} ページのノートを生成中…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">ノートの生成に失敗しました: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">{0} – {1} ページ</sys:String>
 </ResourceDictionary>

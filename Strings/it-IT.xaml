@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGINE</sys:String>
     <sys:String x:Key="Str_TabOutlines">STRUTTURA</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTE</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Comprimi tutto</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Espandi tutto</sys:String>
     <sys:String x:Key="Str_PageLabel">Pagina {0}</sys:String>
@@ -1238,4 +1239,13 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Da</sys:String>
+    <sys:String x:Key="Str_Notes_To">A</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Genera note</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Copia tutte le note</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Copia scheda</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Scegli un intervallo di pagine e premi Genera note per creare schede di ripasso.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Generazione delle note per le pagine {0} a {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Note non riuscite: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Pagine {0} – {1}</sys:String>
 </ResourceDictionary>

@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGES</sys:String>
     <sys:String x:Key="Str_TabOutlines">PLAN</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTES</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Tout réduire</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Tout développer</sys:String>
     <sys:String x:Key="Str_PageLabel">Page {0}</sys:String>
@@ -1238,4 +1239,13 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Du</sys:String>
+    <sys:String x:Key="Str_Notes_To">Au</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Générer les notes</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Copier toutes les notes</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Copier la fiche</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Choisissez une plage de pages et cliquez sur « Générer les notes » pour créer des fiches de révision.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Génération des notes pour les pages {0} à {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Échec des notes : {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Pages {0} – {1}</sys:String>
 </ResourceDictionary>

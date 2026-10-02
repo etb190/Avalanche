@@ -211,10 +211,9 @@ namespace Avalanche
         // Sidebar + multi-page view
         private bool _sidebarCollapsed;
         private bool _sidebarRight;   // false = sidebar on the left (default), true = on the right
-        private bool   _sidebarShowingOutlines;
-        private bool   _outlinesFitted     = false;
+        private bool   _sidebarShowingNotes;
         private double _savedPagesWidth    = 180;
-        private double _savedOutlinesWidth = 300;
+        private double _savedNotesWidth    = 300;
         private readonly Button _sidebarToggleBtn = null!;
         private readonly Border _sidebarBorder = null!;
         private ColumnDefinition _sidebarCol = null!;   // sized column (left or right per _sidebarRight)
@@ -415,7 +414,6 @@ namespace Avalanche
             RestoreToolSettings();   // Draw + Text tool styles carry across sessions
             Loaded += (_, _) => AdjustZoomBoxWidth();   // fit the zoom box to the longest localized term
             IndexToolbarButtons();
-            OutlineTree.SelectedItemChanged += OutlineTree_SelectedItemChanged;
             LoadSignatures();
             BuildContextMenu();
             SetTool(EditTool.Select);
@@ -1415,6 +1413,10 @@ namespace Avalanche
             {
                 test.Close();
             }
+
+            // The notes cards audited the previous document; the new one
+            // reseeds the From/To pair and empties the panel.
+            ResetNotesForDocument(filePath);
 
             _aiChatViewModel?.HandleDocumentSwitch(
                 filePath,

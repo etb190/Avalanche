@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">OLDALAK</sys:String>
     <sys:String x:Key="Str_TabOutlines">VÁZLAT</sys:String>
+    <sys:String x:Key="Str_TabNotes">JEGYZETEK</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Összes összecsukása</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Összes kibontása</sys:String>
     <sys:String x:Key="Str_PageLabel">{0}. oldal</sys:String>
@@ -1225,4 +1226,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Kezdés</sys:String>
+    <sys:String x:Key="Str_Notes_To">Befejezés</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Jegyzetek készítése</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Összes jegyzet másolása</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Kártya másolása</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Válassz oldaltartományt, majd kattints a Jegyzetek készítése gombra az ismétlőkártyákhoz.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Jegyzetek készítése a(z) {0}–{1}. oldalakhoz…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">A jegyzetek készítése sikertelen: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">{0} – {1}. oldalak</sys:String>
 </ResourceDictionary>

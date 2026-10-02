@@ -423,9 +423,8 @@ namespace Avalanche
             _continuousTops.Clear();
             _pageJumpBox.Text = "";
             _pageTotalLabel.Text = "/ -";
-            OutlineTree.Items.Clear();
-            SidebarOutlinesTab.IsEnabled = false;
-            if (_sidebarShowingOutlines) SwitchSidebarToPagesTab();
+            ResetNotesForDocument(_currentFile);
+            if (_sidebarShowingNotes) SwitchSidebarToPagesTab();
             MarkDirty(false);
             SetStatus(Loc("Str_Ready"));
         }

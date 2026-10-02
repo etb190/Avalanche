@@ -42,7 +42,7 @@ namespace Avalanche
                 : (_sidebarCol != null && _sidebarCol.Width.GridUnitType == GridUnitType.Pixel)
                     ? _sidebarCol.Width
                     : new GridLength(SbPx(180));
-            double maxW = SbPx(_sidebarShowingOutlines ? SidebarMaxOutlines : SidebarMaxPages);
+            double maxW = SbPx(_sidebarShowingNotes ? SidebarMaxNotes : SidebarMaxPages);
 
             if (!_sidebarRight)
             {

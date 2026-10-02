@@ -176,8 +176,8 @@ namespace Avalanche
                 // Save current width before collapsing so expand restores it.
                 if (_sidebarCol.ActualWidth > 24)
                 {
-                    if (_sidebarShowingOutlines)
-                        _savedOutlinesWidth = Math.Min(_sidebarCol.ActualWidth, SbPx(SidebarMaxOutlines));
+                    if (_sidebarShowingNotes)
+                        _savedNotesWidth = Math.Min(_sidebarCol.ActualWidth, SbPx(SidebarMaxNotes));
                     else
                         _savedPagesWidth = Math.Min(_sidebarCol.ActualWidth, SbPx(SidebarMaxPages));
                 }
@@ -198,7 +198,7 @@ namespace Avalanche
             else
             {
                 _sidebarBorder.Visibility = Visibility.Visible;
-                double restore = _sidebarShowingOutlines ? _savedOutlinesWidth : _savedPagesWidth;
+                double restore = _sidebarShowingNotes ? _savedNotesWidth : _savedPagesWidth;
                 // Slide in at full size: content fixed at the target width from the first
                 // frame, revealed by the growing border instead of reflowing up to size.
                 BeginSidebarSlide(_sbSlideContentW > 0 ? _sbSlideContentW
@@ -330,7 +330,7 @@ namespace Avalanche
                 _sidebarBorder.Visibility = Visibility.Visible;        // ensure the list shows when settled open
                 SidebarContentPanel.Visibility = Visibility.Visible;
                 _sidebarCol.MinWidth = SbPx(SidebarMinOpen);           // clamp future resizes so they can't clip
-                if (_sidebarShowingOutlines) _savedOutlinesWidth = Math.Min(w, SbPx(SidebarMaxOutlines));
+                if (_sidebarShowingNotes) _savedNotesWidth = Math.Min(w, SbPx(SidebarMaxNotes));
                 else _savedPagesWidth = Math.Min(w, SbPx(SidebarMaxPages));
             }));
         }
@@ -362,7 +362,7 @@ namespace Avalanche
 
         private void SyncSidebarToDocState(bool hasDoc, bool startup)
         {
-            PageControlsRow?.Visibility = (hasDoc && !_sidebarShowingOutlines)
+            PageControlsRow?.Visibility = (hasDoc && !_sidebarShowingNotes)
                     ? Visibility.Visible : Visibility.Collapsed;
 
             _sidebarAutoToggling = true;

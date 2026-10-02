@@ -10,15 +10,15 @@
 //    "telephone game" of summarizing rough notes twice. Bigger ranges: map-reduce -
 //    exhaustive notes per whole-page segment, then a fusion pass that writes the
 //    final digest. Progress for every phase is streamed to the window.
-//  * Output contract (v1.8.85): the book's OWN printed section headings are detected
-//    deterministically in the text layer (heading = short line whose largest glyph is
-//    clearly bigger than the page's median body font; repeated running heads filtered)
-//    and wrapped as [[H]] ... [[/H]]. The digest copies each heading VERBATIM as a
-//    '### ' markdown heading and summarizes under it in dense flowing prose - no
-//    bullets, no invented headings, no page tags, strict word ceiling. Text before
-//    the first heading (range starts mid-section) and headingless ranges summarize
-//    as plain prose. The per-segment notes keep their internal (p. N) tags and the
-//    heading markers for the fusion coverage plumbing.
+//  * Output contract (v1.12.3): extraction renders compact GitHub-Flavored
+//    Markdown (MarkdownNormalizer): de-hyphenated reflowed paragraphs, the
+//    book's OWN printed section headings as native # / ## / ### lines (still
+//    font-geometry detected, running heads filtered), "- " list items and
+//    compact [p. N] page anchors. The digest copies each printed heading
+//    VERBATIM as a '### ' markdown heading and summarizes under it in dense
+//    flowing prose - no invented headings, no page tags, strict word ceiling.
+//    Legacy [[p. N]] / [[H]] markers stay recognized everywhere the new
+//    surface could meet old text.
 //  * Bullet guarantee (v1.8.86): the final digest is BUFFERED, not streamed, and
 //    inspected before anything reaches the screen. A bullet-dominant answer is
 //    retried once against an escalated prose-only prompt and, failing that,
@@ -64,6 +64,11 @@ namespace Avalanche.Features.Summary
         private const int SinglePassCharBudget = 300000;
         private const int SegmentCharBudget = 30000;
 
+        // Page anchors: the compact [p. N] form the normalizer emits, plus the
+        // legacy [[p. N]] form older text (and older prompts' quotes) can still
+        // carry. Every marker strip/split/match below accepts both.
+        private const string PageMarkerPattern = @"\[{1,2}p\.\s*\d+\]{1,2}";
+
         private static readonly SemaphoreSlim Gate = new(1, 1);
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
 
@@ -91,16 +96,18 @@ namespace Avalanche.Features.Summary
         // ------------------------------------------------------------------
 
         /// <summary>Extracts the text layer of [firstPage..lastPage] (1-based, inclusive)
-        /// with [[p. N]] markers between pages. Returns null-equivalent empty string when
-        /// the pages have no usable text layer (scanned book without OCR).</summary>
+        /// as compact GitHub-Flavored Markdown (MarkdownNormalizer) with compact
+        /// [p. N] anchors between pages. Returns null-equivalent empty string when the
+        /// pages have no usable text layer (scanned book without OCR).</summary>
         public static Task<string> ExtractRangeAsync(string filePath, int firstPage, int lastPage, CancellationToken ct)
         {
             return Task.Run(
                 () =>
                 {
                     var runsService = new TextRunService();
-                    // Pass 1: build each page's text with [[H]] ... [[/H]] wrappers around the
-                    // book's own printed headings (font-size detected), collecting every heading
+                    // Pass 1: render each page's geometry as normalized markdown -
+                    // reflowed paragraphs, de-hyphenated words, native #/##/### headings
+                    // (font-size detected) and "- " bullets - collecting every heading
                     // candidate for the running-head filter.
                     var candidates = new List<(int Page, string Norm)>();
                     var pageTexts = new Dictionary<int, string>();
@@ -110,12 +117,12 @@ namespace Avalanche.Features.Summary
                         PageTextRuns? runs = runsService.GetPage(filePath, page - 1);
                         pageTexts[page] = runs is null
                             ? string.Empty
-                            : BuildPageTextWithHeadings(runs, page, candidates);
+                            : MarkdownNormalizer.BuildPageMarkdown(runs, page, candidates);
                     }
 
                     // Pass 2: a heading that repeats across many pages is page furniture
                     // (book/chapter running head, page-number header), not a section heading.
-                    var runningHeads = DetectRunningHeads(candidates, lastPage - firstPage + 1);
+                    var runningHeads = MarkdownNormalizer.DetectRunningHeads(candidates, lastPage - firstPage + 1);
                     var sb = new StringBuilder();
                     for (int page = firstPage; page <= lastPage; page++)
                     {
@@ -127,10 +134,10 @@ namespace Avalanche.Features.Summary
                         string text = pageTexts[page];
                         if (runningHeads.Count > 0 && text.Length > 0)
                         {
-                            text = StripRunningHeads(text, runningHeads);
+                            text = MarkdownNormalizer.StripRunningHeads(text, runningHeads);
                         }
 
-                        sb.Append("[[p. ").Append(page).Append("]]\n").Append(text.Trim());
+                        sb.Append("[p. ").Append(page).Append("]\n").Append(text.Trim());
                     }
 
                     return sb.ToString();
@@ -138,207 +145,9 @@ namespace Avalanche.Features.Summary
                 ct);
         }
 
-        // ---- Heading detection (the book's OWN printed headings) -------------------------
-        //
-        // The digest copies the book's section headings verbatim and summarizes under them.
-        // Models are unreliable at telling headings from body text (and the old "organize by
-        // topic" prompt produced invented headers the user hated), so detection is
-        // deterministic: a printed heading is a short line whose largest glyph is clearly
-        // bigger than the page's median body font. Consecutive heading-sized lines merge
-        // (a wrapped title spans two bands). Pages whose text layer reports one font size
-        // for everything (some OCR output) yield no headings at all - the prompts then
-        // produce plain prose.
-
-        private const double HeadingSizeRatio = 1.15;
-        private const int HeadingMaxChars = 90;
-
-        private static string BuildPageTextWithHeadings(
-            PageTextRuns runs, int page, List<(int Page, string Norm)> candidates)
-        {
-            double median = MedianBodyPointSize(runs);
-            if (median <= 0)
-            {
-                return TextRunService.TextForRange(runs, 0, runs.Chars.Count, out _);
-            }
-
-            var sb = new StringBuilder();
-            bool first = true;
-            int i = 0;
-            while (i < runs.Lines.Count)
-            {
-                // Merge a run of consecutive heading-sized lines (wrapped titles).
-                int j = i;
-                var parts = new List<string>();
-                while (j < runs.Lines.Count && IsHeadingLine(runs, runs.Lines[j], median))
-                {
-                    string t = TextRunService.TextForRange(runs, runs.Lines[j].Start, runs.Lines[j].End, out _)
-                        .Trim();
-                    if (t.Length > 0)
-                    {
-                        parts.Add(t);
-                    }
-
-                    j++;
-                }
-
-                string heading = string.Join(" ", parts).Trim();
-                if (heading.Length > 0)
-                {
-                    if (!first)
-                    {
-                        sb.Append('\n');
-                    }
-
-                    sb.Append("[[H]] ").Append(heading).Append(" [[/H]]");
-                    candidates.Add((page, NormalizeHeading(heading)));
-                    first = false;
-                    i = j;
-                    continue;
-                }
-
-                if (!first)
-                {
-                    sb.Append('\n');
-                }
-
-                sb.Append(TextRunService.TextForRange(runs, runs.Lines[i].Start, runs.Lines[i].End, out _));
-                first = false;
-                i++;
-            }
-
-            return sb.ToString();
-        }
-
-        private static bool IsHeadingLine(PageTextRuns runs, RunLine line, double medianBody)
-        {
-            double max = 0;
-            int letters = 0;
-            for (int i = line.Start; i < line.End; i++)
-            {
-                RunChar c = runs.Chars[i];
-                if (c.PointSize > max)
-                {
-                    max = c.PointSize;
-                }
-
-                if (c.Value.Length > 0 && char.IsLetter(c.Value[0]))
-                {
-                    letters++;
-                }
-            }
-
-            if (max <= 0 || letters < 2 || max < medianBody * HeadingSizeRatio)
-            {
-                return false;
-            }
-
-            string text = TextRunService.TextForRange(runs, line.Start, line.End, out _).Trim();
-            if (text.Length == 0 || text.Length > HeadingMaxChars)
-            {
-                return false;
-            }
-
-            char last = text[text.Length - 1];
-            return last is not ('.' or ',' or ';' or ':' or '!' or '?');
-        }
-
-        private static double MedianBodyPointSize(PageTextRuns runs)
-        {
-            var sizes = new List<double>();
-            foreach (RunChar c in runs.Chars)
-            {
-                if (c.PointSize > 0 && c.Value.Length > 0 && char.IsLetter(c.Value[0]))
-                {
-                    sizes.Add(c.PointSize);
-                }
-            }
-
-            if (sizes.Count == 0)
-            {
-                return 0;
-            }
-
-            sizes.Sort();
-            return sizes[sizes.Count / 2];
-        }
-
-        private static string NormalizeHeading(string s)
-        {
-            var sb = new StringBuilder();
-            bool space = true;
-            foreach (char ch in s)
-            {
-                if (char.IsLetter(ch))
-                {
-                    sb.Append(char.ToLowerInvariant(ch));
-                    space = false;
-                }
-                else if (!space)
-                {
-                    sb.Append(' ');
-                    space = true;
-                }
-            }
-
-            return sb.ToString().Trim();
-        }
-
-        private static HashSet<string> DetectRunningHeads(List<(int Page, string Norm)> candidates, int pageCount)
-        {
-            var result = new HashSet<string>(StringComparer.Ordinal);
-            if (pageCount >= 5 && candidates.Count > 0)
-            {
-                var byText = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
-                foreach ((int page, string norm) in candidates)
-                {
-                    if (!byText.TryGetValue(norm, out var pages))
-                    {
-                        byText[norm] = pages = new HashSet<int>();
-                    }
-
-                    pages.Add(page);
-                }
-
-                // Furniture repeats across chapter-length spans: a head seen on 5+
-                // pages of the range is a running head, never a section title (the cap
-                // keeps big ranges honest, the floor keeps single strays alive). The
-                // old 40% floor needed 40 pages of a 100-page range before it fired,
-                // so chapter heads flooding 20-30 pages sailed through.
-                int threshold = Math.Max(3, Math.Min((int)Math.Ceiling(pageCount * 0.15), 5));
-                foreach (var (norm, pages) in byText)
-                {
-                    if (pages.Count >= threshold)
-                    {
-                        result.Add(norm);
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        private static string StripRunningHeads(string pageText, HashSet<string> runningHeads)
-        {
-            var kept = new List<string>();
-            foreach (string line in pageText.Split('\n'))
-            {
-                string trimmed = line.Trim();
-                if (trimmed.StartsWith("[[H]]", StringComparison.Ordinal) &&
-                    trimmed.EndsWith("[[/H]]", StringComparison.Ordinal))
-                {
-                    string inner = trimmed.Substring(5, trimmed.Length - 11).Trim();
-                    if (runningHeads.Contains(NormalizeHeading(inner)))
-                    {
-                        continue;
-                    }
-                }
-
-                kept.Add(line);
-            }
-
-            return string.Join("\n", kept);
-        }
-
+        // Heading detection, tier rendering, de-hyphenation, paragraph reflow, bullet
+        // normalization and the running-head filter live in
+        // Features/Summary/MarkdownNormalizer.cs (pure, unit-testable).
         // ------------------------------------------------------------------
         // Generation pipeline
         // ------------------------------------------------------------------
@@ -380,13 +189,13 @@ namespace Avalanche.Features.Summary
 
                 string rangeText = await ExtractRangeAsync(request.FilePath, request.FirstPage, request.LastPage, ct)
                     .ConfigureAwait(false);
-                // Marker-aware gate: strip WHOLE [[p. N]] tokens before counting. The old
-                // string.Replace left " N]]" behind (never whitespace) and CountLetters
-                // counted the 'p' inside every marker, so a long marker-only range (>= 60
-                // pages of a scanned book) slipped through and the model was asked to
-                // summarize bare markers - it answered "no page text was provided".
+                // Marker-aware gate: strip WHOLE [p. N] / [[p. N]] tokens before counting.
+                // The old string.Replace left " N]]" behind (never whitespace) and
+                // CountLetters counted the 'p' inside every marker, so a long marker-only
+                // range (>= 60 pages of a scanned book) slipped through and the model was
+                // asked to summarize bare markers - it answered "no page text was provided".
                 string bodyText = System.Text.RegularExpressions.Regex.Replace(
-                    rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                    rangeText, PageMarkerPattern, string.Empty);
                 // Black-box evidence: what was actually pulled out of the file, and from
                 // which file. Zero letters here means the answer is the document (no text
                 // layer / wrong file), not the model.
@@ -417,7 +226,7 @@ namespace Avalanche.Features.Summary
                         DescribeRanges(lowText)));
                     rangeText = OmitPages(rangeText, request.FirstPage, request.LastPage, lowText);
                     bodyText = System.Text.RegularExpressions.Regex.Replace(
-                        rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                        rangeText, PageMarkerPattern, string.Empty);
                 }
 
                 // The absolute gate now stands alone: with the thin pages gone, every
@@ -942,38 +751,41 @@ namespace Avalanche.Features.Summary
                   "first page tag to their last. Never copy the notes verbatim and never return " +
                   "one segment's notes unchanged.\n\n" +
                   "The notes are RAW MATERIAL, not a format template: they are bullet lists - your " +
-                  "summary must NOT be. BOOK HEADINGS: where the notes contain a line wrapped as " +
-                  "[[H]] Some Title [[/H]], that is the book's own printed section heading. Copy it " +
-                  "VERBATIM as a markdown '### ' heading (drop the [[H]] and [[/H]] wrappers) and " +
+                  "summary must NOT be. BOOK HEADINGS: where the notes carry a markdown heading " +
+                  "line (# Some Title, ## Some Title or ### Some Title - any legacy [[H]] " +
+                  "wrappers likewise), that is the book's own printed section heading. Copy it " +
+                  "VERBATIM as a markdown '### ' heading (drop the marks and wrappers) and " +
                   "summarize the notes that follow it under that heading, in flowing prose " +
                   "paragraphs. Content before the first heading (the range may start mid-section) " +
-                  "is ordinary intro prose with no heading. If the notes contain no [[H]] markers " +
+                  "is ordinary intro prose with no heading. If the notes contain no heading lines " +
                   "at all, write plain prose with no headings. NEVER invent a heading and NEVER " +
-                  "reword one - use exactly the printed text between the wrappers. No bullet " +
-                  "points anywhere and no page tags in your output. Bullet points in your answer " +
-                  "are a total failure."
-                : "Each page's text starts with a [[p. N]] marker; the markers tell you which " +
-                  "page each part came from, but they must NOT appear in your output.\n\n" +
-                  "BOOK HEADINGS: lines wrapped as [[H]] Some Title [[/H]] are the book's own " +
-                  "printed section headings. Copy each one VERBATIM as a markdown '### ' heading " +
-                  "(drop the [[H]] and [[/H]] wrappers) and summarize the text that follows it " +
-                  "under that heading, in flowing prose paragraphs. Text before the first heading " +
-                  "(the range may start mid-section) is ordinary intro prose with no heading. If " +
-                  "the material has no [[H]] markers at all, write plain prose with no headings. " +
-                  "NEVER invent a heading and NEVER reword one - use exactly the printed text " +
-                  "between the wrappers. No bullet points and no page tags in your output. Bullet " +
-                  "points in your answer are a total failure.");
+                  "reword one - use exactly the printed heading text. No bullet points anywhere " +
+                  "and no page tags in your output. Bullet points in your answer are a total " +
+                  "failure."
+                : "Each page's text starts with a [p. N] anchor (legacy [[p. N]]); the anchors " +
+                  "tell you which page each part came from, but they must NOT appear in your " +
+                  "output.\n\n" +
+                  "BOOK HEADINGS: lines starting with '#', '##' or '###' are the book's own " +
+                  "printed section headings (native markdown). Copy each one VERBATIM as a " +
+                  "markdown '### ' heading and summarize the text that follows it under that " +
+                  "heading, in flowing prose paragraphs. Text before the first heading (the " +
+                  "range may start mid-section) is ordinary intro prose with no heading. If " +
+                  "the material has no markdown heading lines at all, write plain prose with " +
+                  "no headings. NEVER invent a heading and NEVER reword one - use exactly " +
+                  "the printed heading text. No bullet points and no page tags in your " +
+                  "output. Bullet points in your answer are a total failure.");
         }
 
         private static string MiniSystemPrompt() =>
             "You produce exhaustive working notes from book page segments that will later be fused into " +
             "one digest.\n" +
             "Rules: list every argument, definition, fact, figure, name and example in order, one bullet " +
-            "per item, ending each bullet with (p. N) using the [[p. N]] markers. When the segment " +
-            "contains a book heading wrapped as [[H]] Heading Text [[/H]], copy that wrapped heading " +
-            "line VERBATIM into the notes at its position, before the items that follow it - these " +
-            "wrapped lines are the only text you may copy verbatim. No headings of your own, no " +
-            "commentary, no outside knowledge. Do not omit anything substantive.";
+            "per item, ending each bullet with (p. N) using the [p. N] anchors (legacy [[p. N]]). When " +
+            "the segment contains a book heading printed as a markdown heading line (# Heading Text, " +
+            "## Heading Text or ### Heading Text), copy that heading line VERBATIM into the notes at " +
+            "its position, before the items that follow it - those lines are the only text you may " +
+            "copy verbatim. No headings of your own, no commentary, no outside knowledge. Do not omit " +
+            "anything substantive.";
 
         // ------------------------------------------------------------------
         // Segmentation
@@ -984,7 +796,7 @@ namespace Avalanche.Features.Summary
             // Under the single-pass budget the WHOLE range travels as one segment: one
             // direct digest pass over the author's full argumentative arc. Beyond it the
             // range is sliced into SegmentCharBudget-sized segments, strictly on
-            // whole-page boundaries - the [[p. N]] marker of every page is a segment
+            // whole-page boundaries - the [p. N] anchor of every page is a segment
             // start, so a segment never opens with an orphaned paragraph. (The old
             // "\n\n" split cleaved through pages' internal paragraph breaks and left
             // marker-less fragments in the next segment.)
@@ -996,7 +808,7 @@ namespace Avalanche.Features.Summary
             var segments = new List<string>();
             var current = new StringBuilder();
             foreach (string page in System.Text.RegularExpressions.Regex.Split(
-                rangeText, @"(?=\[\[p\.\s*\d+\]\])"))
+                rangeText, "(?=" + PageMarkerPattern + ")"))
             {
                 string block = page.Trim();
                 if (block.Length == 0)
@@ -1034,7 +846,7 @@ namespace Avalanche.Features.Summary
         {
             var lowText = new List<int>();
             string[] chunks = System.Text.RegularExpressions.Regex.Split(
-                rangeText, @"\[\[p\.\s*\d+\]\]");
+                rangeText, PageMarkerPattern);
             for (int i = 1; i < chunks.Length; i++)
             {
                 int page = firstPage + i - 1;
@@ -1054,14 +866,14 @@ namespace Avalanche.Features.Summary
 
         /// <summary>Rebuilds the marked range text without the given pages: the text is
         /// split strictly on page markers, so every kept page keeps its own whole
-        /// [[p. N]] block and every segment built from the result still starts at a
+        /// [p. N] block and every segment built from the result still starts at a
         /// page boundary.</summary>
         private static string OmitPages(string rangeText, int firstPage, int lastPage, List<int> omit)
         {
             var drop = new HashSet<int>(omit);
             var kept = new StringBuilder();
             foreach (string block in System.Text.RegularExpressions.Regex.Split(
-                rangeText, @"(?=\[\[p\.\s*\d+\]\])"))
+                rangeText, "(?=" + PageMarkerPattern + ")"))
             {
                 string trimmed = block.Trim();
                 if (trimmed.Length == 0)
@@ -1070,7 +882,7 @@ namespace Avalanche.Features.Summary
                 }
 
                 var marker = System.Text.RegularExpressions.Regex.Match(
-                    trimmed, @"^\[\[p\.\s*(\d+)\]\]");
+                    trimmed, @"^\[{1,2}p\.\s*(\d+)\]{1,2}");
                 if (marker.Success && int.TryParse(marker.Groups[1].Value, out int page) &&
                     page >= firstPage && page <= lastPage && drop.Contains(page))
                 {

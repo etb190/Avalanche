@@ -1428,7 +1428,6 @@ namespace Avalanche.Controls
             ClearSecondaryPages();
             ClearSelection();
             RefreshPageList();
-            LoadOutlines();
             DropZone.Visibility = Visibility.Collapsed;
             PagePreviewPanel.Visibility = Visibility.Visible;
             if (Host != null)

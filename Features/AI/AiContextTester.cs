@@ -6,7 +6,8 @@
 // the input, a bridge capping the payload) still returns a fluent, confident
 // digest - of half the book. This probe turns that trust into evidence:
 //   * it extracts the page range exactly like the summarizer does (the same
-//     TextRunService reading-order runs, the same [[p. N]] markers),
+//     TextRunService reading-order runs, the same [p. N] anchors - legacy
+//     [[p. N]] markers stay recognized),
 //   * sends the text to the model with a verbatim-recall instruction (report
 //     the first and the last sentence of the text),
 //   * audits usage.prompt_tokens (or Ollama's native prompt_eval_count)
@@ -86,21 +87,23 @@ namespace Avalanche.Features.AI
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
 
         // The probe's contract with the model: verbatim recall, JSON only. The
-        // marker note matters - the extracted text is seeded with [[p. N]] page
-        // markers and [[H]]/[[/H]] heading wrappers, and a model that quotes the
-        // markup as "the first sentence" would fail an otherwise perfect run.
+        // marker note matters - the extracted text is seeded with [p. N] page
+        // anchors (legacy [[p. N]]) and markdown heading marks, and a model that
+        // quotes the scaffolding as "the first sentence" would fail an otherwise
+        // perfect run.
         private const string ProbeSystemPrompt =
             """
             You are a context verification probe. Read the provided text and output a JSON object:
             {
               "first_sentence_seen": "<exact first sentence of the text>",
               "last_sentence_seen": "<exact last sentence of the text>",
-              "first_page_marker": "<e.g. [[p. 1]]>",
-              "last_page_marker": "<e.g. [[p. 100]]>"
+              "first_page_marker": "<e.g. [p. 1]>",
+              "last_page_marker": "<e.g. [p. 100]>"
             }
             Do not summarize. Return ONLY the JSON object.
-            The text carries internal markup markers: ignore the [[p. N]], [[H]] and [[/H]]
-            wrappers when quoting - they are scaffolding, not part of the sentences.
+            The text carries internal scaffolding: ignore the [p. N] page anchors (and any
+            legacy [[p. N]] markers), the markdown # / ## / ### heading marks and any
+            [[H]]/[[/H]] wrappers when quoting - they are not part of the sentences.
             The first sentence means: everything from the very start of the text up to and
             including its first sentence-ending punctuation mark. The last sentence means:
             the closing words of the text, from its final sentence start to the very end
@@ -134,7 +137,7 @@ namespace Avalanche.Features.AI
             // The same absolute floor the summarizer uses: a range with (almost) no
             // letters at all has nothing to probe (scanned book without OCR).
             string body = System.Text.RegularExpressions.Regex.Replace(
-                rangeText, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                rangeText, @"\[{1,2}p\.\s*\d+\]{1,2}", string.Empty);
             if (AiProbeLogic.CountLetters(body) < 250)
             {
                 return AiTestProbeResult.Notext(firstPage, lastPage);
@@ -261,11 +264,12 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>The raw text of one page inside the extracted range: from its
-        /// [[p. N]] marker to the next marker (or the end of the text).</summary>
+        /// [p. N] anchor (legacy [[p. N]]) to the next anchor (or the end of the
+        /// text).</summary>
         private static string PageBlock(string rangeText, int page)
         {
             var marker = System.Text.RegularExpressions.Regex.Match(
-                rangeText, @"\[\[p\.\s*" + page.ToString(CultureInfo.InvariantCulture) + @"\]\]");
+                rangeText, @"\[{1,2}p\.\s*" + page.ToString(CultureInfo.InvariantCulture) + @"\]{1,2}");
             if (!marker.Success)
             {
                 return string.Empty;
@@ -275,7 +279,7 @@ namespace Avalanche.Features.AI
             int end = rangeText.Length;
             // Instance Match(input, startat): the static overloads only accept
             // RegexOptions, not a start offset.
-            var pageMarker = new System.Text.RegularExpressions.Regex(@"\[\[p\.\s*\d+\]\]");
+            var pageMarker = new System.Text.RegularExpressions.Regex(@"\[{1,2}p\.\s*\d+\]{1,2}");
             var next = pageMarker.Match(rangeText, start);
             if (next.Success)
             {
@@ -327,16 +331,21 @@ namespace Avalanche.Features.AI
         // Boundary sentences
         // ------------------------------------------------------------------
 
-        /// <summary>Strips the [[p. N]] page markers and the [[H]]/[[/H]] heading
-        /// wrappers, then collapses every whitespace run to a single space, so both
-        /// sides of the comparison quote from the same flattened surface - and a
-        /// model that quotes the [[p. 2]] scaffolding verbatim is not taxed for
-        /// characters that were never part of the sentence.</summary>
+        /// <summary>Strips the [p. N] page anchors (and the legacy [[p. N]] form),
+        /// the [[H]]/[[/H]] heading wrappers and line-start markdown heading marks,
+        /// then collapses every whitespace run to a single space, so both sides of
+        /// the comparison quote from the same flattened surface - and a model that
+        /// quotes the [p. 2] scaffolding or a '#' heading mark verbatim is not
+        /// taxed for characters that were never part of the sentence.</summary>
         public static string Flatten(string pageText)
         {
             string clean = System.Text.RegularExpressions.Regex.Replace(
-                pageText ?? string.Empty, @"\[\[p\.\s*\d+\]\]", string.Empty);
+                pageText ?? string.Empty, @"\[{1,2}p\.\s*\d+\]{1,2}", string.Empty);
             clean = System.Text.RegularExpressions.Regex.Replace(clean, @"\[\[/?H\]\]", string.Empty);
+            // Native markdown heading marks: only at line starts (with the standard
+            // 0-3 spaces of indent), so a mid-sentence '#' ("issue #5") survives.
+            clean = System.Text.RegularExpressions.Regex.Replace(
+                clean, @"(?m)^[ \t]{0,3}#{1,6}[ \t]+", string.Empty);
             return System.Text.RegularExpressions.Regex.Replace(clean, @"\s+", " ").Trim();
         }
 

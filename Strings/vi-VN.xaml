@@ -61,6 +61,7 @@
     <!-- ── Các tab thanh bên ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">TRANG</sys:String>
     <sys:String x:Key="Str_TabOutlines">MỤC LỤC</sys:String>
+    <sys:String x:Key="Str_TabNotes">GHI CHÚ</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Thu gọn tất cả</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Mở rộng tất cả</sys:String>
     <sys:String x:Key="Str_PageLabel">Trang {0}</sys:String>
@@ -1238,4 +1239,13 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Từ</sys:String>
+    <sys:String x:Key="Str_Notes_To">Đến</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Tạo ghi chú</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Sao chép tất cả ghi chú</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Sao chép thẻ</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Chọn phạm vi trang và nhấn Tạo ghi chú để tạo thẻ ôn tập.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Đang tạo ghi chú cho các trang {0} đến {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Tạo ghi chú thất bại: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Trang {0} – {1}</sys:String>
 </ResourceDictionary>

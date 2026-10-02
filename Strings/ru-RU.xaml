@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">СТРАНИЦЫ</sys:String>
     <sys:String x:Key="Str_TabOutlines">СХЕМА</sys:String>
+    <sys:String x:Key="Str_TabNotes">ЗАМЕТКИ</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Свернуть все</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Развернуть все</sys:String>
     <sys:String x:Key="Str_PageLabel">Страница {0}</sys:String>
@@ -1238,4 +1239,13 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">С</sys:String>
+    <sys:String x:Key="Str_Notes_To">До</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Создать заметки</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Копировать все заметки</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Копировать карточку</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Выберите диапазон страниц и нажмите «Создать заметки», чтобы получить карточки для повторения.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Создание заметок для страниц с {0} по {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Не удалось создать заметки: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Страницы {0} – {1}</sys:String>
 </ResourceDictionary>

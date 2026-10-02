@@ -156,7 +156,83 @@ namespace Avalanche.Features.AI
                 }
             }
 
+            MergeHyphenatedLineBreaks(stream);
             return stream;
+        }
+
+        /// <summary>De-hyphenation at line boundaries (the same rule the summary
+        /// extraction's MarkdownNormalizer applies to its text): a visual line
+        /// ending in a letter followed by "-" whose next line opens with a
+        /// lowercase letter is one word the typographer split ("civili-" +
+        /// "zation"). The pair merges into a single word with the hyphen dropped,
+        /// so chunks, embeddings and quoted evidence never see the fragment. The
+        /// union box keeps the citation highlight honest (both words' extents);
+        /// paragraph starts and the page's heading line guard the merge - a dash
+        /// after a real paragraph break, or inside a heading, is punctuation, not
+        /// a split.</summary>
+        private static void MergeHyphenatedLineBreaks(PageWordStream stream)
+        {
+            for (int k = 0; k < stream.Words.Count - 1; k++)
+            {
+                IndexedWord merged = MergeHyphenPair(stream.Words[k], stream.Words[k + 1]);
+                if (merged.Text.Length == 0 ||
+                    !stream.LineStarts.Contains(k + 1) ||
+                    stream.ParagraphStarts.Contains(k + 1) ||
+                    (stream.HeadingRange is { } hr && hr.Length == 2 &&
+                        (k + 1 == hr[0] || (k >= hr[0] && k < hr[1]))))
+                {
+                    continue;
+                }
+
+                stream.Words[k] = merged;
+                stream.Words.RemoveAt(k + 1);
+
+                // Everything after the absorbed word shifts one index down.
+                ShiftSet(stream.LineStarts, k + 1);
+                ShiftSet(stream.ParagraphStarts, k + 1);
+                if (stream.HeadingRange is { } range && range.Length == 2)
+                {
+                    stream.HeadingRange =
+                        [range[0] > k + 1 ? range[0] - 1 : range[0], range[1] > k + 1 ? range[1] - 1 : range[1]];
+                }
+
+                k--;   // the merged word may chain into the next line ("civili-" "za" "tion")
+            }
+        }
+
+        /// <summary>Merges a line-final letter-hyphen word with a lowercase-opener
+        /// follower. Empty text result = conditions not met (caller skips).</summary>
+        internal static IndexedWord MergeHyphenPair(IndexedWord a, IndexedWord b)
+        {
+            if (a.Text is null || b.Text is null ||
+                a.Text.Length < 2 || a.Text[^1] != '-' || !char.IsLetter(a.Text[^2]) ||
+                b.Text.Length == 0 || !char.IsLower(b.Text[0]))
+            {
+                // Empty text signals "no merge" (default(IndexedWord) would carry
+                // a null Text and NPE the caller's length probe).
+                return new IndexedWord(string.Empty, 0, 0, 0, 0);
+            }
+
+            return new IndexedWord(
+                a.Text[..^1] + b.Text,
+                Math.Min(a.Left, b.Left),
+                Math.Min(a.Bottom, b.Bottom),
+                Math.Max(a.Right, b.Right),
+                Math.Max(a.Top, b.Top));
+        }
+
+        private static void ShiftSet(HashSet<int> set, int removed)
+        {
+            if (set.Count == 0) return;
+            var shifted = new HashSet<int>();
+            foreach (int i in set)
+            {
+                if (i == removed) continue;
+                shifted.Add(i > removed ? i - 1 : i);
+            }
+
+            set.Clear();
+            set.UnionWith(shifted);
         }
 
         private static double Center(IndexedWord w) => (w.Left + w.Right) / 2.0;
@@ -294,7 +370,11 @@ namespace Avalanche.Features.AI
         public int ChunkCount => _chunks.Count;
 
         /// <summary>Appends one page's words (already in reading order). Words
-        /// flow across page boundaries; a page end never forces a chunk.</summary>
+        /// flow across page boundaries; a page end never forces a chunk. A
+        /// page-final letter-hyphen word merges into the next page's first word
+        /// when the stream opens with a lowercase continuation ("civili-" |
+        /// "zation" across a leaf turn) - paragraph starts and a page-opening
+        /// heading guard the merge.</summary>
         public void AppendPage(int pageIndex, PageWordStream stream)
         {
             if (stream.Words.Count == 0) return;
@@ -310,21 +390,43 @@ namespace Avalanche.Features.AI
                     _pendingHeading = heading;
             }
 
-            for (int i = 0; i < stream.Words.Count; i++)
+            // Cross-page de-hyphenation: the previous page's last word carries a
+            // letter-hyphen and this page opens with a lowercase word. The merged
+            // word stays on its original page with that page's box (the boxes live
+            // in different pages' coordinate spaces); the stream's metadata shifts.
+            int shift = 0;
+            if (_pending.Count > 0 &&
+                !stream.ParagraphStarts.Contains(0) &&
+                !(stream.HeadingRange is { } hr0 && hr0.Length == 2 && hr0[0] == 0))
             {
-                bool isHeadingStart = stream.HeadingRange is { } r && r.Length == 2 && i == r[0];
+                IndexedWord merged = PageWordStreamBuilder.MergeHyphenPair(_pending[^1].W, stream.Words[0]);
+                if (merged.Text.Length > 0)
+                {
+                    var last = _pending[^1];
+                    _pending[^1] = new PendingWord { W = merged, Page = last.Page, ParaStart = false, HeadingStart = false };
+                    _pendingChars += merged.Text.Length - last.W.Text.Length;
+                    shift = 1;
+                }
+            }
+
+            for (int i = shift; i < stream.Words.Count; i++)
+            {
+                // Metadata indices refer to the unmerged stream; shift compensates
+                // for the absorbed first word.
+                int si = i - shift;
+                bool isHeadingStart = stream.HeadingRange is { } r && r.Length == 2 && si == r[0];
                 var pendingWord = new PendingWord
                 {
                     W = stream.Words[i],
                     Page = pageIndex,
-                    ParaStart = stream.ParagraphStarts.Contains(i),
+                    ParaStart = stream.ParagraphStarts.Contains(si),
                     HeadingStart = isHeadingStart
                 };
                 _pending.Add(pendingWord);
                 _pendingChars += stream.Words[i].Text.Length + 1;
 
                 // The first word after the heading line anchors its section.
-                if (stream.HeadingRange is { } hrA && hrA.Length == 2 && i == hrA[1])
+                if (stream.HeadingRange is { } hrA && hrA.Length == 2 && si == hrA[1])
                     _headingAnchor = pendingWord;
 
                 if (_pendingChars >= _options.TargetChunkSize)

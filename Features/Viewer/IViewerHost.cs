@@ -53,7 +53,7 @@ namespace Avalanche.Features
 
         /// <summary>Switch tools - Crop uses this to drop back to Select when it finishes. 2 uses.</summary>
         void SetTool(EditTool tool);
-        bool SidebarShowingOutlines { get; }
+        bool SidebarShowingNotes { get; }
         void PopulateRecentFilesList(PdfViewer viewer);
         void SwitchSidebarToPagesTab();
         void SyncSidebarToDocState(bool hasDoc, bool startup);
@@ -63,8 +63,7 @@ namespace Avalanche.Features
         Border? SearchBar { get; }
         SearchController Search { get; }
         TextBlock FileNameLabel { get; }
-        TreeView OutlineTree { get; }
-        Button SidebarOutlinesTab { get; }
+
         TextBlock StatusText { get; }
         FrameworkElement ShortcutOverlay { get; }
         CheckBox LinkConfirmCheck { get; }
@@ -123,7 +122,6 @@ namespace Avalanche.Features
         void RepositionAnnotationBars();
         void PopulateContextMenu(PdfViewer viewer, Point point, int pageIndex);
         void RefreshPageList(PdfViewer viewer);
-        void LoadOutlines(PdfViewer viewer);
         Cursor CursorForTool(EditTool tool);
 
         // ── Notifications, so the window can update chrome for the FOCUSED viewer only ───────

@@ -97,6 +97,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">PAGES</sys:String>
     <sys:String x:Key="Str_TabOutlines">OUTLINE</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTES</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Collapse all</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Expand all</sys:String>
     <sys:String x:Key="Str_PageLabel">Page {0}</sys:String>
@@ -1238,4 +1239,13 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">From</sys:String>
+    <sys:String x:Key="Str_Notes_To">To</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Generate Notes</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Copy All Notes</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Copy card</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Select a page range and click Generate Notes to create review cards.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Generating notes for pages {0} to {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Notes failed: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Pages {0} – {1}</sys:String>
 </ResourceDictionary>

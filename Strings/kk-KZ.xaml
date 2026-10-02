@@ -60,6 +60,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">БЕТТЕР</sys:String>
     <sys:String x:Key="Str_TabOutlines">МАЗМҰН</sys:String>
+    <sys:String x:Key="Str_TabNotes">ЖАЗБАЛАР</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Барлығын жию</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Барлығын жаю</sys:String>
     <sys:String x:Key="Str_PageLabel">Бет {0}</sys:String>
@@ -1237,4 +1238,13 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Бастап</sys:String>
+    <sys:String x:Key="Str_Notes_To">Дейін</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Жазба жасау</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Барлық жазбаны көшіру</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">К карточкасын көшіру</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Парақтар ауқымын таңдап, «Жазба жасау» түймесін басыңыз — қайталау карточкалары жасалады.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">{0}-парақтан {1}-параққа дейін жазбалар жасалуда…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Жазбалар жасалмады: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">{0} – {1} парақтар</sys:String>
 </ResourceDictionary>

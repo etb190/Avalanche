@@ -130,13 +130,11 @@ namespace Avalanche.Controls
         private bool _asyncOpenPending;
         // This pane's own loader token, NOT the window's - see ThumbCts in PdfViewer.TabsApi.cs.
         private System.Threading.CancellationTokenSource? _thumbCts { get => ThumbCts; set => ThumbCts = value; }
-        private bool _sidebarShowingOutlines => Host!.SidebarShowingOutlines;
+        private bool _sidebarShowingNotes => Host!.SidebarShowingNotes;
         private readonly System.Collections.Generic.Stack<int> _navBack = new();
         private readonly System.Collections.Generic.Stack<int> _navForward = new();
 
         private TextBlock FileNameLabel => Host!.FileNameLabel;
-        private TreeView OutlineTree => Host!.OutlineTree;
-        private Button SidebarOutlinesTab => Host!.SidebarOutlinesTab;
 
         private ContextMenu MakeThemedMenu() => Host!.MakeThemedMenu();
         private void CloseSearchBar() => Host!.CloseSearchBar();

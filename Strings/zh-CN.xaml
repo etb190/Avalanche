@@ -59,6 +59,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">页面</sys:String>
     <sys:String x:Key="Str_TabOutlines">大纲</sys:String>
+    <sys:String x:Key="Str_TabNotes">笔记</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">全部折叠</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">全部展开</sys:String>
 
@@ -1222,4 +1223,13 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">从</sys:String>
+    <sys:String x:Key="Str_Notes_To">到</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">生成笔记</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">复制全部笔记</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">复制卡片</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">选择页码范围并点击“生成笔记”，即可创建复习卡片。</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">正在为第 {0} 页到第 {1} 页生成笔记…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">笔记生成失败：{0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">第 {0} – {1} 页</sys:String>
 </ResourceDictionary>

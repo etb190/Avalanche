@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">STRONY</sys:String>
     <sys:String x:Key="Str_TabOutlines">ZARYS</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTATKI</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Zwiń wszystko</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Rozwiń wszystko</sys:String>
     <sys:String x:Key="Str_PageLabel">Strona {0}</sys:String>
@@ -1226,4 +1227,13 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Od</sys:String>
+    <sys:String x:Key="Str_Notes_To">Do</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Utwórz notatki</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Kopiuj wszystkie notatki</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Kopiuj kartę</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Wybierz zakres stron i kliknij Utwórz notatki, aby przygotować karty powtórkowe.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Tworzenie notatek dla stron od {0} do {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Nie udało się utworzyć notatek: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Strony {0} – {1}</sys:String>
 </ResourceDictionary>

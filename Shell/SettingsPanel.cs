@@ -314,8 +314,8 @@ namespace Avalanche
             // SetResourceReference bindings update automatically; sidebar tabs and
             // active tool button background still need an explicit refresh.
             SetTool(_currentTool);
-            if (_sidebarShowingOutlines)
-                SwitchSidebarToOutlinesTab();
+            if (_sidebarShowingNotes)
+                SwitchSidebarToNotesTab();
             else
                 SwitchSidebarToPagesTab();
             // Re-evaluate the page-list edge overlays immediately. 98SE sets the theme
@@ -582,10 +582,9 @@ namespace Avalanche
             // current ActiveViewer by the time these controls are rebuilt.
             RefreshOpenAnnotationBars();
 
-            // Page thumbnails and outline tooltips snapshot Loc() strings when built; rebuild both
-            // lists so their "Page N" labels switch to the new language immediately.
+            // Page thumbnails snapshot Loc() strings when built; rebuild the list so its
+            // "Page N" labels switch to the new language immediately.
             RefreshPageList();
-            RefreshOutlines();
 
             // A visible signature popup is built with Loc() too; rebuild it so its section headers and
             // pen labels switch immediately.

@@ -59,6 +59,7 @@
     <!-- ── Kenar çubuğu sekmeleri ───────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">SAYFALAR</sys:String>
     <sys:String x:Key="Str_TabOutlines">ANA HATLAR</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTLAR</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Tümünü daralt</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Tümünü genişlet</sys:String>
 
@@ -1218,4 +1219,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Başlangıç</sys:String>
+    <sys:String x:Key="Str_Notes_To">Bitiş</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Not Oluştur</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Tüm Notları Kopyala</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Kartı Kopyala</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Gözden geçirme kartları oluşturmak için bir sayfa aralığı seçin ve Not Oluştur’a tıklayın.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">{0} ile {1} arasındaki sayfalar için notlar oluşturuluyor…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Notlar oluşturulamadı: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Sayfalar {0} – {1}</sys:String>
 </ResourceDictionary>

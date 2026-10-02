@@ -132,7 +132,6 @@ namespace Avalanche.Controls
         // PageList_SelectionChanged delegate are real members of this class now.
         private void PopulateContextMenu(Point pt, int page) => Host!.PopulateContextMenu(this, pt, page);
         private void RefreshPageList() => Host!.RefreshPageList(this);
-        private void LoadOutlines() => Host!.LoadOutlines(this);
         private Cursor CursorForTool(EditTool t) => Host!.CursorForTool(t);
 
         // The render cache is not forwarded either - TryGetCachedRender / CacheRender are real

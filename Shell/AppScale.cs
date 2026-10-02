@@ -81,7 +81,7 @@ namespace Avalanche
             {
                 double f = scale / prev;
                 _savedPagesWidth    *= f;
-                _savedOutlinesWidth *= f;
+                _savedNotesWidth *= f;
                 if (_sidebarCol is { } col)
                 {
                     if (col.Width.GridUnitType == GridUnitType.Pixel)

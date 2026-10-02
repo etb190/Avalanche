@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">STRÁNKY</sys:String>
     <sys:String x:Key="Str_TabOutlines">OSNOVA</sys:String>
+    <sys:String x:Key="Str_TabNotes">POZNÁMKY</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Sbalit vše</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Rozbalit vše</sys:String>
     <sys:String x:Key="Str_PageLabel">Stránka {0}</sys:String>
@@ -1223,4 +1224,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Od</sys:String>
+    <sys:String x:Key="Str_Notes_To">Do</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Vytvořit poznámky</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Kopírovat všechny poznámky</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Kopírovat kartu</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Zvolte rozsah stránek a klikněte na Vytvořit poznámky pro vytvoření opakovacích karet.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Vytvářejí se poznámky pro strany {0} až {1}…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Vytvoření poznámek selhalo: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Strany {0} – {1}</sys:String>
 </ResourceDictionary>

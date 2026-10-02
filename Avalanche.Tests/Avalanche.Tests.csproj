@@ -78,6 +78,10 @@
     <Compile Include="..\Features\AI\DocumentChunker.cs" Link="Features\AI\DocumentChunker.cs" />
     <!-- Pure prose-guarantee logic for the page digest - no WPF, no I/O. -->
     <Compile Include="..\Features\Summary\ProseGuard.cs" Link="Features\Summary\ProseGuard.cs" />
+    <!-- The geometric Markdown normalizer: pure (PageTextRuns in, GFM text out). -->
+    <Compile Include="..\Features\Summary\MarkdownNormalizer.cs" Link="Features\Summary\MarkdownNormalizer.cs" />
+    <!-- The Notes feature's pure slicing/parsing core. -->
+    <Compile Include="..\Features\Notes\NotesRecallLogic.cs" Link="Features\Notes\NotesRecallLogic.cs" />
     <!-- Semantic retrieval layer (embeddinggemma:latest): models, SQLite
          vector store, Ollama /api/embed client, indexer embedding pass and
          the hybrid retriever. AiHighlightLog is dependency-free file logging.

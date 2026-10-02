@@ -59,6 +59,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">SEITEN</sys:String>
     <sys:String x:Key="Str_TabOutlines">GLIEDERUNG</sys:String>
+    <sys:String x:Key="Str_TabNotes">NOTIZEN</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">Alle reduzieren</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">Alle erweitern</sys:String>
 
@@ -1224,4 +1225,13 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">Von</sys:String>
+    <sys:String x:Key="Str_Notes_To">Bis</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">Notizen erstellen</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">Alle Notizen kopieren</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">Karte kopieren</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">Seitenbereich wählen und „Notizen erstellen“ klicken, um Lernkarten zu erzeugen.</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">Notizen für Seiten {0} bis {1} werden erstellt…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">Notizen fehlgeschlagen: {0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">Seiten {0} – {1}</sys:String>
 </ResourceDictionary>

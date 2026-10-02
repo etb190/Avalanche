@@ -512,7 +512,6 @@ namespace Avalanche
             // Restore rather than refresh: RefreshPageList re-decodes every page, which on a large
             // document costs seconds on every click between panes.
             RestorePageListForActivePane();
-            LoadOutlines();
             SyncZoomBox();
             SyncPickerState();
             UpdatePageSizeDisplay();

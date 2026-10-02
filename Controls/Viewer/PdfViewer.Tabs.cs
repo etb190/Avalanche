@@ -613,9 +613,7 @@ namespace Avalanche.Controls
                 Host.PageJumpText = "";
                 Host.PageTotalText = "/ -";
             }
-            OutlineTree.Items.Clear();
-            SidebarOutlinesTab.IsEnabled = false;
-            if (_sidebarShowingOutlines) SwitchSidebarToPagesTab();
+            if (_sidebarShowingNotes) SwitchSidebarToPagesTab();
             SyncSidebarToDocState(hasDoc: false, startup: false);   // nothing open: collapse the rail, hide page controls
             MarkDirty(false);
             SetStatus(Loc("Str_Ready"));

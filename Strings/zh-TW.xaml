@@ -61,6 +61,7 @@
     <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">頁面</sys:String>
     <sys:String x:Key="Str_TabOutlines">大綱</sys:String>
+    <sys:String x:Key="Str_TabNotes">筆記</sys:String>
     <sys:String x:Key="Str_Outline_CollapseAll">全部摺疊</sys:String>
     <sys:String x:Key="Str_Outline_ExpandAll">全部展開</sys:String>
 
@@ -1220,4 +1221,13 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryLangAr">العربية</sys:String>
 	<sys:String x:Key="Str_SummaryOutOfRange">You are now reading p. {0} (outside {1}-{2}).</sys:String>
 	<sys:String x:Key="Str_SummaryRerunHere">Summarize {0}-{1}</sys:String>
+    <sys:String x:Key="Str_Notes_From">從</sys:String>
+    <sys:String x:Key="Str_Notes_To">到</sys:String>
+    <sys:String x:Key="Str_Notes_Generate">產生筆記</sys:String>
+    <sys:String x:Key="Str_Notes_CopyAll">複製全部筆記</sys:String>
+    <sys:String x:Key="Str_Notes_CopyCard">複製卡片</sys:String>
+    <sys:String x:Key="Str_Notes_Empty">選擇頁碼範圍並點擊「產生筆記」，即可建立複習卡片。</sys:String>
+    <sys:String x:Key="Str_Notes_Generating">正在為第 {0} 頁到第 {1} 頁產生筆記…</sys:String>
+    <sys:String x:Key="Str_Notes_Failed">筆記產生失敗：{0}</sys:String>
+    <sys:String x:Key="Str_Notes_Pages">第 {0} – {1} 頁</sys:String>
 </ResourceDictionary>

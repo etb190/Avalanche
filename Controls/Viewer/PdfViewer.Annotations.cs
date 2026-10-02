@@ -2726,7 +2726,6 @@ namespace Avalanche.Controls
                 ClearSelection();
                 MarkDirty(entry.WasDirty);
                 RefreshPageList();
-                LoadOutlines();   // #133: bookmark edits ride this undo path, and page-level undos can change the outline too
                 if (selectedIdx >= 0 && selectedIdx < _doc!.PageCount)
                     _currentPage = selectedIdx;
                 else if (_doc.PageCount > 0)

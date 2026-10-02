@@ -20,7 +20,7 @@ namespace Avalanche
         void IViewerHost.MarkDirty(bool dirty) => MarkDirty(dirty);
 
         void IViewerHost.SetTool(EditTool tool) => SetTool(tool);
-        bool IViewerHost.SidebarShowingOutlines => _sidebarShowingOutlines;
+        bool IViewerHost.SidebarShowingNotes => _sidebarShowingNotes;
         void IViewerHost.PopulateRecentFilesList(PdfViewer viewer) => PopulateRecentFilesList(viewer);
         void IViewerHost.SwitchSidebarToPagesTab() => SwitchSidebarToPagesTab();
         void IViewerHost.SyncSidebarToDocState(bool hasDoc, bool startup)
@@ -31,8 +31,7 @@ namespace Avalanche
         System.Windows.Controls.Border? IViewerHost.SearchBar => _searchBar;
         Features.SearchController IViewerHost.Search => Search;
         System.Windows.Controls.TextBlock IViewerHost.FileNameLabel => FileNameLabel;
-        System.Windows.Controls.TreeView IViewerHost.OutlineTree => OutlineTree;
-        System.Windows.Controls.Button IViewerHost.SidebarOutlinesTab => SidebarOutlinesTab;
+
         System.Windows.Controls.TextBlock IViewerHost.StatusText => StatusText;
         FrameworkElement IViewerHost.ShortcutOverlay => ShortcutOverlay;
         System.Windows.Controls.CheckBox IViewerHost.LinkConfirmCheck => LinkConfirmCheck;
@@ -105,8 +104,7 @@ namespace Avalanche
             => ((IViewerHost)this).RunWithViewerContext(viewer, () => PopulateContextMenu(point, pageIndex));
         void IViewerHost.RefreshPageList(PdfViewer viewer)
             => ((IViewerHost)this).RunWithViewerContext(viewer, RefreshPageList);
-        void IViewerHost.LoadOutlines(PdfViewer viewer)
-            => ((IViewerHost)this).RunWithViewerContext(viewer, LoadOutlines);
+
         Cursor IViewerHost.CursorForTool(EditTool tool) => CursorForTool(tool);
 
         // ---- Focused-viewer notifications ----------------------------------------------------

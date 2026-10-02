@@ -938,114 +938,7 @@
             </Setter>
         </Style>
 
-        <!-- Dark TreeView for PDF outline/bookmarks -->
-        <Style x:Key="OutlineTreeStyle" TargetType="TreeView">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontSize" Value="12"/>
-        </Style>
-        <!-- Outline tree expander triangle: themed (muted at rest, accent on hover), rotates on expand.
-             Replaces the stock WPF toggle so no default-blue chrome bleeds through. -->
-        <Style x:Key="OutlineExpander" TargetType="ToggleButton">
-            <Setter Property="Focusable" Value="False"/>
-            <Setter Property="Width" Value="16"/>
-            <Setter Property="Height" Value="16"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="Transparent" Width="16" Height="16">
-                            <Path x:Name="Arrow" Width="6" Height="9"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                                  RenderTransformOrigin="0.5,0.5"
-                                  Data="M0,0 L5,4.5 L0,9 Z"
-                                  Fill="{DynamicResource DimTextBrush}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Arrow" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <RotateTransform Angle="90"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource PrimaryBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Outline tree row: website-style accent left-bar + tinted selection, themed hover, no WPF blue. -->
-        <Style x:Key="OutlineItemStyle" TargetType="TreeViewItem">
-            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="IsExpanded" Value="False"/>
-            <Setter Property="Padding" Value="6,5"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TreeViewItem">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <!-- Header row: spans toggle + label, carries the selection fill and left accent bar.
-                                 Because it sits in row 0 only, its IsMouseOver excludes child rows (no ancestor hover). -->
-                            <Border x:Name="Bd" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                                    Background="Transparent" BorderBrush="Transparent"
-                                    BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="16"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <ToggleButton x:Name="Expander" Grid.Column="0"
-                                                  Style="{DynamicResource OutlineExpander}"
-                                                  IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
-                                                  ClickMode="Press"/>
-                                    <ContentPresenter x:Name="PART_Header" Grid.Column="1"
-                                                      ContentSource="Header"
-                                                      Margin="{TemplateBinding Padding}"
-                                                      HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                            <!-- Children indented by one toggle width -->
-                            <ItemsPresenter x:Name="ItemsHost" Grid.Row="1" Grid.Column="1"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsExpanded" Value="False">
-                                <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
-                            </Trigger>
-                            <Trigger Property="HasItems" Value="False">
-                                <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
-                            </Trigger>
-                            <Trigger SourceName="Bd" Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SelectionBg}"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
+        <!-- (The outline tree's styles went with the Outlines tab, replaced by the Notes panel.) -->
         <!-- General-purpose themed text button -->
         <Style x:Key="DarkButton" TargetType="Button">
             <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
@@ -1818,7 +1711,7 @@
                     <Control Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
                     <DockPanel x:Name="SidebarContentPanel">
                         <!-- Sticky header - lives outside the ScrollViewer so it never scrolls away -->
-                        <!-- Tab row: PAGES (left) | OUTLINES (right) -->
+                        <!-- Tab row: PAGES (left) | NOTES (right) -->
                         <DockPanel DockPanel.Dock="Top" LastChildFill="False" Height="20" Margin="10,6,8,0">
                             <Button x:Name="SidebarPagesTab" Content="{DynamicResource Str_TabPages}"
                                     DockPanel.Dock="Left"
@@ -1826,42 +1719,14 @@
                                     VerticalAlignment="Center"
                                     Foreground="{DynamicResource PrimaryBrush}"
                                     Click="SidebarPagesTab_Click"/>
-                            <Button x:Name="SidebarOutlinesTab" Content="{DynamicResource Str_TabOutlines}"
+                            <Button x:Name="SidebarNotesTab" Content="{DynamicResource Str_TabNotes}"
                                     DockPanel.Dock="Right"
                                     Style="{StaticResource SidebarTabBtn}"
                                     VerticalAlignment="Center"
-                                    IsEnabled="False"
-                                    Click="SidebarOutlinesTab_Click"/>
-                            <Button x:Name="OutlineExpandCollapseAllButton"
-                                    DockPanel.Dock="Right"
-                                    ToolTip="{DynamicResource Str_Outline_CollapseAll}"
-                                    Style="{StaticResource SidebarTabBtn}"
-                                    Width="18" Height="18" Padding="0" Margin="0,0,3,0"
-                                    VerticalAlignment="Center"
-                                    Visibility="Collapsed"
-                                    Click="OutlineExpandCollapseAll_Click">
-                                <Grid Width="18" Height="18" IsHitTestVisible="False">
-                                    <Rectangle Width="8" Height="1"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-                                    <Rectangle x:Name="OutlineExpandVerticalStroke"
-                                               Width="1" Height="8"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center"
-                                               Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                               Visibility="Collapsed"/>
-                                </Grid>
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Width="18" Height="18"
-                                                Background="{TemplateBinding Background}">
-                                            <ContentPresenter HorizontalAlignment="Center"
-                                                              VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
+                                    Foreground="{DynamicResource MutedTextBrush}"
+                                    Click="SidebarNotesTab_Click"/>
                         </DockPanel>
-                        <!-- Page controls row (hidden in outlines mode) -->
+                        <!-- Page controls row (hidden in notes mode) -->
                         <DockPanel x:Name="PageControlsRow" DockPanel.Dock="Top" LastChildFill="False" Margin="12,2,8,4" Visibility="Collapsed">
                             <TextBox x:Name="PageJumpBox" DockPanel.Dock="Left"
                                      Width="30" Height="20" VerticalAlignment="Center"
@@ -1991,22 +1856,106 @@
                             </Border.RenderTransform>
                         </Border>
                         </Grid>
-                        <!-- Outline/bookmark tree (visible when OUTLINES tab is active) -->
-                        <ScrollViewer x:Name="OutlineScrollViewer"
-                                      Visibility="Collapsed"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled"
-                                      PreviewMouseWheel="OutlineScroll_PreviewMouseWheel">
-                            <TreeView x:Name="OutlineTree"
-                                      Background="Transparent"
-                                      BorderThickness="0"
-                                      Style="{StaticResource OutlineTreeStyle}"
-                                      ItemContainerStyle="{StaticResource OutlineItemStyle}"
-                                      PreviewMouseRightButtonDown="OutlineTree_PreviewMouseRightButtonDown"
-                                      PreviewMouseLeftButtonDown="OutlineTree_PreviewMouseLeftButtonDown"
-                                      PreviewKeyDown="OutlineTree_PreviewKeyDown"
-                                      Padding="4,2"/>
-                        </ScrollViewer>
+                        <!-- Notes panel (visible when the NOTES tab is active). The
+                             controls header is pinned outside the ScrollViewer: a From/To
+                             page pair, the accent Generate button and the copy-all chip.
+                             The cards themselves (one per 50-page block, markdown-rendered
+                             by AiMarkdown) are built in Shell/SidebarNotes.cs. -->
+                        <DockPanel x:Name="NotesPanel" Visibility="Collapsed">
+                            <Grid DockPanel.Dock="Top" Margin="12,2,8,0">
+                                <Grid.Resources>
+                                    <Style x:Key="NotesPageBox" TargetType="TextBox">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="TextBox">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                                            CornerRadius="2">
+                                                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsFocused" Value="True">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Resources>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{DynamicResource Str_Notes_From}"
+                                           VerticalAlignment="Center" Margin="0,0,4,0"
+                                           FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
+                                <TextBox x:Name="NotesFromBox" Grid.Column="1"
+                                         Height="20" VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                         TextAlignment="Center" FontFamily="Consolas" FontSize="11"
+                                         Background="{DynamicResource PaneBrush}"
+                                         Foreground="{DynamicResource TextBrush}"
+                                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                         CaretBrush="{DynamicResource PrimaryBrush}"
+                                         SelectionBrush="{DynamicResource RowSelectedBrush}"
+                                         FocusVisualStyle="{x:Null}"
+                                         Style="{StaticResource NotesPageBox}"
+                                         KeyDown="NotesBox_KeyDown"
+                                         ToolTip="{DynamicResource Str_Notes_From}"/>
+                                <TextBlock Text="{DynamicResource Str_Notes_To}" Grid.Column="2"
+                                           VerticalAlignment="Center" Margin="8,0,4,0"
+                                           FontSize="11" Foreground="{DynamicResource MutedTextBrush}"/>
+                                <TextBox x:Name="NotesToBox" Grid.Column="3"
+                                         Height="20" VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                         TextAlignment="Center" FontFamily="Consolas" FontSize="11"
+                                         Background="{DynamicResource PaneBrush}"
+                                         Foreground="{DynamicResource TextBrush}"
+                                         BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                                         CaretBrush="{DynamicResource PrimaryBrush}"
+                                         SelectionBrush="{DynamicResource RowSelectedBrush}"
+                                         FocusVisualStyle="{x:Null}"
+                                         Style="{StaticResource NotesPageBox}"
+                                         KeyDown="NotesBox_KeyDown"
+                                         ToolTip="{DynamicResource Str_Notes_To}"/>
+                                <Button x:Name="NotesGenerateBtn" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                                        Margin="0,6,0,0" HorizontalAlignment="Stretch"
+                                        Content="{DynamicResource Str_Notes_Generate}"
+                                        Background="{DynamicResource SelectionAccent}"
+                                        Foreground="{DynamicResource SelectionFg}"
+                                        FontWeight="SemiBold" FontSize="11" Padding="10,4"
+                                        Style="{StaticResource DarkButton}"
+                                        FocusVisualStyle="{x:Null}"
+                                        Click="NotesGenerate_Click"/>
+                                <Button x:Name="NotesCopyAllBtn" Grid.Row="1" Grid.Column="3"
+                                        Margin="6,6,0,0" HorizontalAlignment="Right"
+                                        Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                        Width="26" Height="22" Padding="0"
+                                        Style="{StaticResource DarkButton}"
+                                        FocusVisualStyle="{x:Null}"
+                                        ToolTip="{DynamicResource Str_Notes_CopyAll}"
+                                        Click="NotesCopyAll_Click"/>
+                            </Grid>
+                            <TextBlock x:Name="NotesStatusText" DockPanel.Dock="Top" Visibility="Collapsed"
+                                       Margin="12,4,8,0" FontSize="11" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource MutedTextBrush}"/>
+                            <ScrollViewer x:Name="NotesScrollViewer"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <StackPanel x:Name="NotesCardsHost" Margin="8,4,8,8">
+                                    <TextBlock x:Name="NotesEmptyText"
+                                               Text="{DynamicResource Str_Notes_Empty}"
+                                               Foreground="{DynamicResource MutedTextBrush}"
+                                               FontSize="11" TextWrapping="Wrap" Margin="4,10,4,10"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
                     </DockPanel>
                     </Grid>
                 </Border>
