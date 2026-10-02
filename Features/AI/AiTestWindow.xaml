@@ -288,9 +288,19 @@
         <WrapPanel Grid.Row="1" Margin="16,10,16,2" HorizontalAlignment="Center"
                    VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="ModePagesLabel" FontSize="11.5" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,7,0"
+                           FontFamily="{DynamicResource UiFont}"
+                           Foreground="{DynamicResource MutedTextBrush}"
+                           Text="{DynamicResource Str_AiTest_ModePages}"/>
                 <ToggleButton x:Name="RangeToggle" Style="{StaticResource TestModeToggle}"
-                              Margin="0,0,8,0" VerticalAlignment="Center"
+                              Margin="0,0,7,0" VerticalAlignment="Center"
                               ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
+                <TextBlock x:Name="ModeRangeLabel" FontSize="11.5" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Margin="0,0,10,0"
+                           FontFamily="{DynamicResource UiFont}"
+                           Foreground="{DynamicResource MutedTextBrush}"
+                           Text="{DynamicResource Str_AiTest_ModeRange}"/>
                 <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
                     <RadioButton x:Name="Chip20" Style="{StaticResource TestRangeChip}" Tag="20"/>
                     <RadioButton x:Name="Chip60" Style="{StaticResource TestRangeChip}" Tag="60"/>

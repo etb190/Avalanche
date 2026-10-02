@@ -1051,6 +1051,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
         <sys:String x:Key="Str_AiTest_CustomRange">Vlastní rozsah</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Začátek</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Konec</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Strany</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Rozsah</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Strany musí být mezi 1 a {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokeny přečtené AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Odhadované odeslané tokeny</sys:String>
@@ -1202,6 +1204,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Otestovat tento rozsah pomocí AI</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

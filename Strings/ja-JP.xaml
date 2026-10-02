@@ -1066,6 +1066,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
         <sys:String x:Key="Str_AiTest_CustomRange">カスタム範囲</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">開始</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">終了</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">ページ</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">範囲</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">ページは 1 から {0} の間で指定してください。</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AIが読み取ったトークン数</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">推定送信トークン数</sys:String>
@@ -1217,6 +1219,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">AIでこの範囲をテストする</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

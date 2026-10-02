@@ -1050,6 +1050,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
         <sys:String x:Key="Str_AiTest_CustomRange">自定义范围</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">起始</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">结束</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">页面</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">范围</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">页码必须在 1 到 {0} 之间。</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI 读取的令牌数</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">估算发送的令牌数</sys:String>
@@ -1201,6 +1203,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">用 AI 测试此范围</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

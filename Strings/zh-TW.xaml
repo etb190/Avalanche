@@ -1048,6 +1048,8 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
         <sys:String x:Key="Str_AiTest_CustomRange">自訂範圍</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">起始</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">結束</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">頁面</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">範圍</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">頁碼必須在 1 到 {0} 之間。</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI 讀取的權杖數</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">估計送出的權杖數</sys:String>
@@ -1199,6 +1201,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">用 AI 測試此範圍</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

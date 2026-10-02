@@ -1065,6 +1065,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
         <sys:String x:Key="Str_AiTest_CustomRange">কাস্টম পরিসর</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">শুরু</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">শেষ</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">পৃষ্ঠা</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">পরিসর</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">পৃষ্ঠাগুলি 1 থেকে {0} এর মধ্যে হতে হবে।</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI যতটি টোকেন পড়েছে</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">আনুমানিক প্রেরিত টোকেন</sys:String>
@@ -1197,6 +1199,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">AI দিয়ে এই পরিসরটি পরীক্ষা করুন</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

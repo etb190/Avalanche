@@ -35,6 +35,7 @@ namespace Avalanche.Features.AI
 
         private CancellationTokenSource? _cts;
         private bool _running;
+        private bool _closed;       // placement persistence stops when the window is gone
         private int _generation;    // bumped by supersede/close: stale continuations can't repaint
 
         public AiTestWindow(
@@ -123,6 +124,44 @@ namespace Avalanche.Features.AI
             RunBtn.Click += async (_, _) => await RunProbeAsync().ConfigureAwait(true);
             CancelBtn.Click += (_, _) => { try { _cts?.Cancel(); } catch (ObjectDisposedException) { } };
             StatusText.Text = _loc("Str_AiTest_Waiting");
+
+            RestorePlacement();
+
+            // Placement follows the window live (debounced), the navigator's own
+            // pattern: a killed app still finds the window where the reader left
+            // it, and a reopened one comes back to the same spot.
+            var placementTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(800)
+            };
+            placementTimer.Tick += (_, _) =>
+            {
+                placementTimer.Stop();
+                if (!_closed)
+                {
+                    PersistPlacement();
+                }
+            };
+            LocationChanged += (_, _) =>
+            {
+                if (_closed)
+                {
+                    return;
+                }
+
+                placementTimer.Stop();
+                placementTimer.Start();
+            };
+            SizeChanged += (_, _) =>
+            {
+                if (_closed)
+                {
+                    return;
+                }
+
+                placementTimer.Stop();
+                placementTimer.Start();
+            };
         }
 
         /// <summary>True when this window probes the given document (MainWindow closes
@@ -133,9 +172,42 @@ namespace Avalanche.Features.AI
             return string.Equals(_filePath, path, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>Called by the summary navigator's beaker chip: switch to range
+        /// mode seeded with the navigator's current stretch and start the probe at
+        /// once. A probe already in flight is cancelled; the new run starts as soon
+        /// as the old one unwinds (superseded generations never repaint).</summary>
+        public async void StartRangeTest(int first, int last)
+        {
+            first = Math.Clamp(first, 1, _pageCount);
+            last = Math.Clamp(last, first, _pageCount);
+            RangeToggle.IsChecked = true;       // ApplyRangeMode swaps the faces
+            StartBox.Text = first.ToString(CultureInfo.InvariantCulture);
+            EndBox.Text = last.ToString(CultureInfo.InvariantCulture);
+
+            int gen = _generation;
+            if (_running)
+            {
+                try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+                var wait = System.Diagnostics.Stopwatch.StartNew();
+                while (_running && gen == _generation && wait.ElapsedMilliseconds < 2000)
+                {
+                    await System.Threading.Tasks.Task.Delay(50).ConfigureAwait(true);
+                }
+            }
+
+            if (gen != _generation)
+            {
+                return;     // the window closed while the old run unwound
+            }
+
+            await RunProbeAsync().ConfigureAwait(true);
+        }
+
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
+            _closed = true;
+            PersistPlacement();     // the window's place survives restarts
             _generation++;
             // Cancel only, never dispose: the detached probe still polls the token,
             // and a disposed source can throw from those polls. GC reclaims it.
@@ -260,6 +332,13 @@ namespace Avalanche.Features.AI
             bool custom = RangeToggle.IsChecked == true;
             RangePanel.Visibility = custom ? Visibility.Collapsed : Visibility.Visible;
             RangeInputPanel.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
+            // The captions hold their posts either way - Pages on the left, Range
+            // on the right - and the mode in force reads one step brighter than
+            // the one at rest.
+            ModePagesLabel.SetResourceReference(TextBlock.ForegroundProperty,
+                custom ? "MutedTextBrush" : "TextBrush");
+            ModeRangeLabel.SetResourceReference(TextBlock.ForegroundProperty,
+                custom ? "TextBrush" : "MutedTextBrush");
         }
 
         private void RenderResult(AiTestProbeResult probe)
@@ -372,6 +451,80 @@ namespace Avalanche.Features.AI
             RangeInputPanel.IsEnabled = !busy;
             RunBtn.IsEnabled = !busy;
             CancelBtn.IsEnabled = busy;
+        }
+
+
+        // ------------------------------------------------------------------
+        // Placement persistence (the summary navigator's, transplanted)
+        // ------------------------------------------------------------------
+
+        // The test window is the reader's companion, not a dialog: it reopens
+        // exactly where they dragged it, across window reopenings AND app
+        // restarts - the summary navigator's own placement pattern, its own
+        // aitest.win.* settings keeping the two windows independent.
+        private void RestorePlacement()
+        {
+            try
+            {
+                if (TryGetSetting("aitest.win.w", out double width) && width >= 400 && width <= 1600)
+                {
+                    Width = width;
+                }
+
+                if (TryGetSetting("aitest.win.h", out double height) && height >= 400 && height <= 2200)
+                {
+                    Height = height;
+                }
+
+                if (TryGetSetting("aitest.win.left", out double left) && TryGetSetting("aitest.win.top", out double top))
+                {
+                    // DialogChrome.Configure leaves WindowStartupLocation.CenterOwner
+                    // in place, and WPF applies the startup location at Show()
+                    // REGARDLESS of explicitly set Left/Top - the same clobber the
+                    // navigator's restore hit. Manual hands the position back to the
+                    // saved coordinates.
+                    WindowStartupLocation = WindowStartupLocation.Manual;
+                    double vsLeft = SystemParameters.VirtualScreenLeft;
+                    double vsTop = SystemParameters.VirtualScreenTop;
+                    double vsRight = vsLeft + SystemParameters.VirtualScreenWidth;
+                    double vsBottom = vsTop + SystemParameters.VirtualScreenHeight;
+                    Left = Math.Clamp(left, vsLeft - 100, Math.Max(vsLeft - 100, vsRight - 200));
+                    Top = Math.Clamp(top, vsTop - 20, Math.Max(vsTop - 20, vsBottom - 120));
+                }
+            }
+            catch
+            {
+                // placement is best-effort
+            }
+        }
+
+        private void PersistPlacement()
+        {
+            try
+            {
+                AppDataPaths.SetSetting("aitest.win.w", Width.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting("aitest.win.h", Height.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting("aitest.win.left", Left.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting("aitest.win.top", Top.ToString(CultureInfo.InvariantCulture));
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        private static bool TryGetSetting(string name, out double value)
+        {
+            string? raw = AppDataPaths.GetSetting(name);
+            if (raw != null
+                && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed))
+            {
+                value = parsed;
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         // ------------------------------------------------------------------

@@ -1046,6 +1046,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
         <sys:String x:Key="Str_AiTest_CustomRange">Rango personalizado</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Inicio</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Fin</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Páginas</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Rango</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Las páginas deben estar entre 1 y {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokens leídos por la IA</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Tokens estimados enviados</sys:String>
@@ -1197,6 +1199,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Probar este rango con IA</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

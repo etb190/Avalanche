@@ -331,6 +331,11 @@ namespace Avalanche
             // so its bridge would NullReference the moment anything touched it otherwise.
             InitSplitPanes();
             WirePageListEdgeFades();   // sidebar page-list edge fades (SidebarLayout.cs)
+            // A reader scrolling or clicking the page list by hand takes the
+            // scroll back from the range glide (NavigateSummaryRangeStart's
+            // sidebar animation).
+            PageList.PreviewMouseWheel += (_, _) => StopSidebarGlide();
+            PageList.PreviewMouseLeftButtonDown += (_, _) => StopSidebarGlide();
             HookExternalLangReload();  // #211: --lang-file live reload rebuilds code-built captions
             _pageContentGrid  = ActiveViewer.PageGrid;
             _pageContentPanel = ActiveViewer.PageHost;
@@ -981,10 +986,24 @@ namespace Avalanche
 
         private void OpenAiTestWindow()
         {
+            var test = CreateAiTestWindow();
+            if (test is null)
+            {
+                return;
+            }
+
+            _aiTestWindow = test;
+            test.Show();
+        }
+
+        // The window factory behind both openers: the toolbar toggle and the
+        // summary navigator's test-this-range chip.
+        private Features.AI.AiTestWindow? CreateAiTestWindow()
+        {
             if (string.IsNullOrEmpty(_currentFile) || _doc is null)
             {
                 SetStatusHeld(Loc("Str_AiTest_NoDoc"));
-                return;
+                return null;
             }
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
@@ -1001,8 +1020,33 @@ namespace Avalanche
                     _aiTestWindow = null;
                 }
             };
+            return test;
+        }
+
+        // The summary navigator's beaker chip: open (or reuse) the tester and
+        // start a probe over exactly the stretch the navigator is showing -
+        // the range's first page through its last.
+        private void OpenAiTestForRange(int first, int last)
+        {
+            if (_aiTestWindow is { } open && !string.IsNullOrEmpty(_currentFile)
+                && open.DocumentPathEquals(_currentFile))
+            {
+                open.StartRangeTest(first, last);
+                open.Activate();
+                return;
+            }
+
+            _aiTestWindow?.Close();
+            _aiTestWindow = null;
+            var test = CreateAiTestWindow();
+            if (test is null)
+            {
+                return;
+            }
+
             _aiTestWindow = test;
             test.Show();
+            test.StartRangeTest(first, last);
         }
 
 
@@ -1070,7 +1114,100 @@ namespace Avalanche
                 return;
             }
 
+            // The sidebar leads: its glide parks the range's first page at the
+            // TOP of the page list - and owns the list's scroll while it runs,
+            // so the page-sync's ScrollIntoView cannot fight the animation.
+            if (PageList is { } list && list.Items.Count > 0)
+            {
+                GlideSidebarToPageTop(Math.Clamp(pageNumber - 1, 0, list.Items.Count - 1));
+            }
+
             ActiveViewer?.NavigateToPageAnimatedExt(Math.Clamp(pageNumber - 1, 0, _doc.PageCount - 1));
+        }
+
+        // ── The page list's range glide ─────────────────────────────────────
+        // The reading navigator's arrows glide the DOCUMENT to the new stretch's
+        // first page; this glides the SIDEBAR the same way, so the range's first
+        // page ends up seated at the top of the page list. The selection's own
+        // ScrollIntoView only guarantees visibility and would fight the run, so
+        // it stands down for the glide's lifetime (EnsureSidebarPageVisible);
+        // the reader touching the list takes the scroll back instantly.
+
+        private DispatcherTimer? _sidebarGlideTimer;
+        private int _sidebarGlidePage = -1;     // >= 0 while a glide owns the list's scroll
+
+        private void GlideSidebarToPageTop(int pageIndex)
+        {
+            if (PageList is null || pageIndex < 0 || pageIndex >= PageList.Items.Count)
+            {
+                return;
+            }
+
+            StopSidebarGlide();
+            // Virtualization may not have built the row yet: ScrollIntoView once
+            // to seat the generator, then measure the row's real offset.
+            if (PageList.ItemContainerGenerator.ContainerFromIndex(pageIndex) is not FrameworkElement)
+            {
+                PageList.ScrollIntoView(PageList.Items[pageIndex]);
+                PageList.UpdateLayout();
+            }
+
+            if (PageList.ItemContainerGenerator.ContainerFromIndex(pageIndex) is not FrameworkElement row
+                || FindSidebarDescendant<ScrollViewer>(PageList) is not { } sv)
+            {
+                return;
+            }
+
+            // The row's Y relative to the viewport: scrolling down by exactly
+            // that parks the row's top edge on the viewport's top edge.
+            double rowTop = row.TransformToVisual(sv).Transform(new Point(0, 0)).Y;
+            double target = Math.Clamp(sv.VerticalOffset + rowTop, 0, Math.Max(0, sv.ScrollableHeight));
+            double from = sv.VerticalOffset;
+            if (Math.Abs(target - from) < 2)
+            {
+                return;     // already seated - nothing to glide
+            }
+
+            _sidebarGlidePage = pageIndex;
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var glide = new DispatcherTimer(DispatcherPriority.Render)
+            {
+                Interval = TimeSpan.FromMilliseconds(16)
+            };
+            _sidebarGlideTimer = glide;
+            glide.Tick += (_, _) =>
+            {
+                if (_sidebarGlideTimer != glide || _doc is null
+                    || PageList is null || pageIndex >= PageList.Items.Count)
+                {
+                    glide.Stop();
+                    if (_sidebarGlideTimer == glide)
+                    {
+                        _sidebarGlideTimer = null;
+                        _sidebarGlidePage = -1;
+                    }
+
+                    return;
+                }
+
+                double t = Math.Min(1.0, clock.Elapsed.TotalMilliseconds / 280.0);
+                double eased = 1.0 - (1.0 - t) * (1.0 - t);      // ease-out quad
+                sv.ScrollToVerticalOffset(from + (target - from) * eased);
+                if (t >= 1.0)
+                {
+                    glide.Stop();
+                    _sidebarGlideTimer = null;
+                    _sidebarGlidePage = -1;
+                }
+            };
+            glide.Start();
+        }
+
+        private void StopSidebarGlide()
+        {
+            _sidebarGlideTimer?.Stop();
+            _sidebarGlideTimer = null;
+            _sidebarGlidePage = -1;
         }
 
         private void ApplyPageRangeHighlight(int first, int last)
@@ -1173,6 +1310,9 @@ namespace Avalanche
             // The arrows move the reading range; the document glides along to
             // the new stretch's first page.
             summary.PageNavigationRequested += NavigateSummaryRangeStart;
+            // The beaker chip in the navigator's title bar: probe the exact
+            // stretch on screen with the AI test.
+            summary.TestRangeRequested += OpenAiTestForRange;
             summary.Closed += (_, _) =>
             {
                 RefreshSummaryPageHighlight();      // the page list returns to the single page

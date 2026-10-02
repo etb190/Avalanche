@@ -180,6 +180,9 @@ namespace Avalanche
         void IViewerHost.EnsureSidebarPageVisible(PdfViewer viewer, int pageIndex)
         {
             if (!ReferenceEquals(ActiveViewer, viewer) || pageIndex < 0 || pageIndex >= PageList.Items.Count) return;
+            // The range glide (NavigateSummaryRangeStart) owns the list's scroll
+            // while it runs - a mid-animation ScrollIntoView would jump the row.
+            if (_sidebarGlidePage >= 0) return;
             PageList.ScrollIntoView(PageList.Items[pageIndex]);
         }
 

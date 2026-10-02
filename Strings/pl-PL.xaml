@@ -1054,6 +1054,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
         <sys:String x:Key="Str_AiTest_CustomRange">Zakres niestandardowy</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Początek</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Koniec</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Strony</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Zakres</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Strony muszą być między 1 a {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokeny przeczytane przez AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Szacowane wysłane tokeny</sys:String>
@@ -1205,6 +1207,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Przetestuj ten zakres z pomocą AI</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

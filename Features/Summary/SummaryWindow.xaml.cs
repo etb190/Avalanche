@@ -126,6 +126,12 @@ namespace Avalanche.Features.Summary
                     CloseButtonSize = 24,
                     BeforeClose = new UIElement[]
                     {
+                        // The test-this-range chip: leftmost of the three, the AI
+                        // Test beaker with real air before the minus. It opens the
+                        // AI test window and starts a probe over the exact stretch
+                        // the navigator is showing - the range's first page through
+                        // its last.
+                        BuildTestRangeChip(),
                         // The pair the reader asked for: minus on the left, a clear gap
                         // between the two, and the increase chip on the right, nearest
                         // the close mark. Drawn + and - faces - rectangles center
@@ -297,6 +303,11 @@ namespace Avalanche.Features.Summary
         // of the new range): the document follows - a smooth, fast scroll that
         // parks the new stretch's first page at the top of the viewport.
         public event Action<int>? PageNavigationRequested;
+
+        // Raised by the title bar's beaker chip: the reader wants the AI test to
+        // probe exactly the stretch on screen. MainWindow opens (or reuses) the
+        // tester and starts it on this range - first page through last.
+        public event Action<int, int>? TestRangeRequested;
 
         /// <summary>True when this window already summarizes the given document
         /// (MainWindow reuses the instance instead of opening a second one).</summary>
@@ -824,6 +835,36 @@ namespace Avalanche.Features.Summary
                 ToolTip = _loc(tooltipKey)
             };
             chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
+            return chip;
+        }
+
+        // The test-this-range chip: the same 24px title-bar square as the font
+        // chips, wearing the AI Test toolbar's own beaker glyph so the two read
+        // as one feature. The click is taken in the tunnel like theirs (the bar's
+        // DragMove must not eat it) and raises TestRangeRequested with the
+        // stretch currently on screen - the range's first page through its last.
+        private Button BuildTestRangeChip()
+        {
+            var glyph = new TextBlock
+            {
+                Text = "\uE9D9",                    // Segoe MDL2 TestBeaker
+                FontFamily = UiKit.IconFont,
+                FontSize = 13,
+                Margin = new Thickness(0, -1, 0, 0) // the font's ink rides high; optically center
+            };
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            var chip = new Button
+            {
+                Style = (Style)FindResource("SumTitleBtn"),
+                Content = glyph,
+                Margin = new Thickness(0, 0, 14, 0),    // the gap before the minus
+                ToolTip = _loc("Str_SummaryTestRange")
+            };
+            chip.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                TestRangeRequested?.Invoke(_startPage, RangeEnd());
+            };
             return chip;
         }
 

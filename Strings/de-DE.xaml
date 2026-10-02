@@ -1052,6 +1052,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
         <sys:String x:Key="Str_AiTest_CustomRange">Eigener Bereich</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Start</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Ende</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Seiten</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Bereich</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Seiten müssen zwischen 1 und {0} liegen.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Von der KI gelesene Token</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Geschätzte gesendete Token</sys:String>
@@ -1203,6 +1205,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Diesen Bereich mit KI testen</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

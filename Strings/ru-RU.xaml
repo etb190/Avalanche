@@ -1066,6 +1066,8 @@ Avalanche не будет создавать две установленные �
         <sys:String x:Key="Str_AiTest_CustomRange">Свой диапазон</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Начало</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Конец</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Страницы</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Диапазон</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Страницы должны быть от 1 до {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Токенов прочитано ИИ</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Оценочно отправлено токенов</sys:String>
@@ -1217,6 +1219,7 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Проверить этот диапазон с помощью ИИ</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

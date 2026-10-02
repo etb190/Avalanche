@@ -66,6 +66,8 @@
         <sys:String x:Key="Str_AiTest_CustomRange">Custom Range</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Start</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">End</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Pages</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Range</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Pages must be between 1 and {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Tokens read by AI</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Estimated tokens sent</sys:String>
@@ -1217,6 +1219,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Test this range with AI</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

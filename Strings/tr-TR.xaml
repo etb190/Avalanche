@@ -1046,6 +1046,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
         <sys:String x:Key="Str_AiTest_CustomRange">Özel Aralık</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Başlangıç</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Bitiş</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Sayfalar</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Aralık</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Sayfalar 1 ile {0} arasında olmalı.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI'nın okuduğu tokenler</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Tahmini gönderilen tokenler</sys:String>
@@ -1197,6 +1199,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Bu aralığı yapay zekâ ile sına</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

@@ -1066,6 +1066,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
         <sys:String x:Key="Str_AiTest_CustomRange">Phạm vi tùy chọn</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Bắt đầu</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Kết thúc</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Trang</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Phạm vi</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Trang phải từ 1 đến {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Token AI đã đọc</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Token gửi ước tính</sys:String>
@@ -1217,6 +1219,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Kiểm tra phạm vi này bằng AI</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>

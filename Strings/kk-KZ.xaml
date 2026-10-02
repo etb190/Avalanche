@@ -1065,6 +1065,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
         <sys:String x:Key="Str_AiTest_CustomRange">Өз диапазоны</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Бастау</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Аяқтау</sys:String>
+        <sys:String x:Key="Str_AiTest_ModePages">Беттер</sys:String>
+        <sys:String x:Key="Str_AiTest_ModeRange">Ауқым</sys:String>
         <sys:String x:Key="Str_AiTest_BadRange">Парақтар 1-ден {0}-ге дейін болуы керек.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI оқыған токендер</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Болжамды жіберілген токендер</sys:String>
@@ -1216,6 +1218,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
+	<sys:String x:Key="Str_SummaryTestRange">Бұл ауқымды ЖИ көмегімен тексеру</sys:String>
 	<sys:String x:Key="Str_SummaryStartPage">Start page</sys:String>
 	<sys:String x:Key="Str_SummaryR1p">1p</sys:String>
 	<sys:String x:Key="Str_SummaryR5p">5p</sys:String>
