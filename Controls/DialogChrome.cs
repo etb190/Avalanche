@@ -28,6 +28,21 @@ namespace Avalanche
             // navigator puts its close mark in the same bordered chip as the
             // font buttons beside it) without forking BuildTitleBar.
             public Action<Button>? CloseCreated { get; init; }
+
+            // Centered extras ride the wordmark's own star column, horizontally
+            // centered - the bar's visual middle, between the wordmark at the far
+            // left and the close-side chips (the Recap toggle lives there).
+            // Deliberately OUTSIDE the CloseButtonSize sync: that loop squares
+            // every BeforeClose element to the wordmark's height, and a toggle
+            // row is not a square chip.
+            public IReadOnlyList<UIElement> Centered { get; init; } = Array.Empty<UIElement>();
+
+            // The title's plain text node, handed to hosts whose title follows
+            // their content - the Recap companion renames its bar for every page
+            // it condenses. Fired for the blurred shadow copy first and the crisp
+            // copy last; a host that rewrites every TextBlock it receives keeps
+            // both in step (a stale shadow would ghost the old title).
+            public Action<TextBlock>? TitleTextCreated { get; init; }
         }
 
         // Keep generated dialog captions on the same close mark as the main window.
@@ -128,7 +143,14 @@ namespace Avalanche
                 }
                 else
                 {
-                    sp.Children.Add(new TextBlock { Text = fullTitle ?? "", FontFamily = UiKit.MonoFont, FontSize = 14, Foreground = primary, VerticalAlignment = VerticalAlignment.Center });
+                    // A title without the wordmark renders as one mono TextBlock.
+                    // It doubles as the measure anchor (the close chip squares to
+                    // it like the wordmark's own height) and is handed to the
+                    // host through TitleTextCreated.
+                    var plain = new TextBlock { Text = fullTitle ?? "", FontFamily = UiKit.MonoFont, FontSize = 14, Foreground = primary, VerticalAlignment = VerticalAlignment.Center };
+                    measureText ??= plain;
+                    extras?.TitleTextCreated?.Invoke(plain);
+                    sp.Children.Add(plain);
                 }
                 return sp;
             }
@@ -143,6 +165,7 @@ namespace Avalanche
                     Foreground = Brush(owner, "ChromeTextBrush", Brushes.White), VerticalAlignment = VerticalAlignment.Center
                 };
                 measureText ??= captionText;
+                extras?.TitleTextCreated?.Invoke(captionText);
                 title.Children.Add(captionText);
             }
             else
@@ -156,6 +179,24 @@ namespace Avalanche
             }
             Grid.SetColumn(title, 0);
             grid.Children.Add(title);
+
+            // Centered extras drop into the wordmark's star column: the column
+            // spans everything left of the close-side extras, so centering inside
+            // it parks the element in the bar's visual middle - the "top middle
+            // bar". Vertical centering matches the wordmark's own.
+            if (extras is { } chromeExtras)
+            {
+                foreach (UIElement centered in chromeExtras.Centered)
+                {
+                    if (centered is FrameworkElement centeredElement)
+                    {
+                        centeredElement.HorizontalAlignment = HorizontalAlignment.Center;
+                        centeredElement.VerticalAlignment = VerticalAlignment.Center;
+                    }
+
+                    title.Children.Add(centered);
+                }
+            }
 
             // The close glyph and its complete raised/pressed face live in ChromeCloseButton.
             // Supplying another glyph/font/background here was overriding that canonical style and

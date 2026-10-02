@@ -1234,4 +1234,12 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Notes_Generating">Notizen für Seiten {0} bis {1} werden erstellt…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">Notizen fehlgeschlagen: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">Seiten {0} – {1}</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">Automatische Zusammenfassung beim Umblättern ein- oder ausschalten</sys:String>
+    <sys:String x:Key="Str_Recap_Title">Recap — Seite {0}</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">Recap — Seiten {0}–{1}</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Seite wird verdichtet…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Auf dieser Seite gibt es keinen lesbaren Text für eine Zusammenfassung.</sys:String>
 </ResourceDictionary>

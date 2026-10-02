@@ -1233,4 +1233,12 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Notes_Generating">Vytvářejí se poznámky pro strany {0} až {1}…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">Vytvoření poznámek selhalo: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">Strany {0} – {1}</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">Zapnout nebo vypnout automatické shrnutí při listování stránkami</sys:String>
+    <sys:String x:Key="Str_Recap_Title">Recap — Strana {0}</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strany {0}–{1}</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Zhušťování stránky…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Na této stránce není žádný čitelný text k shrnutí.</sys:String>
 </ResourceDictionary>

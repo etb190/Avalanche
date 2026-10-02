@@ -959,7 +959,37 @@ namespace Avalanche.Features.Summary
         // HTTP + SSE
         // ------------------------------------------------------------------
 
-        private static HttpRequestMessage BuildRequest(AiProviderConfig config, string system, string user, int maxTokens, bool stream)
+        // ------------------------------------------------------------------
+        // Recap condensation (the Recap companion)
+        // ------------------------------------------------------------------
+
+        /// <summary>One-shot condensation for the Recap companion: a single short
+        /// paragraph (3-4 sentences) over already-extracted page text. The reader
+        /// wants the page's own points, not a creative retelling, so the pass runs
+        /// at temperature 0 regardless of the provider profile - and as one
+        /// buffered request: the reply is hardened through the same reader as the
+        /// digest, where a reasoning-only answer (the whole budget spent thinking)
+        /// comes back empty and gets one retry at double the room before the
+        /// controller shows its honest failure. Thinking notes never paint.</summary>
+        internal static async Task<string> CondenseAsync(
+            AiProviderConfig config, string system, string user, CancellationToken ct)
+        {
+            // A 3-4 sentence paragraph is a few hundred tokens, but a reasoning
+            // model hides its spend: floor the ceiling like the digest does. Caps
+            // only cost when they are used.
+            int budget = Math.Max(config.MaxTokens, 4096);
+            string text = await RunBufferedPassAsync(
+                config, system, user, ct, budget, temperature: 0).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                text = await RunBufferedPassAsync(
+                    config, system, user, ct, budget * 2, temperature: 0).ConfigureAwait(false);
+            }
+
+            return text?.Trim() ?? string.Empty;
+        }
+
+        private static HttpRequestMessage BuildRequest(AiProviderConfig config, string system, string user, int maxTokens, bool stream, double? temperature = null)
         {
             var body = new Dictionary<string, object?>
             {
@@ -969,7 +999,7 @@ namespace Avalanche.Features.Summary
                     new { role = "system", content = system },
                     new { role = "user", content = user }
                 },
-                ["temperature"] = config.Temperature,
+                ["temperature"] = temperature ?? config.Temperature,
                 ["max_tokens"] = maxTokens,
                 ["stream"] = stream
             };
@@ -1166,9 +1196,9 @@ namespace Avalanche.Features.Summary
         }
 
         private static async Task<string> RunBufferedPassAsync(
-            AiProviderConfig config, string system, string user, CancellationToken ct, int maxTokens)
+            AiProviderConfig config, string system, string user, CancellationToken ct, int maxTokens, double? temperature = null)
         {
-            using var request = BuildRequest(config, system, user, maxTokens, stream: false);
+            using var request = BuildRequest(config, system, user, maxTokens, stream: false, temperature);
             SurfaceHealthLog.Log(string.Format(
                 CultureInfo.InvariantCulture,
                 "summary: POST model={0} system={1}ch user={2}ch stream=false maxTokens={3}",

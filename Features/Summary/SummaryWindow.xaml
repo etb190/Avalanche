@@ -245,6 +245,69 @@
                 </Setter>
             </Style>
 
+        <!-- The Recap switch: the AI tester's iOS-style mode switch, mirrored
+             VERBATIM so the title-bar toggle is the exact same control - the
+             40px track, the 16px white thumb gliding 18px in 150ms. Window-
+             scoped like every shared face in this codebase (app-scope slots
+             are index-addressed and off limits); the two definitions stay
+             identical on purpose. -->
+        <Style x:Key="TestModeToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="track" CornerRadius="11"
+                                    Background="{DynamicResource RowHoverBrush}"
+                                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"/>
+                            <Ellipse x:Name="thumb" Width="16" Height="16" Fill="White"
+                                     HorizontalAlignment="Left" Margin="3,0,0,0">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform X="0"/>
+                                </Ellipse.RenderTransform>
+                                <Ellipse.Effect>
+                                    <DropShadowEffect ShadowDepth="1" BlurRadius="3" Opacity="0.35"/>
+                                </Ellipse.Effect>
+                            </Ellipse>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="track" Property="BorderBrush" Value="{DynamicResource SelectionFg}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="track" Property="Background" Value="{DynamicResource SelectionBg}"/>
+                                <Setter TargetName="track" Property="BorderBrush" Value="{DynamicResource SelectionBg}"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="thumb"
+                                                             Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.X)"
+                                                             To="18" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="thumb"
+                                                             Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.X)"
+                                                             To="0" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         </ResourceDictionary>
     </Window.Resources>
 

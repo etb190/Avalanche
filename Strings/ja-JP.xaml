@@ -1248,4 +1248,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Notes_Generating">{0} ページから {1} ページのノートを生成中…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">ノートの生成に失敗しました: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">{0} – {1} ページ</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">リキャップ</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">ページをめくったときの自動サマリーを切り替えます</sys:String>
+    <sys:String x:Key="Str_Recap_Title">リキャップ — {0} ページ</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">リキャップ — {0}–{1} ページ</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">ページを要約中…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">このページには要約できるテキストがありません。</sys:String>
 </ResourceDictionary>

@@ -1228,4 +1228,12 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Notes_Generating">Generando notas para las páginas {0} a {1}…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">Error en las notas: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">Páginas {0} – {1}</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">Activar el resumen automático al pasar de página</sys:String>
+    <sys:String x:Key="Str_Recap_Title">Recap — Página {0}</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">Recap — Páginas {0}–{1}</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Condensando página…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">No hay texto legible en esta página para resumir.</sys:String>
 </ResourceDictionary>

@@ -1232,4 +1232,12 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Notes_Generating">正在为第 {0} 页到第 {1} 页生成笔记…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">笔记生成失败：{0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">第 {0} – {1} 页</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">回顾</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">切换翻页时自动生成的上一页回顾</sys:String>
+    <sys:String x:Key="Str_Recap_Title">回顾 — 第 {0} 页</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">回顾 — 第 {0}–{1} 页</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">正在浓缩本页…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">本页没有可读取的文本，无法生成回顾。</sys:String>
 </ResourceDictionary>

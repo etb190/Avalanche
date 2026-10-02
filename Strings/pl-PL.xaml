@@ -1236,4 +1236,12 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Notes_Generating">Tworzenie notatek dla stron od {0} do {1}…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">Nie udało się utworzyć notatek: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">Strony {0} – {1}</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">Włącz lub wyłącz automatyczne podsumowanie przy przewracaniu stron</sys:String>
+    <sys:String x:Key="Str_Recap_Title">Recap — Strona {0}</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strony {0}–{1}</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Kondensowanie strony…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Na tej stronie nie ma czytelnego tekstu do podsumowania.</sys:String>
 </ResourceDictionary>

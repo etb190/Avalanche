@@ -1247,4 +1247,12 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Notes_Generating">{0}-парақтан {1}-параққа дейін жазбалар жасалуда…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">Жазбалар жасалмады: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">{0} – {1} парақтар</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">Беттерді айналдырғандағы автоматты қорытындыны қосу немесе өшіру</sys:String>
+    <sys:String x:Key="Str_Recap_Title">Recap — {0}-бет</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">Recap — {0}–{1}-беттер</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Бет қысқартылуда…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Бұл бетте қорытынды жасауға жарамды мәтін жоқ.</sys:String>
 </ResourceDictionary>

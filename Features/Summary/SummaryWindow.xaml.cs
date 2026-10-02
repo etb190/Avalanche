@@ -27,6 +27,7 @@ namespace Avalanche.Features.Summary
     using System.Threading;
     using System.Windows;
     using System.Windows.Controls;
+    using System.Windows.Controls.Primitives;
     using System.Windows.Input;
     using System.Windows.Media;
     using System.Windows.Shapes;
@@ -134,6 +135,9 @@ namespace Avalanche.Features.Summary
                 {
                     BottomSeparator = true,
                     CloseButtonSize = 24,
+                    // The Recap switch rides the bar's middle: centered between
+                    // the wordmark on the left and the beaker chip on the right.
+                    Centered = new UIElement[] { BuildRecapToggle() },
                     BeforeClose = new UIElement[]
                     {
                         // The test-this-range chip: leftmost of the three, the AI
@@ -1073,6 +1077,55 @@ namespace Avalanche.Features.Summary
             };
             chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
             return chip;
+        }
+
+        // The Recap switch: the AI tester's iOS-style toggle (the exact same
+        // 40px track, the same 16px white thumb gliding 18px in 150ms - the
+        // style is mirrored verbatim in this window's resources) beside a bold
+        // "Recap" label. The chrome centers the pair in the top middle bar,
+        // between the wordmark and this window's beaker chip. Checked is the
+        // feature's persisted state; unchecking also dismisses any recap
+        // window that is showing.
+        private FrameworkElement BuildRecapToggle()
+        {
+            var toggle = new ToggleButton
+            {
+                Style = (Style)FindResource("TestModeToggle"),
+                IsChecked = RecapController.Enabled,
+                ToolTip = _loc("Str_TT_RecapMode")
+            };
+            // Press, not click: the flip happens on touch-down like every iOS
+            // switch, taken in the tunnel so the bar's DragMove can never turn
+            // a tap into a window move. Setting IsChecked by hand raises
+            // Checked/Unchecked, which drive both the thumb animation and the
+            // feature's state.
+            toggle.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                toggle.IsChecked = toggle.IsChecked != true;
+            };
+            toggle.Checked += (_, _) => RecapController.SetEnabled(true);
+            toggle.Unchecked += (_, _) => RecapController.SetEnabled(false);
+
+            var label = new TextBlock
+            {
+                Text = _loc("Str_Lbl_RecapMode"),
+                FontSize = 11.5,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(7, 0, 0, 0),
+                ToolTip = _loc("Str_TT_RecapMode")
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            row.Children.Add(toggle);
+            row.Children.Add(label);
+            return row;
         }
 
         // The test-this-range chip: the same 24px title-bar square as the font

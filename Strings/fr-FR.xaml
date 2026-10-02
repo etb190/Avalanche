@@ -1248,4 +1248,12 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Notes_Generating">Génération des notes pour les pages {0} à {1}…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">Échec des notes : {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">Pages {0} – {1}</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">Activer le récapitulatif automatique au changement de page</sys:String>
+    <sys:String x:Key="Str_Recap_Title">Recap — Page {0}</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">Recap — Pages {0}–{1}</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">Condensation de la page…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">Aucun texte lisible sur cette page à récapituler.</sys:String>
 </ResourceDictionary>

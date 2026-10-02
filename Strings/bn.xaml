@@ -1228,4 +1228,12 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Notes_Generating">{0} থেকে {1} পৃষ্ঠার নোট তৈরি হচ্ছে…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">নোট তৈরি ব্যর্থ: {0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">পৃষ্ঠা {0} – {1}</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">রিক্যাপ</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">পৃষ্ঠা উল্টানোর সময় স্বয়ংক্রিয় সংক্ষিপ্ত সারাংশ চালু বা বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_Recap_Title">রিক্যাপ — পৃষ্ঠা {0}</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">রিক্যাপ — পৃষ্ঠা {0}–{1}</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">পৃষ্ঠা সংক্ষিপ্ত করা হচ্ছে…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">এই পৃষ্ঠায় সারাংশের জন্য কোনো পাঠযোগ্য লেখা নেই।</sys:String>
 </ResourceDictionary>

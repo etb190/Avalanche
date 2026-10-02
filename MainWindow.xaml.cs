@@ -873,6 +873,14 @@ namespace Avalanche
         private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
         private Features.Summary.SummaryWindow? _summaryWindow;
         private Features.AI.AiTestWindow? _aiTestWindow;
+
+        // Recap's page-turn tracker: the last page the active viewer reported
+        // (0-based; -1 before the first report). ViewerPageChanged announces the
+        // NEW page, so the page the reader just LEFT only exists here - kept
+        // across reports, forgotten when the document changes, so a recap can
+        // never name a page of the wrong book. Updated even when Recap mode is
+        // off, so the first turn after enabling names the right page.
+        private int _recapLastPage = -1;
         // Companion-window memory: the chat rail and the summary navigator reopen
         // with the app when they were open at last close (snapshot in OnClosing;
         // the summary, which needs a document, reopens on the first one that lands).
@@ -1117,6 +1125,38 @@ namespace Avalanche
             {
                 ClearPageRangeHighlight();
             }
+        }
+
+        // Every page report funnels through here: a real turn - a different page
+        // than last time - opens (or retargets) the Recap companion over the page
+        // that was just left. The companion is the summary family's quietest
+        // member: no controls, one paragraph, shown while the reader reads on.
+        private void RecapOnPageTurn(int newPage)
+        {
+            int oldPage = _recapLastPage;
+            _recapLastPage = newPage;
+            // The first report after open (or a document switch) has no "left
+            // behind" page; same-page re-reports (zoom, scroll sync) are not turns.
+            if (oldPage < 0 || newPage < 0 || oldPage == newPage)
+            {
+                return;
+            }
+
+            if (_doc is null || string.IsNullOrEmpty(_currentFile)
+                || !Features.Summary.RecapController.Enabled)
+            {
+                return;
+            }
+
+            _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            Features.Summary.RecapController.ShowRecap(
+                this,
+                _currentFile,
+                _doc.PageCount,
+                oldPage + 1,
+                oldPage + 1,
+                () => _aiSettingsViewModel.ToGenConfig(),
+                Loc);
         }
 
         // The navigator's arrows ask for a smooth, fast glide to the new range's
@@ -1406,6 +1446,11 @@ namespace Avalanche
         private void ActiveDocumentChanged(string? filePath)
         {
             ClearAiSourceHighlight();
+            // The recap bridge belongs to one book: its cache and its open window
+            // die with the old document, and the turn tracker forgets the old
+            // book's page so the first turn here never recaps across documents.
+            _recapLastPage = -1;
+            Features.Summary.RecapController.NotifyDocumentChanged();
             // The AI test window probes ONE document; switching documents would
             // leave it auditing a stale file, so it goes with the old one.
             if (_aiTestWindow is { } test &&

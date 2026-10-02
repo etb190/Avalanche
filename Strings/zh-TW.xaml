@@ -1230,4 +1230,12 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Notes_Generating">正在為第 {0} 頁到第 {1} 頁產生筆記…</sys:String>
     <sys:String x:Key="Str_Notes_Failed">筆記產生失敗：{0}</sys:String>
     <sys:String x:Key="Str_Notes_Pages">第 {0} – {1} 頁</sys:String>
+
+    <!-- ── Recap companion ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_RecapMode">回顧</sys:String>
+    <sys:String x:Key="Str_TT_RecapMode">切換翻頁時自動產生的上一頁回顧</sys:String>
+    <sys:String x:Key="Str_Recap_Title">回顧 — 第 {0} 頁</sys:String>
+    <sys:String x:Key="Str_Recap_RangeTitle">回顧 — 第 {0}–{1} 頁</sys:String>
+    <sys:String x:Key="Str_Recap_Loading">正在濃縮本頁…</sys:String>
+    <sys:String x:Key="Str_Recap_Empty">本頁沒有可讀取的文字，無法產生回顧。</sys:String>
 </ResourceDictionary>
