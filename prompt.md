@@ -1,130 +1,138 @@
-# TASK: Implement Native Token-Efficient Markdown Normalizer & Replace Outlines with "Notes" Sidebar Tab
+# TASK: Summary Polish, Sidebar Notes UI, AI Tester Layout & Reasoning Token Fix
 
 Repository: `https://github.com/etb190/Avalanche`  
 Auth Token: `ghp_***` (provided via environment / push URL)
 
 ---
 
-### PART 1: Universal Native Markdown Normalizer (For Summary, AI Test, SideChat & Notes)
+### 1. Notes Prompt Refinement: Remove Word Count Annotations
+In the Notes generation prompt (in `NotesGenerator.cs` / `PageSummarizer.cs`):
+* Do **NOT** output word count labels or count annotations like `(37 words)`, `(125 words)`, or `(35 words)`.
+* Output clean markdown headers directly with the substantive text:
+  ```markdown
+  **CORE ARC:**
+  [Text directly here...]
 
-#### 1. The Problem
-Currently, text extracted from PDFs across Avalanche uses raw visual line-by-line dumps:
-* Visual line wraps: Every visual line on the printed page ends with a hard `\n`, breaking sentences into fragmented pieces and wasting thousands of whitespace tokens.
-* Hyphenated word splits: Margin hyphens (e.g. `civili- \n zation`) waste 3–4 tokens per word instead of 1 token for `civilization`.
-* Custom markup overhead: Wrapping headings in `[[H]] Title [[/H]]` consumes 6–8 punctuation tokens per header.
-* On a 100-page book (such as *Ancient Mesopotamia*), this wastes **10,000 to 15,000 tokens** (~15% of the total budget), increases latency, and degrades the LLM's natural reading flow.
+  **CHRONOLOGICAL PROGRESSION:**
+  - **[pp. 1–6]** ...
+  - **[pp. 7–14]** ...
 
-#### 2. The Solution: Geometric Markdown Normalizer in `PageSummarizer.ExtractRangeAsync`
-Upgrade the extraction pipeline in `Features/Summary/PageSummarizer.cs` (and expose it for `DocumentChunker` / `SideChat`) to produce clean, compact, token-dense **GitHub-Flavored Markdown**:
-
-1. **De-Hyphenation:**
-   If a visual line ends with a letter followed by a hyphen (`-`) and the next line begins with a lowercase letter, strip the hyphen and merge the word directly without a space (`devel-` + `opment` $\rightarrow$ `development`).
-2. **Paragraph Reflow:**
-   If a line does not end with sentence-ending punctuation (`.`, `!`, `?`, `:`) or if the vertical gap between lines is regular line-spacing, join the lines with a single space ` ` instead of a newline `\n`. Only emit a paragraph break (`\n\n`) when:
-   - The line ends with sentence punctuation **and** vertical distance exceeds normal leading ($> 1.3\times$ line height), OR
-   - The next line begins with an indent or a Markdown heading/bullet.
-3. **Native Markdown Headings (Replaces `[[H]]`):**
-   Use font size geometry relative to `MedianBodyPointSize`:
-   - Title / Chapter: $\text{Font} \ge \text{Median} \times 1.50 \rightarrow$ `# Heading`
-   - Section: $\text{Font} \ge \text{Median} \times 1.25 \rightarrow$ `## Heading`
-   - Subsection: $\text{Font} \ge \text{Median} \times 1.15 \rightarrow$ `### Heading`
-4. **List & Bullet Normalization:**
-   Convert PDF bullet glyphs (`•`, `–`, `▪`, `*`) to `- item`. When a bullet item wraps across multiple lines, keep it as part of the same list item rather than breaking into separate paragraphs.
-5. **Compact Page Delimiters:**
-   Use minimal `[p. N]` anchors. They consume only 3 tokens and provide clear landmark references for the model.
-6. **Universal Compatibility Across All 4 AI Features:**
-   * **PageSummarizer (Single-pass & Fusion):** Summarizer prompts ingest clean Markdown headers and reflowed paragraphs; update the heading preservation regex to recognize `#` / `##` alongside any legacy markers.
-   * **AiContextTester (AI Test Probe):** Update marker stripping and boundary extraction in `AiContextTester.cs` to handle both `[p. N]` and legacy `[[p. N]]`.
-   * **SideChat (AI Chat Assistant):** Ensure `DocumentChunker.cs` chunks from the normalized Markdown text so RAG retrieval embeddings and context windows are 15% denser and free of hyphenation artifacts.
-   * **Notes (New Feature):** Consumes the exact same Markdown extraction for its 50-page chunked processing.
+  **MEMORY PEGS & SPECIFICS:**
+  [Key pegs directly here...]
+  ```
+* Retain honest front-matter / copyright reporting if present in the text (the user specifically wants to verify that the model begins at the true start of the book).
 
 ---
 
-### PART 2: Replace "Outlines" with "Notes" Sidebar Tab (50-Page Chunked Recall Digest)
+### 2. Sidebar Tab Toggle (Pages vs. Notes): Bolder, Wider Green Buttons
+In `MainWindow.xaml` (`Sidebar` header):
+* Upgrade `SidebarPagesTab` and `SidebarNotesTab` to be larger and bolder.
+* Style them as wide, high-contrast segmented control buttons with green accent styling:
+  * **Active Tab:** Solid green accent container (`#1B5E20` or theme `AccentBrush`), bold white/bright text, clear visual depth.
+  * **Inactive Tab:** Subtle muted container with clean border, slightly dimmer text.
+* Ensure clicking instantly toggles visual states so the reader immediately knows which tab is active.
 
-#### 1. Overview & Objective
-In the left sidebar of `MainWindow.xaml`, replace the existing **Outlines** tab with **Notes**.
+---
 
-The **Notes** panel allows the reader to input an arbitrary page range (e.g., `From: 80` to `To: 200`) and produces dense, comprehensive, high-retention review notes broken into **50-page chunks (~200 words per chunk)**. This is designed for rapid recall and review of what was already read, maintaining maximum density and zero fluff.
+### 3. Summary Window: "Reset" Clears Text Only (Preserve Range)
+In `Features/Summary/SummaryWindow.xaml.cs`:
+* Clicking **Reset** must **NOT** reset the page range back to Page 1.
+* Reset must simply clear the generated summary text and reset the window state to idle/ready.
+* Keep the currently selected page range intact and wait for the user to click Start.
 
-#### 2. UI Replacement in `MainWindow.xaml` (`Sidebar` Section)
+---
 
-1. **Tab Strip Header:**
-   - In `MainWindow.xaml` (around line 1829), replace `SidebarOutlinesTab` with `SidebarNotesTab`:
-     - Text: Localized string `Str_TabNotes` ("Notes").
-     - Retain identical tab button styling matching `SidebarPagesTab`.
-2. **Body Replacement:**
-   - Replace `OutlineScrollViewer` / `OutlineTree` with a dedicated `NotesScrollViewer` and `NotesPanel`:
-   - **Controls Header (Pinned at top of Notes tab):**
-     - Inputs: `From` page textbox and `To` page textbox (numeric validation, defaulting to `1` and `totalPages` or the currently viewed page range).
-     - Action Button: `"Generate Notes"` (`AccentButton` style).
-     - Global Action: `"Copy All Notes"` icon button (`⧉`).
-   - **Notes Card List (Scrollable):**
-     - Dynamic stack of note cards for each 50-page interval.
-     - Each card includes:
-       - Header: `Pages {start} – {end}` with an individual Copy button (`⧉`).
-       - Content area rendering the formatted markdown note (~200 words).
-       - Empty state when no notes have been generated yet.
-       - Loading indicator with progress text while generating.
+### 4. Summary Window: Background 30-Second Prefetch Buffer
+In `Features/Summary/SummaryWindow.xaml.cs`:
+* Implement a 1-step ahead prefetch buffer for smooth reading:
+  * When a summary finishes generating, start a 30-second delay timer.
+  * After 30 seconds (while the user is reading the current summary), trigger a background prefetch for the **next sequential range** (e.g. if Pages 1–20 was just completed, prefetch Pages 21–40 in the background into an in-memory buffer `_nextRangeBuffer`).
+  * When the user clicks **"Next" / "Next Range"**:
+    * If the buffer is ready: Display it instantly (0 ms lag).
+    * If it is still in flight: Seamlessly attach to the running task and show the progress indicator.
+  * If the user manually changes the range or navigates elsewhere, cancel and invalidate the buffer.
 
-#### 3. Slicing & Boundary-Aware LLM Strategy (128k Single-Pass)
+---
 
-When reading Pages 80 to 200, an argument or narrative event that starts on Page 129 may finish on Page 130. Slicing blindly into isolated requests creates dangling fragments and orphaned thoughts.
+### 5. Summary Window: Default Start Page to Current PDF Page
+In `MainWindow.xaml.cs` (when launching `SummaryWindow`):
+* When opening the summary navigator, the default start page of the range should be the **current active page the user is viewing in the PDF editor**, rather than always starting at Page 1 (unless manually changed in the range controls).
 
-Because `gpt-oss:120b-cloud` supports a **128k context window**:
-1. **Send the full continuous text of the requested range (e.g. Pages 80–200)** to the model in **one single prompt**.
-2. Because the model sees the entire text seamlessly, it has full continuity across all page transitions and never gets confused by sentence boundaries.
-3. The prompt explicitly instructs the model to return structured output broken into **discrete 50-page chunks**:
-   * Chunk 1: Pages 80 – 129 (50 pages $\rightarrow$ ~200 words)
-   * Chunk 2: Pages 130 – 179 (50 pages $\rightarrow$ ~200 words)
-   * Chunk 3: Pages 180 – 200 (remaining pages $\rightarrow$ proportional word count)
+---
 
-#### 4. Prompt Design: The 200-Word Recall Schema
+### 6. AI Tester: Pin Mode Toggle to Far Left with Vertical Separator Border
+In `Features/AI/AiTestWindow.xaml`:
+* The mode toggle (`Pages` vs. `Range`) must be pinned permanently to the **far left** of the controls row and **never change position** or shift when toggled.
+* Add a vertical right border (`BorderThickness="0,0,1,0"`, themed hairline border brush) immediately to the right of the toggle container to cleanly separate it from the preset chips, custom range inputs, and Run button.
 
-For each 50-page chunk, the model must produce a dense, high-yield ~200-word card following this 3-tier structure:
+---
 
-```text
-You are a master analytical reader creating high-yield, comprehensive review notes.
-For each 50-page block, generate a dense note of STRICTLY under 200 words following this exact structure:
+### 7. AI Tester: Persist Mode, Range & Coordinates
+In `Features/AI/AiTestWindow.xaml.cs`:
+* Ensure the following settings are saved to and restored from user settings:
+  1. Selected mode: `Pages` mode vs. `Range` mode (`aitest.mode`).
+  2. Last entered custom page range string (e.g. `84-120`) (`aitest.range`).
+  3. Window position and dimensions across sessions.
 
-1. CORE ARC (30–40 words):
-   The central premise, thesis, or primary narrative shift across these 50 pages.
-2. CHRONOLOGICAL PROGRESSION (120–130 words):
-   The sequence of ideas, events, and evidence, anchored by page milestones:
-   - [pp. X-Y] ...
-   - [pp. Y-Z] ...
-   - [pp. Z-End] ...
-3. MEMORY PEGS & SPECIFICS (30–40 words):
-   The 2–3 most distinct specifics that anchor memory: exact names, central analogies, key case studies, formulas, or pivotal counterarguments.
+---
 
-RULES:
-- Be dense, concrete, and substantive. Do not use generic filler ("the author discusses", "this section covers").
-- State the actual arguments, findings, and events directly.
-- Strictly adhere to the word ceiling per card.
-```
+### 8. AI Tester: Auto-Select Text in Range Input on Focus
+In `Features/AI/AiTestWindow.xaml.cs`:
+* Attach `GotFocus` and `PreviewMouseLeftButtonDown` handlers to the custom range `TextBox`:
+* Automatically call `SelectAll()` when the box is clicked or focused so typing immediately replaces the numbers without having to backspace first (matching the behavior of the range input in `SummaryWindow`).
 
-#### 5. Implementation Details in `Features/Notes/`
-1. Create a service `NotesGenerator.cs`:
-   - Extracts the requested page span using the Markdown normalizer.
-   - Calculates the 50-page chunk boundaries.
-   - Builds the OpenAI-compatible `/chat/completions` request against `AiProviderConfig`.
-   - Parses the model's response into individual card items.
-2. Copy button interactions:
-   - Individual card copy button copies `**Pages X-Y**\n\n{content}` to clipboard with temporary `✓` feedback.
-   - Global copy button copies all generated cards concatenated.
-3. Add required localized strings across `Strings/en-US.xaml` and all other 15 language dictionaries:
-   - `Str_TabNotes`: `"Notes"`
-   - `Str_Notes_From`: `"From"`
-   - `Str_Notes_To`: `"To"`
-   - `Str_Notes_Generate`: `"Generate Notes"`
-   - `Str_Notes_CopyAll`: `"Copy All Notes"`
-   - `Str_Notes_Empty`: `"Select a page range and click Generate Notes to create review cards."`
-   - `Str_Notes_Generating`: `"Generating notes for pages {0} to {1}…"`
+---
+
+### 9. Summary Window Title Bar: Spacing of AI Test Button
+In `Features/Summary/SummaryWindow.xaml`:
+* Adjust the title bar button layout so the beaker/test icon button sits closer to the minus (`-`) zoom button.
+* The gap between the AI Test button and the minus (`-`) button must exactly match the gap between the minus (`-`) and plus (`+`) zoom buttons.
+
+---
+
+### 10. Notes Sidebar: Match Dimensions with Summary Window & Visual Polish
+In `MainWindow.xaml` (`NotesPanel`):
+* **Inputs (`From` and `To`):** Make them less wide and increase their height to match the exact dimensions of the range input box in `SummaryWindow`.
+* **Generate Notes Button:** Match the height and styling of the primary action buttons in `SummaryWindow`.
+* **Copy Buttons:** Use a richer, more vibrant green (`#2E7D32` or theme green accent).
+* **Separator Border:** Place a clean horizontal separator border between the top controls group and the scrollable notes card list below.
+
+---
+
+### 11. Fix the 66% "Ran Out of Budget on Hidden Reasoning" Error in `AiContextTester`
+
+#### Deep Root-Cause Analysis
+When testing large documents (e.g. 80,000+ tokens / ~320,000 characters):
+1. **Reasoning Models Exhaust `max_tokens`:** Models like `gpt-oss:120b-cloud`, `deepseek-r1`, or `o3` spend internal deliberation tokens attempting to "read" the entire 80k text before emitting output.
+2. **Ceiling Cutoff:** `BuildProbeRequest` sets `max_tokens` to `8192`. Once internal reasoning hits 8,192 tokens, generation halts with `finish_reason: "length"`, leaving `message.content` empty (`""` or `null`).
+3. **Empty Content Check:** `AiContextTester.cs` line 188 sees `content` is empty/whitespace and throws the fault: *"the model returned no answer (its whole budget may have gone to hidden reasoning)"*.
+4. **Content in `reasoning_content`:** In some OpenAI-compatible bridges, the model actually wrote its answer or JSON at the end of `reasoning_content`, but `ExtractReplyContent` only inspects `message.content`.
+
+#### The Fix in `AiContextTester.cs` & `AiProbeLogic.cs`:
+1. **Suppress Unnecessary Reasoning via Prompt:**
+   In `ProbeSystemPrompt`, add an explicit reasoning guardrail:
+   ```text
+   CRITICAL: Do NOT write extensive internal thinking, analysis, or deliberation.
+   Immediately locate the first sentence and last sentence of the text and output ONLY the JSON object.
+   ```
+2. **Increase Output Budget & Pass `max_completion_tokens`:**
+   In `BuildProbeRequest`:
+   * Increase the token limit to `16384`:
+     ```csharp
+     ["max_tokens"] = Math.Max(config.MaxTokens, 16384),
+     ["max_completion_tokens"] = Math.Max(config.MaxTokens, 16384),
+     ```
+   * Pass `"options": { "num_predict": 16384 }` for native Ollama compatibility.
+3. **Fallback Extraction from `reasoning_content`:**
+   In `AiProbeLogic.ExtractReplyContent(string json)`:
+   * If `message.content` is null or empty, check if `message.reasoning_content` (or `message.reasoning`) exists and is non-empty.
+   * If found, extract and return the content from `reasoning_content`.
+   * Also ensure `ExtractJsonBlock()` can extract `{...}` from reasoning text containing `<think>` tags so that even if the bridge routes text through reasoning, the test parses the JSON and passes seamlessly.
 
 ---
 
 ### Verification
 1. Run `dotnet build` with zero errors.
 2. Run `dotnet test` and ensure all tests (including localization parity) pass.
-3. Test Markdown extraction: verify paragraphs flow continuously, words are de-hyphenated, and headers use `#`/`##`.
-4. Test with a PDF: verify entering `80` to `200` generates 3 distinct, copyable ~200-word cards in the sidebar.
+3. Test AI Tester: run a test on a 100-page document — verify that the reasoning timeout error is eliminated and returns a valid verdict.
+4. Test Notes sidebar: verify no word count labels appear and the UI matches `SummaryWindow` styling.
