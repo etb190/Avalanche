@@ -984,6 +984,23 @@ namespace Avalanche
             OpenAiTestWindow();
         }
 
+        // Right-click on the toolbar button: the tester returns to its default
+        // spot (centered on the main window) - the summary navigator's own reset
+        // rule, applied to the aitest.win.* placement. With no window open, the
+        // saved coordinates are dropped so the next open centers again.
+        private void AiTestBtn_RightClick(object sender, RoutedEventArgs e)
+        {
+            if (_aiTestWindow is { } open)
+            {
+                open.ResetPosition();
+                return;
+            }
+
+            Services.AppDataPaths.SetSetting("aitest.win.left", string.Empty);
+            Services.AppDataPaths.SetSetting("aitest.win.top", string.Empty);
+        }
+
+        
         private void OpenAiTestWindow()
         {
             var test = CreateAiTestWindow();
@@ -1130,8 +1147,10 @@ namespace Avalanche
         // first page; this glides the SIDEBAR the same way, so the range's first
         // page ends up seated at the top of the page list. The selection's own
         // ScrollIntoView only guarantees visibility and would fight the run, so
-        // it stands down for the glide's lifetime (EnsureSidebarPageVisible);
-        // the reader touching the list takes the scroll back instantly.
+        // it stands down for the glide's lifetime plus a short hold spanning the
+        // document glide's landing (EnsureSidebarPageVisible), a final park then
+        // re-seats the row exactly at the top edge, and the reader touching the
+        // list takes the scroll back instantly.
 
         private DispatcherTimer? _sidebarGlideTimer;
         private int _sidebarGlidePage = -1;     // >= 0 while a glide owns the list's scroll
@@ -1190,14 +1209,42 @@ namespace Avalanche
                     return;
                 }
 
+                // Phase 1: the 280ms ease-out glide that parks the row at the top.
                 double t = Math.Min(1.0, clock.Elapsed.TotalMilliseconds / 280.0);
-                double eased = 1.0 - (1.0 - t) * (1.0 - t);      // ease-out quad
-                sv.ScrollToVerticalOffset(from + (target - from) * eased);
-                if (t >= 1.0)
+                if (t < 1.0)
                 {
-                    glide.Stop();
-                    _sidebarGlideTimer = null;
+                    double eased = 1.0 - (1.0 - t) * (1.0 - t);      // ease-out quad
+                    sv.ScrollToVerticalOffset(from + (target - from) * eased);
+                    return;
+                }
+
+                // Phase 2: hold the list's scroll ownership past the document
+                // glide's landing (340ms) - its end-of-run sidebar sync must not
+                // unseat the freshly parked row.
+                if (clock.Elapsed.TotalMilliseconds < 430.0)
+                {
+                    return;
+                }
+
+                glide.Stop();
+                _sidebarGlideTimer = null;
+                if (_sidebarGlidePage == pageIndex)
+                {
+                    // Final park: the row is measured once more and seated at the
+                    // viewport's top edge in one step - a thumbnail decoding above
+                    // it (or any sync that slipped through) is corrected here -
+                    // and only then is the list's scroll handed back.
                     _sidebarGlidePage = -1;
+                    if (PageList.ItemContainerGenerator.ContainerFromIndex(pageIndex)
+                            is FrameworkElement parkedRow
+                        && FindSidebarDescendant<ScrollViewer>(PageList) is { } parkSv)
+                    {
+                        double rowTopNow = parkedRow.TransformToVisual(parkSv)
+                            .Transform(new Point(0, 0)).Y;
+                        parkSv.ScrollToVerticalOffset(Math.Clamp(
+                            parkSv.VerticalOffset + rowTopNow,
+                            0, Math.Max(0, parkSv.ScrollableHeight)));
+                    }
                 }
             };
             glide.Start();

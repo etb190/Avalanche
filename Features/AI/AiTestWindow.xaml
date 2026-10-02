@@ -2,7 +2,7 @@
      The chrome (rounded card, themed title bar, close chip, corner resize grips,
      pop entrance, Escape-close) is composed in code-behind from DialogChrome, exactly
      like the summary navigator's. This file is the card body: the header (what model,
-     what document), the probe controls (range-span chips + Run/Cancel), and the
+     what document), the probe controls (range-span chips + Run), and the
      results card - the color-coded verdict banner, the token audit grid and the
      boundary verification rows (expected vs. recalled sentences) - all in the house
      brush and button language. -->
@@ -209,7 +209,7 @@
             </Setter>
         </Style>
 
-        <!-- Custom range fields: the same bordered face as the chips, centered digits. -->
+        <!-- Custom range field: the same bordered face as the chips, centered digits. -->
         <Style x:Key="TestRangeBox" TargetType="TextBox">
             <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
@@ -281,10 +281,10 @@
         </StackPanel>
 
         <!-- Row 1: the probe controls - the mode switch, then the span chips or
-             the custom start/end pair, then Run and Cancel. Span mode reshare the
-             summary navigator's localized span labels (20p/60p/100p); the fourth
-             chip is the whole document. Range mode probes exactly the page
-             stretch the two fields name. -->
+             the custom range field, then Run. Span mode reshare the summary
+             navigator's localized span labels (20p/60p/100p); the fourth chip is
+             the whole document. Range mode probes exactly the page stretch the
+             field names, one [start]-[end] pair. -->
         <WrapPanel Grid.Row="1" Margin="16,10,16,2" HorizontalAlignment="Center"
                    VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
@@ -309,19 +309,8 @@
                 </StackPanel>
                 <StackPanel x:Name="RangeInputPanel" Orientation="Horizontal"
                             VerticalAlignment="Center" Visibility="Collapsed">
-                    <TextBlock x:Name="RangeInputLabel" FontSize="11.5" VerticalAlignment="Center"
-                               Margin="2,0,8,0" FontFamily="{DynamicResource UiFont}"
-                               Foreground="{DynamicResource MutedTextBrush}"/>
-                    <TextBlock x:Name="StartCaption" FontSize="11.5" VerticalAlignment="Center"
-                               Margin="0,0,5,0" FontFamily="{DynamicResource UiFont}"
-                               Foreground="{DynamicResource MutedTextBrush}"/>
-                    <TextBox x:Name="StartBox" Style="{StaticResource TestRangeBox}"
-                             ToolTip="{DynamicResource Str_AiTest_StartPage}"/>
-                    <TextBlock x:Name="EndCaption" FontSize="11.5" VerticalAlignment="Center"
-                               Margin="8,0,5,0" FontFamily="{DynamicResource UiFont}"
-                               Foreground="{DynamicResource MutedTextBrush}"/>
-                    <TextBox x:Name="EndBox" Style="{StaticResource TestRangeBox}"
-                             ToolTip="{DynamicResource Str_AiTest_EndPage}"/>
+                    <TextBox x:Name="RangeBox" Style="{StaticResource TestRangeBox}" Width="112"
+                             ToolTip="{DynamicResource Str_AiTest_CustomRange}"/>
                 </StackPanel>
             </StackPanel>
             <Border Width="1" Height="20" Background="{DynamicResource CardBorderBrush}"
@@ -331,10 +320,6 @@
                     Content="{DynamicResource Str_AiTest_Run}" MinWidth="96"
                     Padding="12,0" Margin="0,0,8,0"
                     ToolTip="{DynamicResource Str_TT_AiTest}"/>
-            <Button x:Name="CancelBtn" Style="{StaticResource TestActionBtn}"
-                    Background="#FF455A64" BorderBrush="#FF263238"
-                    Content="{DynamicResource Str_Btn_Cancel}" MinWidth="80"
-                    Padding="12,0" IsEnabled="False"/>
         </WrapPanel>
 
         <!-- Row 2: the results card, top to bottom: the verdict banner (color-coded,

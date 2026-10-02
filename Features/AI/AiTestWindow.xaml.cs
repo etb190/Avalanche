@@ -91,41 +91,36 @@ namespace Avalanche.Features.AI
             Chip100.Content = _loc("Str_SummaryR100p");
             ChipAll.Content = _loc("Str_AiTest_AllPages");
 
-            // Custom-range mode: the toggle swaps the preset chips for a
-            // start/end pair. The fields seed with the whole document (page 1
-            // through the last page) and accept digits only - anything else dies
-            // at the input or at the paste gate, and the run validates them
-            // against the document before spending a request.
+            // Custom-range mode: the toggle swaps the preset chips for one field
+            // that takes the stretch as a [start]-[end] pair, e.g. 84-120. It
+            // seeds with the whole document (page 1 through the last page) and
+            // accepts digits and the dash only - anything else dies at the input
+            // or at the paste gate, and the run validates the pair against the
+            // document before spending a request.
             RangeToggle.ToolTip = _loc("Str_AiTest_CustomRange");
-            RangeInputLabel.Text = _loc("Str_AiTest_CustomRange");
-            StartCaption.Text = _loc("Str_AiTest_StartPage");
-            EndCaption.Text = _loc("Str_AiTest_EndPage");
-            StartBox.Text = "1";
-            EndBox.Text = _pageCount.ToString(CultureInfo.InvariantCulture);
+            RangeBox.Text = "1-" + _pageCount.ToString(CultureInfo.InvariantCulture);
             RangeToggle.Checked += (_, _) => ApplyRangeMode();
             RangeToggle.Unchecked += (_, _) => ApplyRangeMode();
-            foreach (var box in new[] { StartBox, EndBox })
+            RangeBox.PreviewTextInput += (_, e) => e.Handled = !e.Text.All(IsRangeChar);
+            System.Windows.DataObject.AddPastingHandler(RangeBox, (_, e) =>
             {
-                box.PreviewTextInput += (_, e) => e.Handled = !e.Text.All(char.IsAsciiDigit);
-                System.Windows.DataObject.AddPastingHandler(box, (_, e) =>
+                if (e.DataObject.GetData(System.Windows.DataFormats.UnicodeText) is string pasted &&
+                    !pasted.All(IsRangeChar))
                 {
-                    if (e.DataObject.GetData(System.Windows.DataFormats.UnicodeText) is string pasted &&
-                        !pasted.All(char.IsAsciiDigit))
-                    {
-                        e.CancelCommand();
-                    }
-                });
-            }
+                    e.CancelCommand();
+                }
+            });
 
             ModelValue.Text = _configProvider().Model ?? string.Empty;
             DocValue.Text = System.IO.Path.GetFileName(filePath);
             DocValue.ToolTip = filePath;
 
             RunBtn.Click += async (_, _) => await RunProbeAsync().ConfigureAwait(true);
-            CancelBtn.Click += (_, _) => { try { _cts?.Cancel(); } catch (ObjectDisposedException) { } };
             StatusText.Text = _loc("Str_AiTest_Waiting");
 
             RestorePlacement();
+            RestoreResult();    // the last receipt reopens with the window
+            RestoreResult();    // the last receipt reopens with the window
 
             // Placement follows the window live (debounced), the navigator's own
             // pattern: a killed app still finds the window where the reader left
@@ -181,8 +176,8 @@ namespace Avalanche.Features.AI
             first = Math.Clamp(first, 1, _pageCount);
             last = Math.Clamp(last, first, _pageCount);
             RangeToggle.IsChecked = true;       // ApplyRangeMode swaps the faces
-            StartBox.Text = first.ToString(CultureInfo.InvariantCulture);
-            EndBox.Text = last.ToString(CultureInfo.InvariantCulture);
+            RangeBox.Text = first.ToString(CultureInfo.InvariantCulture)
+                + "-" + last.ToString(CultureInfo.InvariantCulture);
 
             int gen = _generation;
             if (_running)
@@ -290,9 +285,18 @@ namespace Avalanche.Features.AI
             }
         }
 
-        // Span mode: the checked chip (tag 20/60/100/-1). Range mode: the two
-        // numeric fields, validated against the document - null (with the status
-        // line explaining) when they do not name a real stretch of pages.
+        // Span mode: the checked chip (tag 20/60/100/-1). Range mode: the one
+        // [start]-[end] field, validated against the document - null (with the
+        // status line explaining) when it does not name a real stretch of pages.
+
+        // The range field's alphabet: digits and the dash (minus or en-dash), with
+        // spaces tolerated around the dash - anything else is dead on arrival.
+        private static bool IsRangeChar(char c)
+        {
+            return char.IsAsciiDigit(c) || c == '-' || c == '\u2013' || c == ' ';
+        }
+
+        
         private (int first, int last)? ResolveProbeRange()
         {
             if (RangeToggle.IsChecked != true)
@@ -310,8 +314,11 @@ namespace Avalanche.Features.AI
                 return (1, Math.Min(span <= 0 ? _pageCount : span, _pageCount));
             }
 
-            if (!int.TryParse(StartBox.Text.Trim(), out int start) ||
-                !int.TryParse(EndBox.Text.Trim(), out int end) ||
+            string raw = RangeBox.Text.Trim().Replace('\u2013', '-');
+            int dash = raw.IndexOf('-');
+            if (dash <= 0 ||
+                !int.TryParse(raw[..dash].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int start) ||
+                !int.TryParse(raw[(dash + 1)..].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int end) ||
                 start < 1 || end < start || end > _pageCount)
             {
                 StatusText.Text = string.Format(
@@ -417,6 +424,10 @@ namespace Avalanche.Features.AI
                 probe.TokensEstimated,
                 probe.CharsSent,
                 probe.Seconds);
+
+            // The receipt is now the tester's persisted state: closing the window
+            // or the app keeps it, and the next open reads it straight back.
+            PersistResult(probe);
         }
 
         private void ShowVerdict(string colorHex, string text)
@@ -442,15 +453,15 @@ namespace Avalanche.Features.AI
             LastMatchValue.Text = string.Empty;
         }
 
-        // While a probe is in flight the span chips and Run quiet down; Cancel wakes
-        // up as the only control that can end the run besides closing the window.
+        // While a probe is in flight the mode switch, the range field and Run
+        // quiet down; closing the window (or launching a range test from the
+        // navigator) is how a run ends early.
         private void SetBusy(bool busy)
         {
             RangeToggle.IsEnabled = !busy;
             RangePanel.IsEnabled = !busy;
             RangeInputPanel.IsEnabled = !busy;
             RunBtn.IsEnabled = !busy;
-            CancelBtn.IsEnabled = busy;
         }
 
 
@@ -525,6 +536,107 @@ namespace Avalanche.Features.AI
 
             value = 0;
             return false;
+        }
+
+        /// <summary>Right-clicking the toolbar's AI Test button calls this: the window
+        /// returns to its default spot (centered on the owner) - position ONLY, the
+        /// size stays as the reader left it. The saved coordinates are dropped, so
+        /// future opens center again too.</summary>
+        public void ResetPosition()
+        {
+            try
+            {
+                AppDataPaths.SetSetting("aitest.win.left", string.Empty);
+                AppDataPaths.SetSetting("aitest.win.top", string.Empty);
+
+                if (Owner is { } owner)
+                {
+                    Left = Math.Max(SystemParameters.VirtualScreenLeft,
+                        owner.Left + ((owner.ActualWidth - ActualWidth) / 2));
+                    Top = Math.Max(SystemParameters.VirtualScreenTop,
+                        owner.Top + ((owner.ActualHeight - ActualHeight) / 2));
+                }
+                else
+                {
+                    Left = SystemParameters.VirtualScreenLeft
+                        + ((SystemParameters.VirtualScreenWidth - ActualWidth) / 2);
+                    Top = SystemParameters.VirtualScreenTop
+                        + ((SystemParameters.VirtualScreenHeight - ActualHeight) / 2);
+                }
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Result persistence (the placement pattern, for the probe's receipt)
+        // ------------------------------------------------------------------
+
+        // The verdict and its evidence outlive the window AND the app: a JSON
+        // receipt under aitest.result carries the whole rendered result, tagged
+        // with the document it audited. A fresh successful test overwrites it;
+        // closes, reopenings and restarts read the same numbers straight back.
+        private sealed record PersistedProbe(
+            string Doc, string Verdict, int Seen, long Prompt, bool Known,
+            long Estimated, int Chars, double Seconds, double Tps,
+            string Fe, string Le, string? Fr, string? Lr, int Fm, int Lm,
+            int First, int Last);
+
+        private void PersistResult(AiTestProbeResult probe)
+        {
+            try
+            {
+                AppDataPaths.SetSetting("aitest.result", System.Text.Json.JsonSerializer.Serialize(
+                    new PersistedProbe(
+                        Doc: _filePath, Verdict: probe.Verdict, Seen: probe.SeenPercent,
+                        Prompt: probe.PromptTokens, Known: probe.TokensKnown,
+                        Estimated: probe.TokensEstimated, Chars: probe.CharsSent,
+                        Seconds: probe.Seconds, Tps: probe.TokensPerSecond,
+                        Fe: probe.FirstExpected, Le: probe.LastExpected,
+                        Fr: probe.FirstRecalled, Lr: probe.LastRecalled,
+                        Fm: probe.FirstMatch, Lm: probe.LastMatch,
+                        First: probe.FirstPage, Last: probe.LastPage)));
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        private void RestoreResult()
+        {
+            try
+            {
+                string? raw = AppDataPaths.GetSetting("aitest.result");
+                if (string.IsNullOrEmpty(raw))
+                {
+                    return;
+                }
+
+                var saved = System.Text.Json.JsonSerializer.Deserialize<PersistedProbe>(raw);
+                if (saved is null ||
+                    !string.Equals(saved.Doc, _filePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    return;     // no receipt yet, or it audited a different document
+                }
+
+                RenderResult(new AiTestProbeResult(
+                    Ok: true, Error: null, FirstPage: saved.First, LastPage: saved.Last,
+                    FirstExpected: saved.Fe, LastExpected: saved.Le,
+                    FirstRecalled: saved.Fr, LastRecalled: saved.Lr,
+                    FirstMatch: saved.Fm, LastMatch: saved.Lm,
+                    PromptTokens: saved.Prompt, TokensKnown: saved.Known,
+                    TokensEstimated: saved.Estimated, CharsSent: saved.Chars,
+                    Seconds: saved.Seconds, TokensPerSecond: saved.Tps,
+                    SeenPercent: saved.Seen, Truncated: saved.Verdict == "fail",
+                    Verdict: saved.Verdict));
+            }
+            catch
+            {
+                // a damaged receipt must never keep the window from opening
+            }
         }
 
         // ------------------------------------------------------------------

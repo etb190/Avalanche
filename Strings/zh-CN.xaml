@@ -1047,12 +1047,12 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
         <sys:String x:Key="Str_AiTest_Warn">警告 — 边界不匹配（已读 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">警告 — 起始边界不匹配（已读 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">警告 — 末尾边界不匹配（已读 {0}%）</sys:String>
-        <sys:String x:Key="Str_AiTest_CustomRange">自定义范围</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">范围</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">起始</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">结束</sys:String>
         <sys:String x:Key="Str_AiTest_ModePages">页面</sys:String>
         <sys:String x:Key="Str_AiTest_ModeRange">范围</sys:String>
-        <sys:String x:Key="Str_AiTest_BadRange">页码必须在 1 到 {0} 之间。</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">请输入页面范围，如 12-40（1 到 {0}）。</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI 读取的令牌数</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">估算发送的令牌数</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">发送的字符数</sys:String>

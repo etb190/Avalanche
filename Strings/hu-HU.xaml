@@ -1050,12 +1050,12 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
         <sys:String x:Key="Str_AiTest_Warn">FIGYELMEZTETÉS — A határ eltér ({0}% olvasva)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">FIGYELMEZTETÉS — Az első határ eltér ({0}% olvasva)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">FIGYELMEZTETÉS — Az utolsó határ eltér ({0}% olvasva)</sys:String>
-        <sys:String x:Key="Str_AiTest_CustomRange">Egyéni tartomány</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Tartomány</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Eleje</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Vége</sys:String>
         <sys:String x:Key="Str_AiTest_ModePages">Oldalak</sys:String>
         <sys:String x:Key="Str_AiTest_ModeRange">Tartomány</sys:String>
-        <sys:String x:Key="Str_AiTest_BadRange">Az oldalaknak 1 és {0} között kell lenniük.</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Adj meg egy oldaltartományt, pl. 12-40 (1-től {0}-ig).</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Az AI által olvasott tokenek</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Becsült elküldött tokenek</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Elküldött karakterek</sys:String>

@@ -498,7 +498,16 @@ namespace Avalanche.Features.Summary
             int parsed = int.TryParse(StartBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)
                 ? value
                 : _startPage;   // an empty or non-numeric field keeps the current anchor
+            int previous = _startPage;
             SetStartPage(parsed);   // clamps, persists, repaints the range
+            // Typing a new anchor IS a navigation command, the arrows' equal: the
+            // document view glides to the new stretch's first page and the page
+            // list parks it at its top. An unchanged commit (focus merely leaving
+            // the field) must not yank the reader anywhere.
+            if (_startPage != previous)
+            {
+                PageNavigationRequested?.Invoke(_startPage);
+            }
         }
 
         // While edited, the field takes digits only (a 5-digit cap covers any real

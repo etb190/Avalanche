@@ -1637,7 +1637,7 @@
                         <!-- The search button's clone for the AI context test: the
                              verifier that probes what the model actually saw - the
                              third member of the AI pair, right of the chat clone. -->
-                        <Button x:Name="AiTestBtn" Content="&#xE9D9;" Style="{StaticResource ToolbarButton}" Click="AiTestBtn_Click" ToolTip="{DynamicResource Str_TT_AiTest}"/>
+                        <Button x:Name="AiTestBtn" Content="&#xE9D9;" Style="{StaticResource ToolbarButton}" Click="AiTestBtn_Click" MouseRightButtonUp="AiTestBtn_RightClick" ToolTip="{DynamicResource Str_TT_AiTest}"/>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->

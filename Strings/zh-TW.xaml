@@ -1045,12 +1045,12 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
         <sys:String x:Key="Str_AiTest_Warn">警告 — 邊界不符（已讀 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">警告 — 起始邊界不符（已讀 {0}%）</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">警告 — 末尾邊界不符（已讀 {0}%）</sys:String>
-        <sys:String x:Key="Str_AiTest_CustomRange">自訂範圍</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">範圍</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">起始</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">結束</sys:String>
         <sys:String x:Key="Str_AiTest_ModePages">頁面</sys:String>
         <sys:String x:Key="Str_AiTest_ModeRange">範圍</sys:String>
-        <sys:String x:Key="Str_AiTest_BadRange">頁碼必須在 1 到 {0} 之間。</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">請輸入頁面範圍，如 12-40（1 到 {0}）。</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">AI 讀取的權杖數</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">估計送出的權杖數</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">送出的字元數</sys:String>

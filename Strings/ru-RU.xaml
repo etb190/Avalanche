@@ -1063,12 +1063,12 @@ Avalanche не будет создавать две установленные �
         <sys:String x:Key="Str_AiTest_Warn">ПРЕДУПРЕЖДЕНИЕ — Расхождение границы ({0}% прочитано)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnFirst">ПРЕДУПРЕЖДЕНИЕ — Расхождение первой границы ({0}% прочитано)</sys:String>
         <sys:String x:Key="Str_AiTest_WarnLast">ПРЕДУПРЕЖДЕНИЕ — Расхождение последней границы ({0}% прочитано)</sys:String>
-        <sys:String x:Key="Str_AiTest_CustomRange">Свой диапазон</sys:String>
+        <sys:String x:Key="Str_AiTest_CustomRange">Диапазон</sys:String>
         <sys:String x:Key="Str_AiTest_StartPage">Начало</sys:String>
         <sys:String x:Key="Str_AiTest_EndPage">Конец</sys:String>
         <sys:String x:Key="Str_AiTest_ModePages">Страницы</sys:String>
         <sys:String x:Key="Str_AiTest_ModeRange">Диапазон</sys:String>
-        <sys:String x:Key="Str_AiTest_BadRange">Страницы должны быть от 1 до {0}.</sys:String>
+        <sys:String x:Key="Str_AiTest_BadRange">Укажите диапазон вроде 12-40, от 1 до {0}.</sys:String>
         <sys:String x:Key="Str_AiTest_TokensRead">Токенов прочитано ИИ</sys:String>
         <sys:String x:Key="Str_AiTest_TokensSent">Оценочно отправлено токенов</sys:String>
         <sys:String x:Key="Str_AiTest_CharsSent">Отправлено символов</sys:String>
