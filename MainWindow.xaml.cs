@@ -923,6 +923,10 @@ namespace Avalanche
             SystemEvents.SessionSwitch -= OnSystemSessionSwitch;
             UnregisterDisplayWakeNotifications();
             ShutdownSurfaceHealth();
+            // The reader is leaving: clear the Discord presence now (a
+            // bounded wait - the write is tiny, but the exit must not hang
+            // on a stalled pipe) and tear the client down with the window.
+            Features.Discord.DiscordRpcController.Shutdown();
             _summaryWindow?.Close();
             _summaryWindow = null;
             _aiTestWindow?.Close();
@@ -1520,6 +1524,19 @@ namespace Avalanche
             // window die with the old document - a switch is window
             // management, not reading, and it never summons the companion.
             Features.Summary.RecapController.NotifyDocumentChanged();
+            // The Discord presence follows the book on screen: a live document
+            // broadcasts (or re-arms) its reading state, a closed one clears
+            // the profile at once. A different book restarts the elapsed
+            // timer; page reports never do.
+            if (string.IsNullOrEmpty(_currentFile) || _doc is null)
+            {
+                Features.Discord.DiscordRpcController.OnDocumentClosed();
+            }
+            else
+            {
+                Features.Discord.DiscordRpcController.OnDocumentOpened(
+                    _currentFile, _currentPage + 1, _doc.PageCount);
+            }
             // The AI test window probes ONE document; switching documents would
             // leave it auditing a stale file, so it goes with the old one.
             if (_aiTestWindow is { } test &&

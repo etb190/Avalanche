@@ -1239,6 +1239,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Automatikus összefoglaló be- vagy kikapcsolása lapozáskor</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Olvasási tevékenység közvetítése a Discord Rich Presence felé</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — {0}. oldal</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — {0}–{1}. oldal</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Sűrítés…</sys:String>

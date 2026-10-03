@@ -1232,6 +1232,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">রিক্যাপ</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">পৃষ্ঠা উল্টানোর সময় স্বয়ংক্রিয় সংক্ষিপ্ত সারাংশ চালু বা বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">পড়ার কার্যকলাপ Discord Rich Presence-এ সম্প্রচার করুন</sys:String>
     <sys:String x:Key="Str_Recap_Title">রিক্যাপ — পৃষ্ঠা {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">রিক্যাপ — পৃষ্ঠা {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">সংক্ষিপ্ত করা হচ্ছে…</sys:String>

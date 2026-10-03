@@ -149,7 +149,19 @@ namespace Avalanche.Features.Summary
                     CloseButtonSize = 24,
                     // The Recap switch rides the bar's middle: centered between
                     // the wordmark on the left and the beaker chip on the right.
-                    Centered = new UIElement[] { BuildRecapToggle() },
+                    // The Discord switch sits directly after it - one wrapper
+                    // keeps the pair centered as a unit (the chrome hosts every
+                    // Centered element in the same grid cell, so two top-level
+                    // entries would overlap), with a 16px gap between them.
+                    Centered = new UIElement[]
+                    {
+                        new StackPanel
+                        {
+                            Orientation = Orientation.Horizontal,
+                            VerticalAlignment = VerticalAlignment.Center,
+                            Children = { BuildRecapToggle(), BuildDiscordToggle() }
+                        }
+                    },
                     BeforeClose = new UIElement[]
                     {
                         // The test-this-range chip: leftmost of the three, the AI
@@ -1150,6 +1162,54 @@ namespace Avalanche.Features.Summary
             {
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
+            };
+            row.Children.Add(toggle);
+            row.Children.Add(label);
+            return row;
+        }
+
+        // The Discord switch: the Recap switch's exact twin - the same iOS
+        // style (the 40px track, the 16px white thumb gliding 18px in 150ms,
+        // the style mirrored verbatim in this window's resources), the same
+        // press-not-click flip taken in the tunnel so the bar's DragMove
+        // never turns a tap into a window move - beside a bold "Discord"
+        // label, the pair riding 16px behind the Recap switch. Checked turns
+        // the native IPC presence on and broadcasts the book on screen at
+        // once; unchecked clears the profile immediately. The state persists
+        // ("discord.rpc.enabled", default on) and the feature answers even
+        // while this window is closed.
+        private FrameworkElement BuildDiscordToggle()
+        {
+            var toggle = new ToggleButton
+            {
+                Style = (Style)FindResource("TestModeToggle"),
+                IsChecked = Avalanche.Features.Discord.DiscordRpcController.Enabled,
+                ToolTip = _loc("Str_TT_DiscordRpc")
+            };
+            toggle.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                toggle.IsChecked = toggle.IsChecked != true;
+            };
+            toggle.Checked += (_, _) => Avalanche.Features.Discord.DiscordRpcController.SetEnabled(true);
+            toggle.Unchecked += (_, _) => Avalanche.Features.Discord.DiscordRpcController.SetEnabled(false);
+
+            var label = new TextBlock
+            {
+                Text = _loc("Str_Lbl_DiscordRpc"),
+                FontSize = 11.5,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(7, 0, 0, 0),
+                ToolTip = _loc("Str_TT_DiscordRpc")
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(16, 0, 0, 0)     // the gap after the Recap switch
             };
             row.Children.Add(toggle);
             row.Children.Add(label);

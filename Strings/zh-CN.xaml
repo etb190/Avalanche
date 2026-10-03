@@ -1236,6 +1236,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">回顾</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">切换翻页时自动生成的上一页回顾</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">将阅读动态广播到 Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">回顾 — 第 {0} 页</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">回顾 — 第 {0}–{1} 页</sys:String>
     <sys:String x:Key="Str_Recap_Loading">正在浓缩…</sys:String>

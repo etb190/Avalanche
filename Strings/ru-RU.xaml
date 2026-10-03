@@ -1252,6 +1252,8 @@ Avalanche не будет создавать две установленные �
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Включить или выключить автоматический краткий пересказ при перелистывании страниц</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Передавать активность чтения в Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Страница {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Страницы {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Сжатие…</sys:String>

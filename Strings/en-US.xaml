@@ -1252,6 +1252,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Toggle automatic recap companion when turning pages</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Broadcast reading activity to Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Page {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Pages {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Condensing…</sys:String>

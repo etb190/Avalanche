@@ -1252,6 +1252,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Bật hoặc tắt phần tóm tắt tự động khi lật trang</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Phát hoạt động đọc sách lên Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Trang {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Các trang {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Đang cô đọng…</sys:String>

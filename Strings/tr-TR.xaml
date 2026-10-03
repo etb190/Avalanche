@@ -1232,6 +1232,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Sayfa çevirirken otomatik özeti aç veya kapat</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Okuma etkinliğini Discord Rich Presence'e yayınla</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Sayfa {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Sayfalar {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Yoğunlaştırılıyor…</sys:String>

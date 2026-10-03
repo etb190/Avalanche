@@ -1238,6 +1238,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Automatische Zusammenfassung beim Umblättern ein- oder ausschalten</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Leseaktivität an Discord Rich Presence übertragen</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Seite {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Seiten {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Wird verdichtet…</sys:String>

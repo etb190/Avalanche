@@ -1237,6 +1237,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Zapnout nebo vypnout automatické shrnutí při listování stránkami</sys:String>
+    <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
+    <sys:String x:Key="Str_TT_DiscordRpc">Vysílat aktivitu čtení do Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Strana {0}</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strany {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Zhušťování…</sys:String>

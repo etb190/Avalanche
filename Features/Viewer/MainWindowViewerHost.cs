@@ -121,6 +121,13 @@ namespace Avalanche
             ComparisonPageChanged(viewer, pageIndex);
             if (!ReferenceEquals(ActiveViewer, viewer)) return;
             UpdatePageSizeDisplay();
+            // The Discord presence follows the page the ACTIVE viewer reports:
+            // "Page X of Y" trails the reading (debounced 400ms inside the
+            // controller) while the elapsed timer keeps counting upward.
+            if (pageIndex >= 0 && _doc is not null)
+            {
+                Features.Discord.DiscordRpcController.OnPageChanged(pageIndex + 1, _doc.PageCount);
+            }
             // Direct assignment, because that is what the 84 existing call sites do - there is no
             // SyncPageListSelection helper today. The guard avoids re-entering the selection
             // handler when the list already agrees.
