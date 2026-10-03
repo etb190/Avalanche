@@ -62,6 +62,14 @@ namespace Avalanche.Features.Discord
         private static int _pages;
         private static long _sessionStart;
 
+        // The cover art for the book on screen: resolved once per book per
+        // session in the background (local thumbnail -> uguu.se upload ->
+        // cover_urls.json cache), null until - or unless - a URL exists.
+        // The presence's large_image uses it; "kindle" covers the null.
+        private static string? _coverUrl;
+        private static string? _coverResolvedFor;   // the path a resolution finished for (null result memoized too)
+        private static string? _coverPendingFor;    // the path a resolution is in flight for
+
         /// <summary>The feature's persisted state, read lazily so the
         /// presence also works before the summary navigator (which hosts
         /// the toggle) is ever opened. Default is ON per the spec.</summary>
@@ -83,7 +91,10 @@ namespace Avalanche.Features.Discord
             {
                 // The toggle says yes: broadcast what is on screen right now -
                 // a no-op with no book open, the next open takes care of it.
+                // The cover pipeline joins in, so a late cover re-sends the
+                // frame with real art instead of waiting for a page turn.
                 _backoffMs = ReconnectBaseMs;
+                EnsureCoverForCurrentBook();
                 BroadcastNow();
             }
             else
@@ -111,6 +122,7 @@ namespace Avalanche.Features.Discord
                 }
             }
 
+            EnsureCoverForCurrentBook();
             ScheduleBroadcast();
         }
 
@@ -145,6 +157,70 @@ namespace Avalanche.Features.Discord
 
             StopTimers();
             _ = ClearPresenceAsync();
+        }
+
+        // The cover art: kicked once per book per session, entirely in the
+        // background. While it runs (and forever when it finds nothing) the
+        // presence shows the "kindle" asset; a fresh URL re-sends the frame
+        // immediately so the real cover shows up without waiting for the
+        // reader's next page turn. All state rides under Gate; the network
+        // lives in the service.
+        private static void EnsureCoverForCurrentBook()
+        {
+            string? path;
+            lock (Gate)
+            {
+                path = _currentPath;
+            }
+
+            if (path is null)
+            {
+                return;
+            }
+
+            lock (Gate)
+            {
+                if (_coverPendingFor == path || _coverResolvedFor == path)
+                {
+                    return;     // already in flight, or already answered (even "none")
+                }
+
+                _coverPendingFor = path;
+            }
+
+            string cleanTitle = DiscordCoverService.CleanTitle(path);
+            _ = Task.Run(async () =>
+            {
+                string? url = null;
+                try
+                {
+                    url = await DiscordCoverService.ResolveAsync(cleanTitle).ConfigureAwait(false);
+                }
+                catch
+                {
+                    url = null;     // the service is defensive; this belt keeps the suspenders
+                }
+
+                bool send;
+                lock (Gate)
+                {
+                    if (_coverPendingFor == path)
+                    {
+                        _coverPendingFor = null;
+                        _coverResolvedFor = path;
+                        _coverUrl = string.IsNullOrWhiteSpace(url) ? null : url;
+                    }
+
+                    // Re-send only when art actually arrived and this book is
+                    // still the one on screen - no point re-packeting "kindle".
+                    send = _coverUrl is not null && _currentPath == path;
+                }
+
+                if (send)
+                {
+                    BroadcastNow();
+                }
+            });
         }
 
         /// <summary>The application is exiting: one last, bounded wait on
@@ -199,12 +275,12 @@ namespace Avalanche.Features.Discord
                 return;
             }
 
-            (string Path, string Title, int Page, int Pages, long Start)? snapshot = null;
+            (string Path, string Title, int Page, int Pages, long Start, string? Cover)? snapshot = null;
             lock (Gate)
             {
                 if (_currentPath is not null && _title is not null)
                 {
-                    snapshot = (_currentPath, _title, _page, _pages, _sessionStart);
+                    snapshot = (_currentPath, _title, _page, _pages, _sessionStart, _coverUrl);
                 }
             }
 
@@ -217,7 +293,7 @@ namespace Avalanche.Features.Discord
         }
 
         private static async Task RunBroadcastAsync(
-            (string Path, string Title, int Page, int Pages, long Start) snapshot)
+            (string Path, string Title, int Page, int Pages, long Start, string? Cover) snapshot)
         {
             try
             {
@@ -232,7 +308,7 @@ namespace Avalanche.Features.Discord
                     }
                 }
 
-                byte[] frame = BuildActivityFrame(snapshot.Title, snapshot.Page, snapshot.Pages, snapshot.Start);
+                byte[] frame = BuildActivityFrame(snapshot.Title, snapshot.Page, snapshot.Pages, snapshot.Start, snapshot.Cover);
                 await client.SendAsync(DiscordRpcClient.OpcodeFrame, frame, CancellationToken.None)
                     .ConfigureAwait(false);
                 _backoffMs = ReconnectBaseMs;   // a good trip resets the backoff
@@ -332,7 +408,7 @@ namespace Avalanche.Features.Discord
 
         // ---- frames ----------------------------------------------------------------
 
-        private static byte[] BuildActivityFrame(string title, int page, int pages, long start)
+        private static byte[] BuildActivityFrame(string title, int page, int pages, long start, string? cover)
         {
             var activity = new JsonObject
             {
@@ -347,7 +423,7 @@ namespace Avalanche.Features.Discord
                 },
                 ["assets"] = new JsonObject
                 {
-                    ["large_image"] = "kindle",
+                    ["large_image"] = !string.IsNullOrEmpty(cover) ? cover : "kindle",
                     ["large_text"] = Truncate(title),
                     ["small_image"] = SmallImageUrl,
                     ["small_text"] = "Avalanche"

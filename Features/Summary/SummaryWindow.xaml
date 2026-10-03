@@ -321,10 +321,23 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Row 0: the start-page stepper, centered as a unit: arrow, field, arrow.
-             The field is the range - there is no other range display in the window. -->
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Orientation="Horizontal"
-                    Margin="14,12,14,0" VerticalAlignment="Center">
+        <!-- Row 0: the toggle rail above the start-page stepper - one vertical
+             wrapper so both rails share the exact same horizontal center: the
+             Recap and Discord switches sit pixel-perfect on top of < [start-end] >.
+             The title bar's right column is ~140px wide and dragged its centered
+             slot ~70px off the window's middle, so the switches moved into the
+             body where the reader's eye already is. -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Orientation="Vertical">
+            <!-- The rail: Recap switch + 18px separator gap + Discord switch.
+                 The switches themselves are code-built (BuildRecapToggle /
+                 BuildDiscordToggle) and drop in here on construction. -->
+            <StackPanel x:Name="ToggleRail" HorizontalAlignment="Center" Orientation="Horizontal"
+                        Margin="0,12,0,8" VerticalAlignment="Center"/>
+
+            <!-- The start-page stepper, centered as a unit: arrow, field, arrow.
+                 The field is the range - there is no other range display in the window. -->
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal"
+                        Margin="14,0,14,0" VerticalAlignment="Center">
             <Button x:Name="NavPrevBtn" Style="{StaticResource SumNavBtn}"
                     ToolTip="{DynamicResource Str_SummaryPrevPage}">
                 <TextBlock Text="&#xE76B;" FontFamily="{DynamicResource IconFont}" FontSize="11"
@@ -338,6 +351,7 @@
                 <TextBlock Text="&#xE76C;" FontFamily="{DynamicResource IconFont}" FontSize="11"
                            Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
             </Button>
+            </StackPanel>
         </StackPanel>
 
         <!-- Row 1: Start and Reset, full width under the field they serve (window width

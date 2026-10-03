@@ -139,6 +139,14 @@ namespace Avalanche.Features.Summary
                 CornerRadius = new CornerRadius(0),
                 UseAeroCaptionButtons = false
             });
+            // The toggle rail: Recap and Discord sit directly above the range
+            // stepper - the two rails share the exact same horizontal center,
+            // which is the whole point (the reader asked for pixel-perfect
+            // alignment with < [start-end] >). The 18px border is the clean
+            // separator gap between the two switches.
+            ToggleRail.Children.Add(BuildRecapToggle());
+            ToggleRail.Children.Add(new Border { Width = 18 });
+            ToggleRail.Children.Add(BuildDiscordToggle());
             // The title bar: the wordmark, two digest-font chips before the close mark,
             // a close mark squared to the wordmark's height, and a hairline under the
             // whole bar separating it from the navigator's body.
@@ -147,21 +155,14 @@ namespace Avalanche.Features.Summary
                 {
                     BottomSeparator = true,
                     CloseButtonSize = 24,
-                    // The Recap switch rides the bar's middle: centered between
-                    // the wordmark on the left and the beaker chip on the right.
-                    // The Discord switch sits directly after it - one wrapper
-                    // keeps the pair centered as a unit (the chrome hosts every
-                    // Centered element in the same grid cell, so two top-level
-                    // entries would overlap), with a 16px gap between them.
-                    Centered = new UIElement[]
-                    {
-                        new StackPanel
-                        {
-                            Orientation = Orientation.Horizontal,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            Children = { BuildRecapToggle(), BuildDiscordToggle() }
-                        }
-                    },
+                    // The Recap and Discord switches no longer ride the bar's
+                    // middle: the title bar's right column (the font chips and
+                    // the close mark) is ~140px wide, which pulled the centered
+                    // slot ~70px left of the window's true center - the reader's
+                    // screenshot showed the pair floating, misaligned with the
+                    // stepper below. They live in the body now, in the
+                    // ToggleRail row directly above the range stepper, sharing
+                    // its exact horizontal center.
                     BeforeClose = new UIElement[]
                     {
                         // The test-this-range chip: leftmost of the three, the AI
@@ -1122,8 +1123,8 @@ namespace Avalanche.Features.Summary
         // The Recap switch: the AI tester's iOS-style toggle (the exact same
         // 40px track, the same 16px white thumb gliding 18px in 150ms - the
         // style is mirrored verbatim in this window's resources) beside a bold
-        // "Recap" label. The chrome centers the pair in the top middle bar,
-        // between the wordmark and this window's beaker chip. Checked is the
+        // "Recap" label. The pair rides the body's toggle rail, directly
+        // above the range stepper it aligns with. Checked is the
         // feature's persisted state; unchecking also dismisses any recap
         // window that is showing.
         private FrameworkElement BuildRecapToggle()
@@ -1171,9 +1172,9 @@ namespace Avalanche.Features.Summary
         // The Discord switch: the Recap switch's exact twin - the same iOS
         // style (the 40px track, the 16px white thumb gliding 18px in 150ms,
         // the style mirrored verbatim in this window's resources), the same
-        // press-not-click flip taken in the tunnel so the bar's DragMove
-        // never turns a tap into a window move - beside a bold "Discord"
-        // label, the pair riding 16px behind the Recap switch. Checked turns
+        // press-not-click flip taken in the tunnel so no stray drag ever
+        // turns a tap into a window move - beside a bold "Discord" label,
+        // the pair riding the body's toggle rail above the stepper. Checked
         // the native IPC presence on and broadcasts the book on screen at
         // once; unchecked clears the profile immediately. The state persists
         // ("discord.rpc.enabled", default on) and the feature answers even
@@ -1208,8 +1209,7 @@ namespace Avalanche.Features.Summary
             var row = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(16, 0, 0, 0)     // the gap after the Recap switch
+                VerticalAlignment = VerticalAlignment.Center
             };
             row.Children.Add(toggle);
             row.Children.Add(label);
