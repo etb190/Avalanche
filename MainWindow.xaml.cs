@@ -301,6 +301,12 @@ namespace Avalanche
         public MainWindow()
         {
             InitializeComponent();
+            // The Discord presence must never introduce a repaired temp copy
+            // (killerpdf_repaired_{guid}.pdf) as a book: when the controller
+            // holds a temp-like path it asks the window for the real one, and
+            // _originalFile - the display path the open flow recorded - is
+            // the ground truth it gets.
+            Features.Discord.DiscordRpcController.RealPathResolver = ResolveRealDocumentPath;
             // The toolbar's default view vs the extended tool set (Tools switch).
             _toolsMode = Services.AppDataPaths.GetSetting("toolbar.tools") == "1";
             ApplyToolsMode();
@@ -1512,6 +1518,23 @@ namespace Avalanche
             AiChatInput?.Focus();
         }
 
+        // The Discord controller's escape hatch from repaired temp copies:
+        // given a temp-like path, hand back the real book the window knows -
+        // _originalFile first, the title bar's own display name second. A
+        // null answer means "nothing better known" and the controller falls
+        // back to a generic title instead of the temp copy's GUID.
+        private string? ResolveRealDocumentPath(string candidate)
+        {
+            string? original = _originalFile;
+            if (!string.IsNullOrWhiteSpace(original))
+            {
+                return original;
+            }
+
+            string? labeled = FileNameLabel?.Text;
+            return string.IsNullOrWhiteSpace(labeled) ? null : labeled;
+        }
+
         /// <summary>
         /// The active document changed (tab switch, new open, close):
         /// drop the citation highlight, which pointed at the previous
@@ -1534,8 +1557,16 @@ namespace Avalanche
             }
             else
             {
+                // The working file lies after a repair: _currentFile points
+                // at %LOCALAPPDATA%\Avalanche\Temp\killerpdf_repaired_
+                // {guid}.pdf while the reader's real book stays in
+                // _originalFile (it is what FileNameLabel shows). Discord
+                // must hear the book, never the temp copy - the original
+                // path wins, the reported path is the fallback, and only
+                // then the working file itself.
+                string? realPath = _originalFile ?? filePath ?? _currentFile;
                 Features.Discord.DiscordRpcController.OnDocumentOpened(
-                    _currentFile, _currentPage + 1, _doc.PageCount);
+                    realPath!, _currentPage + 1, _doc.PageCount);
             }
             // The AI test window probes ONE document; switching documents would
             // leave it auditing a stale file, so it goes with the old one.

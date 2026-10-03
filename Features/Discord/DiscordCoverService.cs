@@ -63,8 +63,11 @@ namespace Avalanche.Features.Discord
 
         /// <summary>The clean title the whole pipeline keys on: the file's
         /// name without its extension, trimmed - verbatim from the spec.
-        /// NOT the presence's display title (that one is title-cased);
-        /// the cache and the thumbnail files key on the raw name.</summary>
+        /// Every character of the name survives, hyphens included, so the
+        /// exact cleanTitle.jpg match hits real thumbnails like "After the
+        /// Ice A Global Human History, 20,000-5000 BC.jpg". NOT the
+        /// presence's display title (that one is title-cased); the cache
+        /// and the thumbnail files key on the raw name.</summary>
         internal static string CleanTitle(string filePath)
         {
             try
@@ -87,6 +90,16 @@ namespace Avalanche.Features.Discord
             => Task.Run(async () =>
             {
                 if (string.IsNullOrWhiteSpace(cleanTitle))
+                {
+                    return null;
+                }
+
+                // The defensive gate: a repaired book's temp working copy
+                // must never become a cover lookup - killerpdf_repaired_
+                // {guid}.jpg exists in no thumbnail cache, and uploading it
+                // would be absurd. Null here keeps the "kindle" asset warm.
+                if (cleanTitle.Contains("killerpdf_", StringComparison.OrdinalIgnoreCase)
+                    || cleanTitle.Contains("_repaired_", StringComparison.OrdinalIgnoreCase))
                 {
                     return null;
                 }

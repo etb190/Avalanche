@@ -70,6 +70,13 @@ namespace Avalanche.Features.Discord
         private static string? _coverResolvedFor;   // the path a resolution finished for (null result memoized too)
         private static string? _coverPendingFor;    // the path a resolution is in flight for
 
+        // Set by MainWindow at startup: maps a temp working copy's path to
+        // the reader's real file (or its display name) when the window knows
+        // one. The controller only asks for temp-like paths; a null answer
+        // means "nothing better known" and the presence falls back to a
+        // generic title instead of the temp copy's GUID.
+        internal static Func<string, string?>? RealPathResolver;
+
         /// <summary>The feature's persisted state, read lazily so the
         /// presence also works before the summary navigator (which hosts
         /// the toggle) is ever opened. Default is ON per the spec.</summary>
@@ -106,14 +113,33 @@ namespace Avalanche.Features.Discord
 
         /// <summary>A document became the reading session (opened, switched
         /// to, restored at startup). A different book restarts the elapsed
-        /// timer; returning to the same book does not.</summary>
+        /// timer; returning to the same book does not. A repaired book first
+        /// lives as a temp working copy (killerpdf_repaired_{guid}.pdf): the
+        /// session keys on the reader's real file when it can be resolved,
+        /// and a GUID title never reaches the wire.</summary>
         internal static void OnDocumentOpened(string filePath, int page, int pages)
         {
+            string path = filePath;
+            string? forcedTitle = null;
+            if (IsTempLikePath(filePath))
+            {
+                string? real = TryResolveRealPath(filePath);
+                if (real is not null)
+                {
+                    path = real;    // the book's own file: title and cover key on it
+                }
+                else
+                {
+                    // Nothing better is known - "Reading" beats a temp GUID.
+                    forcedTitle = "Reading";
+                }
+            }
+
             lock (Gate)
             {
-                bool newBook = !string.Equals(_currentPath, filePath, StringComparison.OrdinalIgnoreCase);
-                _currentPath = filePath;
-                _title = SanitizeTitle(filePath);
+                bool newBook = !string.Equals(_currentPath, path, StringComparison.OrdinalIgnoreCase);
+                _currentPath = path;
+                _title = forcedTitle ?? SanitizeTitle(path);
                 _pages = Math.Max(1, pages);
                 _page = Math.Clamp(page, 1, _pages);
                 if (newBook)
@@ -157,6 +183,75 @@ namespace Avalanche.Features.Discord
 
             StopTimers();
             _ = ClearPresenceAsync();
+        }
+
+        // ---- repaired-copy defense -------------------------------------------------
+
+        // A repaired (or decrypted, rasterized, downloaded) book is edited on a
+        // temp working copy under App.TempDir, named killerpdf_<tag>_<guid>.pdf.
+        // Such a path must never become a Discord title: the reader's real file
+        // is what the presence should wear.
+        private static bool IsTempLikePath(string filePath)
+        {
+            try
+            {
+                string name = Path.GetFileName(filePath);
+                if (name.Contains("killerpdf_", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains("_repaired_", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                string tempDir = App.TempDir;
+                if (!string.IsNullOrEmpty(tempDir))
+                {
+                    string full = Path.GetFullPath(filePath);
+                    string tempFull = Path.GetFullPath(tempDir);
+                    if (!tempFull.EndsWith(Path.DirectorySeparatorChar)
+                        && !tempFull.EndsWith(Path.AltDirectorySeparatorChar))
+                    {
+                        tempFull += Path.DirectorySeparatorChar;
+                    }
+
+                    if (full.StartsWith(tempFull, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+                // an unreadable path is nobody's crash; treat it as ordinary
+            }
+
+            return false;
+        }
+
+        // Asks the window for the real book behind a temp copy. The answer is
+        // re-checked: a resolver that answers with another temp-like path is
+        // treated as "does not know".
+        private static string? TryResolveRealPath(string tempPath)
+        {
+            try
+            {
+                Func<string, string?>? resolver = RealPathResolver;
+                if (resolver is null)
+                {
+                    return null;
+                }
+
+                string? real = resolver(tempPath);
+                if (string.IsNullOrWhiteSpace(real) || IsTempLikePath(real))
+                {
+                    return null;
+                }
+
+                return real;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // The cover art: kicked once per book per session, entirely in the
@@ -501,13 +596,16 @@ namespace Avalanche.Features.Discord
 
         // ---- title sanitization ------------------------------------------------------
 
-        // "mesopotamia_-_a_history.pdf" reads on Discord as
-        // "Mesopotamia - A History"... wait: separators become spaces first,
-        // so the underscore and dash forms both collapse into readable words -
-        // "Mesopotamia  A History". Trailing single spaces vanish with the
-        // whitespace-run collapse; what stays is the reader's own naming,
-        // title-cased, possessives and contractions intact ("Israel's"),
-        // intact acronyms untouched (USA), hard-capped at Discord's 128.
+        // "mesopotamia_-_a_history.pdf" reads on Discord as "Mesopotamia
+        // A History": underscores and floating dash separators collapse into
+        // spaces, while a connecting hyphen keeps its glue - "20,000-5000
+        // BC", "Cro-Magnon" and "Ice-Age" arrive exactly as named. What
+        // stays is the reader's own naming, title-cased (hyphenated tokens
+        // case by segment), possessives and contractions intact ("Israel's"),
+        // intact acronyms untouched (USA, BC, AD), hard-capped at Discord's
+        // 128. A repaired book's temp working copy never becomes a title at
+        // all: OnDocumentOpened resolves it to the real file or falls back
+        // to "Reading" rather than advertising a GUID.
         internal static string SanitizeTitle(string filePath)
         {
             string name;
@@ -525,11 +623,16 @@ namespace Avalanche.Features.Discord
                 return "Reading";
             }
 
-            // Separators become spaces; whitespace runs collapse.
+            // Underscores are filename space substitutes: they become
+            // spaces. Dashes are judged in place by NormalizeDashes - a run
+            // of dashes or a lone dash floating between spaces is a
+            // separator and collapses, but a hyphen gluing words or numbers
+            // together is part of the reader's own name ("20,000-5000",
+            // "Cro-Magnon", "Ice-Age") and must survive untouched.
             char[] chars = name.ToCharArray();
             for (int i = 0; i < chars.Length; i++)
             {
-                if (chars[i] == '_' || chars[i] == '-')
+                if (chars[i] == '_')
                 {
                     chars[i] = ' ';
                 }
@@ -537,7 +640,7 @@ namespace Avalanche.Features.Discord
 
             string collapsed = string.Join(
                 " ",
-                new string(chars).Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                NormalizeDashes(new string(chars)).Split(' ', StringSplitOptions.RemoveEmptyEntries));
             var sb = new StringBuilder(collapsed.Length);
             foreach (string word in collapsed.Split(' '))
             {
@@ -559,12 +662,44 @@ namespace Avalanche.Features.Discord
                 return word;
             }
 
+            // A hyphenated token cases by SEGMENT - "ice-age" becomes
+            // "Ice-Age", "state-of-the-art" becomes "State-Of-The-Art" -
+            // while each segment keeps the word's own rules below: intact
+            // acronyms stay as written (USA, BC, AD) and letter-less runs
+            // ("20,000-5000") ride along untouched.
+            if (!word.Contains('-', StringComparison.Ordinal))
+            {
+                return CaseSegment(word);
+            }
+
+            string[] segments = word.Split('-');
+            var sb = new StringBuilder(word.Length);
+            for (int i = 0; i < segments.Length; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append('-');
+                }
+
+                sb.Append(CaseSegment(segments[i]));
+            }
+
+            return sb.ToString();
+        }
+
+        private static string CaseSegment(string segment)
+        {
+            if (segment.Length == 0)
+            {
+                return segment;
+            }
+
             // An intact acronym (USA, RPG) keeps its shape; everything else
             // is upper-first, lower-rest - which is exactly how a possessive
             // or contraction ("Israel's") keeps its tail.
             bool allUpper = true;
             bool hasLetter = false;
-            foreach (char c in word)
+            foreach (char c in segment)
             {
                 if (char.IsLetter(c))
                 {
@@ -579,10 +714,56 @@ namespace Avalanche.Features.Discord
 
             if (hasLetter && allUpper)
             {
-                return word;
+                return segment;
             }
 
-            return char.ToUpperInvariant(word[0]) + word[1..].ToLowerInvariant();
+            return char.ToUpperInvariant(segment[0]) + segment[1..].ToLowerInvariant();
+        }
+
+        // Dash triage for one filename: a dash survives only when it glues
+        // real content together on both sides. A RUN of dashes ("--",
+        // "---") collapses to a single space, and a lone dash with
+        // whitespace on both sides (" - ") is a separator too - but
+        // "20,000-5000" and "Cro-Magnon" keep their glue.
+        private static string NormalizeDashes(string text)
+        {
+            if (!text.Contains('-', StringComparison.Ordinal))
+            {
+                return text;
+            }
+
+            var sb = new StringBuilder(text.Length);
+            int i = 0;
+            while (i < text.Length)
+            {
+                if (text[i] != '-')
+                {
+                    sb.Append(text[i]);
+                    i++;
+                    continue;
+                }
+
+                int runEnd = i;
+                while (runEnd < text.Length && text[runEnd] == '-')
+                {
+                    runEnd++;
+                }
+
+                bool leftIsSpace = i == 0 || char.IsWhiteSpace(text[i - 1]);
+                bool rightIsSpace = runEnd >= text.Length || char.IsWhiteSpace(text[runEnd]);
+                if (runEnd - i > 1 || (leftIsSpace && rightIsSpace))
+                {
+                    sb.Append(' ');                 // separator: one space per dash run
+                }
+                else
+                {
+                    sb.Append('-', runEnd - i);     // connecting hyphen(s): keep
+                }
+
+                i = runEnd;
+            }
+
+            return sb.ToString();
         }
 
         private static string Truncate(string value)

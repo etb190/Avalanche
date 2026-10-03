@@ -768,9 +768,11 @@ namespace Avalanche.Controls
             RebuildTabStrip();
             // The AI chat follows the active document: notify the host so chat,
             // index and highlight never leak across tabs. Deferred tabs report
-            // through OpenFile -> FinishOpenFile once they materialize.
+            // through OpenFile -> FinishOpenFile once they materialize. The
+            // original path leads: a repaired book's working file is a temp
+            // copy whose name must not stand in for the reader's real file.
             if (target.CurrentFile != null)
-                Host?.ActiveDocumentChanged(target.CurrentFile);
+                Host?.ActiveDocumentChanged(target.OriginalFile ?? target.CurrentFile);
             FadeInDocContent();
         }
 
@@ -902,7 +904,7 @@ namespace Avalanche.Controls
                 if (next.Doc == null && next.DeferredPath != null) MaterializeDeferred(next);
                 else RenderActiveSession();
                 if (next.CurrentFile != null)
-                    Host?.ActiveDocumentChanged(next.CurrentFile);   // AI chat follows the tab
+                    Host?.ActiveDocumentChanged(next.OriginalFile ?? next.CurrentFile);   // AI chat follows the tab
             }
             RebuildTabStrip();
         }
