@@ -1217,6 +1217,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryExcluded">Shrnutí nezahrnuje stránky {0} — vypršel časový limit poskytovatele.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Zvolte žánr knihy, aby se přizpůsobilo shrnutí a zaměření analýzy</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Klasická odborná literatura</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Beletrie</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Filozofická beletrie</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Vědecká práce</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Sebezdokonalení a byznys</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Právo a předpisy</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

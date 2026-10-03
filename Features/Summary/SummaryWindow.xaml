@@ -374,8 +374,9 @@
         </Grid>
 
         <!-- Row 2: range chips (they reshape the displayed range only), then the word
-             ceiling and the summary language - same face height as the chips; on narrow
-             windows the dropdowns wrap to a second line instead of squeezing. -->
+             ceiling, the summary language and the book genre - same face height as the
+             chips; on narrow windows the dropdowns wrap to a second line instead of
+             squeezing. -->
         <WrapPanel Grid.Row="2" Margin="14,7,14,2" VerticalAlignment="Center"
                    HorizontalAlignment="Center">
             <StackPanel x:Name="RangePanel" Orientation="Horizontal" VerticalAlignment="Center">
@@ -395,6 +396,9 @@
             <ComboBox x:Name="LangCombo" Style="{StaticResource DarkComboBox}" Width="112" Height="28"
                       VerticalAlignment="Center" MaxDropDownHeight="260"
                       ToolTip="{DynamicResource Str_SummaryLangTT}"/>
+            <ComboBox x:Name="GenreCombo" Style="{StaticResource DarkComboBox}" Width="150" Height="28"
+                      Margin="8,0,0,0" VerticalAlignment="Center" MaxDropDownHeight="280"
+                      ToolTip="{DynamicResource Str_SummaryGenreTT}"/>
         </WrapPanel>
 
         <!-- Row 3: the digest - justified like a typeset page (Arabic mirrors

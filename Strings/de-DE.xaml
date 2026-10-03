@@ -1218,6 +1218,13 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryExcluded">Die Zusammenfassung lässt die Seiten {0} aus — Timeout beim Anbieter.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Buchgenre wählen, um Zusammenfassung und analytischen Fokus anzupassen</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Klassisches Sachbuch</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Belletristik</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Philosophische Belletristik</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Wissenschaftliche Arbeit</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Selbsthilfe &amp; Business</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Recht &amp; Gesetze</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

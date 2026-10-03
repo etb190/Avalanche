@@ -1232,6 +1232,13 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_SummaryExcluded">Il riassunto esclude le pagine {0} — timeout del provider.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Seleziona il genere del libro per adattare il riassunto e il focus analitico</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Saggistica classica</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Narrativa</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Narrativa filosofica</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Articolo di ricerca</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Self-help e business</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Diritto e leggi</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

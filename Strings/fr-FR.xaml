@@ -1232,6 +1232,13 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryExcluded">Le résumé exclut les pages {0} — délai d'attente du fournisseur dépassé.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Sélectionnez le genre du livre pour adapter le résumé et l'angle d'analyse</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Documentaire classique</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Fiction</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Fiction philosophique</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Article de recherche</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Développement personnel et business</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Droit et textes de loi</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

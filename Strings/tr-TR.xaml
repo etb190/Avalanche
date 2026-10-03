@@ -1212,6 +1212,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_SummaryExcluded">Özet, {0} sayfalarını kapsamıyor — sağlayıcı zaman aşımına uğradı.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Özeti ve analitik odağı uyarlamak için kitabın türünü seçin</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Klasik Kurgu Dışı</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Kurgu</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Felsefi Kurgu</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Araştırma Makalesi</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Kişisel Gelişim ve İş Dünyası</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Hukuk ve Mevzuat</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

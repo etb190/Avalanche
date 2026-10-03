@@ -1232,6 +1232,13 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryExcluded">Summary excludes pages {0} due to provider timeout.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Select book genre to tailor summary and analytical focus</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Non-Fiction Classic</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Fiction</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Philosophical Fiction</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Research Paper</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Self-Help &amp; Business</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Law &amp; Statutes</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

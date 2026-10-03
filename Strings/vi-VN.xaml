@@ -1232,6 +1232,13 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryExcluded">Bản tóm tắt không bao gồm các trang {0} — nhà cung cấp đã quá thời gian chờ.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Chọn thể loại sách để điều chỉnh bản tóm tắt và trọng tâm phân tích</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Phi hư cấu kinh điển</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Hư cấu</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Hư cấu triết học</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Bài nghiên cứu</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Phát triển bản thân &amp; Kinh doanh</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Luật &amp; Văn bản pháp quy</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

@@ -1232,6 +1232,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryExcluded">プロバイダーのタイムアウトのため、概要には {0} ページを含めていません。</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">書籍のジャンルを選択すると、要約と分析の焦点が調整されます</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">ノンフィクション</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">フィクション</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">哲学フィクション</sys:String>
+	<sys:String x:Key="Str_Genre_Research">研究論文</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">自己啓発・ビジネス</sys:String>
+	<sys:String x:Key="Str_Genre_Law">法律・法令</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

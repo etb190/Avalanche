@@ -1212,6 +1212,13 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryExcluded">El resumen excluye las páginas {0} — se agotó el tiempo de espera del proveedor.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Selecciona el género del libro para adaptar el resumen y el enfoque analítico</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">No ficción clásica</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Ficción</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Ficción filosófica</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Artículo de investigación</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Autoayuda y negocios</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Derecho y leyes</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

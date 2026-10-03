@@ -1231,6 +1231,13 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryExcluded">Түйінге {0} беттер кірмеген — провайдердің күту уақыты бітті.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Түйінді және талдау бағытын бейімдеу үшін кітап жанрын таңдаңыз</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Классикалық деректі әдебиет</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Көркем әдебиет</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Философиялық көркем әдебиет</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Ғылыми мақала</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Өзіндік даму және бизнес</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Құқық және заңнама</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

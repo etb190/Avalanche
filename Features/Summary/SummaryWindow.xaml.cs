@@ -44,6 +44,25 @@ namespace Avalanche.Features.Summary
         private static readonly int[] WordChoices = { 500, 750, 1000, 1500, 2000, 3000, 4500 };
         private static readonly string[] LanguageChoices = { "English", "French", "Spanish", "Italian", "Arabic" };
 
+        // The genre dropdown (v1.17.0): the per-book persona for the digest
+        // prompt. Tags are the canonical genre ids PageSummarizer understands;
+        // labels ride in every Strings file as Str_Genre_*.
+        private static readonly string[] GenreChoices =
+        {
+            "nonfiction_classic", "fiction", "philosophical_fiction",
+            "research_papers", "self_help", "law"
+        };
+
+        private static readonly Dictionary<string, string> GenreKeySuffix = new()
+        {
+            ["nonfiction_classic"] = "Nonfiction",
+            ["fiction"] = "Fiction",
+            ["philosophical_fiction"] = "Philosophical",
+            ["research_papers"] = "Research",
+            ["self_help"] = "SelfHelp",
+            ["law"] = "Law"
+        };
+
         private static readonly Dictionary<string, string> LangKeySuffix = new()
         {
             ["English"] = "En",
@@ -72,6 +91,7 @@ namespace Avalanche.Features.Summary
         private int _rangePages = 20;   // pages per digest: the selected range chip's value
         private int _targetWords = 1000;
         private string _language = "English";
+        private string _genre = "nonfiction_classic";
         private int _startPage = 1;     // the anchor: first page of the displayed range
         private bool _editing;          // the field is showing the bare start page for editing
         private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
@@ -284,10 +304,36 @@ namespace Avalanche.Features.Summary
                 }
             };
 
+            // Genre persona: localized labels, canonical id in Tag. The choice is
+            // per-book (book.<docId>.genre) - each volume remembers its own genre
+            // across sessions and tab switches - while summary.default_genre keeps
+            // the reader's latest pick as the default for a book that never chose.
+            // The digest prompt AND the cache identity ride on it.
+            foreach (string genre in GenreChoices)
+            {
+                GenreCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = loc("Str_Genre_" + GenreKeySuffix[genre]),
+                    Tag = genre
+                });
+            }
+
+            GenreCombo.SelectionChanged += (_, _) =>
+            {
+                if (GenreCombo.SelectedItem is ComboBoxItem item && item.Tag is string genre)
+                {
+                    _genre = genre;
+                    AppDataPaths.SetSetting("book." + _documentId + ".genre", genre);
+                    AppDataPaths.SetSetting("summary.default_genre", genre);
+                    InvalidatePrefetch();   // the buffer was fetched for the old genre
+                }
+            };
+
             LoadPreferences();
             SelectChip(_rangePages);            // fires Checked -> OnRangeChanged -> ShowRange
             SelectCombo(WordsCombo, _targetWords);
             SelectCombo(LangCombo, _language);
+            SelectCombo(GenreCombo, _genre);
             ApplyReadingDirection();
             DocBox.FontSize = _digestFont;
             RestoreDigest();                    // the last digest of this book, if any
@@ -403,6 +449,16 @@ namespace Avalanche.Features.Summary
             {
                 _language = lang;
             }
+
+            // The book's own genre first; a book that never picked one falls back
+            // to the reader's latest genre choice anywhere, then to the classic.
+            string? genre = AppDataPaths.GetSetting("book." + _documentId + ".genre");
+            if (string.IsNullOrEmpty(genre))
+            {
+                genre = AppDataPaths.GetSetting("summary.default_genre");
+            }
+
+            _genre = genre != null && GenreChoices.Contains(genre) ? genre : "nonfiction_classic";
 
             if (double.TryParse(AppDataPaths.GetSetting("summary.font"), NumberStyles.Float, CultureInfo.InvariantCulture, out double font)
                 && font >= 10 && font <= 24)
@@ -666,7 +722,7 @@ namespace Avalanche.Features.Summary
             SetBusy(true);
 
             var request = new SummaryRequest(
-                _filePath, _documentId, first, last, _targetWords, _language, BypassCache: false);
+                _filePath, _documentId, first, last, _targetWords, _language, _genre, BypassCache: false);
             _runFirstPage = first;
             _runLastPage = last;
             try
@@ -857,6 +913,7 @@ namespace Avalanche.Features.Summary
             RangePanel.IsEnabled = !busy;
             WordsCombo.IsEnabled = !busy;
             LangCombo.IsEnabled = !busy;
+            GenreCombo.IsEnabled = !busy;
         }
 
         // Invisible but hit-testable corner handle: a near-transparent fill keeps the layered
@@ -936,7 +993,7 @@ namespace Avalanche.Features.Summary
             _prefetchCts = new CancellationTokenSource();
             CancellationToken ct = _prefetchCts.Token;
             var request = new SummaryRequest(
-                _filePath, _documentId, first, last, _targetWords, _language, BypassCache: false);
+                _filePath, _documentId, first, last, _targetWords, _language, _genre, BypassCache: false);
             AiProviderConfig config = _configProvider();
             Func<string, string> loc = _loc;
             _prefetchFlight = Task.Run(

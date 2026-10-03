@@ -19,11 +19,14 @@ namespace Avalanche.Features.Summary
 
     internal static class SummaryCache
     {
+        // v6: the variant grew the book genre (v1.17.0) - a fiction retelling must
+        // never replay a nonfiction-classic digest, and the nonfiction prompt itself
+        // grew the epistemic accuracy rule, so v5 rows are simply never read again.
         // v5: the cache key grew a variant (summary language + word ceiling) and the
         // prompt carries an OUTPUT LANGUAGE contract (v1.8.87). v4 digests are buffered,
         // prose-guarded English-style digests without the language dimension - a French
         // request must never replay one. v3 can hold bullet dumps; v2/v1 older styles.
-        private const int PromptVersion = 5;
+        private const int PromptVersion = 6;
         private static readonly object Gate = new();
         private static SqliteConnection? _connection;
 

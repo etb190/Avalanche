@@ -1214,6 +1214,13 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryExcluded">摘要未包含第 {0} 頁 — 提供者回應逾時。</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">選擇書籍類型，以調整摘要與分析的重點</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">經典非虛構</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">小說</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">哲學小說</sys:String>
+	<sys:String x:Key="Str_Genre_Research">研究論文</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">自助與商業</sys:String>
+	<sys:String x:Key="Str_Genre_Law">法律與法規</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

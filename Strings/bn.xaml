@@ -1212,6 +1212,13 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryExcluded">সারসংক্ষেপে {0} পৃষ্ঠা বাদ পড়েছে — প্রোভাইডারের সময়সীমা শেষ হয়েছে।</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">সারসংক্ষেপ ও বিশ্লেষণের দৃষ্টিভঙ্গি মানানসই করতে বইয়ের ধরন নির্বাচন করুন</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">ক্লাসিক নন-ফিকশন</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">ফিকশন</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">দার্শনিক ফিকশন</sys:String>
+	<sys:String x:Key="Str_Genre_Research">গবেষণা প্রবন্ধ</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">সেলফ-হেল্প ও ব্যবসা</sys:String>
+	<sys:String x:Key="Str_Genre_Law">আইন ও বিধি</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

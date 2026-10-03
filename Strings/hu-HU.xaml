@@ -1219,6 +1219,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryExcluded">Az összefoglaló kihagyja a következő oldalakat: {0} — a szolgáltató időkorlátja lejárt.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>
+	<sys:String x:Key="Str_SummaryGenreTT">Válassza ki a könyv műfaját az összefoglaló és az elemzési fókusz személyre szabásához</sys:String>
+	<sys:String x:Key="Str_Genre_Nonfiction">Klasszikus szakkönyv</sys:String>
+	<sys:String x:Key="Str_Genre_Fiction">Szépirodalom</sys:String>
+	<sys:String x:Key="Str_Genre_Philosophical">Filozófiai szépirodalom</sys:String>
+	<sys:String x:Key="Str_Genre_Research">Tudományos dolgozat</sys:String>
+	<sys:String x:Key="Str_Genre_SelfHelp">Önfejlesztés és üzlet</sys:String>
+	<sys:String x:Key="Str_Genre_Law">Jog és törvények</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>
