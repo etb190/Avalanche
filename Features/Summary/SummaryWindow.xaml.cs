@@ -1432,8 +1432,9 @@ namespace Avalanche.Features.Summary
         // other composed chrome, so the digest's XAML stays untouched; the word
         // under the pointer wears a dark-green plate an adorner paints above the
         // text - padding included - that can never shift or reflow a neighbor,
-        // and the word the popup opened on stays pinned under a solid plate
-        // until the popup closes or a newer word or passage takes the anchor.
+        // and the word the popup opened on stays pinned under the same green
+        // plate the hover wears - glyphs readable, never two layers - until
+        // the popup closes or a newer word or passage takes the anchor.
 
         private Popup? _actionPopup;                    // built lazily on first open
         private Border? _actionRoot;                    // the rounded dark-glass face
@@ -1549,7 +1550,7 @@ namespace Avalanche.Features.Summary
             }
 
             // The click's own pointers ride along: when the popup opens, the
-            // word is pinned under its solid plate until the popup closes or
+            // word is pinned under its green plate until the popup closes or
             // a newer word or passage takes the anchor.
             OpenActionPopup(CleanPopupTarget(word!), rect, start, end);
         }

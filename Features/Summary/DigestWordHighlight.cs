@@ -5,9 +5,11 @@
 // adorner above DocBox's text. The document itself is never touched, so text flow,
 // selection, and clipboard behavior stay native.
 //
-// A clicked word is pinned: while the action popup stands, that word keeps a
-// solid plate of the house green no matter where the pointer wanders, until
-// the popup closes or a newer word or passage takes the anchor.
+// A clicked word is pinned: while the action popup stands, that word keeps
+// the same translucent green plate the hover wears - glyphs always
+// readable, never a second layer stacked on top - no matter where the
+// pointer wanders, until the popup closes or a newer word or passage
+// takes the anchor.
 //
 // Zero-cost on-demand hit-testing:
 // Rather than pre-measuring thousands of words and re-checking them on every
@@ -46,11 +48,6 @@ namespace Avalanche.Features.Summary
         // translucent enough for the glyphs to read through cleanly.
         private static readonly Brush PlateFill = Plate("#B31B5E20");
         private static readonly Pen PlateEdge = Edge("#E60F3D14");
-
-        // The pin wears the house green at full strength - the action buttons'
-        // own face - so the held word reads as the popup's target while the
-        // translucent hover plate keeps marking the pointer's wanderings.
-        private static readonly Brush PinFill = Plate("#FF1B5E20");
 
         private static Brush Plate(string hex) =>
             (Brush)new BrushConverter().ConvertFromString(hex)!;
@@ -104,10 +101,12 @@ namespace Avalanche.Features.Summary
             }
 
             // Resting on the pinned word itself: the pin already lights it -
-            // no hover plate stacked on top, the hand cursor stays.
+            // drop any stale hover from the word just left, keep the hand
+            // cursor, and never stack a second plate on top.
             if (_pinnedStart != null && _pinnedEnd != null &&
                 _pinnedStart.CompareTo(start) == 0 && _pinnedEnd.CompareTo(end) == 0)
             {
+                ClearHover();
                 if (_box.Cursor != Cursors.Hand)
                 {
                     _box.Cursor = Cursors.Hand;
@@ -343,18 +342,27 @@ namespace Avalanche.Features.Summary
 
         protected override void OnRender(DrawingContext dc)
         {
-            // The pinned word first: the popup's target holds its solid
-            // house-green plate no matter where the pointer has moved.
-            if (TryMeasurePin(out Rect pinnedRect))
+            // The pinned word first: the popup's target keeps its plate -
+            // the same translucent face as the hover, so the glyphs read
+            // through - no matter where the pointer has moved.
+            bool pinned = TryMeasurePin(out Rect pinnedRect);
+            if (pinned)
             {
                 Rect pinPlate = Rect.Inflate(pinnedRect, 2.5, 1.5);
                 if (pinPlate.Bottom >= 0 && pinPlate.Top <= ActualHeight)
                 {
-                    dc.DrawRoundedRectangle(PinFill, PlateEdge, pinPlate, 3, 3);
+                    dc.DrawRoundedRectangle(PlateFill, PlateEdge, pinPlate, 3, 3);
                 }
             }
 
             if (_hoverRect.IsEmpty)
+            {
+                return;
+            }
+
+            // One face per word: a hover landing on the pinned word adds
+            // nothing - two stacked plates would drown the glyphs.
+            if (pinned && pinnedRect.IntersectsWith(_hoverRect))
             {
                 return;
             }
