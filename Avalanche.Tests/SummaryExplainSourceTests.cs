@@ -72,7 +72,10 @@ public sealed class SummaryExplainSourceTests
     [Fact]
     public void SelectExcerptPages_PreservesPageOrder()
     {
-        string filler = string.Concat(Enumerable.Repeat("stone ridge field ", 400));
+        // ~2.2k chars per page: with the 9k budget the two scoring pages (5, 22)
+        // both fit alongside one filler page, so the assertion really exercises
+        // the book-order restoration of multiple chosen pages.
+        string filler = string.Concat(Enumerable.Repeat("stone ridge field ", 120));
         var sb = new System.Text.StringBuilder();
         for (int page = 1; page <= 30; page++)
         {
@@ -95,6 +98,7 @@ public sealed class SummaryExplainSourceTests
         int first = picked.IndexOf("[p. 5]", StringComparison.Ordinal);
         int second = picked.IndexOf("[p. 22]", StringComparison.Ordinal);
         Assert.True(first >= 0 && second > first, "chosen pages ride in book order");
+        Assert.DoesNotContain("[p. 30]", picked);
     }
 
     [Fact]
