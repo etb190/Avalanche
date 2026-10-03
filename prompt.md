@@ -1,118 +1,113 @@
-# TASK: Implement Native Discord Rich Presence in Avalanche (Title Bar Toggle & Pure C# IPC)
+# TASK: Implement Book Cover Thumbnails for Discord RPC & Perfectly Align Toggles in SummaryWindow
 
 Repository: `https://github.com/etb190/Avalanche`  
 Auth Token: `ghp_***` (provided via environment / push URL)
 
 ---
 
-### Overview & Core Architecture
-Implement **Discord Rich Presence (RPC)** in Avalanche so that while a user is reading a document, their Discord profile displays real-time reading progress:
-- **Title (Details):** Clean book title (e.g. `Mesopotamia: A History`).
-- **Page (State):** Current progress formatted as `Page 42 of 350`.
-- **Timer:** Elapsed reading time (`00:14:22 elapsed`), preserved continuously across page flips.
-- **Assets:** Avalanche icon and book indicator.
+### Overview & Core Issues to Resolve
 
-Unlike browser extensions that require a separate Node.js bridge server, Avalanche is a native Windows C# application and must implement Discord RPC **the best way possible: pure native C# via Windows Named Pipes (`\\.\pipe\discord-ipc-0` through `9`) with zero external NuGet bloat, zero background Node processes, and zero open HTTP ports.**
+Two specific issues from the v1.16.0 Discord RPC integration must be resolved:
 
-The toggle switch to enable/disable Discord RPC is placed in `SummaryWindow`'s top middle bar **directly after the Recap toggle**.
+1. **Book Cover Thumbnails Are Missing in Discord Presence:**  
+   Currently, `DiscordRpcController.cs` hardcodes `["large_image"] = "kindle"`. It must replicate the exact book thumbnail lookup and automatic upload system used by PDF Summarizer / Axo so book covers actually display on Discord.
+2. **Toggle Alignment in `SummaryWindow`:**  
+   Currently, the `Recap` and `Discord` toggles are placed in `DialogChrome.TitleBarExtras.Centered`. Because the title bar's right column contains ~140px of caption buttons and chips, the title bar center is shifted ~70px to the left of the window center. As a result, the toggles look awkwardly floating to the left, completely misaligned from the stepper controls (`< [250-329] >`) below them. The user wants the toggles placed **right above the range inputs and arrow buttons, perfectly aligned**.
 
 ---
 
-### 1. The Discord RPC Toggle in `SummaryWindow` Title Bar
-* In `Features/Summary/SummaryWindow.xaml.cs`:
-  * In the top middle bar (`DialogChrome.TitleBarExtras.Centered`), place the Discord toggle **directly after the Recap toggle** with a 16px horizontal separation gap.
-  * Use the **exact same iOS-style sliding switch** (`TestModeToggle`):
-    * 40px track, 16px white thumb gliding 18px in 150ms.
-    * Paired with a bold label `Discord` (`Str_Lbl_DiscordRpc`).
-    * Tooltip: `Str_TT_DiscordRpc` ("Broadcast reading activity to Discord Rich Presence").
-    * Behavior: Click flips in preview mouse down (preventing DragMove interference).
-    * Checked: Activates Discord RPC and immediately broadcasts current reading activity.
-    * Unchecked: Deactivates Discord RPC and clears the presence from Discord immediately.
-  * State: Persisted in user settings (`discord.rpc.enabled`, default: `true`).
+### 1. Book Thumbnail & Cover Art System (`Features/Discord/DiscordCoverService.cs`)
 
----
+Replicate the exact thumbnail resolution and caching system from `pdf-summarizer-extension` / `Axo`:
 
-### 2. Zero-Dependency Native Discord IPC Client (`Features/Discord/DiscordRpcClient.cs`)
-Implement a lightweight, robust, native C# Discord IPC client using `System.IO.Pipes.NamedPipeClientStream`:
-1. **Named Pipe Connection:**
-   * Scans `discord-ipc-0` through `discord-ipc-9`.
-   * Non-blocking asynchronous connection. If Discord is not running or Discord desktop is closed, fail gracefully and silently without throwing unhandled exceptions or freezing the UI thread.
-2. **Wire Protocol:**
-   * Packet format: `[Int32 Opcode (LE)][Int32 Length (LE)][UTF-8 JSON Payload]`.
-   * **Opcode 0 (Handshake):**
-     ```json
-     { "v": 1, "client_id": "1547881478774595705" }
+#### A. Storage Paths & Persistent Cache
+* **Local Thumbnail Directories:**
+  * Primary: `C:\Users\PC\Desktop\database\books\ThumbnailCache`
+  * Secondary (Articles fallback): `C:\Users\PC\Desktop\database\Articles\ThumbnailCache`
+* **Persistent URL Cache File:**
+  * `C:\Users\PC\Desktop\database\books\cover_urls.json`
+  * JSON object mapping `cleanTitle` -> `https://...` image URL.
+
+#### B. Thumbnail Matching Algorithm
+When `DiscordRpcController` prepares the activity for a document:
+1. Normalize and clean the title:
+   ```csharp
+   string cleanTitle = Path.GetFileNameWithoutExtension(filePath).Trim();
+   ```
+2. **Step 1 — Cache Check:**  
+   Check `cover_urls.json` (cached in-memory in a thread-safe `Dictionary<string, string>`). If `urlCache.TryGetValue(cleanTitle, out var cachedUrl)` and it starts with `https://`, use it immediately with **0 ms latency**.
+3. **Step 2 — Local File Lookup:**  
+   If not in cache, search `ThumbnailCache`:
+   * **Exact match:** Check if `File.Exists(Path.Combine(THUMBNAIL_DIR, cleanTitle + ".jpg"))`.
+   * **Fuzzy / Substring match:** If exact match does not exist, enumerate all `.jpg` files in `ThumbnailCache`. Compare the filename without `.jpg` against `cleanTitle.ToLowerInvariant()`:
+     ```csharp
+     name == lower || lower.Contains(name) || name.Contains(lower)
      ```
-     (Default Client ID: `1547881478774595705`, configurable via `discord.rpc.client_id`).
-   * **Opcode 1 (Frame - SET_ACTIVITY):**
+   * If not found in the primary books directory, repeat the search in `C:\Users\PC\Desktop\database\Articles\ThumbnailCache`.
+4. **Step 3 — Anonymous Upload (`uguu.se`):**  
+   If a local `.jpg` thumbnail is found:
+   * Upload to `https://uguu.se/upload` via `HttpClient` as a `MultipartFormDataContent`.
+   * Add the byte array/file stream with name `"files[]"` and filename `"cover.jpg"`.
+   * Send `POST https://uguu.se/upload`.
+   * Parse the JSON response:
      ```json
      {
-       "cmd": "SET_ACTIVITY",
-       "args": {
-         "pid": <process_id>,
-         "activity": {
-           "type": 0,
-           "details": "<Sanitized Book Title>",
-           "state": "Page 42 of 350",
-           "timestamps": {
-             "start": <session_start_unix_timestamp>
-           },
-           "assets": {
-             "large_image": "kindle",
-             "large_text": "<Sanitized Book Title>",
-             "small_image": "https://cdn.discordapp.com/app-icons/1547881478774595705/9f913825c797ce44d9a79a0ccaeeec5b.png",
-             "small_text": "Avalanche"
-           },
-           "instance": true
+       "success": true,
+       "files": [
+         {
+           "name": "cover.jpg",
+           "url": "https://a.uguu.se/xxxxxx.jpg",
+           "size": 12345
          }
-       },
-       "nonce": "<guid>"
+       ]
      }
      ```
-   * **Clear Activity:** Send `SET_ACTIVITY` with `activity: null` when closing a document, exiting, or when the user toggles Discord RPC off.
+   * Extract `url = files[0].url`.
+   * Store `urlCache[cleanTitle] = url` and persist to `cover_urls.json`.
+5. **Step 4 — Fallback & Resilience:**  
+   If no thumbnail exists locally, or if the network upload fails, fall back to `"kindle"`. All file I/O and HTTP operations must be wrapped in `try/catch` so that failures never throw, log noisy errors, or crash the application.
+
+#### C. Discord Activity Integration
+* In `DiscordRpcController.cs`:
+  * Resolve cover art asynchronously in the background so that reading state updates to Discord are never delayed by network calls.
+  * If the cover art finishes uploading after the initial activity was already dispatched, immediately re-send `SET_ACTIVITY` with the new `large_image` URL.
+  * Activity payload:
+    ```csharp
+    ["large_image"] = !string.IsNullOrEmpty(coverUrl) ? coverUrl : "kindle",
+    ["large_text"] = Truncate(title),
+    ["small_image"] = "https://cdn.discordapp.com/app-icons/1547881478774595705/9f913825c797ce44d9a79a0ccaeeec5b.png",
+    ["small_text"] = "Avalanche"
+    ```
 
 ---
 
-### 3. Controller & Session Management (`Features/Discord/DiscordRpcController.cs`)
-1. **Singleton Controller:**
-   * Manages connection lifecycle, auto-reconnect backoff (if Discord is launched later), and state dispatch.
-2. **Session Start Timestamp Preservation:**
-   * When opening a book, record `_sessionStartTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds()`.
-   * As the reader turns pages, the `_sessionStartTime` **remains intact** so Discord's elapsed timer counts upward smoothly (`01:25 elapsed`) without resetting back to 0 on every page flip.
-   * Switching to a completely different document resets `_sessionStartTime`.
-3. **Throttling / Debounce:**
-   * Rapidly scrolling or skimming pages triggers page changes in milliseconds. Debounce the Discord update by **400ms** so IPC packets are not spammed.
-4. **Title Sanitization:**
-   * Strip file extension (`.pdf`, etc.).
-   * Replace underscores and multiple dashes with spaces.
-   * Proper casing while maintaining possessives/contractions (e.g. `Israel's`).
-   * Truncate to Discord's 128-character limit.
+### 2. Perfect Toggle Alignment in `SummaryWindow`
+
+* **The Problem:**  
+  In the user's screenshot, `Recap` and `Discord` in `DialogChrome.TitleBarExtras.Centered` are displaced to the left by ~70px because Column 0 of the title bar grid does not span the full window width (Column 1 takes ~140px for chips and caption buttons).
+* **The Solution:**  
+  Move the toggles so they sit **directly above the range inputs and arrow buttons, perfectly aligned**.
+  * Remove `BuildRecapToggle()` and `BuildDiscordToggle()` from `DialogChrome.TitleBarExtras.Centered`.
+  * In `SummaryWindow.xaml` (`BodyRoot`):
+    * Add a dedicated row directly above the stepper row (or adjust row 0) containing a horizontal `StackPanel`:
+      * `HorizontalAlignment="Center"`
+      * `Orientation="Horizontal"`
+      * `Margin="0,12,0,8"`
+      * Contains:
+        1. The `Recap` toggle switch (`TestModeToggle`) + bold `Recap` label.
+        2. A clean horizontal separator gap (18px).
+        3. The `Discord` toggle switch (`TestModeToggle`) + bold `Discord` label.
+    * Immediately below this toggle row sits the existing stepper row (`NavPrevBtn`, `NavStartBox`, `NavNextBtn`), also with `HorizontalAlignment="Center"`.
+  * **Result:** Both the toggle row and the stepper row share the exact same horizontal center (`HorizontalAlignment="Center"`), placing the toggles directly on top of `< [start-end] >`, with 100% pixel-perfect vertical alignment.
 
 ---
 
-### 4. Integration with MainWindow & Viewer
-* In `MainWindow.xaml.cs` (or viewer navigation hooks):
-  * When a document is loaded: call `DiscordRpcController.OnDocumentOpened(title, currentPage, totalPages)`.
-  * When page turns (`CurrentPageChanged`): call `DiscordRpcController.OnPageChanged(currentPage, totalPages)`.
-  * When a document is closed or app exits: call `DiscordRpcController.OnDocumentClosed()`.
-  * When the Discord toggle in `SummaryWindow` is flipped: reflect immediately.
-
----
-
-### 5. Localization Parity
-Add the new localization keys across all 16 language resource dictionaries (`Strings/en-US.xaml`, `de-DE.xaml`, `fr-FR.xaml`, `es-ES.xaml`, etc.):
-* `Str_Lbl_DiscordRpc`: `"Discord"`
-* `Str_TT_DiscordRpc`: `"Broadcast reading activity to Discord Rich Presence"`
-
----
-
-### 6. Verification
+### 3. Verification & Checks
 1. Run `dotnet build` with zero warnings and zero errors.
-2. Run `dotnet test` and confirm all 2,000+ tests pass (including localization parity).
+2. Run `dotnet test` and confirm all tests pass.
 3. Open `SummaryWindow`:
-   * Verify the `Discord` toggle sits in the top middle bar directly after the `Recap` toggle, matching its exact iOS switch styling.
-4. Open a PDF document:
-   * With Discord running on the PC and toggle ON: check Discord profile. Verify details show the clean document title, state shows `Page X of Y`, elapsed reading timer counts up, and assets render cleanly.
-   * Flip pages: verify state updates to the new page within 400ms and the timer does not reset.
-   * Turn toggle OFF: verify Discord presence disappears immediately.
-   * Turn toggle ON: verify Discord presence reappears immediately.
+   * Verify the `Recap` and `Discord` toggles sit directly above the range stepper (`< [range] >`), perfectly centered and aligned with the stepper controls.
+   * Verify clicking each toggle flips smoothly with the iOS thumb glide and updates/persists `recap.enabled` and `discord.rpc.enabled`.
+4. Open a PDF whose book title has a cover in `C:\Users\PC\Desktop\database\books\ThumbnailCache` (e.g. `Ancient Mesopotamia...`, `A Brief History of Everyone Who Ever Lived`, etc.):
+   * Check Discord: verify the cover art is uploaded to `uguu.se` (and cached in `cover_urls.json`) and shows as the large cover image in Discord Rich Presence!
+   * Verify the small image displays the Kindle/Avalanche badge.
