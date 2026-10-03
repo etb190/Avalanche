@@ -1,66 +1,145 @@
-# TASK: Fix Hyphen Stripping in Titles & Fix Repaired PDF Temp Path Leak in Discord RPC
+# TASK: Implement Genre Architecture in Summary Navigator (Dropdown After Language & 6 Specialized Prompts)
 
 Repository: `https://github.com/etb190/Avalanche`  
 Auth Token: `ghp_***` (provided via environment / push URL)
 
 ---
 
-### Overview & Core Issues to Resolve
+### Overview & Core Architecture
+Currently, Avalanche's Summary Navigator is hardcoded to a single non-fiction prompt template. When reading fiction, philosophical literature, empirical scientific papers, self-help books, or legal treatises, that rigid structure creates severe friction (e.g. forcing academic thesis language onto novels, or dropping statistical data from research papers).
 
-Two critical bugs in Discord Rich Presence must be fixed:
-
-1. **Hyphens Stripped from Book Titles (e.g. Date Ranges & Compound Words):**  
-   For a book titled `"After the Ice A Global Human History, 20,000-5000 BC.pdf"`, Discord Rich Presence displays `"20,000 5000"` with the hyphen stripped out.  
-   *Root Cause:* In `Features/Discord/DiscordRpcController.cs`, `SanitizeTitle()` unconditionally replaces all hyphens (`-`) with spaces (`' '`). This destroys number/date ranges (`20,000-5000`, `1939-1945`), hyphenated names (`Cro-Magnon`), and compound words (`Ice-Age`, `Pre-Columbian`, `Self-Care`). Furthermore, because the title is distorted, `DiscordCoverService` fails to match the thumbnail filename in `ThumbnailCache` (which is literally `After the Ice A Global Human History, 20,000-5000 BC.jpg`).
-
-2. **Repaired PDFs Expose Temp Filenames and Break Rich Presence:**  
-   When Avalanche opens a damaged PDF and repairs it (or when a book undergoes repair/rasterization), Discord Rich Presence displays:  
-   `Killerpdf Repaired Ebd583ae46f547a4a142784761ff39e4` on the profile instead of the real book title!  
-   *Root Cause:* When a file is repaired, `FileOperations.cs` sets `_currentFile` to the temporary working copy created via `App.MakeTempFile("repaired")` (e.g. `%LOCALAPPDATA%\Avalanche\Temp\killerpdf_repaired_{guid}.pdf`), while `_originalFile` (and `FileNameLabel.Text`) keeps the user's real file path (e.g. `After the Ice A Global Human History, 20,000-5000 BC.pdf`). `MainWindow.xaml.cs` (lines 1537–1538) was passing `_currentFile` directly to `DiscordRpcController.OnDocumentOpened(_currentFile, ...)`. This leaks the internal temp filename to Discord, breaks book session tracking, and completely breaks cover art lookup (since `killerpdf_repaired_...jpg` does not exist in `ThumbnailCache`).
-
----
-
-### 1. Fix Hyphen Stripping in `SanitizeTitle` (`Features/Discord/DiscordRpcController.cs`)
-
-* **Do NOT blindly convert hyphens to spaces.**
-* In `SanitizeTitle(string filePath)`:
-  * Strip the `.pdf` extension.
-  * Underscores (`_`) should be converted to spaces (`' '`) because underscores are standard filename space substitutes.
-  * Isolated dashes surrounded by spaces (e.g. `" - "`) or runs of multiple dashes (`"--"`, `"---"`) can be normalized, BUT:
-  * **Hyphens connecting words or numbers MUST be preserved:**
-    * Ranges: `20,000-5000`, `1914-1918`, `1-30`.
-    * Hyphenated words: `Cro-Magnon`, `Ice-Age`, `Post-War`, `State-of-the-Art`.
-  * Title-casing logic (`CaseWord`) must handle hyphenated tokens by capitalizing each segment (e.g. `Ice-Age`, `20,000-5000 BC`) while keeping uppercase acronyms (`BC`, `AD`, `USA`) and contractions/possessives (`Israel's`) intact.
-  * In `DiscordCoverService.CleanTitle(string filePath)`:
-    Ensure `CleanTitle` preserves the exact filename (minus `.pdf`), including all hyphens, so it matches files like `After the Ice A Global Human History, 20,000-5000 BC.jpg` in `ThumbnailCache`.
+Implement a flexible **Genre Architecture** across Avalanche's AI pipeline:
+1. **Genre Dropdown in `SummaryWindow`**: Placed directly after the Language dropdown in Row 2.
+2. **Per-Book Genre Persistence**: Persisted per document so each book remembers its own genre across sessions and tab switches.
+3. **6 Specialized Genre Prompt Personas**:
+   - **Non-Fiction Classic** *(with Epistemic Accuracy)*
+   - **Fiction** *(Chronological Event-by-Event Retelling)*
+   - **Philosophical Fiction** *(Non-Fiction Intellectual Rigor + Narrative Drama)*
+   - **Research Papers & Science** *(Hierarchical Statistics & Methodology)*
+   - **Self-Help & Business** *(Practitioner's Action Notes & Named Frameworks)*
+   - **Law & Statutes** *(Holdings, Doctrinal Elements & Canons of Interpretation)*
 
 ---
 
-### 2. Fix Repaired PDF Temp Path Leak (`MainWindow.xaml.cs` & `PdfViewer.Tabs.cs`)
+### 1. The Genre Dropdown in `SummaryWindow.xaml` (Row 2)
 
-* **Always use the original document path for display and Discord RPC:**
-  1. In `MainWindow.xaml.cs`:
-     * In `ActiveDocumentChanged(string? filePath)`:
-       Determine the true document path:
-       ```csharp
-       string? realPath = _originalFile ?? filePath ?? _currentFile;
-       ```
-       Pass `realPath` to `DiscordRpcController.OnDocumentOpened(realPath, _currentPage + 1, _doc.PageCount)`.
-     * Check anywhere else `OnDocumentOpened` is called in `MainWindow` or `MainWindowViewerHost`, and ensure `_originalFile ?? _currentFile` is passed instead of bare `_currentFile`.
-  2. In `Controls/Viewer/PdfViewer.Tabs.cs`:
-     * When notifying `Host?.ActiveDocumentChanged(...)`, pass `target.OriginalFile ?? target.CurrentFile` instead of bare `target.CurrentFile`.
-  3. **Defensive Fallback in `DiscordRpcController.cs` & `DiscordCoverService.cs`:**
-     * If the incoming `filePath` contains `killerpdf_` or `_repaired_` or resides inside `App.TempDir`:
-       * If `_originalFile` or active window title is available, resolve to it.
-       * If only a temp name is present, never display `"Killerpdf Repaired {guid}"` to Discord. Fall back cleanly to `"Reading"` or the active tab title.
+* In `Features/Summary/SummaryWindow.xaml` (Row 2 `WrapPanel`):
+  * Position a new `ComboBox` named `GenreCombo` **directly after `LangCombo`**:
+    ```xml
+    <ComboBox x:Name="GenreCombo" Style="{StaticResource DarkComboBox}" Width="150" Height="28"
+              Margin="8,0,0,0" VerticalAlignment="Center" MaxDropDownHeight="280"
+              ToolTip="{DynamicResource Str_SummaryGenreTT}"/>
+    ```
+  * Dropdown options:
+    1. **Non-Fiction Classic** (`nonfiction_classic`, default)
+    2. **Fiction** (`fiction`)
+    3. **Philosophical Fiction** (`philosophical_fiction`)
+    4. **Research Paper** (`research_papers`)
+    5. **Self-Help & Business** (`self_help`)
+    6. **Law & Statutes** (`law`)
+* In `Features/Summary/SummaryWindow.xaml.cs`:
+  * Populate `GenreCombo` using localized strings.
+  * Wire selection changed to persist the chosen genre for the active document:
+    * Stored under the document's state key (`book.<docId>.genre`), falling back to user preference default (`summary.default_genre`).
+    * When switching tabs or opening a book, restore that book's saved genre.
+  * Pass `SelectedGenre` into `PageSummarizer.GenerateAsync(...)`.
 
 ---
 
-### 3. Verification & Checks
+### 2. The 6 Specialized Genre Prompts (`Features/Summary/PageSummarizer.cs`)
+
+Update `PageSummarizer.cs` to supply genre-tailored system prompts via `DigestSystemPrompt(int targetWords, string language, string genre, bool fromNotes)`:
+
+#### A. Non-Fiction Classic (`nonfiction_classic`)
+* **Role:** Argumentative and intellectual condenser.
+* **Core Mandate:**
+  - Core thesis, logical reasoning steps, arguments, and positions.
+  - Evidence, historical records, and case studies supporting claims.
+  - **Comparisons & Analogies:** Every comparison and cross-cultural/historical analogy the author draws MUST be preserved (these are primary explanatory tools).
+  - **Counterarguments & Debates:** Opposing theories the author critiques or disproves.
+  - Specific named artifacts, sites, and persons.
+* **EPISTEMIC ACCURACY RULE (CRITICAL):**
+  Faithfully preserve the author's exact degree of certainty without flattening hypotheses into settled facts:
+  - State verified facts as facts (e.g. *"The excavations at Eridu revealed eighteen distinct temple strata."*).
+  - State hypotheses, speculations, and interpretations with their proper qualifiers (e.g. *"Evidence suggests..."*, *"Archaeologists hypothesize that seasonal flooding caused the abandonment..."*).
+  - State open debates by naming the competing positions and why they clash.
+* **Anti-Meta Rule:** State content directly. Zero meta-language (banned: *"The author discusses..."*, *"The text explores..."*). Dense flowing prose paragraphs.
+
+#### B. Fiction (`fiction`)
+* **Role:** Dense, chronological event-by-event retelling. You are a condenser, not a literary critic.
+* **Core Mandate:**
+  - The reader is using this INSTEAD of reading the book. Every plot event, scene, and character development must appear in chronological order.
+  - Every scene transition, location shift, and time jump stated explicitly.
+  - Every character action, decision, secret, and key line of dialogue reproduced (condensed, but recognizable).
+  - Every plot turn, revelation, and complication preserved.
+  - Track character dynamics: who is with whom, who knows what secret, and who is doing what.
+* **FORBIDDEN (FAILURE MODES):**
+  - Discussing "themes", "symbolism", or "literary devices" — tell the STORY, do not review it.
+  - Skipping an event because it seemed "minor" or "transitional".
+  - Merging distinct scenes into vague generalities (*"adventures continue"*).
+  - Meta-language (*"The chapter depicts..."*).
+  - Plain flowing prose. No bullet lists.
+
+#### C. Philosophical Fiction (`philosophical_fiction`)
+* **Role:** Dual-layer synthesis: Non-Fiction Intellectual Rigor + Narrative Drama.
+* **Core Mandate:**
+  1. **Substantive Philosophical Arguments (Non-Fiction Rigor):**
+     - Extract the core philosophical, moral, theological, or political arguments articulated in dialogues, monologues, or narration.
+     - Trace logical steps, premises, and counterarguments debated by characters or the author.
+     - Name the philosophical positions engaged with (nihilism, determinism, rational egoism, utilitarianism, absurdism, faith) and what the text concludes about them.
+  2. **Narrative & Psychological Events:**
+     - Chronological plot events, scene shifts, encounters, and decisions without skipping scenes.
+     - Detail the psychological crises, moral breakdowns, and confessions of the characters.
+     - Show how the events of the plot directly test, validate, or shatter the philosophical theories the characters hold.
+  - Dense flowing prose paragraphs.
+
+#### D. Research Papers & Scientific Studies (`research_papers`)
+* **Role:** Empirical methodology reviewer and quantitative data condenser.
+* **Core Mandate (Hierarchical Tiers):**
+  - **Tier 1 — Statistics & Quantitative Data (Top Priority):** Every quantitative result ($n$, $\%$, mean, median, SD, $p$-values, confidence intervals, effect sizes, regression coefficients, hazard ratios) reported verbatim with exact units and referents.
+  - **Tier 2 — Inferential Reasoning & Models:** The exact statistical test, model, or logical step used to bridge data to claims (e.g. two-way ANOVA, linear regression controlling for age). State the test and its output.
+  - **Tier 3 — Conclusions & Magnitude:** Findings attached to the magnitude of the effect (*"reduced infection rate by 24%, 95% CI [16%, 32%]"* rather than *"had a significant effect"*).
+  - **Tier 4 — Methodology:** Sample demographics, control conditions, intervention protocols, and instruments.
+  - **Tier 5 — Context & Theory:** Background definitions and prior literature gaps.
+  - Adaptability: If the paper is qualitative or theoretical, report definitions, frameworks, and qualitative evidence substantively without inventing numbers.
+
+#### E. Self-Help & Business (`self_help`)
+* **Role:** Practitioner's executive action notes.
+* **Core Mandate:**
+  - **Direct Imperative Principles:** State every principle and technique as a direct command (*"When facing X, execute Y because Z"* rather than *"The author suggests doing X"*).
+  - **Named Models & Frameworks:** If the author names a framework, matrix, or dichotomy (e.g. *"System 1 vs System 2"*, *"The Eisenhower Matrix"*, *"Fixed vs Growth Mindset"*), state the name, its operational rule, and how to execute it.
+  - **Exercises & Reflection Prompts Verbatim:** Reproduce journaling prompts, self-audits, and diagnostic steps verbatim so the reader can actually perform them.
+  - **Anecdote Compression:** Compress every case study or story into ONE sentence stating the operational lesson. Skip fluff and filler anecdotes.
+
+#### F. Law & Statutes (`law`)
+* **Role:** Judicial clerk and legal doctrine brief.
+* **Core Mandate:**
+  - **Issues & Procedural Posture:** The constitutional, statutory, or common-law question presented.
+  - **Holding & Rule of Law:** The binding rule established or applied.
+  - **Doctrinal / Statutory Elements:** Enumerate mandatory conjunctive or disjunctive conditions ($1, 2, 3$), evidentiary thresholds, and burdens of proof.
+  - **Judicial Reasoning & Canons:** How the court applied precedent, statutory plain meaning, or constitutional doctrine.
+  - **Exceptions & Safe Harbors:** Narrowing conditions, affirmative defenses, and statutory exemptions.
+  - **Dissents:** Core legal divergence and counter-doctrine argued by dissenting judges.
+  - Exact legal terms of art preserved (*strict scrutiny*, *mens rea*, *proximate cause*).
+
+---
+
+### 3. Localization Parity
+Add all required genre strings across `Strings/en-US.xaml` and all other 15 language dictionaries:
+* `Str_SummaryGenreTT`: `"Select book genre to tailor summary and analytical focus"`
+* `Str_Genre_Nonfiction`: `"Non-Fiction Classic"`
+* `Str_Genre_Fiction`: `"Fiction"`
+* `Str_Genre_Philosophical`: `"Philosophical Fiction"`
+* `Str_Genre_Research`: `"Research Paper"`
+* `Str_Genre_SelfHelp`: `"Self-Help & Business"`
+* `Str_Genre_Law`: `"Law & Statutes"`
+
+---
+
+### 4. Verification & Checks
 1. Run `dotnet build` with zero warnings and zero errors.
-2. Run `dotnet test` and confirm all tests pass.
-3. Open `"After the Ice A Global Human History, 20,000-5000 BC.pdf"`:
-   * Verify Discord Rich Presence shows the title with the hyphen intact: `"After the Ice A Global Human History, 20,000-5000 BC"`.
-   * Verify `DiscordCoverService` successfully finds `After the Ice A Global Human History, 20,000-5000 BC.jpg` in `ThumbnailCache`, uploads/fetches it, and displays the book cover on Discord.
-4. Trigger a repair on a PDF (or open a PDF that requires repair):
-   * Verify Discord Rich Presence displays the original book title and its cover, NEVER `"Killerpdf Repaired..."` or temp GUIDs.
+2. Run `dotnet test` and confirm all 2,000+ unit tests pass (including localization parity).
+3. Open `SummaryWindow`:
+   * Verify `GenreCombo` sits in Row 2 directly after `LangCombo`.
+   * Verify selecting a genre persists for that book and updates the summary generation pipeline.
+   * Switch tabs to another book: verify each book maintains its own selected genre independently.
