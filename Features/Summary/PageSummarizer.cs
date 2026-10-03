@@ -53,8 +53,10 @@ namespace Avalanche.Features.Summary
         string Language, string Genre, bool BypassCache);
 
     /// <summary>Kind: "progress" (Text = status line), "delta" (Text = markdown chunk),
-    /// "done" (Text = full markdown, FromCache = served from cache), "notext", "error" (Text = message).</summary>
-    internal sealed record SummaryUpdate(string Kind, string Text = "", bool FromCache = false);
+    /// "done" (Text = full markdown, FromCache = served from cache), "notext", "error" (Text = message).
+    /// RawRange rides on "done" (v1.18.0): the pass's own unabridged extraction, cached by
+    /// the window as the floating action popup's Explain source.</summary>
+    internal sealed record SummaryUpdate(string Kind, string Text = "", bool FromCache = false, string RawRange = "");
 
     internal static class PageSummarizer
     {
@@ -189,6 +191,10 @@ namespace Avalanche.Features.Summary
 
                 string rangeText = await ExtractRangeAsync(request.FilePath, request.FirstPage, request.LastPage, ct)
                     .ConfigureAwait(false);
+                // The pass's own UNABRIDGED extraction (captured before low-text pages are
+                // omitted): rides on the "done" update so the window can cache it as the
+                // floating action popup's Explain source.
+                string rawRangeText = rangeText;
                 // Marker-aware gate: strip WHOLE [p. N] / [[p. N]] tokens before counting.
                 // The old string.Replace left " N]]" behind (never whitespace) and
                 // CountLetters counted the 'p' inside every marker, so a long marker-only
@@ -280,7 +286,7 @@ namespace Avalanche.Features.Summary
                                 request.LastPage,
                                 cached.Length));
                             yield return new SummaryUpdate("delta", cached);
-                            yield return new SummaryUpdate("done", cached, FromCache: true);
+                            yield return new SummaryUpdate("done", cached, FromCache: true, RawRange: rawRangeText);
                             yield break;
                         }
                     }
@@ -451,7 +457,7 @@ namespace Avalanche.Features.Summary
                         request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
                         hash, variant, finalText, CountWords(finalText)),
                     ct).ConfigureAwait(false);
-                yield return new SummaryUpdate("done", finalText);
+                yield return new SummaryUpdate("done", finalText, RawRange: rawRangeText);
             }
 
         // Page refs like (p. 47) -> the set of pages the summary actually touched.
@@ -927,6 +933,75 @@ namespace Avalanche.Features.Summary
             "its position, before the items that follow it - those lines are the only text you may " +
             "copy verbatim. No headings of your own, no commentary, no outside knowledge. Do not omit " +
             "anything substantive.";
+
+        // ------------------------------------------------------------------
+        // The floating action popup's two AI passes (v1.18.0)
+        // ------------------------------------------------------------------
+
+        // Define: a fast, focused lexical answer for the word the reader clicked.
+        // Buffered like the digest (a reasoning model that burns its whole budget
+        // on think gets one retry at double the tokens) and pinned to temperature
+        // 0 - a definition is a fact lookup, not a composition.
+
+        public static async Task<string> DefineTermAsync(
+            AiProviderConfig config, string term, string language, CancellationToken ct)
+        {
+            const string system = "You are an authoritative, concise dictionary assistant.";
+            string user =
+                $"The reader is studying a text in {language} and highlighted the term: \"{term}\".\n" +
+                "\n" +
+                $"Define \"{term}\" concisely in English (1-3 sentences):\n" +
+                "1. Part of speech and core literal definition.\n" +
+                "2. If the term is non-English, provide its exact English translation first.\n" +
+                "3. Any cultural, technical, or contextual nuance in how the term is used.\n" +
+                "Do NOT include conversational meta-talk or introductory pleasantries.";
+            int budget = Math.Max(config.MaxTokens, 4096);
+            string text = await RunBufferedPassAsync(config, system, user, ct, budget, temperature: 0).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                text = await RunBufferedPassAsync(config, system, user, ct, budget * 2, temperature: 0).ConfigureAwait(false);
+            }
+
+            return text?.Trim() ?? string.Empty;
+        }
+
+        // Explain: the popup's core. The WHOLE raw source text of the active page
+        // range (the unabridged extraction, [p. N] anchors and all) goes into the
+        // prompt so the answer grounds itself in the author's own pages - cites
+        // them, quotes them, surfaces what high-level summaries omit - instead of
+        // paraphrasing the digest or guessing from training knowledge.
+
+        public static async Task<string> ExplainExcerptAsync(
+            AiProviderConfig config, string selectedText, string rawRangeText, int firstPage, int lastPage, CancellationToken ct)
+        {
+            const string system = "You are a scholarly reading companion.";
+            string user =
+                "The reader is studying a book and highlighted the following passage/term:\n" +
+                $"\"{selectedText}\"\n" +
+                "\n" +
+                $"Below is the UNABRIDGED RAW SOURCE TEXT from pages {firstPage} to {lastPage} of the book:\n" +
+                "--- BEGIN SOURCE TEXT ---\n" +
+                rawRangeText + "\n" +
+                "--- END SOURCE TEXT ---\n" +
+                "\n" +
+                "TASK:\n" +
+                $"Explain \"{selectedText}\" in depth, grounded STRICTLY in the source text above:\n" +
+                "1. **Source Context:** Locate where and how this appears in the source pages. Cite specific page numbers [p. N] and quote surrounding context where helpful.\n" +
+                "2. **Author's Meaning:** Explain what the author specifically means by this term/passage in the context of their argument, historical evidence, or narrative scene.\n" +
+                "3. **Omitted Nuance:** Highlight any specific details, derivations, dialogue, or caveats present in the original pages that are omitted from high-level summaries.\n" +
+                "\n" +
+                "RULES:\n" +
+                "- Base your answer directly on the provided raw source text.\n" +
+                "- Write in clear, dense prose with bold key concepts.";
+            int budget = Math.Max(config.MaxTokens, 8192);
+            string text = await RunBufferedPassAsync(config, system, user, ct, budget, temperature: 0).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                text = await RunBufferedPassAsync(config, system, user, ct, budget * 2, temperature: 0).ConfigureAwait(false);
+            }
+
+            return text?.Trim() ?? string.Empty;
+        }
 
         // ------------------------------------------------------------------
         // Segmentation

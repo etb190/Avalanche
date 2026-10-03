@@ -1239,6 +1239,15 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_Genre_Research">Bài nghiên cứu</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Phát triển bản thân &amp; Kinh doanh</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Luật &amp; Văn bản pháp quy</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Tìm kiếm</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Tìm kiếm đoạn này trên web bằng trình duyệt mặc định</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Định nghĩa</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Lấy định nghĩa ngắn gọn của từ này</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Giải thích</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Giải thích đoạn này với ngữ cảnh toàn bộ phạm vi trang</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Đang định nghĩa...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Đang phân tích các trang nguồn...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Không thể tải giải thích.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

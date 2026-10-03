@@ -1239,6 +1239,15 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_Genre_Research">Articolo di ricerca</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Self-help e business</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Diritto e leggi</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Cerca</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Cerca questa selezione sul web nel browser predefinito</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Definisci</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Ottieni una definizione concisa di questa parola</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Spiega</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Spiega questa selezione usando il contesto dell'intero intervallo di pagine</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Definizione...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Analisi delle pagine di origine...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Impossibile caricare la spiegazione.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

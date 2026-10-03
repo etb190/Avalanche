@@ -1225,6 +1225,15 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_Genre_Research">Wissenschaftliche Arbeit</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Selbsthilfe &amp; Business</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Recht &amp; Gesetze</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Suchen</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Diese Auswahl im Standardbrowser im Web suchen</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Definieren</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Eine präzise Definition dieses Wortes abrufen</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Erklären</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Diese Auswahl mit dem Kontext des gesamten Seitenbereichs erklären</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Definiere...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Quellseiten werden analysiert...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Erklärung konnte nicht geladen werden.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

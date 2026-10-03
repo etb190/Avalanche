@@ -1223,6 +1223,15 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_Genre_Research">研究论文</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">自助与商业</sys:String>
 	<sys:String x:Key="Str_Genre_Law">法律与法规</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">搜索</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">在系统默认浏览器中搜索此选中文本</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">释义</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">获取该词语的简明释义</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">详解</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">结合完整页码范围上下文解释此选中文本</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">释义中...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">正在分析源页面...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">无法加载解释。</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

@@ -1219,6 +1219,15 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_Genre_Research">Araştırma Makalesi</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Kişisel Gelişim ve İş Dünyası</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Hukuk ve Mevzuat</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Ara</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Bu seçimi varsayılan tarayıcıda internette ara</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Tanımla</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Bu sözcüğün kısa tanımını al</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Açıkla</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Bu seçimi tam sayfa aralığı bağlamıyla açıkla</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Tanımlanıyor...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Kaynak sayfalar analiz ediliyor...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Açıklama yüklenemedi.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

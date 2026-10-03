@@ -1239,6 +1239,15 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_Genre_Research">研究論文</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">自己啓発・ビジネス</sys:String>
 	<sys:String x:Key="Str_Genre_Law">法律・法令</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">検索</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">既定のブラウザーでこの選択範囲をウェブ検索します</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">定義</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">この語の簡潔な定義を取得します</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">解説</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">全ページ範囲の文脈でこの選択範囲を解説します</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">定義中...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">ソースページを分析中...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">解説を読み込めません。</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

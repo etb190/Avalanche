@@ -1227,6 +1227,15 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_Genre_Research">Praca naukowa</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Samorozwój i biznes</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Prawo i ustawy</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Szukaj</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Wyszukaj ten fragment w internecie w domyślnej przeglądarce</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Zdefiniuj</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Pobierz zwięzłą definicję tego słowa</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Wyjaśnij</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Wyjaśnij ten fragment w kontekście całego zakresu stron</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Definiowanie...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Analizowanie stron źródłowych...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Nie można wczytać wyjaśnienia.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

@@ -1239,6 +1239,15 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_Genre_Research">Научная статья</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Саморазвитие и бизнес</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Право и законы</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Найти</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Искать этот фрагмент в интернете в браузере по умолчанию</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Определение</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Получить краткое определение этого слова</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Объяснить</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Объяснить этот фрагмент с контекстом всего диапазона страниц</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Определение...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Анализ исходных страниц...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Не удалось загрузить объяснение.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

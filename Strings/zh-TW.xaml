@@ -1221,6 +1221,15 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_Genre_Research">研究論文</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">自助與商業</sys:String>
 	<sys:String x:Key="Str_Genre_Law">法律與法規</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">搜尋</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">在系統預設瀏覽器中搜尋此選取文字</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">釋義</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">取得該詞語的簡明釋義</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">詳解</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">使用完整頁面範圍上下文解釋此選取文字</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">釋義中...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">正在分析來源頁面...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">無法載入解釋。</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

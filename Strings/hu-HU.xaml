@@ -1226,6 +1226,15 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_Genre_Research">Tudományos dolgozat</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Önfejlesztés és üzlet</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Jog és törvények</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Keresés</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">A kijelölés keresése a weben az alapértelmezett böngészőben</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Definíció</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">A szó tömör definíciójának lekérése</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Magyarázat</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">A kijelölés magyarázata a teljes oldaltartomány kontextusával</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Definíció...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Forrásoldalak elemzése...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">A magyarázat betöltése nem sikerült.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

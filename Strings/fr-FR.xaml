@@ -1239,6 +1239,15 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_Genre_Research">Article de recherche</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Développement personnel et business</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Droit et textes de loi</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Rechercher</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Rechercher cette sélection sur le web dans le navigateur par défaut</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Définir</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Obtenir une définition concise de ce mot</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Expliquer</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Expliquer cette sélection avec le contexte de la plage de pages complète</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Définition...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Analyse des pages sources...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Impossible de charger l'explication.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

@@ -22,12 +22,14 @@ namespace Avalanche.Features.Summary
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
     using System.Threading;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Controls.Primitives;
+    using System.Windows.Documents;
     using System.Windows.Input;
     using System.Windows.Media;
     using System.Windows.Shapes;
@@ -97,6 +99,12 @@ namespace Avalanche.Features.Summary
         private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
         private int _runFirstPage = 1;  // the range the current/last digest covered; the
         private int _runLastPage = 1;   // verification badge maps its audit onto these pages
+
+        // The active pass's raw extraction, keyed by the stretch it covers: the
+        // floating action popup's Explain serves the author's pages from here
+        // and only re-extracts when the range moved or no pass ever ran.
+        private string? _cachedRangeRawText;
+        private int _cachedRangeFirst, _cachedRangeLast;
 
         // The 30-second prefetch buffer: the NEXT sequential range, fetched in
         // the background while the reader digests the current one. A ready
@@ -336,6 +344,7 @@ namespace Avalanche.Features.Summary
             SelectCombo(GenreCombo, _genre);
             ApplyReadingDirection();
             DocBox.FontSize = _digestFont;
+            WireActionPopup();                  // the floating action popup over the digest
             RestoreDigest();                    // the last digest of this book, if any
 
             // The prefetch clock: one-shot. Thirty seconds after a digest lands,
@@ -354,6 +363,7 @@ namespace Avalanche.Features.Summary
                 _generation++;      // a run cancelled by the close can't repaint either
                 _cts?.Cancel();
                 InvalidatePrefetch();   // the clock and the flight die with the window
+                DismissActionPopup();   // the popup dies with the window
                 SaveDigest();       // the digest stays with the book across sessions
                 PersistPlacement();
             };
@@ -586,6 +596,7 @@ namespace Avalanche.Features.Summary
         private void SetStartPage(int page)
         {
             _startPage = Math.Clamp(page, 1, _pageCount);
+            DismissActionPopup();   // the range moved: the anchor no longer marks the word
             PersistStart();
             ShowRange();
         }
@@ -668,6 +679,7 @@ namespace Avalanche.Features.Summary
             _rangePages = pages;
             AppDataPaths.SetSetting("summary.range", pages.ToString(CultureInfo.InvariantCulture));
             InvalidatePrefetch();   // the buffered stretch no longer matches the span
+            DismissActionPopup();   // the range reshaped: the anchor no longer marks the word
             ShowRange();        // reshape the displayed range - never a generation trigger
         }
 
@@ -691,6 +703,7 @@ namespace Avalanche.Features.Summary
                 return;
             }
 
+            DismissActionPopup();   // a new run resets the card: the popup's anchor is gone
             InvalidatePrefetch();   // a manual run retires the buffer and its flight
 
             int first = _startPage;     // always clamped by SetStartPage
@@ -745,6 +758,15 @@ namespace Avalanche.Features.Summary
                         case "done":
                             if (gen == _generation)
                             {
+                                if (update.RawRange.Length > 0)
+                                {
+                                    // The pass's own unabridged extraction: the floating
+                                    // action popup's Explain grounds itself in these pages.
+                                    _cachedRangeRawText = update.RawRange;
+                                    _cachedRangeFirst = _runFirstPage;
+                                    _cachedRangeLast = _runLastPage;
+                                }
+
                                 if (update.Text.Length > 0)
                                 {
                                     _fullText = update.Text;
@@ -894,6 +916,7 @@ namespace Avalanche.Features.Summary
             try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
             _generating = false;
             _cts = null;
+            DismissActionPopup();   // a reset empties the card: the popup goes too
             _fullText = string.Empty;
             _flushPending = false;
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
@@ -1046,6 +1069,7 @@ namespace Avalanche.Features.Summary
                 _fullText = ready;
                 _runFirstPage = _prefetchFirst;
                 _runLastPage = _prefetchLast;
+                DismissActionPopup();   // the stretch changed: the anchor is stale
                 Overlay(null);
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
                 StatusText.Text = VerificationStatusLine();
@@ -1075,6 +1099,7 @@ namespace Avalanche.Features.Summary
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
+            DismissActionPopup();   // the digest area is about to repaint
             StatusText.Text = string.Format(
                 _loc("Str_SummaryPreparing"), _prefetchFirst, _prefetchLast);
             try
@@ -1385,6 +1410,626 @@ namespace Avalanche.Features.Summary
             catch
             {
                 // best-effort
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // The floating action popup (v1.18.0)
+        // ------------------------------------------------------------------
+
+        // Clicking a word in the digest - or pressing Shift over a highlighted
+        // passage - anchors a small popup over that spot with three actions:
+        // Search (the system browser), Define (a concise lexical pass) and
+        // Explain (grounded in the UNABRIDGED raw pages of the active range,
+        // never in the summary). The popup dismisses on an outside click, a
+        // scroll, Escape and every range or generation reset; a request that
+        // dismissal cancels can never repaint the card (generation counter).
+        // The popup is built in code like the window's other composed chrome,
+        // so the digest's XAML stays untouched.
+
+        private Popup? _actionPopup;                    // built lazily on first open
+        private Border? _actionRoot;                    // the rounded dark-glass face
+        private TextBlock? _actionHeaderText;           // the target word / truncated excerpt
+        private Button? _actionSearchBtn;
+        private Button? _actionDefineBtn;
+        private Button? _actionExplainBtn;
+        private Button? _actionCopyBtn;
+        private Border? _actionCard;                    // the collapsible result card
+        private TextBlock? _actionStatus;               // the loading line
+        private TextBlock? _actionError;                // the provider detail under an error
+        private RichTextBox? _actionResultBox;          // the AiMarkdown-rendered answer
+        private CancellationTokenSource? _actionCts;    // cancelled when the popup dismisses
+        private int _actionGen;                         // bumped on dismiss/supersede
+        private string _actionTarget = string.Empty;    // the cleaned text the actions run on
+        private long _actionDismissedTick;              // TickCount64 of the last outside-click close
+
+        private void WireActionPopup()
+        {
+            // The word click. PreviewMouseLeftButtonUp: the editor has not yet
+            // finalized this click's selection, so a drag's result and a clean
+            // click's empty selection both read their pre-click face.
+            DocBox.PreviewMouseLeftButtonUp += DocBox_MouseUpForPopup;
+            // Shift over a highlighted passage anchors the popup over the whole
+            // selection; Escape dismisses the popup before the window's close.
+            DocBox.PreviewKeyDown += DocBox_KeyDownForPopup;
+            // Any scroll of the digest dismisses: the anchor lives in the
+            // viewport and a scrolled-away word is no longer under the popup.
+            DocBox.AddHandler(ScrollViewer.ScrollChangedEvent,
+                new ScrollChangedEventHandler((_, _) => DismissActionPopup()));
+        }
+
+        private void DocBox_KeyDownForPopup(object sender, KeyEventArgs e)
+        {
+            if (e.Key is Key.LeftShift or Key.RightShift)
+            {
+                if (!string.IsNullOrWhiteSpace(DocBox.Selection.Text))
+                {
+                    // The reader Shift-selected a passage: anchor the popup over
+                    // the whole highlighted stretch. Shift itself stays native.
+                    Rect anchor = DocBox.Selection.Start.GetCharacterRect(LogicalDirection.Forward);
+                    OpenActionPopup(CleanPopupTarget(DocBox.Selection.Text), anchor);
+                }
+            }
+            else if (e.Key == Key.Escape && _actionPopup is { IsOpen: true })
+            {
+                e.Handled = true;   // the popup, not the window, eats this Escape
+                DismissActionPopup();
+            }
+        }
+
+        private void DocBox_MouseUpForPopup(object sender, MouseButtonEventArgs e)
+        {
+            // The outside click that closed the popup lands here as a mouse-up;
+            // swallow it so dismissal never re-opens over the same spot.
+            if (Environment.TickCount64 - _actionDismissedTick < 300)
+            {
+                return;
+            }
+
+            if (!DocBox.Selection.IsEmpty)
+            {
+                if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+                {
+                    // The mouse half of the Shift selection: a selection
+                    // completed with either Shift key held.
+                    Rect anchor = DocBox.Selection.Start.GetCharacterRect(LogicalDirection.Forward);
+                    OpenActionPopup(CleanPopupTarget(DocBox.Selection.Text), anchor);
+                }
+
+                // A drag selection without Shift belongs to the reader alone.
+                return;
+            }
+
+            // The plain click. TextPointer hit-testing - no Inline wrapping, so
+            // selection, clipboard copy and rendering keep their native speed.
+            Point pt = e.GetPosition(DocBox);
+            TextPointer? hit = DocBox.GetPositionFromPoint(pt, snapToText: true);
+            if (hit is null || !TryIsolateWord(hit, out TextPointer? start, out string? word))
+            {
+                return;     // off the text, or whitespace/punctuation: no word to act on
+            }
+
+            Rect rect = start!.GetCharacterRect(LogicalDirection.Forward);
+            if (rect.IsEmpty)
+            {
+                return;
+            }
+
+            OpenActionPopup(CleanPopupTarget(word!), rect);
+        }
+
+        // Whitespace and punctuation bound a clicked word (the spec's own
+        // definition); every other character keeps the word whole. The walk
+        // crosses run edges - bold segments, citation marks - because a word
+        // can span them; the pass cap keeps a pathological document looping.
+        private static bool IsWordChar(char c) => !char.IsWhiteSpace(c) && !char.IsPunctuation(c);
+
+        private static bool TryIsolateWord(TextPointer hit, out TextPointer? start, out string? word)
+        {
+            TextPointer left = hit;
+            for (int pass = 0; pass < 64; pass++)
+            {
+                string run = left.GetTextInRun(LogicalDirection.Backward);
+                int i = run.Length;
+                while (i > 0 && IsWordChar(run[i - 1]))
+                {
+                    i--;
+                }
+
+                if (i == run.Length)
+                {
+                    break;      // a boundary sits right before the word
+                }
+
+                left = left.GetPositionAtOffset(i - run.Length) ?? left;
+                if (i > 0)
+                {
+                    break;      // the boundary is inside this run
+                }
+            }
+
+            TextPointer right = hit;
+            for (int pass = 0; pass < 64; pass++)
+            {
+                string run = right.GetTextInRun(LogicalDirection.Forward);
+                int i = 0;
+                while (i < run.Length && IsWordChar(run[i]))
+                {
+                    i++;
+                }
+
+                if (i == 0)
+                {
+                    break;      // a boundary sits right after the word
+                }
+
+                right = right.GetPositionAtOffset(i) ?? right;
+                if (i < run.Length)
+                {
+                    break;      // the boundary is inside this run
+                }
+            }
+
+            start = left;
+            word = left != right ? new TextRange(left, right).Text.Trim() : null;
+            return !string.IsNullOrEmpty(word);
+        }
+
+        // Collapses the selection's newlines and whitespace runs into single
+        // spaces so a multi-line phrase reads - and searches - as one query.
+        private static string CleanPopupTarget(string raw) =>
+            System.Text.RegularExpressions.Regex.Replace(raw ?? string.Empty, @"\s+", " ").Trim();
+
+        private static string TruncateForQuery(string text) =>
+            text.Length <= 200 ? text : text[..200].TrimEnd();
+
+        private static string TruncateForDefine(string text) =>
+            text.Length <= 160 ? text : text[..160].TrimEnd();
+
+        private static string TruncateForExplain(string text) =>
+            text.Length <= 4000 ? text : text[..4000].TrimEnd();
+
+        private void OpenActionPopup(string target, Rect anchor)
+        {
+            if (_closed || target.Length == 0 || anchor.IsEmpty)
+            {
+                return;
+            }
+
+            DismissActionPopup();   // a second open re-anchors cleanly
+            _actionTarget = target;
+
+            Popup popup = _actionPopup ??= BuildActionPopup();
+            _actionHeaderText!.Text = target.Length > 44 ? target[..44] + "…" : target;
+            SetPopupStatus(string.Empty);
+            _actionError!.Visibility = Visibility.Collapsed;
+            _actionError!.Text = string.Empty;
+            _actionResultBox!.Visibility = Visibility.Collapsed;
+            _actionResultBox!.SetValue(AiMarkdown.TextProperty, string.Empty);
+            if (_actionCopyBtn is { } copy)
+            {
+                copy.Visibility = Visibility.Collapsed;
+            }
+
+            SetActionButtonsEnabled(true);
+            _actionGen++;
+
+            // Above the word by default; near the viewport's top, below. The
+            // inflated rect buys an 8px air gap without moving the anchor.
+            popup.Placement = anchor.Y < 240 ? PlacementMode.Bottom : PlacementMode.Top;
+            popup.PlacementRectangle = anchor.Y < 240
+                ? new Rect(anchor.X, anchor.Y, Math.Max(anchor.Width, 40), anchor.Height + 8)
+                : new Rect(anchor.X, anchor.Y - 8, Math.Max(anchor.Width, 40), anchor.Height + 8);
+            popup.IsOpen = true;
+            PlayActionPopupOpen(_actionRoot!);
+        }
+
+        private static void PlayActionPopupOpen(UIElement root)
+        {
+            // A short fade-and-rise: WindowFx.PlayOpenPop targets windows, so
+            // the popup's border carries its own two-sided entrance here.
+            var slide = new TranslateTransform(0, 6);
+            root.RenderTransform = slide;
+            root.BeginAnimation(UIElement.OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(
+                0, 1, TimeSpan.FromMilliseconds(120)));
+            slide.BeginAnimation(TranslateTransform.YProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(6, 0, TimeSpan.FromMilliseconds(130))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.CubicEase
+                    {
+                        EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut
+                    }
+                });
+        }
+
+        private Popup BuildActionPopup()
+        {
+            // Header: the target (word or truncated excerpt) and a close chip.
+            _actionHeaderText = new TextBlock
+            {
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(12, 0, 6, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+            _actionHeaderText.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+
+            var closeGlyph = new TextBlock { Text = "\uE8BB", FontFamily = UiKit.IconFont, FontSize = 10, Margin = new Thickness(0, -1, 0, 0) };
+            closeGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            var closeChip = new Button
+            {
+                Style = (Style)FindResource("SumTitleBtn"),
+                Width = 22,
+                Height = 22,
+                Content = closeGlyph,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            closeChip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; DismissActionPopup(); };
+
+            var header = new Grid { Height = 36 };
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(_actionHeaderText, 0);
+            Grid.SetColumn(closeChip, 1);
+            header.Children.Add(_actionHeaderText);
+            header.Children.Add(closeChip);
+
+            var hairline = new Rectangle { Height = 1, Margin = new Thickness(10, 0, 10, 9), Opacity = 0.85 };
+            hairline.SetResourceReference(Shape.FillProperty, "CardBorderBrush");
+
+            _actionSearchBtn = MakePopupActionBtn("search", "\uE721", "Str_SummaryPopupSearch", "Str_SummaryPopupSearchTT", accent: false);
+            _actionDefineBtn = MakePopupActionBtn("define", "\uE82D", "Str_SummaryPopupDefine", "Str_SummaryPopupDefineTT", accent: false);
+            _actionExplainBtn = MakePopupActionBtn("explain", "\uE946", "Str_SummaryPopupExplain", "Str_SummaryPopupExplainTT", accent: true);
+            var actions = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            actions.Children.Add(_actionSearchBtn);
+            actions.Children.Add(new Border { Width = 6 });
+            actions.Children.Add(_actionDefineBtn);
+            actions.Children.Add(new Border { Width = 6 });
+            actions.Children.Add(_actionExplainBtn);
+
+            // The collapsible result card: loading line, provider detail under
+            // an error, the AiMarkdown answer with selectable text and copy.
+            _actionStatus = new TextBlock { FontSize = 11.5, TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
+            _actionStatus.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            _actionError = new TextBlock { FontSize = 11, TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 3, 0, 0) };
+            _actionError.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            _actionResultBox = new RichTextBox
+            {
+                IsReadOnly = true,
+                IsDocumentEnabled = false,
+                BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent,
+                Padding = new Thickness(0),
+                FontSize = 12.5,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                MaxHeight = 280,
+                Visibility = Visibility.Collapsed
+            };
+            _actionResultBox.SetResourceReference(Control.FontFamilyProperty, "UiFont");
+            _actionResultBox.SetResourceReference(Control.ForegroundProperty, "TextBrush");
+            AiMarkdown.SetParagraphAlignment(_actionResultBox, TextAlignment.Left);
+
+            var copyGlyph = new TextBlock { Text = "\uE8C8", FontFamily = UiKit.IconFont, FontSize = 12 };
+            copyGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            _actionCopyBtn = new Button
+            {
+                Style = (Style)FindResource("SumTitleBtn"),
+                Width = 24,
+                Height = 24,
+                Content = copyGlyph,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(4, 0, 0, 4),
+                Visibility = Visibility.Collapsed
+            };
+            _actionCopyBtn.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                string text = _actionResultBox!.GetValue(AiMarkdown.TextProperty) as string ?? string.Empty;
+                if (text.Length > 0)
+                {
+                    try { Clipboard.SetText(text); } catch { /* the clipboard can be held */ }
+                }
+            };
+
+            var resultRow = new Grid();
+            resultRow.Children.Add(_actionResultBox);
+            resultRow.Children.Add(_actionCopyBtn);
+            _actionCard = new Border
+            {
+                Visibility = Visibility.Collapsed,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(7),
+                Padding = new Thickness(10, 9, 10, 9),
+                Margin = new Thickness(10, 9, 10, 10)
+            };
+            _actionCard.SetResourceReference(Border.BackgroundProperty, "PaneBrush");
+            _actionCard.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+            _actionCard.Child = new StackPanel { Children = { _actionStatus, _actionError, resultRow } };
+
+            var root = new Border
+            {
+                Width = 356,
+                CornerRadius = new CornerRadius(10),
+                BorderThickness = new Thickness(1),
+                Effect = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    BlurRadius = 18,
+                    ShadowDepth = 5,
+                    Direction = 270,
+                    Opacity = 0.45
+                }
+            };
+            root.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#F21E1E24")!;
+            root.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
+            root.Child = new StackPanel { Children = { header, hairline, actions, _actionCard } };
+            // Escape tunnels from the popup's own hwnd here - a dismiss, not a
+            // window close.
+            root.PreviewKeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Escape)
+                {
+                    e.Handled = true;
+                    DismissActionPopup();
+                }
+            };
+
+            var popup = new Popup
+            {
+                AllowsTransparency = true,      // rounded corners + shadow need the layered hwnd
+                StaysOpen = false,              // any outside click dismisses
+                PlacementTarget = DocBox,
+                PopupAnimation = PopupAnimation.None,
+                Child = root
+            };
+            _actionRoot = root;             // PlayActionPopupOpen animates this face
+            popup.Closed += (_, _) => OnActionPopupClosed();
+            _actionPopup = popup;
+            return popup;
+        }
+
+        private Button MakePopupActionBtn(string action, string glyph, string labelKey, string tooltipKey, bool accent)
+        {
+            var icon = new TextBlock
+            {
+                Text = glyph,               // Segoe MDL2: E721 Search / E82D Dictionary / E946 Info
+                FontFamily = UiKit.IconFont,
+                FontSize = 13,
+                Margin = new Thickness(0, -1, 7, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            icon.SetResourceReference(TextBlock.ForegroundProperty, accent ? "OnPrimaryBrush" : "TextBrush");
+            var label = new TextBlock
+            {
+                Text = _loc(labelKey),
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, accent ? "OnPrimaryBrush" : "TextBrush");
+            var btn = new Button
+            {
+                Style = (Style)FindResource("SumActionBtn"),
+                Content = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Children = { icon, label }
+                },
+                Padding = new Thickness(13, 0, 13, 0),
+                ToolTip = _loc(tooltipKey)
+            };
+            // Explain wears the theme's accent to carry its weight (its answer
+            // is the feature's core); the other two stay neutral.
+            btn.SetResourceReference(Control.BackgroundProperty, accent ? "PrimaryBrush" : "RowHoverBrush");
+            btn.SetResourceReference(Control.BorderBrushProperty, accent ? "PrimaryBrush" : "CardBorderBrush");
+            btn.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; RunPopupAction(action); };
+            return btn;
+        }
+
+        private void OnActionPopupClosed()
+        {
+            // Runs for every close - an outside click, a dismissal, a reset,
+            // the window closing. Cancels any in-flight card request and arms
+            // the short guard so the closing click cannot re-open the popup.
+            // A stale close that arrives after a newer open is ignored.
+            if (_actionPopup is { IsOpen: true })
+            {
+                return;
+            }
+
+            _actionDismissedTick = Environment.TickCount64;
+            _actionGen++;
+            try { _actionCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _actionCts?.Dispose();
+            _actionCts = null;
+        }
+
+        private void DismissActionPopup()
+        {
+            if (_actionPopup is { IsOpen: true })
+            {
+                _actionPopup.IsOpen = false;    // Closed does the rest
+            }
+        }
+
+        private void SetPopupStatus(string text)
+        {
+            _actionStatus!.Text = text;
+            _actionStatus!.Visibility = text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private void SetActionButtonsEnabled(bool enabled)
+        {
+            if (_actionSearchBtn is { } search)
+            {
+                search.IsEnabled = enabled;
+            }
+
+            if (_actionDefineBtn is { } define)
+            {
+                define.IsEnabled = enabled;
+            }
+
+            if (_actionExplainBtn is { } explain)
+            {
+                explain.IsEnabled = enabled;
+            }
+        }
+
+        private async void RunPopupAction(string action)
+        {
+            if (_closed || _actionPopup is not { IsOpen: true } || _actionTarget.Length == 0)
+            {
+                return;
+            }
+
+            if (action == "search")
+            {
+                // The system browser carries the selection, exactly the
+                // pdf-summarizer-extension's handoff: encoded query, shell open.
+                string query = Uri.EscapeDataString(TruncateForQuery(_actionTarget));
+                try
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = $"https://www.google.com/search?q={query}",
+                        UseShellExecute = true
+                    });
+                }
+                catch
+                {
+                    // No default browser or a shell refusal: nothing breaks.
+                }
+
+                return;
+            }
+
+            // Define / Explain: expand the card, park the buttons, and await
+            // the answer on the dispatcher (every network await yields - zero
+            // UI freeze). A newer request or a dismissal invalidates this one
+            // through the generation counter.
+            try { _actionCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _actionGen++;
+            int gen = _actionGen;
+            _actionCts = new CancellationTokenSource();
+            CancellationToken ct = _actionCts.Token;
+            _actionCard!.Visibility = Visibility.Visible;
+            _actionError!.Visibility = Visibility.Collapsed;
+            _actionError!.Text = string.Empty;
+            _actionResultBox!.Visibility = Visibility.Collapsed;
+            _actionResultBox!.SetValue(AiMarkdown.TextProperty, string.Empty);
+            if (_actionCopyBtn is { } copy)
+            {
+                copy.Visibility = Visibility.Collapsed;
+            }
+
+            SetPopupStatus(_loc(action == "define" ? "Str_SummaryPopupDefining" : "Str_SummaryPopupExplaining"));
+            SetActionButtonsEnabled(false);
+            AiProviderConfig config = _configProvider();
+            string target = _actionTarget;
+            try
+            {
+                string result = action == "define"
+                    ? await PageSummarizer.DefineTermAsync(config, TruncateForDefine(target), _language, ct)
+                    : await ExplainFromRangeAsync(config, target, ct);
+                if (gen != _actionGen || _closed || _actionPopup is not { IsOpen: true })
+                {
+                    return;     // dismissed or superseded while waiting
+                }
+
+                if (string.IsNullOrWhiteSpace(result))
+                {
+                    ShowPopupError(null);
+                }
+                else
+                {
+                    SetPopupStatus(string.Empty);
+                    _actionResultBox!.Visibility = Visibility.Visible;
+                    _actionResultBox!.SetValue(AiMarkdown.TextProperty, result);
+                    if (_actionCopyBtn is { } copyShown)
+                    {
+                        copyShown.Visibility = Visibility.Visible;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Dismissal or a newer request cancelled this one: the card is
+                // gone or already repurposed, nothing to repaint.
+            }
+            catch (Exception ex)
+            {
+                if (gen == _actionGen && _actionPopup is { IsOpen: true })
+                {
+                    ShowPopupError(PageSummarizer.FriendlyError(ex));
+                }
+            }
+            finally
+            {
+                if (gen == _actionGen)
+                {
+                    SetActionButtonsEnabled(true);
+                }
+            }
+        }
+
+        // The Explain pipeline: the author's own pages, not the summary. The
+        // raw markdown of the active range is served from the cache the last
+        // summary pass filled (_cachedRangeRawText); an empty or stale cache
+        // (the range moved, a restored digest, a prefetch-served one) fetches
+        // through ExtractRangeAsync once and refills the cache.
+        private async Task<string> ExplainFromRangeAsync(AiProviderConfig config, string target, CancellationToken ct)
+        {
+            string raw;
+            if (!string.IsNullOrEmpty(_cachedRangeRawText)
+                && _cachedRangeFirst == _runFirstPage && _cachedRangeLast == _runLastPage)
+            {
+                raw = _cachedRangeRawText;
+            }
+            else
+            {
+                raw = await PageSummarizer.ExtractRangeAsync(_filePath, _runFirstPage, _runLastPage, ct);
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    return string.Empty;    // no text layer on these pages
+                }
+
+                _cachedRangeRawText = raw;
+                _cachedRangeFirst = _runFirstPage;
+                _cachedRangeLast = _runLastPage;
+            }
+
+            return await PageSummarizer.ExplainExcerptAsync(
+                config, TruncateForExplain(target), raw, _runFirstPage, _runLastPage, ct);
+        }
+
+        private void ShowPopupError(string? detail)
+        {
+            SetPopupStatus(_loc("Str_SummaryPopupError"));
+            if (string.IsNullOrEmpty(detail))
+            {
+                _actionError!.Visibility = Visibility.Collapsed;
+                _actionError!.Text = string.Empty;
+            }
+            else
+            {
+                _actionError!.Text = detail;
+                _actionError!.Visibility = Visibility.Visible;
+            }
+
+            _actionResultBox!.Visibility = Visibility.Collapsed;
+            _actionResultBox!.SetValue(AiMarkdown.TextProperty, string.Empty);
+            if (_actionCopyBtn is { } copy)
+            {
+                copy.Visibility = Visibility.Collapsed;
             }
         }
 

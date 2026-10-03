@@ -1219,6 +1219,15 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_Genre_Research">Artículo de investigación</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Autoayuda y negocios</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Derecho y leyes</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Buscar</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Buscar esta selección en la web con el navegador predeterminado</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Definir</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Obtener una definición concisa de esta palabra</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Explicar</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Explicar esta selección con el contexto del rango completo de páginas</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Definiendo...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Analizando las páginas de origen...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">No se pudo cargar la explicación.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>

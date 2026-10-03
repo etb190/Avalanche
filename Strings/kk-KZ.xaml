@@ -1238,6 +1238,15 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_Genre_Research">Ғылыми мақала</sys:String>
 	<sys:String x:Key="Str_Genre_SelfHelp">Өзіндік даму және бизнес</sys:String>
 	<sys:String x:Key="Str_Genre_Law">Құқық және заңнама</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearch">Іздеу</sys:String>
+	<sys:String x:Key="Str_SummaryPopupSearchTT">Осы таңдалғанды әдепкі браузерде интернеттен іздеу</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefine">Анықтама</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefineTT">Бұл сөздің қысқаша анықтамасын алу</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplain">Түсіндіру</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplainTT">Осы таңдалғанды беттер ауқымының толық мәтінмәнімен түсіндіру</sys:String>
+	<sys:String x:Key="Str_SummaryPopupDefining">Анықтама жүктелуде...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Дереккөз беттері талдануда...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupError">Түсіндіруді жүктеу мүмкін болмады.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
 	<sys:String x:Key="Str_SummaryLangEs">Español</sys:String>
