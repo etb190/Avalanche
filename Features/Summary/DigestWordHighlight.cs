@@ -1,17 +1,17 @@
-// Features/Summary/DigestWordHighlight.cs - the green per-word highlights over
-// the digest.
+// Features/Summary/DigestWordHighlight.cs - the digest's hover highlight.
 //
-// Every word of the generated summary wears a rounded green plate with a little
-// padding on all sides, painted by this adorner above DocBox's text: the
-// document itself is never touched, so the text flow, the selection and the
-// clipboard behavior stay exactly the RichTextBox's own, and a hover - which
-// only swaps the plate's fill for a firmer green - can never shift, resize or
-// reflow a single neighbor. The plates hit-test nothing (IsHitTestVisible=false),
-// so clicks fall through to the text and the floating action popup keeps
-// working; the pointer still turns into a hand over a word, the clickability
-// cue. A scroll only translates the plates (the cached rects ride the scroll
-// delta); a text or layout change re-walks and re-measures on the dispatcher's
-// quiet lane, coalescing a streaming digest's dozens of ticks into one pass.
+// When the pointer rests on a word of the generated summary, that one word
+// wears a rounded dark-green plate with a little padding on all sides, painted
+// by this adorner above DocBox's text: the document itself is never touched,
+// so the text flow, the selection and the clipboard behavior stay exactly the
+// RichTextBox's own, and the painting can never shift, resize or reflow a
+// single neighbor. The resting digest reads as plain text - the plate exists
+// only under the pointer, alongside the hand cursor that marks the word as
+// the floating action popup's target. The plate hits nothing
+// (IsHitTestVisible=false), so clicks fall through to the text. A scroll only
+// translates the cached rects (they ride the scroll delta); a text or layout
+// change re-walks and re-measures on the dispatcher's quiet lane, coalescing a
+// streaming digest's dozens of ticks into one pass.
 
 namespace Avalanche.Features.Summary
 {
@@ -39,13 +39,11 @@ namespace Avalanche.Features.Summary
         private bool _rebuildQueued;
         private int _hover = -1;
 
-        // The plates: translucent green over the text (highlighter, not paint), a
-        // firmer green under the pointer. The colors ride BrushConverter so the
-        // exact values are visible in the assembly's literal heap.
-        private static readonly Brush PlateFill = Plate("#6622C55E");
-        private static readonly Brush PlateHover = Plate("#B322C55E");
-        private static readonly Pen PlateEdge = Edge("#9922C55E");
-        private static readonly Pen PlateEdgeHover = Edge("#E622C55E");
+        // The plate: the AI buttons' dark green under the pointer's word,
+        // translucent enough for the glyphs to read through. The colors ride
+        // BrushConverter so the exact values are visible in the literal heap.
+        private static readonly Brush PlateFill = Plate("#B31B5E20");
+        private static readonly Pen PlateEdge = Edge("#E60F3D14");
 
         private static Brush Plate(string hex) =>
             (Brush)new BrushConverter().ConvertFromString(hex)!;
@@ -318,25 +316,15 @@ namespace Avalanche.Features.Summary
 
         protected override void OnRender(DrawingContext dc)
         {
-            EnsureRects();
-            int hover = _hover >= 0 && _hover < _rects.Count ? _hover : -1;
-            for (int i = 0; i < _rects.Count; i++)
+            if (_hover < 0 || _hover >= _rects.Count || _rects[_hover].IsEmpty)
             {
-                if (i == hover || _rects[i].IsEmpty)
-                {
-                    continue;
-                }
-
-                DrawPlate(dc, _rects[i], hovered: false);
+                return;     // the pointer is off the text: the digest stays plain
             }
 
-            if (hover >= 0)
-            {
-                DrawPlate(dc, _rects[hover], hovered: true);    // the pointer's plate on top
-            }
+            DrawPlate(dc, _rects[_hover]);
         }
 
-        private void DrawPlate(DrawingContext dc, Rect rect, bool hovered)
+        private void DrawPlate(DrawingContext dc, Rect rect)
         {
             // The padding: the plate grows a little beyond the glyphs on every
             // side - pure painting, so the words around it hold their place.
@@ -346,12 +334,7 @@ namespace Avalanche.Features.Summary
                 return;     // outside the viewport: nothing to paint
             }
 
-            dc.DrawRoundedRectangle(
-                hovered ? PlateHover : PlateFill,
-                hovered ? PlateEdgeHover : PlateEdge,
-                plate,
-                3,
-                3);
+            dc.DrawRoundedRectangle(PlateFill, PlateEdge, plate, 3, 3);
         }
 
         public void Detach()

@@ -1429,9 +1429,9 @@ namespace Avalanche.Features.Summary
         // popup that never captured cannot see the outside clicks that dismiss
         // it. A request that a dismissal cancels can never repaint the card
         // (generation counter). The popup is built in code like the window's
-        // other composed chrome, so the digest's XAML stays untouched, and every
-        // digest word wears a green highlight an adorner paints above the text -
-        // padding included - that can never shift or reflow a single neighbor.
+        // other composed chrome, so the digest's XAML stays untouched; the word
+        // under the pointer wears a dark-green plate an adorner paints above the
+        // text - padding included - that can never shift or reflow a neighbor.
 
         private Popup? _actionPopup;                    // built lazily on first open
         private Border? _actionRoot;                    // the rounded dark-glass face
@@ -1744,13 +1744,14 @@ namespace Avalanche.Features.Summary
             _actionExplainBtn = MakePopupActionBtn("explain", "Str_SummaryPopupExplain", "Str_SummaryPopupExplainTT");
             var actions = new StackPanel
             {
-                Orientation = Orientation.Vertical,
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(10, 9, 10, 0)
             };
             actions.Children.Add(_actionSearchBtn);
-            actions.Children.Add(new Border { Height = 6 });
+            actions.Children.Add(new Border { Width = 6 });
             actions.Children.Add(_actionDefineBtn);
-            actions.Children.Add(new Border { Height = 6 });
+            actions.Children.Add(new Border { Width = 6 });
             actions.Children.Add(_actionExplainBtn);
 
             // The collapsible result card: loading line, provider detail under
@@ -1815,7 +1816,7 @@ namespace Avalanche.Features.Summary
 
             var root = new Border
             {
-                Width = 178,
+                Width = 240,
                 CornerRadius = new CornerRadius(10),
                 BorderThickness = new Thickness(1),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
@@ -1869,23 +1870,26 @@ namespace Avalanche.Features.Summary
             {
                 Style = (Style)FindResource("SumActionBtn"),
                 Content = label,
-                Padding = new Thickness(13, 0, 13, 0),
+                Padding = new Thickness(10, 0, 10, 0),
                 ToolTip = _loc(tooltipKey)
             };
-            // All three wear the same green - the popup's one accent, strings
-            // only, white and bold; the hover just dims the face (the style's
-            // opacity trigger) so nothing around the button ever shifts.
-            System.Windows.Media.Brush green = PopupGreen();
-            btn.Background = green;
-            btn.BorderBrush = green;
+            // All three wear the AI buttons' own dark green (the Start face) -
+            // strings only, white and bold; the hover just dims the face (the
+            // style's opacity trigger) so nothing around the button ever shifts.
+            btn.Background = PopupGreen();
+            btn.BorderBrush = PopupGreenEdge();
             btn.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; RunPopupAction(action); };
             return btn;
         }
 
-        // The popup's green (the buttons' face, all three alike).
+        // The popup's green - the AI buttons' own dark green (Start's face).
         private static System.Windows.Media.Brush PopupGreen() =>
             (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter()
-                .ConvertFromString("#FF22C55E")!;
+                .ConvertFromString("#FF1B5E20")!;
+
+        private static System.Windows.Media.Brush PopupGreenEdge() =>
+            (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter()
+                .ConvertFromString("#FF0F3D14")!;
 
         private void OnActionPopupClosed()
         {
