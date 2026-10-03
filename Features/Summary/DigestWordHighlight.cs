@@ -1,47 +1,38 @@
-// Features/Summary/DigestWordHighlight.cs - the digest's hover highlight.
+// Features/Summary/DigestWordHighlight.cs - the digest's instant hover highlight.
 //
 // When the pointer rests on a word of the generated summary, that one word
-// wears a rounded dark-green plate with a little padding on all sides, painted
-// by this adorner above DocBox's text: the document itself is never touched,
-// so the text flow, the selection and the clipboard behavior stay exactly the
-// RichTextBox's own, and the painting can never shift, resize or reflow a
-// single neighbor. The resting digest reads as plain text - the plate exists
-// only under the pointer, alongside the hand cursor that marks the word as
-// the floating action popup's target. The plate hits nothing
-// (IsHitTestVisible=false), so clicks fall through to the text. A scroll only
-// translates the cached rects (they ride the scroll delta); a text or layout
-// change re-walks and re-measures on the dispatcher's quiet lane, coalescing a
-// streaming digest's dozens of ticks into one pass.
+// wears a rounded dark-green plate with padding on all sides, painted by this
+// adorner above DocBox's text. The document itself is never touched, so text flow,
+// selection, and clipboard behavior stay native.
+//
+// Zero-cost on-demand hit-testing:
+// Rather than pre-measuring thousands of words and re-checking them on every
+// layout tick, hit-testing is performed on-demand in O(1) time directly under the
+// mouse pointer using TextPointer. When the mouse moves within the same word,
+// execution is a 0-cost no-op. When entering a new word, only that single word
+// is measured. When leaving text or during drag-selection, the plate clears instantly.
 
 namespace Avalanche.Features.Summary
 {
     using System;
-    using System.Collections.Generic;
     using System.Windows;
     using System.Windows.Controls;
     using System.Windows.Documents;
     using System.Windows.Input;
     using System.Windows.Media;
-    using System.Windows.Threading;
 
     internal sealed class DigestWordHighlightAdorner : Adorner
     {
-        // A digest word is the same creature the action popup isolates: bounded
-        // by whitespace and punctuation, everything else keeps it whole.
+        // A digest word is bounded by whitespace and punctuation.
         internal static bool IsWordChar(char c) => !char.IsWhiteSpace(c) && !char.IsPunctuation(c);
 
-        private const int MaxWords = 12000;     // a pathological document cannot loop forever
-
         private readonly RichTextBox _box;
-        private readonly List<(TextPointer Start, TextPointer End)> _words = new();
-        private readonly List<Rect> _rects = new();
-        private bool _rectsDirty = true;
-        private bool _rebuildQueued;
-        private int _hover = -1;
+        private TextPointer? _hoverStart;
+        private TextPointer? _hoverEnd;
+        private Rect _hoverRect = Rect.Empty;
 
-        // The plate: the AI buttons' dark green under the pointer's word,
-        // translucent enough for the glyphs to read through. The colors ride
-        // BrushConverter so the exact values are visible in the literal heap.
+        // The plate: the AI buttons' dark green under the pointer's word (#1B5E20 on #0F3D14),
+        // translucent enough for the glyphs to read through cleanly.
         private static readonly Brush PlateFill = Plate("#B31B5E20");
         private static readonly Pen PlateEdge = Edge("#E60F3D14");
 
@@ -59,279 +50,206 @@ namespace Avalanche.Features.Summary
         {
             _box = box;
             IsHitTestVisible = false;
-            box.TextChanged += (_, _) => QueueRebuild();
-            box.LayoutUpdated += (_, _) => _rectsDirty = true;   // fonts, sizes, re-layouts
+
+            box.PreviewMouseMove += OnMouseMove;
+            box.MouseLeave += (_, _) => ClearHover();
+            box.TextChanged += (_, _) => ClearHover();
             box.AddHandler(ScrollViewer.ScrollChangedEvent,
                 new ScrollChangedEventHandler(OnScroll));
-            box.PreviewMouseMove += OnMouseMove;
-            box.MouseLeave += (_, _) => SetHover(-1);
-            QueueRebuild();
-        }
-
-        // The digest changed (or the adorner just attached): re-walk the words on
-        // the dispatcher's quiet lane - a streaming digest lands dozens of
-        // TextChanged ticks and this coalesces them into one walk per batch.
-        private void QueueRebuild()
-        {
-            if (_rebuildQueued)
-            {
-                return;
-            }
-
-            _rebuildQueued = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
-            {
-                _rebuildQueued = false;
-                RebuildWords();
-            }));
-        }
-
-        private void RebuildWords()
-        {
-            _words.Clear();
-            _rectsDirty = true;
-
-            FlowDocument? doc = _box.Document;
-            if (doc is null)
-            {
-                InvalidateVisual();
-                return;
-            }
-
-            (Run Run, int Start)? carry = null;     // a word mid-flight across run edges
-            foreach (Block block in doc.Blocks)
-            {
-                if (_words.Count >= MaxWords)
-                {
-                    break;
-                }
-
-                if (block is Paragraph paragraph)
-                {
-                    foreach (Inline inline in EnumerateInlines(paragraph))
-                    {
-                        if (_words.Count >= MaxWords)
-                        {
-                            break;
-                        }
-
-                        if (inline is Run run && !string.IsNullOrEmpty(run.Text))
-                        {
-                            ScanRun(run, ref carry);
-                        }
-                        else if (carry is { } open)
-                        {
-                            Emit(open, open.Run.ContentEnd);    // a LineBreak or figure splits words
-                            carry = null;
-                        }
-                    }
-                }
-
-                if (carry is { } dangling)
-                {
-                    Emit(dangling, dangling.Run.ContentEnd);    // a paragraph edge splits words
-                    carry = null;
-                }
-            }
-
-            if (carry is { } tail)
-            {
-                Emit(tail, tail.Run.ContentEnd);
-            }
-
-            InvalidateVisual();
-        }
-
-        // Bold segments live inside spans; the digest uses them freely, so the
-        // walk descends one level (AiMarkdown's shapes: paragraph > span > run).
-        private static IEnumerable<Inline> EnumerateInlines(Paragraph paragraph)
-        {
-            foreach (Inline inline in paragraph.Inlines)
-            {
-                if (inline is Span span)
-                {
-                    foreach (Inline nested in span.Inlines)
-                    {
-                        yield return nested;
-                    }
-                }
-                else
-                {
-                    yield return inline;
-                }
-            }
-        }
-
-        private void ScanRun(Run run, ref (Run Run, int Start)? carry)
-        {
-            string text = run.Text;
-            int i = 0;
-
-            // A word carried from the previous run either continues here or
-            // closes at the boundary between them.
-            if (carry is { } open && open.Run != run)
-            {
-                if (i < text.Length && IsWordChar(text[i]))
-                {
-                    int j = i;
-                    while (j < text.Length && IsWordChar(text[j]))
-                    {
-                        j++;
-                    }
-
-                    if (j < text.Length)
-                    {
-                        Emit(open, run.ContentStart.GetPositionAtOffset(j));
-                        carry = null;
-                        i = j;
-                    }
-                    else
-                    {
-                        i = j;      // still open at this run's edge
-                    }
-                }
-                else
-                {
-                    Emit(open, run.ContentStart);
-                    carry = null;
-                }
-            }
-
-            while (i < text.Length)
-            {
-                while (i < text.Length && !IsWordChar(text[i]))
-                {
-                    i++;
-                }
-
-                if (i >= text.Length)
-                {
-                    return;
-                }
-
-                int start = i;
-                while (i < text.Length && IsWordChar(text[i]))
-                {
-                    i++;
-                }
-
-                if (i < text.Length)
-                {
-                    Emit((run, start), run.ContentStart.GetPositionAtOffset(i));
-                }
-                else
-                {
-                    carry = (run, start);   // the word reaches the run edge: may continue
-                }
-            }
-        }
-
-        private void Emit((Run Run, int Start) word, TextPointer? end)
-        {
-            TextPointer? start = word.Run.ContentStart.GetPositionAtOffset(word.Start);
-            if (start is null || end is null || start.CompareTo(end) >= 0)
-            {
-                return;
-            }
-
-            _words.Add((start, end));
         }
 
         private void OnScroll(object sender, ScrollChangedEventArgs e)
         {
-            // A scroll only translates the view: slide the cached plates with the
-            // content instead of re-measuring every word per scroll tick.
-            if (e.HorizontalChange == 0 && e.VerticalChange == 0)
+            if (e.HorizontalChange != 0 || e.VerticalChange != 0)
             {
-                return;
+                ClearHover();
             }
-
-            for (int i = 0; i < _rects.Count; i++)
-            {
-                if (!_rects[i].IsEmpty)
-                {
-                    _rects[i] = new Rect(
-                        _rects[i].X - e.HorizontalChange,
-                        _rects[i].Y - e.VerticalChange,
-                        _rects[i].Width,
-                        _rects[i].Height);
-                }
-            }
-
-            InvalidateVisual();
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
-            EnsureRects();
-            Point pt = e.GetPosition(this);
-            int hit = -1;
-            for (int i = 0; i < _rects.Count; i++)
+            // If the user is drag-selecting text or a selection already exists,
+            // suppress the single-word hover plate so it doesn't fight selection.
+            if (e.LeftButton == MouseButtonState.Pressed || !_box.Selection.IsEmpty)
             {
-                if (!_rects[i].IsEmpty && _rects[i].Contains(pt))
+                ClearHover();
+                return;
+            }
+
+            Point pt = e.GetPosition(_box);
+
+            // Fast hit-test: snapToText=false ensures we only hit when the pointer
+            // is actually over glyphs, not empty margins or padding.
+            TextPointer? hit = _box.GetPositionFromPoint(pt, snapToText: false);
+            if (hit is null || !TryIsolateWord(hit, out TextPointer? start, out TextPointer? end))
+            {
+                ClearHover();
+                return;
+            }
+
+            // If the pointer is still over the exact same isolated word, do nothing:
+            // 0 allocations, 0 layout calls, 0 redraws.
+            if (_hoverStart != null && _hoverEnd != null &&
+                _hoverStart.CompareTo(start) == 0 && _hoverEnd.CompareTo(end) == 0)
+            {
+                return;
+            }
+
+            // Measure ONLY this one isolated word.
+            Rect rStart = start!.GetCharacterRect(LogicalDirection.Forward);
+            Rect rEnd = end!.GetCharacterRect(LogicalDirection.Backward);
+
+            if (rStart.IsEmpty && rEnd.IsEmpty)
+            {
+                ClearHover();
+                return;
+            }
+
+            Rect wordRect;
+            if (Math.Abs(rStart.Top - rEnd.Top) < 4)
+            {
+                // Single line word
+                double x = Math.Min(rStart.Left, rEnd.Left);
+                double right = Math.Max(rStart.Right, rEnd.Right);
+                double y = Math.Min(rStart.Top, rEnd.Top);
+                double bottom = Math.Max(rStart.Bottom, rEnd.Bottom);
+                wordRect = new Rect(x, y, Math.Max(1, right - x), Math.Max(1, bottom - y));
+            }
+            else
+            {
+                // Wrapped across lines: take the line segment containing the pointer
+                if (pt.Y <= rStart.Bottom + 2)
                 {
-                    hit = i;
+                    wordRect = new Rect(rStart.Left, rStart.Top, Math.Max(4, _box.ActualWidth - rStart.Left), rStart.Height);
+                }
+                else
+                {
+                    wordRect = new Rect(0, rEnd.Top, Math.Max(4, rEnd.Right), rEnd.Height);
+                }
+            }
+
+            // Check if the pointer is within the inflated plate boundary
+            Rect plateHitBox = Rect.Inflate(wordRect, 3, 2);
+            if (!plateHitBox.Contains(pt))
+            {
+                ClearHover();
+                return;
+            }
+
+            _hoverStart = start;
+            _hoverEnd = end;
+            _hoverRect = wordRect;
+
+            if (_box.Cursor != Cursors.Hand)
+            {
+                _box.Cursor = Cursors.Hand;
+            }
+
+            InvalidateVisual();
+        }
+
+        private void ClearHover()
+        {
+            if (_hoverStart is null && _hoverRect.IsEmpty)
+            {
+                return;
+            }
+
+            _hoverStart = null;
+            _hoverEnd = null;
+            _hoverRect = Rect.Empty;
+
+            if (_box.Cursor != null)
+            {
+                _box.Cursor = null;
+            }
+
+            InvalidateVisual();
+        }
+
+        internal static bool TryIsolateWord(TextPointer hit, out TextPointer? start, out TextPointer? end)
+        {
+            start = null;
+            end = null;
+
+            // Check if immediately adjacent characters are word characters.
+            string fwd = hit.GetTextInRun(LogicalDirection.Forward);
+            string bwd = hit.GetTextInRun(LogicalDirection.Backward);
+
+            bool fwdIsWord = fwd.Length > 0 && IsWordChar(fwd[0]);
+            bool bwdIsWord = bwd.Length > 0 && IsWordChar(bwd[^1]);
+
+            if (!fwdIsWord && !bwdIsWord)
+            {
+                return false;
+            }
+
+            TextPointer left = hit;
+            for (int pass = 0; pass < 64; pass++)
+            {
+                string run = left.GetTextInRun(LogicalDirection.Backward);
+                int i = run.Length;
+                while (i > 0 && IsWordChar(run[i - 1]))
+                {
+                    i--;
+                }
+
+                if (i == run.Length)
+                {
+                    break;
+                }
+
+                left = left.GetPositionAtOffset(i - run.Length) ?? left;
+                if (i > 0)
+                {
                     break;
                 }
             }
 
-            SetHover(hit);
-        }
-
-        private void SetHover(int index)
-        {
-            if (_hover == index)
+            TextPointer right = hit;
+            for (int pass = 0; pass < 64; pass++)
             {
-                return;
-            }
-
-            _hover = index;
-            _box.Cursor = index >= 0 ? Cursors.Hand : null;
-            InvalidateVisual();
-        }
-
-        private void EnsureRects()
-        {
-            if (!_rectsDirty && _rects.Count == _words.Count)
-            {
-                return;
-            }
-
-            _rects.Clear();
-            for (int i = 0; i < _words.Count; i++)
-            {
-                Rect start = _words[i].Start.GetCharacterRect(LogicalDirection.Forward);
-                Rect end = _words[i].End.GetCharacterRect(LogicalDirection.Backward);
-                Rect rect = start.IsEmpty ? end : end.IsEmpty ? start : Rect.Union(start, end);
-                if (!rect.IsEmpty && rect.Width <= 0)
+                string run = right.GetTextInRun(LogicalDirection.Forward);
+                int i = 0;
+                while (i < run.Length && IsWordChar(run[i]))
                 {
-                    rect = new Rect(start.X, start.Y, 1, start.Height);
+                    i++;
                 }
 
-                _rects.Add(rect);
+                if (i == 0)
+                {
+                    break;
+                }
+
+                right = right.GetPositionAtOffset(i) ?? right;
+                if (i < run.Length)
+                {
+                    break;
+                }
             }
 
-            _rectsDirty = false;
+            if (left.CompareTo(right) >= 0)
+            {
+                return false;
+            }
+
+            start = left;
+            end = right;
+            return true;
         }
 
         protected override void OnRender(DrawingContext dc)
         {
-            if (_hover < 0 || _hover >= _rects.Count || _rects[_hover].IsEmpty)
+            if (_hoverRect.IsEmpty)
             {
-                return;     // the pointer is off the text: the digest stays plain
+                return;
             }
 
-            DrawPlate(dc, _rects[_hover]);
-        }
-
-        private void DrawPlate(DrawingContext dc, Rect rect)
-        {
-            // The padding: the plate grows a little beyond the glyphs on every
-            // side - pure painting, so the words around it hold their place.
-            Rect plate = Rect.Inflate(rect, 2.5, 1.5);
+            // Inflate plate slightly around the glyph bounds
+            Rect plate = Rect.Inflate(_hoverRect, 2.5, 1.5);
             if (plate.Bottom < 0 || plate.Top > ActualHeight)
             {
-                return;     // outside the viewport: nothing to paint
+                return;
             }
 
             dc.DrawRoundedRectangle(PlateFill, PlateEdge, plate, 3, 3);
