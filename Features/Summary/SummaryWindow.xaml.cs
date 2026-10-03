@@ -1431,7 +1431,9 @@ namespace Avalanche.Features.Summary
         // (generation counter). The popup is built in code like the window's
         // other composed chrome, so the digest's XAML stays untouched; the word
         // under the pointer wears a dark-green plate an adorner paints above the
-        // text - padding included - that can never shift or reflow a neighbor.
+        // text - padding included - that can never shift or reflow a neighbor,
+        // and the word the popup opened on stays pinned under a solid plate
+        // until the popup closes or a newer word or passage takes the anchor.
 
         private Popup? _actionPopup;                    // built lazily on first open
         private Border? _actionRoot;                    // the rounded dark-glass face
@@ -1535,7 +1537,7 @@ namespace Avalanche.Features.Summary
             // selection, clipboard copy and rendering keep their native speed.
             Point pt = e.GetPosition(DocBox);
             TextPointer? hit = DocBox.GetPositionFromPoint(pt, snapToText: true);
-            if (hit is null || !TryIsolateWord(hit, out TextPointer? start, out string? word))
+            if (hit is null || !TryIsolateWord(hit, out TextPointer? start, out TextPointer? end, out string? word))
             {
                 return;     // off the text, or whitespace/punctuation: no word to act on
             }
@@ -1546,7 +1548,10 @@ namespace Avalanche.Features.Summary
                 return;
             }
 
-            OpenActionPopup(CleanPopupTarget(word!), rect);
+            // The click's own pointers ride along: when the popup opens, the
+            // word is pinned under its solid plate until the popup closes or
+            // a newer word or passage takes the anchor.
+            OpenActionPopup(CleanPopupTarget(word!), rect, start, end);
         }
 
         // Whitespace and punctuation bound a clicked word (the spec's own
@@ -1555,7 +1560,7 @@ namespace Avalanche.Features.Summary
         // can span them; the pass cap keeps a pathological document looping.
         private static bool IsWordChar(char c) => !char.IsWhiteSpace(c) && !char.IsPunctuation(c);
 
-        private static bool TryIsolateWord(TextPointer hit, out TextPointer? start, out string? word)
+        private static bool TryIsolateWord(TextPointer hit, out TextPointer? start, out TextPointer? end, out string? word)
         {
             TextPointer left = hit;
             for (int pass = 0; pass < 64; pass++)
@@ -1602,6 +1607,7 @@ namespace Avalanche.Features.Summary
             }
 
             start = left;
+            end = right;
             word = left != right ? new TextRange(left, right).Text.Trim() : null;
             return !string.IsNullOrEmpty(word);
         }
@@ -1620,7 +1626,7 @@ namespace Avalanche.Features.Summary
         private static string TruncateForExplain(string text) =>
             text.Length <= 4000 ? text : text[..4000].TrimEnd();
 
-        private void OpenActionPopup(string target, Rect anchor)
+        private void OpenActionPopup(string target, Rect anchor, TextPointer? pinStart = null, TextPointer? pinEnd = null)
         {
             if (_closed || target.Length == 0 || anchor.IsEmpty)
             {
@@ -1673,13 +1679,28 @@ namespace Avalanche.Features.Summary
                 _actionOpenPending = null;
                 try
                 {
+                    // The clicked word keeps its green plate while the popup
+                    // lives: the pin rides the exact pointers the click
+                    // isolated. A passage open pins nothing - the native
+                    // selection already marks the passage - and drops any
+                    // word pin a previous open left behind.
+                    if (pinStart is { } ps && pinEnd is { } pe && _wordHighlights is { } highlights)
+                    {
+                        highlights.Pin(ps, pe);
+                    }
+                    else
+                    {
+                        _wordHighlights?.ClearPin();
+                    }
+
                     popup.IsOpen = true;
                     PlayActionPopupOpen(_actionRoot!);
                 }
                 catch
                 {
                     // A decoration: a popup that cannot open never takes the
-                    // window down.
+                    // window down - and never leaves a pin behind either.
+                    _wordHighlights?.ClearPin();
                 }
             }));
         }
@@ -1894,8 +1915,9 @@ namespace Avalanche.Features.Summary
         private void OnActionPopupClosed()
         {
             // Runs for every close - an outside click, a dismissal, a reset,
-            // the window closing. Cancels any in-flight card request. A stale
-            // close that arrives after a newer open is ignored.
+            // the window closing. Cancels any in-flight card request and
+            // releases the pinned word's plate. A stale close that arrives
+            // after a newer open is ignored.
             if (_actionPopup is { IsOpen: true })
             {
                 return;
@@ -1905,6 +1927,7 @@ namespace Avalanche.Features.Summary
             try { _actionCts?.Cancel(); } catch (ObjectDisposedException) { }
             _actionCts?.Dispose();
             _actionCts = null;
+            _wordHighlights?.ClearPin();    // the plate was the popup's anchor; it dies with the popup
         }
 
         private void DismissActionPopup()

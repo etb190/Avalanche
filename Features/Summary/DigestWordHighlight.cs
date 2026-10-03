@@ -5,6 +5,10 @@
 // adorner above DocBox's text. The document itself is never touched, so text flow,
 // selection, and clipboard behavior stay native.
 //
+// A clicked word is pinned: while the action popup stands, that word keeps a
+// solid plate of the house green no matter where the pointer wanders, until
+// the popup closes or a newer word or passage takes the anchor.
+//
 // Zero-cost on-demand hit-testing:
 // Rather than pre-measuring thousands of words and re-checking them on every
 // layout tick, hit-testing is performed on-demand in O(1) time directly under the
@@ -31,10 +35,22 @@ namespace Avalanche.Features.Summary
         private TextPointer? _hoverEnd;
         private Rect _hoverRect = Rect.Empty;
 
+        // The pinned word: the popup's living target. Set when the action
+        // popup opens on a clicked word, it holds the plate on that word -
+        // independent of where the pointer wanders - until the popup closes
+        // or a newer word or passage takes the anchor.
+        private TextPointer? _pinnedStart;
+        private TextPointer? _pinnedEnd;
+
         // The plate: the AI buttons' dark green under the pointer's word (#1B5E20 on #0F3D14),
         // translucent enough for the glyphs to read through cleanly.
         private static readonly Brush PlateFill = Plate("#B31B5E20");
         private static readonly Pen PlateEdge = Edge("#E60F3D14");
+
+        // The pin wears the house green at full strength - the action buttons'
+        // own face - so the held word reads as the popup's target while the
+        // translucent hover plate keeps marking the pointer's wanderings.
+        private static readonly Brush PinFill = Plate("#FF1B5E20");
 
         private static Brush Plate(string hex) =>
             (Brush)new BrushConverter().ConvertFromString(hex)!;
@@ -84,6 +100,19 @@ namespace Avalanche.Features.Summary
             if (hit is null || !TryIsolateWord(hit, out TextPointer? start, out TextPointer? end))
             {
                 ClearHover();
+                return;
+            }
+
+            // Resting on the pinned word itself: the pin already lights it -
+            // no hover plate stacked on top, the hand cursor stays.
+            if (_pinnedStart != null && _pinnedEnd != null &&
+                _pinnedStart.CompareTo(start) == 0 && _pinnedEnd.CompareTo(end) == 0)
+            {
+                if (_box.Cursor != Cursors.Hand)
+                {
+                    _box.Cursor = Cursors.Hand;
+                }
+
                 return;
             }
 
@@ -167,6 +196,80 @@ namespace Avalanche.Features.Summary
             InvalidateVisual();
         }
 
+        // Pins the plate on the popup's target word: it holds there - pointer
+        // moves, hover plates, everything else notwithstanding - until the
+        // popup that set it closes or a newer open replaces it.
+        internal void Pin(TextPointer start, TextPointer end)
+        {
+            _pinnedStart = start;
+            _pinnedEnd = end;
+            ClearHover();       // the hover plate is redundant over the pin
+            InvalidateVisual();
+        }
+
+        // Releases the pin - the popup closed, or a passage took the anchor
+        // (a passage rides the native selection, no plate).
+        internal void ClearPin()
+        {
+            if (_pinnedStart is null)
+            {
+                return;
+            }
+
+            _pinnedStart = null;
+            _pinnedEnd = null;
+            InvalidateVisual();
+        }
+
+        // Re-measures the pinned word's plate from its own pointers on every
+        // paint, so a re-layout slides the plate with the word instead of
+        // leaving it behind. Two GetCharacterRect calls, on paints only.
+        private bool TryMeasurePin(out Rect rect)
+        {
+            rect = Rect.Empty;
+            if (_pinnedStart is null || _pinnedEnd is null)
+            {
+                return false;
+            }
+
+            Rect rStart = _pinnedStart.GetCharacterRect(LogicalDirection.Forward);
+            Rect rEnd = _pinnedEnd.GetCharacterRect(LogicalDirection.Backward);
+
+            if (rStart.IsEmpty && rEnd.IsEmpty)
+            {
+                return false;
+            }
+
+            if (rStart.IsEmpty)
+            {
+                rStart = rEnd;
+            }
+
+            if (rEnd.IsEmpty)
+            {
+                rEnd = rStart;
+            }
+
+            if (Math.Abs(rStart.Top - rEnd.Top) < 4)
+            {
+                // Single line word
+                double x = Math.Min(rStart.Left, rEnd.Left);
+                double right = Math.Max(rStart.Right, rEnd.Right);
+                double y = Math.Min(rStart.Top, rEnd.Top);
+                double bottom = Math.Max(rStart.Bottom, rEnd.Bottom);
+                rect = new Rect(x, y, Math.Max(1, right - x), Math.Max(1, bottom - y));
+            }
+            else
+            {
+                // A word wrapped across lines: the plate holds the leading
+                // line's segment, the same face the hover plate would wear.
+                rect = new Rect(rStart.Left, rStart.Top,
+                    Math.Max(4, _box.ActualWidth - rStart.Left), rStart.Height);
+            }
+
+            return true;
+        }
+
         internal static bool TryIsolateWord(TextPointer hit, out TextPointer? start, out TextPointer? end)
         {
             start = null;
@@ -240,6 +343,17 @@ namespace Avalanche.Features.Summary
 
         protected override void OnRender(DrawingContext dc)
         {
+            // The pinned word first: the popup's target holds its solid
+            // house-green plate no matter where the pointer has moved.
+            if (TryMeasurePin(out Rect pinnedRect))
+            {
+                Rect pinPlate = Rect.Inflate(pinnedRect, 2.5, 1.5);
+                if (pinPlate.Bottom >= 0 && pinPlate.Top <= ActualHeight)
+                {
+                    dc.DrawRoundedRectangle(PinFill, PlateEdge, pinPlate, 3, 3);
+                }
+            }
+
             if (_hoverRect.IsEmpty)
             {
                 return;
