@@ -94,6 +94,11 @@ namespace Avalanche.Features
         /// reopening the file starts fresh and nothing the reader
         /// generated outlives the tab it was generated in.</summary>
         void NotesHistoryDiscarded(string? filePath);
+
+        /// <summary>A document tab was closed (null: every tab at once) -
+        /// the book's per-document summary visibility is dropped, so
+        /// reopening the file starts with the navigator closed.</summary>
+        void SummaryVisibilityDiscarded(string? filePath);
         void HighlightSearchResultsOnCurrentPage();
         void ShowTextSettings();
         void HideTextSettings();

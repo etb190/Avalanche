@@ -1750,16 +1750,20 @@ namespace Avalanche.Features.Summary
             _actionSearchBtn = MakePopupActionBtn("search", "Str_SummaryPopupSearch", "Str_SummaryPopupSearchTT");
             _actionDefineBtn = MakePopupActionBtn("define", "Str_SummaryPopupDefine", "Str_SummaryPopupDefineTT");
             _actionExplainBtn = MakePopupActionBtn("explain", "Str_SummaryPopupExplain", "Str_SummaryPopupExplainTT");
-            var actions = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(10, 7, 10, 0)
-            };
+            // Three equal faces sharing the row: star columns split the row's
+            // width between the gutters, each button stretches to fill its cell,
+            // and the two fixed 6px gutters keep the spacing even.
+            var actions = new Grid { Margin = new Thickness(10, 7, 10, 4) };
+            actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
+            actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6) });
+            actions.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(_actionSearchBtn, 0);
+            Grid.SetColumn(_actionDefineBtn, 2);
+            Grid.SetColumn(_actionExplainBtn, 4);
             actions.Children.Add(_actionSearchBtn);
-            actions.Children.Add(new Border { Width = 6 });
             actions.Children.Add(_actionDefineBtn);
-            actions.Children.Add(new Border { Width = 6 });
             actions.Children.Add(_actionExplainBtn);
 
             // The collapsible result card: loading line, provider detail under
@@ -1879,6 +1883,7 @@ namespace Avalanche.Features.Summary
                 Style = (Style)FindResource("SumActionBtn"),
                 Content = label,
                 Padding = new Thickness(10, 0, 10, 0),
+                Height = 32,    // a notch taller than the style's 28: the popup breathes
                 ToolTip = _loc(tooltipKey)
             };
             // All three wear the AI buttons' own dark green (the Start face) -

@@ -795,10 +795,11 @@ namespace Avalanche
                 if (remember) App.SetSetting("RememberChoiceLocked", "1");
             }
             // Companion-window memory: snapshot which AI surfaces are open as the app
-            // quits, so the next launch brings them straight back (chat rail instantly,
-            // summary navigator on the first restored document).
+            // quits, so the next launch brings them straight back (the chat rail). The
+            // summary navigator is deliberately left out: it follows the PDF, not the
+            // app, so a relaunch always opens with it closed - each book's digest waits
+            // under its own id and comes back when the reader summons the window again.
             App.SetSetting("ui.chat.open", AiChatOverlay?.Visibility == Visibility.Visible ? "1" : "0");
-            App.SetSetting("ui.summary.open", _summaryWindow != null ? "1" : "0");
             SaveWindowSettings();
             // Fade the whole app out before it really closes (matches the dialog fade-out).
             e.Cancel = true;

@@ -312,9 +312,10 @@ namespace Avalanche
             ApplyToolsMode();
             // Companion-window memory: which AI surfaces were open at last close.
             // Same store the session restore reads (OpenTabs), so a "close my tabs"
-            // answer and these flags always agree about what a launch shows.
+            // answer and these flags always agree about what a launch shows. Only
+            // the chat rail comes back: the summary navigator follows the PDF,
+            // not the app, so every launch opens with it closed.
             _restoreChatOpen = App.GetSetting("ui.chat.open") == "1";
-            _summaryRestorePending = App.GetSetting("ui.summary.open") == "1";
             VersionLabel.Text = $"v{AppVersion.Display}";
             // Accept dropped files/folders/archives anywhere on the window (not just the empty drop zone),
             // so dropping onto an open document works too. The empty-state DropZone marks its own drop
@@ -880,11 +881,25 @@ namespace Avalanche
         private Features.Summary.SummaryWindow? _summaryWindow;
         private Features.AI.AiTestWindow? _aiTestWindow;
 
-        // Companion-window memory: the chat rail and the summary navigator reopen
-        // with the app when they were open at last close (snapshot in OnClosing;
-        // the summary, which needs a document, reopens on the first one that lands).
+        // Companion-window memory: the chat rail reopens with the app when it
+        // was open at last close (snapshot in OnClosing). The summary navigator
+        // never does - it follows the PDF, not the app.
         private bool _restoreChatOpen;
-        private bool _summaryRestorePending;
+
+        // The summary navigator's visibility belongs to the PDF, not to the app:
+        // leave a book whose window was open and the window closes with the
+        // switch; come back to that book and it opens again, straight into the
+        // digest it saved. A fresh PDF - a new tab, a first open, a relaunch -
+        // always starts closed. The map lives only as long as the app does, and
+        // a closed tab drops its book's entry (DiscardSummaryVisibility, the
+        // notes history's own rule).
+        private readonly System.Collections.Generic.Dictionary<string, bool> _summaryOpenByDoc =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        // The navigator a document switch is closing: its Closed hook must read
+        // that as a switch-away - the book keeps its flag - and never as the
+        // reader putting the window down, which is what clears the flag.
+        private Features.Summary.SummaryWindow? _summarySwitchAway;
 
         private void AiChatBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -1485,9 +1500,20 @@ namespace Avalanche
                 {
                     _summaryWindow = null;
                 }
+
+                // A switch-away close leaves the book's flag standing so coming
+                // back reopens the window; the reader putting it down - the
+                // toolbar toggle, the title bar - clears the book's entry.
+                if (!ReferenceEquals(_summarySwitchAway, summary))
+                {
+                    _summaryOpenByDoc.Remove(path);
+                }
+
+                _summarySwitchAway = null;
             };
             _summaryWindow = summary;
             summary.Show();
+            _summaryOpenByDoc[path] = true;         // this book wears its navigator
             RefreshSummaryPageHighlight();          // open: highlight the reading range now
         }
 
@@ -1586,7 +1612,9 @@ namespace Avalanche
             if (_summaryWindow is { } navigator &&
                 (filePath is null || !navigator.DocumentPathEquals(filePath)))
             {
+                _summarySwitchAway = navigator;     // a switch, never the reader's hand
                 navigator.Close();
+                _summarySwitchAway = null;
             }
 
             // The notes cards audited the previous document; the new one
@@ -1597,15 +1625,32 @@ namespace Avalanche
                 filePath,
                 panelVisible: AiChatOverlay?.Visibility == Visibility.Visible);
 
-            // Session restore: the summary navigator was open at last close. It needs
-            // a document, so it reopens on the first one that comes up - by then
-            // _currentFile/_doc are live and the window boots straight into the file
-            // the reader left off in. One-shot: closing it afterwards stays closed.
-            if (_summaryRestorePending && filePath is not null &&
-                _summaryWindow is null && !string.IsNullOrEmpty(_currentFile) && _doc is not null)
+            // The navigator follows the book: a PDF whose window was open when
+            // the reader left gets it straight back on return, into the digest
+            // it saved. A fresh PDF - a new tab, a first open - stays closed,
+            // and a relaunch starts every book closed.
+            if (filePath is not null && _summaryWindow is null &&
+                !string.IsNullOrEmpty(_currentFile) && _doc is not null &&
+                _summaryOpenByDoc.TryGetValue(_currentFile, out bool wanted) && wanted)
             {
-                _summaryRestorePending = false;
                 OpenSummaryWindow();
+            }
+        }
+
+        /// <summary>A closed tab takes its navigator wish with it: the book's
+        /// per-document summary visibility dies with the tab, so reopening the
+        /// file starts with the window closed (null: every tab at once - the
+        /// whole map clears). Mirrors the notes history's rule: nothing the
+        /// reader parked in a tab outlives the tab it was parked in.</summary>
+        private void DiscardSummaryVisibility(string? filePath)
+        {
+            if (filePath is null)
+            {
+                _summaryOpenByDoc.Clear();
+            }
+            else
+            {
+                _summaryOpenByDoc.Remove(filePath);
             }
         }
 
