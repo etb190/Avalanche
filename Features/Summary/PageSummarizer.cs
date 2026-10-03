@@ -965,33 +965,51 @@ namespace Avalanche.Features.Summary
             return text?.Trim() ?? string.Empty;
         }
 
-        // Explain: the popup's core. The WHOLE raw source text of the active page
-        // range (the unabridged extraction, [p. N] anchors and all) goes into the
-        // prompt so the answer grounds itself in the author's own pages - cites
-        // them, quotes them, surfaces what high-level summaries omit - instead of
-        // paraphrasing the digest or guessing from training knowledge.
+        // Explain: the popup's core. The raw source text of the active page range
+        // (the extraction, [p. N] anchors and all) goes into the prompt so the
+        // answer grounds itself in the author's own pages - cites them, quotes
+        // them, surfaces what high-level summaries omit - instead of paraphrasing
+        // the digest or guessing from training knowledge. Two realities shape the
+        // handoff: a request body bigger than the model's context is silently cut
+        // down by the provider (the model then only ever sees the first page and
+        // truthfully reports the passage missing), and the excerpt is quoted from
+        // the AI digest, whose typography differs from the extraction's. So the
+        // excerpt is normalized into the source's plain characters, and a range
+        // too large for one request travels pre-selected: ExplainSourceSelection,
+        // the handoff's pure half, keeps the pages whose text actually overlaps
+        // the highlighted words and leaves the far pages home - the model always
+        // reads the pages the passage lives on, never a truncation that keeps
+        // only page one.
 
         public static async Task<string> ExplainExcerptAsync(
             AiProviderConfig config, string selectedText, string rawRangeText, int firstPage, int lastPage, CancellationToken ct)
         {
             const string system = "You are a scholarly reading companion.";
+            string excerpt = ExplainSourceSelection.NormalizeExcerpt(selectedText);
+            string sourceText = ExplainSourceSelection.SelectExcerptPages(
+                rawRangeText, excerpt, ExplainSourceSelection.MaxExplainSourceChars, out bool trimmed);
+            string scope = trimmed
+                ? "RAW SOURCE TEXT (the pages most related to the highlighted passage)"
+                : "UNABRIDGED RAW SOURCE TEXT";
             string user =
                 "The reader is studying a book and highlighted the following passage/term:\n" +
-                $"\"{selectedText}\"\n" +
+                $"\"{excerpt}\"\n" +
                 "\n" +
-                $"Below is the UNABRIDGED RAW SOURCE TEXT from pages {firstPage} to {lastPage} of the book:\n" +
+                $"Below is the {scope} from pages {firstPage} to {lastPage} of the book:\n" +
                 "--- BEGIN SOURCE TEXT ---\n" +
-                rawRangeText + "\n" +
+                sourceText + "\n" +
                 "--- END SOURCE TEXT ---\n" +
                 "\n" +
                 "TASK:\n" +
-                $"Explain \"{selectedText}\" in depth, grounded STRICTLY in the source text above:\n" +
+                $"Explain \"{excerpt}\" in depth, grounded STRICTLY in the source text above:\n" +
                 "1. **Source Context:** Locate where and how this appears in the source pages. Cite specific page numbers [p. N] and quote surrounding context where helpful.\n" +
                 "2. **Author's Meaning:** Explain what the author specifically means by this term/passage in the context of their argument, historical evidence, or narrative scene.\n" +
                 "3. **Omitted Nuance:** Highlight any specific details, derivations, dialogue, or caveats present in the original pages that are omitted from high-level summaries.\n" +
                 "\n" +
                 "RULES:\n" +
+                "- The highlighted excerpt is quoted from the reader's digest of these pages, so its wording and typography may differ from the source text (different dash and quote characters, spacing, or number formatting such as \"12 700\" versus \"12,700\"). Locate the corresponding passage semantically; never claim the passage is missing merely because the exact characters differ.\n" +
                 "- Base your answer directly on the provided raw source text.\n" +
+                "- Only if nothing in the source text corresponds at all: say so in one short sentence, then explain the passage from your general knowledge, clearly marked as such.\n" +
                 "- Write in clear, dense prose with bold key concepts.";
             int budget = Math.Max(config.MaxTokens, 8192);
             string text = await RunBufferedPassAsync(config, system, user, ct, budget, temperature: 0).ConfigureAwait(false);

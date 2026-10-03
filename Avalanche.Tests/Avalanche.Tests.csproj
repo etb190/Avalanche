@@ -80,6 +80,8 @@
     <Compile Include="..\Features\Summary\ProseGuard.cs" Link="Features\Summary\ProseGuard.cs" />
     <!-- The geometric Markdown normalizer: pure (PageTextRuns in, GFM text out). -->
     <Compile Include="..\Features\Summary\MarkdownNormalizer.cs" Link="Features\Summary\MarkdownNormalizer.cs" />
+    <Compile Include="..\Features\Summary\ExplainSourceSelection.cs" Link="Features\Summary\ExplainSourceSelection.cs" />
+    <Compile Include="..\Features\Summary\DigestWordHighlight.cs" Link="Features\Summary\DigestWordHighlight.cs" />
     <!-- The Notes feature's pure slicing/parsing core. -->
     <Compile Include="..\Features\Notes\NotesRecallLogic.cs" Link="Features\Notes\NotesRecallLogic.cs" />
     <!-- Semantic retrieval layer (embeddinggemma:latest): models, SQLite

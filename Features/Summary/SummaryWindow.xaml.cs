@@ -1418,14 +1418,20 @@ namespace Avalanche.Features.Summary
         // ------------------------------------------------------------------
 
         // Clicking a word in the digest - or pressing Shift over a highlighted
-        // passage - anchors a small popup over that spot with three actions:
-        // Search (the system browser), Define (a concise lexical pass) and
-        // Explain (grounded in the UNABRIDGED raw pages of the active range,
-        // never in the summary). The popup dismisses on an outside click, a
-        // scroll, Escape and every range or generation reset; a request that
-        // dismissal cancels can never repaint the card (generation counter).
-        // The popup is built in code like the window's other composed chrome,
-        // so the digest's XAML stays untouched.
+        // passage - anchors a narrow popup over that spot with three green,
+        // string-only buttons: Search (the system browser), Define (a concise
+        // lexical pass) and Explain (grounded in the raw pages of the active
+        // range, never in the summary). The popup dismisses on an outside click,
+        // a scroll, Escape and every range or generation reset, while a click on
+        // a fresh word or passage re-anchors it on the spot; the open itself is
+        // deferred off the input event, because opening a Popup mid-input makes
+        // WPF's capture establishment trip over "Invalid window handle" - and a
+        // popup that never captured cannot see the outside clicks that dismiss
+        // it. A request that a dismissal cancels can never repaint the card
+        // (generation counter). The popup is built in code like the window's
+        // other composed chrome, so the digest's XAML stays untouched, and every
+        // digest word wears a green highlight an adorner paints above the text -
+        // padding included - that can never shift or reflow a single neighbor.
 
         private Popup? _actionPopup;                    // built lazily on first open
         private Border? _actionRoot;                    // the rounded dark-glass face
@@ -1441,7 +1447,8 @@ namespace Avalanche.Features.Summary
         private CancellationTokenSource? _actionCts;    // cancelled when the popup dismisses
         private int _actionGen;                         // bumped on dismiss/supersede
         private string _actionTarget = string.Empty;    // the cleaned text the actions run on
-        private long _actionDismissedTick;              // TickCount64 of the last outside-click close
+        private Popup? _actionOpenPending;              // the open deferred off the input event
+        private DigestWordHighlightAdorner? _wordHighlights;  // the green per-word digest highlights
 
         private void WireActionPopup()
         {
@@ -1456,6 +1463,33 @@ namespace Avalanche.Features.Summary
             // viewport and a scrolled-away word is no longer under the popup.
             DocBox.AddHandler(ScrollViewer.ScrollChangedEvent,
                 new ScrollChangedEventHandler((_, _) => DismissActionPopup()));
+            // The green word highlights ride their own adorner, attached once the
+            // digest's surface is live and detached when it leaves the tree.
+            DocBox.Loaded += (_, _) => AttachWordHighlights();
+            DocBox.Unloaded += (_, _) => DetachWordHighlights();
+        }
+
+        private void AttachWordHighlights()
+        {
+            if (_wordHighlights != null || _closed)
+            {
+                return;
+            }
+
+            AdornerLayer? layer = AdornerLayer.GetAdornerLayer(DocBox);
+            if (layer is null)
+            {
+                return;
+            }
+
+            _wordHighlights = new DigestWordHighlightAdorner(DocBox);
+            layer.Add(_wordHighlights);
+        }
+
+        private void DetachWordHighlights()
+        {
+            _wordHighlights?.Detach();
+            _wordHighlights = null;
         }
 
         private void DocBox_KeyDownForPopup(object sender, KeyEventArgs e)
@@ -1479,13 +1513,10 @@ namespace Avalanche.Features.Summary
 
         private void DocBox_MouseUpForPopup(object sender, MouseButtonEventArgs e)
         {
-            // The outside click that closed the popup lands here as a mouse-up;
-            // swallow it so dismissal never re-opens over the same spot.
-            if (Environment.TickCount64 - _actionDismissedTick < 300)
-            {
-                return;
-            }
-
+            // A click on a word or a Shift passage re-anchors the popup over the
+            // fresher target - including the very click that dismissed the old
+            // one (the outside down closes, this up re-opens); a click off the
+            // text isolates no word and the dismissal stands.
             if (!DocBox.Selection.IsEmpty)
             {
                 if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
@@ -1620,8 +1651,37 @@ namespace Avalanche.Features.Summary
             popup.PlacementRectangle = anchor.Y < 240
                 ? new Rect(anchor.X, anchor.Y, Math.Max(anchor.Width, 40), anchor.Height + 8)
                 : new Rect(anchor.X, anchor.Y - 8, Math.Max(anchor.Width, 40), anchor.Height + 8);
-            popup.IsOpen = true;
-            PlayActionPopupOpen(_actionRoot!);
+
+            // IsOpen is set OFF the input event. Opening synchronously inside the
+            // Shift KeyDown (or the mouse-up that bred it) makes WPF establish the
+            // popup's mouse capture mid-input - ScreenToClient then trips over
+            // "Invalid window handle" (Win32Exception), the capture never lands,
+            // and an uncaptured popup can no longer see the outside clicks that
+            // should dismiss it. The one-tick deferral lets the input stage
+            // finish first; a dismissal or a newer open in between (the pending
+            // handle plus the generation) aborts the stale one, and a popup that
+            // still cannot open is skipped rather than allowed to crash.
+            _actionOpenPending = popup;
+            int gen = _actionGen;
+            Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+            {
+                if (_closed || _actionOpenPending != popup || _actionGen != gen)
+                {
+                    return;     // dismissed, reset, or superseded in the same tick
+                }
+
+                _actionOpenPending = null;
+                try
+                {
+                    popup.IsOpen = true;
+                    PlayActionPopupOpen(_actionRoot!);
+                }
+                catch
+                {
+                    // A decoration: a popup that cannot open never takes the
+                    // window down.
+                }
+            }));
         }
 
         private static void PlayActionPopupOpen(UIElement root)
@@ -1648,12 +1708,12 @@ namespace Avalanche.Features.Summary
             _actionHeaderText = new TextBlock
             {
                 FontSize = 12,
-                FontWeight = FontWeights.SemiBold,
+                FontWeight = FontWeights.Bold,
+                Foreground = System.Windows.Media.Brushes.White,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(12, 0, 6, 0),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
-            _actionHeaderText.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
 
             var closeGlyph = new TextBlock { Text = "\uE8BB", FontFamily = UiKit.IconFont, FontSize = 10, Margin = new Thickness(0, -1, 0, 0) };
             closeGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
@@ -1679,18 +1739,18 @@ namespace Avalanche.Features.Summary
             var hairline = new Rectangle { Height = 1, Margin = new Thickness(10, 0, 10, 9), Opacity = 0.85 };
             hairline.SetResourceReference(Shape.FillProperty, "CardBorderBrush");
 
-            _actionSearchBtn = MakePopupActionBtn("search", "\uE721", "Str_SummaryPopupSearch", "Str_SummaryPopupSearchTT", accent: false);
-            _actionDefineBtn = MakePopupActionBtn("define", "\uE82D", "Str_SummaryPopupDefine", "Str_SummaryPopupDefineTT", accent: false);
-            _actionExplainBtn = MakePopupActionBtn("explain", "\uE946", "Str_SummaryPopupExplain", "Str_SummaryPopupExplainTT", accent: true);
+            _actionSearchBtn = MakePopupActionBtn("search", "Str_SummaryPopupSearch", "Str_SummaryPopupSearchTT");
+            _actionDefineBtn = MakePopupActionBtn("define", "Str_SummaryPopupDefine", "Str_SummaryPopupDefineTT");
+            _actionExplainBtn = MakePopupActionBtn("explain", "Str_SummaryPopupExplain", "Str_SummaryPopupExplainTT");
             var actions = new StackPanel
             {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center
+                Orientation = Orientation.Vertical,
+                Margin = new Thickness(10, 9, 10, 0)
             };
             actions.Children.Add(_actionSearchBtn);
-            actions.Children.Add(new Border { Width = 6 });
+            actions.Children.Add(new Border { Height = 6 });
             actions.Children.Add(_actionDefineBtn);
-            actions.Children.Add(new Border { Width = 6 });
+            actions.Children.Add(new Border { Height = 6 });
             actions.Children.Add(_actionExplainBtn);
 
             // The collapsible result card: loading line, provider detail under
@@ -1755,7 +1815,7 @@ namespace Avalanche.Features.Summary
 
             var root = new Border
             {
-                Width = 356,
+                Width = 178,
                 CornerRadius = new CornerRadius(10),
                 BorderThickness = new Thickness(1),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
@@ -1795,57 +1855,48 @@ namespace Avalanche.Features.Summary
             return popup;
         }
 
-        private Button MakePopupActionBtn(string action, string glyph, string labelKey, string tooltipKey, bool accent)
+        private Button MakePopupActionBtn(string action, string labelKey, string tooltipKey)
         {
-            var icon = new TextBlock
-            {
-                Text = glyph,               // Segoe MDL2: E721 Search / E82D Dictionary / E946 Info
-                FontFamily = UiKit.IconFont,
-                FontSize = 13,
-                Margin = new Thickness(0, -1, 7, 0),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            icon.SetResourceReference(TextBlock.ForegroundProperty, accent ? "OnPrimaryBrush" : "TextBrush");
             var label = new TextBlock
             {
                 Text = _loc(labelKey),
                 FontSize = 12,
-                FontWeight = FontWeights.SemiBold,
+                FontWeight = FontWeights.Bold,
+                Foreground = System.Windows.Media.Brushes.White,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            label.SetResourceReference(TextBlock.ForegroundProperty, accent ? "OnPrimaryBrush" : "TextBrush");
             var btn = new Button
             {
                 Style = (Style)FindResource("SumActionBtn"),
-                Content = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    Children = { icon, label }
-                },
+                Content = label,
                 Padding = new Thickness(13, 0, 13, 0),
                 ToolTip = _loc(tooltipKey)
             };
-            // Explain wears the theme's accent to carry its weight (its answer
-            // is the feature's core); the other two stay neutral.
-            btn.SetResourceReference(Control.BackgroundProperty, accent ? "PrimaryBrush" : "RowHoverBrush");
-            btn.SetResourceReference(Control.BorderBrushProperty, accent ? "PrimaryBrush" : "CardBorderBrush");
+            // All three wear the same green - the popup's one accent, strings
+            // only, white and bold; the hover just dims the face (the style's
+            // opacity trigger) so nothing around the button ever shifts.
+            System.Windows.Media.Brush green = PopupGreen();
+            btn.Background = green;
+            btn.BorderBrush = green;
             btn.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; RunPopupAction(action); };
             return btn;
         }
 
+        // The popup's green (the buttons' face, all three alike).
+        private static System.Windows.Media.Brush PopupGreen() =>
+            (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter()
+                .ConvertFromString("#FF22C55E")!;
+
         private void OnActionPopupClosed()
         {
             // Runs for every close - an outside click, a dismissal, a reset,
-            // the window closing. Cancels any in-flight card request and arms
-            // the short guard so the closing click cannot re-open the popup.
-            // A stale close that arrives after a newer open is ignored.
+            // the window closing. Cancels any in-flight card request. A stale
+            // close that arrives after a newer open is ignored.
             if (_actionPopup is { IsOpen: true })
             {
                 return;
             }
 
-            _actionDismissedTick = Environment.TickCount64;
             _actionGen++;
             try { _actionCts?.Cancel(); } catch (ObjectDisposedException) { }
             _actionCts?.Dispose();
@@ -1854,6 +1905,7 @@ namespace Avalanche.Features.Summary
 
         private void DismissActionPopup()
         {
+            _actionOpenPending = null;      // a scheduled open dies with the dismissal
             if (_actionPopup is { IsOpen: true })
             {
                 _actionPopup.IsOpen = false;    // Closed does the rest
