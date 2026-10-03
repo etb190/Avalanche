@@ -1726,39 +1726,25 @@ namespace Avalanche.Features.Summary
 
         private Popup BuildActionPopup()
         {
-            // Header: the target (word or truncated excerpt) and a close chip.
+            // Header: the target (word or truncated excerpt) - no close
+            // chip; an outside click, Escape, or a scroll dismisses the
+            // popup. The band hugs the text and the hairline rides close,
+            // so the popup fits what is actually in it.
             _actionHeaderText = new TextBlock
             {
                 FontSize = 12,
                 FontWeight = FontWeights.Bold,
                 Foreground = System.Windows.Media.Brushes.White,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(12, 0, 6, 0),
+                Margin = new Thickness(12, 6, 12, 6),
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
 
-            var closeGlyph = new TextBlock { Text = "\uE8BB", FontFamily = UiKit.IconFont, FontSize = 10, Margin = new Thickness(0, -1, 0, 0) };
-            closeGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            var closeChip = new Button
-            {
-                Style = (Style)FindResource("SumTitleBtn"),
-                Width = 22,
-                Height = 22,
-                Content = closeGlyph,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 8, 0)
-            };
-            closeChip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; DismissActionPopup(); };
-
-            var header = new Grid { Height = 36 };
+            var header = new Grid();
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(_actionHeaderText, 0);
-            Grid.SetColumn(closeChip, 1);
             header.Children.Add(_actionHeaderText);
-            header.Children.Add(closeChip);
 
-            var hairline = new Rectangle { Height = 1, Margin = new Thickness(10, 0, 10, 9), Opacity = 0.85 };
+            var hairline = new Rectangle { Height = 1, Margin = new Thickness(10, 0, 10, 2), Opacity = 0.85 };
             hairline.SetResourceReference(Shape.FillProperty, "CardBorderBrush");
 
             _actionSearchBtn = MakePopupActionBtn("search", "Str_SummaryPopupSearch", "Str_SummaryPopupSearchTT");
@@ -1768,7 +1754,7 @@ namespace Avalanche.Features.Summary
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(10, 9, 10, 0)
+                Margin = new Thickness(10, 7, 10, 0)
             };
             actions.Children.Add(_actionSearchBtn);
             actions.Children.Add(new Border { Width = 6 });
