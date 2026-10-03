@@ -1,145 +1,162 @@
-# TASK: Implement Genre Architecture in Summary Navigator (Dropdown After Language & 6 Specialized Prompts)
+# TASK: Summary Navigator Interactive Floating Actions (Search, Define, and Range-Grounded Explain)
 
 Repository: `https://github.com/etb190/Avalanche`  
 Auth Token: `ghp_***` (provided via environment / push URL)
 
 ---
 
-### Overview & Core Architecture
-Currently, Avalanche's Summary Navigator is hardcoded to a single non-fiction prompt template. When reading fiction, philosophical literature, empirical scientific papers, self-help books, or legal treatises, that rigid structure creates severe friction (e.g. forcing academic thesis language onto novels, or dropping statistical data from research papers).
+### Overview & Core Purpose
+Inside Avalanche's Summary Navigator (`SummaryWindow`), reading digests can contain unfamiliar terminology, historical figures, foreign phrases, or dense theoretical assertions.
+Currently, the reader must leave the application or open external tools to look up terms or figure out what the author was talking about in the original pages.
 
-Implement a flexible **Genre Architecture** across Avalanche's AI pipeline:
-1. **Genre Dropdown in `SummaryWindow`**: Placed directly after the Language dropdown in Row 2.
-2. **Per-Book Genre Persistence**: Persisted per document so each book remembers its own genre across sessions and tab switches.
-3. **6 Specialized Genre Prompt Personas**:
-   - **Non-Fiction Classic** *(with Epistemic Accuracy)*
-   - **Fiction** *(Chronological Event-by-Event Retelling)*
-   - **Philosophical Fiction** *(Non-Fiction Intellectual Rigor + Narrative Drama)*
-   - **Research Papers & Science** *(Hierarchical Statistics & Methodology)*
-   - **Self-Help & Business** *(Practitioner's Action Notes & Named Frameworks)*
-   - **Law & Statutes** *(Holdings, Doctrinal Elements & Canons of Interpretation)*
+Implement an interactive floating action popup on the digest text (`DocBox`):
+1. **Interactive Words**: Every word in the summary is clickable to pop up 3 action buttons.
+2. **Multi-Word Shift Selection**: Highlighting any phrase/sentence and pressing `Shift` (or selecting while holding Shift) anchors the 3 action buttons over the entire selection.
+3. **The 3 Actions**:
+   - **Search**: Opens the search query in the default system web browser (same as `pdf-summarizer-extension`).
+   - **Define**: Generates a concise, high-precision definition for words/terms.
+   - **Explain (Source-Grounded)**: **Takes the actual raw source pages into context, NOT the summary!** Retrieves the unabridged Markdown text for the active page range (`_runFirstPage.._runLastPage`) via `PageSummarizer.ExtractRangeAsync` and prompts the AI to explain the selected passage grounded directly in the author's original pages.
 
 ---
 
-### 1. The Genre Dropdown in `SummaryWindow.xaml` (Row 2)
+### 1. Hit-Testing & Shift Selection (`SummaryWindow.xaml.cs`)
 
-* In `Features/Summary/SummaryWindow.xaml` (Row 2 `WrapPanel`):
-  * Position a new `ComboBox` named `GenreCombo` **directly after `LangCombo`**:
-    ```xml
-    <ComboBox x:Name="GenreCombo" Style="{StaticResource DarkComboBox}" Width="150" Height="28"
-              Margin="8,0,0,0" VerticalAlignment="Center" MaxDropDownHeight="280"
-              ToolTip="{DynamicResource Str_SummaryGenreTT}"/>
+Use WPF native `TextPointer` hit-testing on `DocBox` (`RichTextBox`) rather than wrapping thousands of words into `InlineUIContainer` or `Span` elements (preserving standard Windows text selection, clipboard copy, and high-speed rendering):
+
+#### A. Single Word Click
+* In `DocBox.PreviewMouseLeftButtonUp`:
+  * If `DocBox.Selection.IsEmpty` (the user clicked without dragging a selection):
+    * Obtain `Point pt = e.GetPosition(DocBox)`.
+    * Obtain `TextPointer? tp = DocBox.GetPositionFromPoint(pt, snapToText: true)`.
+    * If `tp` is within text, scan backward and forward to whitespace/punctuation boundaries to isolate the clicked word.
+    * Obtain the word's bounding rectangle via `startPointer.GetCharacterRect(LogicalDirection.Forward)`.
+    * Open the floating action popup anchored directly above the target word (or below if near the top viewport).
+
+#### B. Multi-Word Shift Selection
+* In `DocBox.PreviewKeyDown` and `DocBox.PreviewMouseLeftButtonUp`:
+  * When `!DocBox.Selection.IsEmpty`:
+    * If the reader presses `Key.LeftShift` or `Key.RightShift`, or completes a mouse selection with `Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)`:
+      * Grab `DocBox.Selection.Text.Trim()`.
+      * Obtain bounding rectangle from `DocBox.Selection.Start.GetCharacterRect(LogicalDirection.Forward)`.
+      * Open the floating action popup anchored to the highlighted selection.
+
+#### C. Auto-Dismissal & Keyboard Handling
+* Dismiss the action popup when:
+  * The user clicks anywhere outside the popup.
+  * The user scrolls `DocBox` (`ScrollChanged` event).
+  * The user presses `Escape`.
+  * The range stepper or summary generation resets.
+
+---
+
+### 2. Floating Action Popup UI
+
+Create a dedicated floating popup (`SummaryActionPopup` or integrated `System.Windows.Controls.Primitives.Popup` in `SummaryWindow`):
+* **Styling**:
+  * Dark glass aesthetic matching Avalanche (`#1E1E24` background, `CardBorderBrush` 1px border, rounded corners, subtle drop shadow, `AllowsTransparency="True"`).
+  * Smooth entry animation via `WindowFx.PlayOpenPop` or WPF opacity fade.
+* **Header Bar**:
+  * Displays the target word or truncated excerpt.
+  * Small close chip (`[x]`) to dismiss.
+* **Action Buttons Row**:
+  * `[Search]`: Icon (`&#xE721;` MDL2 Search) + "Search".
+  * `[Define]`: Icon (`&#xE82D;` MDL2 Book/Dictionary) + "Define" (primarily for words/terms).
+  * `[Explain]`: Icon (`&#xE946;` MDL2 Info / Lightbulb) + "Explain" (accent color to emphasize importance).
+* **Collapsible Result Card**:
+  * Initially collapsed.
+  * When `Define` or `Explain` is clicked:
+    * Card smoothly expands below the buttons.
+    * Shows animated loading indicator (`Str_SummaryGenerating` / spinner).
+    * Action buttons disabled during request; `CancellationTokenSource` wired to cancel if dismissed.
+    * Renders AI markdown output cleanly via `AiMarkdown` with selectable text and copy button.
+
+---
+
+### 3. Execution of the 3 Actions
+
+#### 1. Search Action
+* When clicked:
+  * Clean the selected text.
+  * Launch the system default web browser:
+    ```csharp
+    string query = Uri.EscapeDataString(cleanText);
+    string url = $"https://www.google.com/search?q={query}";
+    Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
     ```
-  * Dropdown options:
-    1. **Non-Fiction Classic** (`nonfiction_classic`, default)
-    2. **Fiction** (`fiction`)
-    3. **Philosophical Fiction** (`philosophical_fiction`)
-    4. **Research Paper** (`research_papers`)
-    5. **Self-Help & Business** (`self_help`)
-    6. **Law & Statutes** (`law`)
-* In `Features/Summary/SummaryWindow.xaml.cs`:
-  * Populate `GenreCombo` using localized strings.
-  * Wire selection changed to persist the chosen genre for the active document:
-    * Stored under the document's state key (`book.<docId>.genre`), falling back to user preference default (`summary.default_genre`).
-    * When switching tabs or opening a book, restore that book's saved genre.
-  * Pass `SelectedGenre` into `PageSummarizer.GenerateAsync(...)`.
+
+#### 2. Define Action (Lexical & Nuance)
+* Fast, focused lexical definition prompt:
+  ```markdown
+  You are an authoritative, concise dictionary assistant.
+  The reader is studying a text in ${Language} and highlighted the term: "${word}".
+
+  Define "${word}" concisely in English (1-3 sentences):
+  1. Part of speech and core literal definition.
+  2. If the term is non-English, provide its exact English translation first.
+  3. Any cultural, technical, or contextual nuance in how the term is used.
+  Do NOT include conversational meta-talk or introductory pleasantries.
+  ```
+
+#### 3. Explain Action (Range-Grounded Source Analysis - CORE REQUIREMENT)
+* **The Crucial Distinction**:
+  * Traditional summarizers explain words using only the summary snippet or general training knowledge.
+  * Avalanche's `Explain` **takes the whole page range into context** using the unabridged raw book text!
+* **Pipeline**:
+  1. In `SummaryWindow`, keep a cached reference to the raw range Markdown string (`_cachedRangeRawText`) returned during the active summary pass:
+     `PageSummarizer.ExtractRangeAsync(_filePath, _runFirstPage, _runLastPage, ct)`.
+     *(If cache is empty, fetch it asynchronously via `ExtractRangeAsync`).*
+  2. Call `PageSummarizer.ExplainExcerptAsync(...)`:
+     ```markdown
+     You are a scholarly reading companion.
+     The reader is studying a book and highlighted the following passage/term:
+     "${selectedText}"
+
+     Below is the UNABRIDGED RAW SOURCE TEXT from pages ${firstPage} to ${lastPage} of the book:
+     --- BEGIN SOURCE TEXT ---
+     ${rawRangeText}
+     --- END SOURCE TEXT ---
+
+     TASK:
+     Explain "${selectedText}" in depth, grounded STRICTLY in the source text above:
+     1. **Source Context:** Locate where and how this appears in the source pages. Cite specific page numbers [p. N] and quote surrounding context where helpful.
+     2. **Author's Meaning:** Explain what the author specifically means by this term/passage in the context of their argument, historical evidence, or narrative scene.
+     3. **Omitted Nuance:** Highlight any specific details, derivations, dialogue, or caveats present in the original pages that are omitted from high-level summaries.
+
+     RULES:
+     - Base your answer directly on the provided raw source text.
+     - Write in clear, dense prose with bold key concepts.
+     ```
 
 ---
 
-### 2. The 6 Specialized Genre Prompts (`Features/Summary/PageSummarizer.cs`)
-
-Update `PageSummarizer.cs` to supply genre-tailored system prompts via `DigestSystemPrompt(int targetWords, string language, string genre, bool fromNotes)`:
-
-#### A. Non-Fiction Classic (`nonfiction_classic`)
-* **Role:** Argumentative and intellectual condenser.
-* **Core Mandate:**
-  - Core thesis, logical reasoning steps, arguments, and positions.
-  - Evidence, historical records, and case studies supporting claims.
-  - **Comparisons & Analogies:** Every comparison and cross-cultural/historical analogy the author draws MUST be preserved (these are primary explanatory tools).
-  - **Counterarguments & Debates:** Opposing theories the author critiques or disproves.
-  - Specific named artifacts, sites, and persons.
-* **EPISTEMIC ACCURACY RULE (CRITICAL):**
-  Faithfully preserve the author's exact degree of certainty without flattening hypotheses into settled facts:
-  - State verified facts as facts (e.g. *"The excavations at Eridu revealed eighteen distinct temple strata."*).
-  - State hypotheses, speculations, and interpretations with their proper qualifiers (e.g. *"Evidence suggests..."*, *"Archaeologists hypothesize that seasonal flooding caused the abandonment..."*).
-  - State open debates by naming the competing positions and why they clash.
-* **Anti-Meta Rule:** State content directly. Zero meta-language (banned: *"The author discusses..."*, *"The text explores..."*). Dense flowing prose paragraphs.
-
-#### B. Fiction (`fiction`)
-* **Role:** Dense, chronological event-by-event retelling. You are a condenser, not a literary critic.
-* **Core Mandate:**
-  - The reader is using this INSTEAD of reading the book. Every plot event, scene, and character development must appear in chronological order.
-  - Every scene transition, location shift, and time jump stated explicitly.
-  - Every character action, decision, secret, and key line of dialogue reproduced (condensed, but recognizable).
-  - Every plot turn, revelation, and complication preserved.
-  - Track character dynamics: who is with whom, who knows what secret, and who is doing what.
-* **FORBIDDEN (FAILURE MODES):**
-  - Discussing "themes", "symbolism", or "literary devices" — tell the STORY, do not review it.
-  - Skipping an event because it seemed "minor" or "transitional".
-  - Merging distinct scenes into vague generalities (*"adventures continue"*).
-  - Meta-language (*"The chapter depicts..."*).
-  - Plain flowing prose. No bullet lists.
-
-#### C. Philosophical Fiction (`philosophical_fiction`)
-* **Role:** Dual-layer synthesis: Non-Fiction Intellectual Rigor + Narrative Drama.
-* **Core Mandate:**
-  1. **Substantive Philosophical Arguments (Non-Fiction Rigor):**
-     - Extract the core philosophical, moral, theological, or political arguments articulated in dialogues, monologues, or narration.
-     - Trace logical steps, premises, and counterarguments debated by characters or the author.
-     - Name the philosophical positions engaged with (nihilism, determinism, rational egoism, utilitarianism, absurdism, faith) and what the text concludes about them.
-  2. **Narrative & Psychological Events:**
-     - Chronological plot events, scene shifts, encounters, and decisions without skipping scenes.
-     - Detail the psychological crises, moral breakdowns, and confessions of the characters.
-     - Show how the events of the plot directly test, validate, or shatter the philosophical theories the characters hold.
-  - Dense flowing prose paragraphs.
-
-#### D. Research Papers & Scientific Studies (`research_papers`)
-* **Role:** Empirical methodology reviewer and quantitative data condenser.
-* **Core Mandate (Hierarchical Tiers):**
-  - **Tier 1 — Statistics & Quantitative Data (Top Priority):** Every quantitative result ($n$, $\%$, mean, median, SD, $p$-values, confidence intervals, effect sizes, regression coefficients, hazard ratios) reported verbatim with exact units and referents.
-  - **Tier 2 — Inferential Reasoning & Models:** The exact statistical test, model, or logical step used to bridge data to claims (e.g. two-way ANOVA, linear regression controlling for age). State the test and its output.
-  - **Tier 3 — Conclusions & Magnitude:** Findings attached to the magnitude of the effect (*"reduced infection rate by 24%, 95% CI [16%, 32%]"* rather than *"had a significant effect"*).
-  - **Tier 4 — Methodology:** Sample demographics, control conditions, intervention protocols, and instruments.
-  - **Tier 5 — Context & Theory:** Background definitions and prior literature gaps.
-  - Adaptability: If the paper is qualitative or theoretical, report definitions, frameworks, and qualitative evidence substantively without inventing numbers.
-
-#### E. Self-Help & Business (`self_help`)
-* **Role:** Practitioner's executive action notes.
-* **Core Mandate:**
-  - **Direct Imperative Principles:** State every principle and technique as a direct command (*"When facing X, execute Y because Z"* rather than *"The author suggests doing X"*).
-  - **Named Models & Frameworks:** If the author names a framework, matrix, or dichotomy (e.g. *"System 1 vs System 2"*, *"The Eisenhower Matrix"*, *"Fixed vs Growth Mindset"*), state the name, its operational rule, and how to execute it.
-  - **Exercises & Reflection Prompts Verbatim:** Reproduce journaling prompts, self-audits, and diagnostic steps verbatim so the reader can actually perform them.
-  - **Anecdote Compression:** Compress every case study or story into ONE sentence stating the operational lesson. Skip fluff and filler anecdotes.
-
-#### F. Law & Statutes (`law`)
-* **Role:** Judicial clerk and legal doctrine brief.
-* **Core Mandate:**
-  - **Issues & Procedural Posture:** The constitutional, statutory, or common-law question presented.
-  - **Holding & Rule of Law:** The binding rule established or applied.
-  - **Doctrinal / Statutory Elements:** Enumerate mandatory conjunctive or disjunctive conditions ($1, 2, 3$), evidentiary thresholds, and burdens of proof.
-  - **Judicial Reasoning & Canons:** How the court applied precedent, statutory plain meaning, or constitutional doctrine.
-  - **Exceptions & Safe Harbors:** Narrowing conditions, affirmative defenses, and statutory exemptions.
-  - **Dissents:** Core legal divergence and counter-doctrine argued by dissenting judges.
-  - Exact legal terms of art preserved (*strict scrutiny*, *mens rea*, *proximate cause*).
+### 4. Localization Parity (16 Languages)
+Add localized strings across all 16 `Strings/*.xaml` resource dictionaries:
+* `Str_SummaryPopupSearch`: "Search"
+* `Str_SummaryPopupSearchTT`: "Search the web for this selection in your default browser"
+* `Str_SummaryPopupDefine`: "Define"
+* `Str_SummaryPopupDefineTT`: "Get a concise definition of this word"
+* `Str_SummaryPopupExplain`: "Explain"
+* `Str_SummaryPopupExplainTT`: "Explain this selection using the full page range context"
+* `Str_SummaryPopupDefining`: "Defining..."
+* `Str_SummaryPopupExplaining`: "Analyzing source pages..."
+* `Str_SummaryPopupError`: "Unable to load explanation."
 
 ---
 
-### 3. Localization Parity
-Add all required genre strings across `Strings/en-US.xaml` and all other 15 language dictionaries:
-* `Str_SummaryGenreTT`: `"Select book genre to tailor summary and analytical focus"`
-* `Str_Genre_Nonfiction`: `"Non-Fiction Classic"`
-* `Str_Genre_Fiction`: `"Fiction"`
-* `Str_Genre_Philosophical`: `"Philosophical Fiction"`
-* `Str_Genre_Research`: `"Research Paper"`
-* `Str_Genre_SelfHelp`: `"Self-Help & Business"`
-* `Str_Genre_Law`: `"Law & Statutes"`
-
----
-
-### 4. Verification & Checks
-1. Run `dotnet build` with zero warnings and zero errors.
-2. Run `dotnet test` and confirm all 2,000+ unit tests pass (including localization parity).
-3. Open `SummaryWindow`:
-   * Verify `GenreCombo` sits in Row 2 directly after `LangCombo`.
-   * Verify selecting a genre persists for that book and updates the summary generation pipeline.
-   * Switch tabs to another book: verify each book maintains its own selected genre independently.
+### 5. Verification & Acceptance Checklist
+1. **Word Click**:
+   - Clicking any word in `DocBox` brings up the 3 buttons directly anchored to that word.
+   - Clicking outside or scrolling dismisses the popup cleanly.
+2. **Shift Selection**:
+   - Selecting a phrase and pressing `Shift` (or Shift-dragging a selection) anchors the popup over the full selected passage.
+3. **Search Verification**:
+   - Clicking Search opens the default browser with the exact encoded query.
+4. **Define Verification**:
+   - Clicking Define displays a concise 1-3 sentence definition inside the card.
+5. **Explain Verification**:
+   - Clicking Explain passes the unabridged raw page text of `_runFirstPage.._runLastPage` to the AI.
+   - The explanation cites the actual pages (`[p. N]`) and explains the concept using the author's real source context rather than generic summary text.
+6. **Performance & Stability**:
+   - Zero UI thread freezing during network requests.
+   - Caching avoids redundant PDF extractions.
+   - All existing 2,004 unit tests continue to pass (`dotnet test`).
