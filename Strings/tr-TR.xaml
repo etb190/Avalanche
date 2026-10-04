@@ -1254,8 +1254,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Sayfalar {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Yoğunlaştırılıyor…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">Bu aralıkta özetlenecek okunabilir metin yok.</sys:String>
-    <sys:String x:Key="Str_Axo_Send">Axo'ya gönder</sys:String>
-    <sys:String x:Key="Str_Axo_SendTT">Bu özeti Axo Notes'a gönder</sys:String>
     <sys:String x:Key="Str_Axo_SaveCard">Axo Notes'a kaydet</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Axo'ya kaydedildi ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Belge, veri tabanındaki Books veya Articles klasöründe değil. Axo notu kaydedilmedi.</sys:String>

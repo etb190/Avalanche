@@ -1261,8 +1261,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — {0}–{1}. oldal</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Sűrítés…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">Ezen a tartományon nincs olvasható szöveg az összefoglaláshoz.</sys:String>
-    <sys:String x:Key="Str_Axo_Send">Küldés az Axónak</sys:String>
-    <sys:String x:Key="Str_Axo_SendTT">Az összefoglaló elküldése az Axo Notesba</sys:String>
     <sys:String x:Key="Str_Axo_SaveCard">Mentés az Axo Notesba</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Mentve az Axo Notesba ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">A dokumentum nem a Books vagy Articles adatbázismappában van. Az Axo-jegyzet nem lett mentve.</sys:String>

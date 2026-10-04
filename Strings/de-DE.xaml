@@ -1260,8 +1260,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Seiten {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Wird verdichtet…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">In diesem Bereich gibt es keinen lesbaren Text für eine Zusammenfassung.</sys:String>
-    <sys:String x:Key="Str_Axo_Send">An Axo senden</sys:String>
-    <sys:String x:Key="Str_Axo_SendTT">Diese Zusammenfassung an Axo Notes senden</sys:String>
     <sys:String x:Key="Str_Axo_SaveCard">In Axo Notes speichern</sys:String>
     <sys:String x:Key="Str_Axo_Saved">In Axo gespeichert ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Das Dokument liegt nicht im Datenbank-Ordner Books oder Articles. Axo-Notiz nicht gespeichert.</sys:String>

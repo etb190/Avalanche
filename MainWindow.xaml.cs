@@ -1477,8 +1477,7 @@ namespace Avalanche
                 pageCount,
                 () => _currentPage,
                 () => _aiSettingsViewModel!.ToGenConfig(),
-                Loc,
-                _originalFile);
+                Loc);
             // A window closed from its own title bar must not leave a stale reference
             // behind - the next toolbar click would poke a corpse (Activate on a
             // closed window throws).

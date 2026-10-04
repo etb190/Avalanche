@@ -99,7 +99,6 @@ namespace Avalanche.Features.Summary
         private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
         private int _runFirstPage = 1;  // the range the current/last digest covered; the
         private int _runLastPage = 1;   // verification badge maps its audit onto these pages
-        private string? _axoPath;       // the book's real (non-temp) path for Axo notes
 
         // The active pass's raw extraction, keyed by the stretch it covers: the
         // floating action popup's Explain serves the author's pages from here
@@ -124,8 +123,7 @@ namespace Avalanche.Features.Summary
             int pageCount,
             Func<int> currentPageProvider,
             Func<AiProviderConfig> configProvider,
-            Func<string, string> loc,
-            string? axoPath = null)
+            Func<string, string> loc)
         {
             InitializeComponent();
             _filePath = filePath;
@@ -134,7 +132,6 @@ namespace Avalanche.Features.Summary
             _currentPageProvider = currentPageProvider;
             _configProvider = configProvider;
             _loc = loc;
-            _axoPath = axoPath;     // the book's real path for the Axo folder rule
 
             // fade:false - the navigator owns its own two-sided choreography (the
             // pop-in entrance plus the pop-flavored fade close just below);
@@ -262,10 +259,6 @@ namespace Avalanche.Features.Summary
             // Start and Reset: with the arrows, the only generation owners there are.
             StartBtn.Click += (_, _) => StartGeneration();
             ResetBtn.Click += (_, _) => ResetAll();
-
-            // Send to Axo: the generated digest parks in the title's Axo notes
-            // JSON - database Books/Articles folders only.
-            AxoSaveBtn.Click += (_, _) => AxoSend_Click();
 
             // Range chips: label from Strings, page count from Tag. A click checks the
             // chip (accent state) and reshapes the displayed range - deliberately NOT
@@ -733,7 +726,6 @@ namespace Avalanche.Features.Summary
             int gen = ++_generation;
             _generating = true;
             _fullText = string.Empty;
-            ResetAxoSendFace();     // the digest being built is a new note
             // The superseded source is deliberately NOT disposed: the detached loop is
             // still polling its token, and a disposed source can throw from those
             // polls. Garbage collection reclaims it.
@@ -926,7 +918,6 @@ namespace Avalanche.Features.Summary
             _cts = null;
             DismissActionPopup();   // a reset empties the card: the popup goes too
             _fullText = string.Empty;
-            ResetAxoSendFace();     // nothing stands saved any more
             _flushPending = false;
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
@@ -1492,7 +1483,6 @@ namespace Avalanche.Features.Summary
         private Button? _actionDefineBtn;
         private Button? _actionExplainBtn;
         private Button? _actionCopyBtn;
-        private Button? _actionAxoBtn;                  // saves the answer into the Axo notes
         private Border? _actionCard;                    // the collapsible result card
         private TextBlock? _actionStatus;               // the loading line
         private TextBlock? _actionError;                // the provider detail under an error
@@ -1699,11 +1689,6 @@ namespace Avalanche.Features.Summary
                 copy.Visibility = Visibility.Collapsed;
             }
 
-            if (_actionAxoBtn is { } axo)
-            {
-                axo.Visibility = Visibility.Collapsed;
-            }
-
             SetActionButtonsEnabled(true);
             _actionGen++;
 
@@ -1866,34 +1851,6 @@ namespace Avalanche.Features.Summary
                 }
             };
 
-            // Save to Axo: parks the generated answer in the title's Axo
-            // notes JSON - same 24px chip face as copy, sitting to its left.
-            var axoGlyph = new TextBlock { Text = "\uE70B", FontFamily = UiKit.IconFont, FontSize = 12 };
-            axoGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            _actionAxoBtn = new Button
-            {
-                Style = (Style)FindResource("SumTitleBtn"),
-                Width = 24,
-                Height = 24,
-                Content = axoGlyph,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(0, 0, 0, 4),
-                ToolTip = _loc("Str_Axo_SaveCard"),
-                Visibility = Visibility.Collapsed
-            };
-            _actionAxoBtn.PreviewMouseLeftButtonDown += (_, e) =>
-            {
-                e.Handled = true;
-                string text = _actionResultBox!.GetValue(AiMarkdown.TextProperty) as string ?? string.Empty;
-                if (text.Length == 0)
-                {
-                    return;
-                }
-
-                AxoSendFromPopup(text);
-            };
-
             var resultRow = new Grid();
             resultRow.Children.Add(_actionResultBox);
             var cardActions = new StackPanel
@@ -1902,7 +1859,6 @@ namespace Avalanche.Features.Summary
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top
             };
-            cardActions.Children.Add(_actionAxoBtn);
             cardActions.Children.Add(_actionCopyBtn);
             resultRow.Children.Add(cardActions);
             _actionCard = new Border
@@ -2093,11 +2049,6 @@ namespace Avalanche.Features.Summary
                 copy.Visibility = Visibility.Collapsed;
             }
 
-            if (_actionAxoBtn is { } axo)
-            {
-                axo.Visibility = Visibility.Collapsed;
-            }
-
             SetPopupStatus(_loc(action == "define" ? "Str_SummaryPopupDefining" : "Str_SummaryPopupExplaining"));
             SetActionButtonsEnabled(false);
             AiProviderConfig config = _configProvider();
@@ -2124,12 +2075,6 @@ namespace Avalanche.Features.Summary
                     if (_actionCopyBtn is { } copyShown)
                     {
                         copyShown.Visibility = Visibility.Visible;
-                    }
-
-                    if (_actionAxoBtn is { } axoShown)
-                    {
-                        MarkPopupAxoFace(axoShown, null);   // a fresh answer restarts the chip
-                        axoShown.Visibility = Visibility.Visible;
                     }
                 }
             }
@@ -2217,116 +2162,6 @@ namespace Avalanche.Features.Summary
             if (_actionCopyBtn is { } copy)
             {
                 copy.Visibility = Visibility.Collapsed;
-            }
-
-            if (_actionAxoBtn is { } axo)
-            {
-                axo.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        // Send to Axo: the generated digest parks in the title's Axo notes
-        // JSON (database Books/Articles folders only), tagged with the exact
-        // pages the run covered. The button flashes a check on success; a
-        // book outside those folders leaves a gentle note on the status line
-        // and writes no file.
-        private async void AxoSend_Click()
-        {
-            if (string.IsNullOrWhiteSpace(_fullText))
-            {
-                return;     // nothing generated yet
-            }
-
-            AxoSaveBtn.IsEnabled = false;
-            try
-            {
-                string? axoTarget = _axoPath ?? _filePath;
-                bool allowed = Services.AxoNotesService.CanSaveToAxo(axoTarget, out _);
-                bool saved = allowed && await Services.AxoNotesService.AppendNoteAsync(
-                    axoTarget, _fullText, _runFirstPage, _runLastPage);
-                if (saved)
-                {
-                    MarkAxoSendFace(true);
-                    StatusText.Text = _loc("Str_Axo_Saved");
-                }
-                else
-                {
-                    MarkAxoSendFace(false);
-                    StatusText.Text =
-                        _loc(allowed ? "Str_Axo_Failed" : "Str_Axo_NotInDb");
-                }
-            }
-            finally
-            {
-                AxoSaveBtn.IsEnabled = true;
-            }
-        }
-
-        // The Send face wears the attempt's outcome for THIS digest and keeps
-        // it - no flash, no revert: a check while the note stands saved, a
-        // red X when the save failed. A new run or a reset hands the face
-        // back to the Send label, because the digest it would park is new.
-        private void MarkAxoSendFace(bool saved)
-        {
-            AxoSaveBtn.Content = new TextBlock
-            {
-                Text = saved ? "\uE73E" : "\uE711",   // Segoe MDL2 CheckMark / Cancel
-                FontFamily = UiKit.IconFont,
-                FontSize = 14
-            };
-            AxoSaveBtn.Background = saved
-                ? new SolidColorBrush(Color.FromRgb(0x1B, 0x5E, 0x20))
-                : new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
-            AxoSaveBtn.BorderBrush = saved
-                ? new SolidColorBrush(Color.FromRgb(0x0F, 0x3D, 0x14))
-                : new SolidColorBrush(Color.FromRgb(0x7F, 0x1D, 0x1D));
-        }
-
-        private void ResetAxoSendFace()
-        {
-            AxoSaveBtn.SetResourceReference(ContentProperty, "Str_Axo_Send");
-            AxoSaveBtn.Background = new SolidColorBrush(Color.FromRgb(0x6A, 0x1B, 0x9A));
-            AxoSaveBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(0x4A, 0x14, 0x8C));
-        }
-
-        // The popup's answer lands in Axo under an "Explain · target" head,
-        // tagged with the pages the explanation grounded itself in.
-        private async void AxoSendFromPopup(string explanationMarkdown)
-        {
-            string head = _actionTarget.Length > 44 ? _actionTarget[..44] + "\u2026" : _actionTarget;
-            string? axoTarget = _axoPath ?? _filePath;
-            bool allowed = Services.AxoNotesService.CanSaveToAxo(axoTarget, out _);
-            bool saved = allowed && await Services.AxoNotesService.AppendNoteAsync(
-                axoTarget,
-                "**Explain \u00b7 " + head + "**\n\n" + explanationMarkdown,
-                Math.Max(1, _runFirstPage), Math.Max(1, _runLastPage));
-            if (_actionAxoBtn is { } chip)
-            {
-                if (saved)
-                {
-                    MarkPopupAxoFace(chip, true);
-                }
-                else
-                {
-                    MarkPopupAxoFace(chip, false);
-                    SetPopupStatus(
-                        _loc(allowed ? "Str_Axo_Failed" : "Str_Axo_NotInDb"));
-                }
-            }
-        }
-
-        // The popup chip keeps its outcome for THIS answer - pen, check or X -
-        // until the next answer takes the card over.
-        private void MarkPopupAxoFace(Button chip, bool? saved)
-        {
-            if (chip.Content is TextBlock glyph)
-            {
-                glyph.Text = saved switch
-                {
-                    true => "\uE73E",    // Segoe MDL2 CheckMark
-                    false => "\uE711",   // Segoe MDL2 Cancel
-                    _ => "\uE70B"        // Segoe MDL2 Edit - a fresh answer, nothing tried yet
-                };
             }
         }
 

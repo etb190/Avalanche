@@ -1274,8 +1274,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">リキャップ — {0}–{1} ページ</sys:String>
     <sys:String x:Key="Str_Recap_Loading">要約中…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">この範囲には要約できるテキストがありません。</sys:String>
-    <sys:String x:Key="Str_Axo_Send">Axo に送信</sys:String>
-    <sys:String x:Key="Str_Axo_SendTT">この要約を Axo Notes に送信します</sys:String>
     <sys:String x:Key="Str_Axo_SaveCard">Axo Notes に保存</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Axo に保存しました ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">ドキュメントがデータベースの Books または Articles フォルダー内にありません。Axo ノートは保存されていません。</sys:String>

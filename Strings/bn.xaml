@@ -1254,8 +1254,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Recap_RangeTitle">রিক্যাপ — পৃষ্ঠা {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">সংক্ষিপ্ত করা হচ্ছে…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">এই অংশে সারাংশের জন্য কোনো পাঠযোগ্য লেখা নেই।</sys:String>
-    <sys:String x:Key="Str_Axo_Send">Axo-তে পাঠান</sys:String>
-    <sys:String x:Key="Str_Axo_SendTT">এই সারসংক্ষেপটি Axo Notes-এ পাঠান</sys:String>
     <sys:String x:Key="Str_Axo_SaveCard">Axo Notes-এ সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Axo-তে সংরক্ষিত ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">নথিটি ডেটাবেসের Books বা Articles ফোল্ডারে নেই। Axo নোট সংরক্ষিত হয়নি।</sys:String>
