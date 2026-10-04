@@ -1265,4 +1265,5 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Axo_SaveCard">In Axo Notes speichern</sys:String>
     <sys:String x:Key="Str_Axo_Saved">In Axo gespeichert ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Das Dokument liegt nicht im Datenbank-Ordner Books oder Articles. Axo-Notiz nicht gespeichert.</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">Die Axo-Notiz konnte nicht gespeichert werden.</sys:String>
 </ResourceDictionary>

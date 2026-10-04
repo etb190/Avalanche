@@ -1263,4 +1263,5 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Axo_SaveCard">保存到 Axo Notes</sys:String>
     <sys:String x:Key="Str_Axo_Saved">已保存到 Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">文档不在数据库的 Books 或 Articles 文件夹中，Axo 笔记未保存。</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">无法保存 Axo 笔记。</sys:String>
 </ResourceDictionary>

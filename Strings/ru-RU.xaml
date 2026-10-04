@@ -1279,4 +1279,5 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Axo_SaveCard">Сохранить в Axo Notes</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Сохранено в Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Документ не находится в папке Books или Articles базы данных. Заметка Axo не сохранена.</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">Не удалось сохранить заметку Axo.</sys:String>
 </ResourceDictionary>

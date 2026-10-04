@@ -1278,4 +1278,5 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Axo_SaveCard">Axo Notes-қа сақтау</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Axo-ға сақталды ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Құжат дереққордың Books немесе Articles қалтасында емес. Axo жазбасы сақталмады.</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">Axo жазбасын сақтау мүмкін болмады.</sys:String>
 </ResourceDictionary>

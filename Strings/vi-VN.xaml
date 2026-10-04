@@ -1279,4 +1279,5 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Axo_SaveCard">Lưu vào Axo Notes</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Đã lưu vào Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Tài liệu không nằm trong thư mục Books hoặc Articles của cơ sở dỹ liệu. Chưa lưu ghi chép Axo.</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">Không thể lưu ghi chép Axo.</sys:String>
 </ResourceDictionary>

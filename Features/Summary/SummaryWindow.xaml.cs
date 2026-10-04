@@ -733,6 +733,7 @@ namespace Avalanche.Features.Summary
             int gen = ++_generation;
             _generating = true;
             _fullText = string.Empty;
+            ResetAxoSendFace();     // the digest being built is a new note
             // The superseded source is deliberately NOT disposed: the detached loop is
             // still polling its token, and a disposed source can throw from those
             // polls. Garbage collection reclaims it.
@@ -925,6 +926,7 @@ namespace Avalanche.Features.Summary
             _cts = null;
             DismissActionPopup();   // a reset empties the card: the popup goes too
             _fullText = string.Empty;
+            ResetAxoSendFace();     // nothing stands saved any more
             _flushPending = false;
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
@@ -2126,6 +2128,7 @@ namespace Avalanche.Features.Summary
 
                     if (_actionAxoBtn is { } axoShown)
                     {
+                        MarkPopupAxoFace(axoShown, null);   // a fresh answer restarts the chip
                         axoShown.Visibility = Visibility.Visible;
                     }
                 }
@@ -2237,24 +2240,20 @@ namespace Avalanche.Features.Summary
             AxoSaveBtn.IsEnabled = false;
             try
             {
-                bool saved = await Services.AxoNotesService.AppendNoteAsync(
-                    _axoPath ?? _filePath, _fullText, _runFirstPage, _runLastPage);
+                string? axoTarget = _axoPath ?? _filePath;
+                bool allowed = Services.AxoNotesService.CanSaveToAxo(axoTarget, out _);
+                bool saved = allowed && await Services.AxoNotesService.AppendNoteAsync(
+                    axoTarget, _fullText, _runFirstPage, _runLastPage);
                 if (saved)
                 {
-                    object restore = AxoSaveBtn.Content;
-                    AxoSaveBtn.Content = _loc("Str_Axo_Saved");
-                    var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.6) };
-                    timer.Tick += (_, _) =>
-                    {
-                        AxoSaveBtn.Content = restore;
-                        timer.Stop();
-                    };
-                    timer.Start();
+                    MarkAxoSendFace(true);
+                    StatusText.Text = _loc("Str_Axo_Saved");
                 }
                 else
                 {
+                    MarkAxoSendFace(false);
                     StatusText.Text =
-                        _loc("Str_Axo_NotInDb");
+                        _loc(allowed ? "Str_Axo_Failed" : "Str_Axo_NotInDb");
                 }
             }
             finally
@@ -2263,42 +2262,72 @@ namespace Avalanche.Features.Summary
             }
         }
 
+        // The Send face wears the attempt's outcome for THIS digest and keeps
+        // it - no flash, no revert: a check while the note stands saved, a
+        // red X when the save failed. A new run or a reset hands the face
+        // back to the Send label, because the digest it would park is new.
+        private void MarkAxoSendFace(bool saved)
+        {
+            AxoSaveBtn.Content = new TextBlock
+            {
+                Text = saved ? "\uE73E" : "\uE711",   // Segoe MDL2 CheckMark / Cancel
+                FontFamily = UiKit.IconFont,
+                FontSize = 14
+            };
+            AxoSaveBtn.Background = saved
+                ? new SolidColorBrush(Color.FromRgb(0x1B, 0x5E, 0x20))
+                : new SolidColorBrush(Color.FromRgb(0xC6, 0x28, 0x28));
+            AxoSaveBtn.BorderBrush = saved
+                ? new SolidColorBrush(Color.FromRgb(0x0F, 0x3D, 0x14))
+                : new SolidColorBrush(Color.FromRgb(0x7F, 0x1D, 0x1D));
+        }
+
+        private void ResetAxoSendFace()
+        {
+            AxoSaveBtn.SetResourceReference(ContentProperty, "Str_Axo_Send");
+            AxoSaveBtn.Background = new SolidColorBrush(Color.FromRgb(0x6A, 0x1B, 0x9A));
+            AxoSaveBtn.BorderBrush = new SolidColorBrush(Color.FromRgb(0x4A, 0x14, 0x8C));
+        }
+
         // The popup's answer lands in Axo under an "Explain · target" head,
         // tagged with the pages the explanation grounded itself in.
         private async void AxoSendFromPopup(string explanationMarkdown)
         {
             string head = _actionTarget.Length > 44 ? _actionTarget[..44] + "\u2026" : _actionTarget;
-            bool saved = await Services.AxoNotesService.AppendNoteAsync(
-                _axoPath ?? _filePath,
+            string? axoTarget = _axoPath ?? _filePath;
+            bool allowed = Services.AxoNotesService.CanSaveToAxo(axoTarget, out _);
+            bool saved = allowed && await Services.AxoNotesService.AppendNoteAsync(
+                axoTarget,
                 "**Explain \u00b7 " + head + "**\n\n" + explanationMarkdown,
                 Math.Max(1, _runFirstPage), Math.Max(1, _runLastPage));
             if (_actionAxoBtn is { } chip)
             {
                 if (saved)
                 {
-                    FlashChip(chip);
+                    MarkPopupAxoFace(chip, true);
                 }
                 else
                 {
+                    MarkPopupAxoFace(chip, false);
                     SetPopupStatus(
-                        _loc("Str_Axo_NotInDb"));
+                        _loc(allowed ? "Str_Axo_Failed" : "Str_Axo_NotInDb"));
                 }
             }
         }
 
-        // The popup chips' success flash: the glyph swaps to a check for a
-        // moment, the same manner the sidebar's copy chip shows.
-        private void FlashChip(Button chip)
+        // The popup chip keeps its outcome for THIS answer - pen, check or X -
+        // until the next answer takes the card over.
+        private void MarkPopupAxoFace(Button chip, bool? saved)
         {
-            object restore = chip.Content;
-            chip.Content = "\u2713";
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
-            timer.Tick += (_, _) =>
+            if (chip.Content is TextBlock glyph)
             {
-                chip.Content = restore;
-                timer.Stop();
-            };
-            timer.Start();
+                glyph.Text = saved switch
+                {
+                    true => "\uE73E",    // Segoe MDL2 CheckMark
+                    false => "\uE711",   // Segoe MDL2 Cancel
+                    _ => "\uE70B"        // Segoe MDL2 Edit - a fresh answer, nothing tried yet
+                };
+            }
         }
 
         /// <summary>The range the navigator is showing right now, for the page list's

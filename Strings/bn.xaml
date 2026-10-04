@@ -1259,4 +1259,5 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Axo_SaveCard">Axo Notes-এ সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Axo-তে সংরক্ষিত ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">নথিটি ডেটাবেসের Books বা Articles ফোল্ডারে নেই। Axo নোট সংরক্ষিত হয়নি।</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">Axo নোটটি সংরক্ষণ করা যায়নি।</sys:String>
 </ResourceDictionary>

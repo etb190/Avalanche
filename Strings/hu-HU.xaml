@@ -1266,4 +1266,5 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Axo_SaveCard">Mentés az Axo Notesba</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Mentve az Axo Notesba ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">A dokumentum nem a Books vagy Articles adatbázismappában van. Az Axo-jegyzet nem lett mentve.</sys:String>
+    <sys:String x:Key="Str_Axo_Failed">Az Axo-jegyzet mentése nem sikerült.</sys:String>
 </ResourceDictionary>

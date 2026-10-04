@@ -444,6 +444,7 @@ namespace Avalanche
                 FocusVisualStyle = null
             };
             axoBtn.Click += AxoSaveNoteCard_Click;
+            ApplyAxoFace(axoBtn, card.AxoState);   // a card that already tried keeps its outcome face
 
             var header = new DockPanel { LastChildFill = true };
             header.Children.Add(copyBtn);
@@ -524,20 +525,48 @@ namespace Avalanche
             }
 
             string? pdfPath = _originalFile ?? _notesDocumentPath;
-            bool saved = await Services.AxoNotesService.AppendNoteAsync(
+            bool allowed = Services.AxoNotesService.CanSaveToAxo(pdfPath, out _);
+            bool saved = allowed && await Services.AxoNotesService.AppendNoteAsync(
                 pdfPath,
                 "**" + NoteTitle(card) + "**\n\n" + card.Content,
                 card.FirstPage, card.LastPage);
-            if (saved)
-            {
-                FlashCopyButton(btn);
-            }
-            else
+            card.AxoState = saved;
+            ApplyAxoFace(btn, saved);
+            if (!saved)
             {
                 ShowNotesStatus(
-                    Loc("Str_Axo_NotInDb"));
+                    Loc(allowed ? "Str_Axo_Failed" : "Str_Axo_NotInDb"));
             }
         }
+
+        // The Axo chip wears the attempt's outcome for THIS note and keeps
+        // it - no flash, no revert: the pen until a try, a check once the
+        // note landed, a red X when the save failed. The state rides on the
+        // card itself, so a tab flit brings the face back with the cards.
+        private void ApplyAxoFace(Button axoBtn, bool? state)
+        {
+            switch (state)
+            {
+                case true:
+                    axoBtn.Content = "\uE73E";   // Segoe MDL2 CheckMark
+                    axoBtn.Background = AxoChipBrush(0x2E, 0x7D, 0x32);
+                    axoBtn.ToolTip = Loc("Str_Axo_Saved");
+                    break;
+                case false:
+                    axoBtn.Content = "\uE711";   // Segoe MDL2 Cancel
+                    axoBtn.Background = AxoChipBrush(0xC6, 0x28, 0x28);
+                    axoBtn.ToolTip = Loc("Str_Axo_Failed");
+                    break;
+                default:
+                    axoBtn.Content = "\uE70B";   // Segoe MDL2 Edit
+                    axoBtn.Background = AxoChipBrush(0x2E, 0x7D, 0x32);
+                    axoBtn.ToolTip = Loc("Str_Axo_SaveCard");
+                    break;
+            }
+        }
+
+        private static SolidColorBrush AxoChipBrush(byte r, byte g, byte b) =>
+            new(Color.FromRgb(r, g, b));
 
         /// <summary>Copies "**Pages X - Y**\n\n{content}" per card - the same
         /// shape the cards display, pasted as markdown.</summary>

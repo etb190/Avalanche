@@ -17,7 +17,14 @@ namespace Avalanche.Features.Notes
 
     /// <summary>One generated review card: the page block it covers and the
     /// markdown note for it (the model's own heading line stripped).</summary>
-    internal sealed record NoteCard(int FirstPage, int LastPage, string Content);
+    internal sealed record NoteCard(int FirstPage, int LastPage, string Content)
+    {
+        /// <summary>The card's own Axo save outcome: null until an attempt,
+        /// true once the note landed (check face), false when it failed (X
+        /// face). Lives on the card, not the button, so the parked snapshot
+        /// brings the face back across tab switches.</summary>
+        public bool? AxoState { get; set; }
+    }
 
     internal static class NotesRecallLogic
     {
