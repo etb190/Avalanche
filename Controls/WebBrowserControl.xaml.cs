@@ -18,11 +18,14 @@ namespace Avalanche.Controls
     /// back / forward / refresh / home, an omnibox that searches when the text is not an
     /// address, the curated academic quick-access chips, and the PDF hand-off that sends
     /// every PDF the page offers into the reader instead of the browser's own viewer:
-    /// pdf-shaped links are recognized on sight (suffix, trailing path parameters and
-    /// /pdf/ routes), anything that slips through and starts rendering in Chromium's own
-    /// viewer is pulled back out when the page finishes, every fetch rides the session's
-    /// own cookies and user agent and is checked for a real PDF header before the
-    /// reader hears of it, and no download is ever interrupted by a suspend. Everything
+    /// nothing is ever cancelled, so the request a site sees is always Chromium's own -
+    /// downloads stream through the engine straight into the reader's temp area, and a
+    /// document that still reaches Chromium's viewer is pulled back out with the bytes
+    /// the engine itself received, then a fetch from inside the page, then the
+    /// credentialed out-of-process fetch as the last resort, every candidate checked
+    /// for a real PDF header before the reader hears of it. A failed hand-off is never
+    /// remembered, so a blocked link can always be retried, and no download is ever
+    /// interrupted by a suspend. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -42,10 +45,15 @@ namespace Avalanche.Controls
         private string? _pendingUrl;
         private string? _lastPageUrl;
 
-        // One honest fetch attempt per URL: a link that will not yield a PDF is shown as
-        // the page it is, never re-intercepted in a loop. URLs that do deliver are taken
-        // back out, so a later click works again.
-        private readonly HashSet<string> _pdfTried = new(StringComparer.Ordinal);
+        // Only the hand-offs currently in flight are remembered, and only so two
+        // completions cannot race: the moment one lands - or fails - the URL is free
+        // again. A blocked link is never blacklisted; the next click is a real retry.
+        private readonly HashSet<string> _pdfInFlight = new(StringComparer.Ordinal);
+
+        // The bytes of the most recent application/pdf response the engine itself
+        // received (WebResourceResponseReceived), offered to a hand-off before any
+        // re-fetch is attempted. Fresh with every navigation.
+        private TaskCompletionSource<byte[]?>? _pdfCapture;
 
         // Downloads the engine is still writing: suspension waits until the last one
         // lands, because TrySuspendAsync mid-download is how a "damaged" PDF is born.
@@ -129,6 +137,7 @@ namespace Avalanche.Controls
             HideStatus();
             CoreWebView2 core = Browser.CoreWebView2!;
             core.DownloadStarting += OnDownloadStarting;
+            core.WebResourceResponseReceived += OnWebResourceResponseReceived;
             core.NewWindowRequested += OnNewWindowRequested;
             core.HistoryChanged += (_, _) => RefreshHistoryButtons();
             Browser.NavigationStarting += OnNavigationStarting;
@@ -233,10 +242,11 @@ namespace Avalanche.Controls
         /// <summary>The one PDF the browser is allowed to show is none. A link no rule can
         /// see coming - /getpdf?id=..., a redirect that ends in a document - starts
         /// rendering in Chromium's own viewer; the moment the page finishes, the document
-        /// is pulled back out: fetched with the session's credentials, checked, and handed
-        /// to the reader while the browser steps back to the page that offered it. A URL
-        /// the fetch already failed for is simply left behind - the reader never lives
-        /// inside a PDF viewer of its own.</summary>
+        /// is pulled back out with the browser's own credentials - the bytes the engine
+        /// itself received, then a fetch from inside the page, then the credentialed
+        /// out-of-process fetch - checked, and handed to the reader while the browser
+        /// steps back to the page that offered it. Nothing is remembered about a failure:
+        /// a hand-off only guards the race it is running.</summary>
         private async Task CatchInlinePdfAsync()
         {
             try
@@ -247,14 +257,18 @@ namespace Avalanche.Controls
                 if (!type.Trim('"').Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
                     return;
                 string url = Browser.Source?.ToString() ?? string.Empty;
-                if (url.Length == 0 || _pdfTried.Contains(url))
+                if (url.Length == 0 || !_pdfInFlight.Add(url)) return;
+                try
                 {
-                    ShowStatus(TryLoc("Str_Web_PdfBlocked"));
-                    RetreatFromInlinePdf();
-                    return;
+                    ShowStatus(TryLoc("Str_Web_PdfOpening"));
+                    byte[]? bytes = await CapturePdfFromBrowserAsync(url);
+                    await HandPdfToReaderAsync(url, bytes);
+                    RetreatFromInlinePdf();   // rest on the page that offered the PDF, never on a viewer
                 }
-                await OpenRemotePdfAsync(url);
-                RetreatFromInlinePdf();   // rest on the page that offered the PDF, never on a viewer
+                finally
+                {
+                    _pdfInFlight.Remove(url);   // the outcome is forgotten; only the race is guarded
+                }
             }
             catch
             {
@@ -307,68 +321,109 @@ namespace Avalanche.Controls
         }
 
         // ── The PDF hand-off ──────────────────────────────────────────────────────────────
-        // A PDF is never rendered by the browser. A pdf-shaped link cancels its navigation
-        // and is fetched with the session's own credentials into the reader's temp area; a
-        // document that slips through and starts rendering in Chromium's own viewer is
-        // pulled back out the moment it loads; every fetch is checked for a real PDF
-        // header before the reader ever hears of it; a PDF download suppresses Edge's
-        // flyout, lands in the same place, and is never cut short by a suspend; the
-        // "open in Avalanche" button prints the live page straight to a temp PDF. Every
-        // path ends at PdfRequested, which the window turns into an ordinary reader tab.
+        // A PDF is never rendered by the browser, and the browser's own request is never
+        // cancelled: navigations and downloads ride Chromium's network stack, the only
+        // one a CDN or an anti-bot wall will trust. A download streams through
+        // DownloadStarting straight into the reader's temp area; a document that reaches
+        // Chromium's viewer is pulled back out - the bytes the engine itself received
+        // first, then a fetch from inside the page, then the credentialed
+        // out-of-process fetch - and every candidate is checked for a real PDF header
+        // before the reader ever hears of it. No failure is remembered, and no download
+        // is ever cut short by a suspend. The "open in Avalanche" button hands over the
+        // very document when the page is one, and prints the live page when it is not.
+        // Every path ends at PdfRequested, which the window turns into an ordinary
+        // reader tab.
 
         private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
         {
-            if (LooksLikePdf(e.Uri) && !_pdfTried.Contains(e.Uri))
-            {
-                e.Cancel = true;
-                _ = OpenRemotePdfAsync(e.Uri);
-            }
+            // Nothing is cancelled any more: a pdf-shaped address rides the engine's own
+            // request to its download or its viewer, and the hand-off catches it there -
+            // cancelling here is exactly what invalidated one-time download tokens and
+            // left the session's request unanswered. Each navigation starts its capture
+            // fresh.
+            _pdfCapture = null;
         }
 
-        /// <summary>A URL worth intercepting on sight: the path ends in .pdf even when a
-        /// path parameter trails it (.pdf;jsessionid=... is a classic), or the route itself
-        /// is a /pdf/ one - arXiv, ACM, PubMed Central and most publishers hand the paper
-        /// over at such addresses. A false positive costs nothing: the fetch below checks
-        /// the bytes and shows the page as-is when it turns out not to be a PDF.</summary>
-        internal static bool LooksLikePdf(string uri)
+        /// <summary>The document's bytes, from the sources closest to Chromium inward:
+        /// first the response the engine itself received for this very document (no
+        /// second request exists for a CDN or an anti-bot wall to distrust), then a fetch
+        /// running inside the page - the session's own cookies, tokens and TLS
+        /// handshake - and only then the credentialed out-of-process fetch that shares
+        /// the engine's cookies and user agent. The first source that yields real PDF
+        /// bytes wins; null means every one of them failed.</summary>
+        private async Task<byte[]?> CapturePdfFromBrowserAsync(string url)
         {
-            if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? u)) return false;
-            if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) return false;
-            string path = u.AbsolutePath;
-            int semi = path.IndexOf(';');
-            if (semi >= 0) path = path[..semi];
-            if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) return true;
-            string lower = path.ToLowerInvariant();
-            return lower.Contains("/pdf/") || lower.EndsWith("/pdf");
+            byte[]? captured = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
+            if (captured != null && HasPdfHeader(captured)) return captured;
+            byte[]? scripted = await FetchViaPageScriptAsync();
+            if (scripted != null && HasPdfHeader(scripted)) return scripted;
+            byte[]? fetched = await FetchBrowserBytesAsync(url);
+            if (fetched != null && HasPdfHeader(fetched)) return fetched;
+            return null;
         }
 
-        private async Task OpenRemotePdfAsync(string url)
+        /// <summary>Waits a moment for the engine's own response bytes to finish copying:
+        /// a document still streaming is worth waiting for, a capture that never
+        /// happened is not.</summary>
+        private async Task<byte[]?> WaitPdfCaptureAsync(TimeSpan wait)
         {
-            _pdfTried.Add(url);   // one honest attempt; the outcome decides what a repeat click does
-            ShowStatus(TryLoc("Str_Web_PdfOpening"));
+            TaskCompletionSource<byte[]?>? capture = _pdfCapture;
+            if (capture is null) return null;
             try
             {
-                string target = TempPdfPath(SafePdfName(new Uri(url).AbsolutePath));
-                byte[] bytes = await FetchBrowserBytesAsync(url);
-                if (!HasPdfHeader(bytes))
-                {
-                    // The site answered with a page, not a PDF (a sign-in wall, a landing,
-                    // an error dressed as a download). Showing that page is what any real
-                    // browser does; feeding the bytes to the reader is how "damaged" PDFs
-                    // were born.
-                    ShowStatus(TryLoc("Str_Web_PdfNotPdf"));
-                    NavigateTo(url);
-                    return;
-                }
+                if (await Task.WhenAny(capture.Task, Task.Delay(wait)) != capture.Task) return null;
+                return await capture.Task;
+            }
+            catch { return null; }
+        }
+
+        // Runs inside the page's own renderer: the fetch the page itself could make -
+        // the session's cookies, tokens and TLS handshake, indistinguishable from the
+        // site's own scripts. Returns the document as base64, or an empty string when
+        // the page's context refuses to cooperate.
+        private const string PageFetchScript =
+            "(async()=>{try{const r=await fetch(location.href,{credentials:'include'});" +
+            "if(!r.ok)return '';const b=await r.arrayBuffer();const u=new Uint8Array(b);" +
+            "let s='';const c=0x8000;for(let i=0;i<u.length;i+=c)" +
+            "s+=String.fromCharCode.apply(null,u.subarray(i,i+c));return btoa(s)}catch(e){return ''}})()";
+
+        private async Task<byte[]?> FetchViaPageScriptAsync()
+        {
+            try
+            {
+                CoreWebView2? core = Browser.CoreWebView2;
+                if (core is null) return null;
+                string json = await core.ExecuteScriptAsync(PageFetchScript);
+                string? b64 = null;
+                try { b64 = System.Text.Json.JsonSerializer.Deserialize<string>(json); }
+                catch { /* "null" or malformed JSON means no result */ }
+                if (string.IsNullOrEmpty(b64)) return null;
+                return Convert.FromBase64String(b64);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Every road ends here: the bytes are checked for a real PDF header one
+        /// last time, written into the reader's temp area, and handed over; anything else
+        /// speaks through the status line instead of feeding the reader damaged goods.</summary>
+        private async Task HandPdfToReaderAsync(string url, byte[]? bytes)
+        {
+            if (bytes is null || !HasPdfHeader(bytes))
+            {
+                ShowStatus(TryLoc("Str_Web_PdfBlocked"));
+                return;
+            }
+            try
+            {
+                string path = Uri.TryCreate(url, UriKind.Absolute, out Uri? u)
+                    ? u.AbsolutePath : string.Empty;
+                string target = TempPdfPath(SafePdfName(path));
                 await File.WriteAllBytesAsync(target, bytes);
-                _pdfTried.Remove(url);   // a link that delivers stays clickable
                 HideStatus();
                 PdfRequested?.Invoke(target);
             }
             catch
             {
-                // The navigation was cancelled, so the page the reader was on is untouched;
-                // say why the PDF never came instead of failing in silence.
                 ShowStatus(TryLoc("Str_Web_PdfBlocked"));
             }
         }
@@ -462,57 +517,74 @@ namespace Avalanche.Controls
             string mime = e.DownloadOperation.MimeType ?? string.Empty;
             string suggested = e.ResultFilePath ?? string.Empty;
             bool isPdf = mime.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
-                || suggested.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
-            if (!isPdf) return;   // ordinary downloads keep the browser's own handling
+                || mime.Equals("application/x-pdf", StringComparison.OrdinalIgnoreCase)
+                || (mime.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase)
+                    && suggested.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase));
 
             _activeDownloads++;   // every download, PDF or not: suspension must not strand it
             bool counted = true;
-            if (!isPdf)
-            {
-                // ordinary downloads keep the browser's own handling; suspension still waits
-                // for them, so the engine is never paused under a file it is writing
-                e.DownloadOperation.StateChanged += (s, _) =>
-                {
-                    if (s is CoreWebView2DownloadOperation op
-                        && op.State != CoreWebView2DownloadState.InProgress)
-                        Dispatcher.BeginInvoke(() =>
-                        {
-                            if (counted) { counted = false; _activeDownloads--; }
-                        });
-                };
-                return;
-            }
-            e.Handled = true;   // no Edge download flyout for a file the reader is about to eat
-            string target = TempPdfPath(SafePdfName(suggested.Length > 0 ? suggested : "download.pdf"));
-            e.ResultFilePath = target;
-            ShowStatus(TryLoc("Str_Web_PdfOpening"));
+            string? target = null;
             e.DownloadOperation.StateChanged += (s, _) =>
             {
                 if (s is not CoreWebView2DownloadOperation op) return;
-                if (op.State == CoreWebView2DownloadState.Completed)
+                if (op.State == CoreWebView2DownloadState.InProgress) return;
+                Dispatcher.BeginInvoke(() =>
                 {
-                    Dispatcher.BeginInvoke(() =>
+                    if (counted) { counted = false; _activeDownloads--; }
+                    if (target is null) return;   // ordinary download: the engine's own handling stays
+                    if (op.State == CoreWebView2DownloadState.Completed && HasPdfHeaderFile(target))
                     {
-                        if (counted) { counted = false; _activeDownloads--; }
                         HideStatus();
-                        if (HasPdfHeaderFile(target))
-                            PdfRequested?.Invoke(target);
-                        else
-                        {
-                            try { File.Delete(target); } catch { /* temp litter is harmless */ }
-                            ShowStatus(TryLoc("Str_Web_PdfNotPdf"));
-                        }
-                    });
-                }
-                else if (op.State != CoreWebView2DownloadState.InProgress)
-                {
-                    Dispatcher.BeginInvoke(() =>
+                        PdfRequested?.Invoke(target);
+                    }
+                    else if (op.State == CoreWebView2DownloadState.Completed)
                     {
-                        if (counted) { counted = false; _activeDownloads--; }
-                        HideStatus();
-                    });
-                }
+                        try { File.Delete(target); } catch { /* temp litter is harmless */ }
+                        ShowStatus(TryLoc("Str_Web_PdfNotPdf"));
+                    }
+                    else
+                    {
+                        HideStatus();   // interrupted: the status line steps aside
+                    }
+                });
             };
+
+            if (!isPdf) return;   // ordinary downloads keep the engine's own handling
+
+            e.Handled = true;   // no Edge download flyout for a file the reader is about to eat
+            target = TempPdfPath(SafePdfName(suggested.Length > 0 ? suggested : "download.pdf"));
+            e.ResultFilePath = target;
+            ShowStatus(TryLoc("Str_Web_PdfOpening"));
+        }
+
+        /// <summary>The engine's own answer to the page: when it is a PDF document, its
+        /// bytes are copied out as they arrive, so the hand-off can use the very response
+        /// Chromium negotiated - nothing for a CDN or an anti-bot wall to distrust.
+        /// Cache-served answers hide their bytes; the later layers fetch for those.</summary>
+        private async void OnWebResourceResponseReceived(
+            object? sender, CoreWebView2WebResourceResponseReceivedEventArgs e)
+        {
+            try
+            {
+                CoreWebView2HttpResponseHeaders? headers = e.Response.Headers;
+                if (headers is null || !headers.Contains("Content-Type")) return;
+                string mime = headers.GetHeader("Content-Type") ?? string.Empty;
+                int cut = mime.IndexOf(';');
+                if (cut >= 0) mime = mime[..cut];
+                if (!mime.Trim().Equals("application/pdf", StringComparison.OrdinalIgnoreCase)) return;
+                Stream? content = await e.Response.GetContentAsync();
+                if (content is null) return;
+                TaskCompletionSource<byte[]?> capture =
+                    new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _pdfCapture = capture;
+                using MemoryStream bytes = new();
+                await content.CopyToAsync(bytes);   // read inside the handler, while the stream is live
+                capture.TrySetResult(bytes.ToArray());
+            }
+            catch
+            {
+                // a capture that stumbles leaves the floor to the later layers
+            }
         }
 
         private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
@@ -523,15 +595,42 @@ namespace Avalanche.Controls
             NavigateTo(e.Uri);
         }
 
+        /// <summary>The fallback that captures what the reader is looking at right now:
+        /// when the page is itself a document, its real bytes are handed over through the
+        /// same three sources as the automatic hand-off, and when it is not, the live
+        /// page prints to a temp PDF as always.</summary>
         private async Task OpenCurrentPageAsPdfAsync()
         {
-            if (Browser.CoreWebView2 is null) return;
+            CoreWebView2? core = Browser.CoreWebView2;
+            if (core is null) return;
             ShowStatus(TryLoc("Str_Web_PdfOpening"));
             try
             {
+                string url = Browser.Source?.ToString() ?? string.Empty;
+                if (url.Length > 0)
+                {
+                    try
+                    {
+                        string type = await core.ExecuteScriptAsync("document.contentType");
+                        if (type.Trim('"').Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (_pdfInFlight.Add(url))
+                            {
+                                try
+                                {
+                                    byte[]? bytes = await CapturePdfFromBrowserAsync(url);
+                                    await HandPdfToReaderAsync(url, bytes);
+                                }
+                                finally { _pdfInFlight.Remove(url); }
+                            }
+                            return;   // a document page never prints; in flight means it is already coming
+                        }
+                    }
+                    catch { /* a page that refuses probing prints as usual */ }
+                }
                 string target = TempPdfPath(
                     "page-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
-                await Browser.CoreWebView2.PrintToPdfAsync(target, null);
+                await core.PrintToPdfAsync(target, null);
                 PdfRequested?.Invoke(target);
             }
             catch
