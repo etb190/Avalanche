@@ -1276,6 +1276,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_PdfOpening">Načítá se PDF pro čtečku...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Modul WebView2 nebyl nalezen. Nainstalujte Evergreen Runtime od Microsoftu a prohlížeč otevřete znovu.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Nová karta</sys:String>
+    <sys:String x:Key="Str_Web_PdfNotPdf">Tento odkaz nevedl na soubor PDF - zobrazuje se samotná stránka.</sys:String>
+    <sys:String x:Key="Str_Web_PdfBlocked">Toto PDF se nepodařilo získat - stránka zablokovala stažení.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

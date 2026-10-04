@@ -1271,6 +1271,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_PdfOpening">রিডারের জন্য PDF আনা হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 রানটাইম পাওয়া যায়নি। Microsoft-এর Evergreen Runtime ইনস্টল করে ব্রাউজারটি আবার খুলুন।</sys:String>
     <sys:String x:Key="Str_Web_NewTab">নতুন ট্যাব</sys:String>
+    <sys:String x:Key="Str_Web_PdfNotPdf">এই লিঙ্কটি কোনো PDF ফাইল দেয়নি - পরিবর্তে পাতাটি দেখানো হচ্ছে।</sys:String>
+    <sys:String x:Key="Str_Web_PdfBlocked">এই PDF আনা যায়নি - সাইটটি ডাউনলোড আটকে দিয়েছে।</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

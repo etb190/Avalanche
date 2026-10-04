@@ -1275,6 +1275,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">正在为阅读器获取 PDF…</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">未找到 WebView2 运行时。请安装 Microsoft Evergreen Runtime 后重新打开浏览器。</sys:String>
     <sys:String x:Key="Str_Web_NewTab">新建标签页</sys:String>
+    <sys:String x:Key="Str_Web_PdfNotPdf">该链接未提供 PDF 文件 - 改为显示网页本身。</sys:String>
+    <sys:String x:Key="Str_Web_PdfBlocked">无法获取此 PDF - 网站阻止了下载。</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

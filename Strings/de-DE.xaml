@@ -1277,6 +1277,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_PdfOpening">PDF wird für den Reader geladen ...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Die WebView2-Laufzeit wurde nicht gefunden. Installieren Sie die Evergreen Runtime von Microsoft und öffnen Sie den Browser erneut.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Neuer Tab</sys:String>
+    <sys:String x:Key="Str_Web_PdfNotPdf">Dieser Link hat keine PDF-Datei geliefert - die Seite selbst wird angezeigt.</sys:String>
+    <sys:String x:Key="Str_Web_PdfBlocked">Dieses PDF konnte nicht geladen werden - die Seite hat den Download blockiert.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
