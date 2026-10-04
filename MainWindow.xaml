@@ -2700,7 +2700,7 @@
                 <Grid x:Name="WebPaneHost" Grid.Row="0" Grid.RowSpan="2" Grid.ColumnSpan="3"
                       Panel.ZIndex="90" Visibility="Collapsed">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="{DynamicResource TabBandHeight}"/>
+                        <RowDefinition Height="Auto"/>   <!-- row 0: tab band; the band Border below owns the themed height - Auto is the NaN-safe route the PDF strips take -->
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
