@@ -1,7 +1,13 @@
 # TASK: Avalanche Improvements & Axo Notes Integration
 
 Repository: `https://github.com/etb190/Avalanche`  
-Status: DRAFT (Pending execution - DO NOT COMMIT YET)
+Status: EXECUTED (v1.18.8: sections 1, 2, and 3's AxoNotesService + notes-card
+chip; v1.18.9: per-note check/X save feedback on the chip, superseding the
+flash; v1.18.10: the section-3 Summary Navigator button and the popup Save
+action were removed again at the owner's direct order - "the save to axo
+button is in notes not in summary it should never be in the summarizer" -
+and stay out. Section 4: the CI workflow runs both test projects as gates on
+every build; the suite is green at every delivered version.)
 
 ---
 

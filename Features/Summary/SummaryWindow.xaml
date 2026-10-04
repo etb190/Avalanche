@@ -27,8 +27,8 @@
             <Style x:Key="SumNavBtn" TargetType="Button">
                 <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-                <Setter Property="Width" Value="30"/>
-                <Setter Property="Height" Value="30"/>
+                <Setter Property="Width" Value="28"/>
+                <Setter Property="Height" Value="28"/>
                 <Setter Property="Cursor" Value="Hand"/>
                 <Setter Property="Focusable" Value="False"/>
                 <Setter Property="Template">
@@ -71,7 +71,7 @@
                 <Setter Property="HorizontalAlignment" Value="Center"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Width" Value="82"/>
-                <Setter Property="Height" Value="30"/>
+                <Setter Property="Height" Value="28"/>
                 <Setter Property="TextAlignment" Value="Center"/>
                 <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
                 <Setter Property="FontSize" Value="13"/>
@@ -343,7 +343,7 @@
                 <TextBlock Text="&#xE76B;" FontFamily="{DynamicResource IconFont}" FontSize="11"
                            Foreground="{DynamicResource TextBrush}" Margin="0,-2,0,0"/>
             </Button>
-            <TextBox x:Name="StartBox" Style="{StaticResource SumPageBox}" Margin="8,0"
+            <TextBox x:Name="StartBox" Style="{StaticResource SumPageBox}" Margin="5,0"
                      MaxLength="9" InputScope="Number" Cursor="IBeam" ForceCursor="True"
                      ToolTip="{DynamicResource Str_SummaryStartPage}"/>
             <Button x:Name="NavNextBtn" Style="{StaticResource SumNavBtn}"
