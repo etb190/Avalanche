@@ -439,7 +439,7 @@ namespace Avalanche
                 BorderThickness = new Thickness(0),   // the flat chip look
                 Foreground = Brushes.White,
                 Style = (Style)FindResource("DarkButton"),
-                ToolTip = "Save to Axo Notes",
+                ToolTip = Loc("Str_Axo_SaveCard"),
                 Tag = card,
                 FocusVisualStyle = null
             };
@@ -535,7 +535,7 @@ namespace Avalanche
             else
             {
                 ShowNotesStatus(
-                    "Document is not in the database Books or Articles folder. Axo note not saved.");
+                    Loc("Str_Axo_NotInDb"));
             }
         }
 

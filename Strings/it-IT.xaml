@@ -1274,4 +1274,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Pagine {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Condensazione…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">Nessun testo legibile in questo intervallo da riepilogare.</sys:String>
+    <sys:String x:Key="Str_Axo_Send">Invia ad Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">Invia questo riepilogo ad Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">Salva in Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">Salvato in Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">Il documento non è nella cartella Books o Articles del database. Nota Axo non salvata.</sys:String>
 </ResourceDictionary>

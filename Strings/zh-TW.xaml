@@ -1256,4 +1256,9 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">回顧 — 第 {0}–{1} 頁</sys:String>
     <sys:String x:Key="Str_Recap_Loading">正在濃縮…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">此範圍沒有可讀取的文字，無法產生回顧。</sys:String>
+    <sys:String x:Key="Str_Axo_Send">傳送到 Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">將此摘要傳送到 Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">儲存到 Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">已儲存到 Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">文件不在資料庫的 Books 或 Articles 資料夾中，Axo 筆記未儲存。</sys:String>
 </ResourceDictionary>

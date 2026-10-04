@@ -1274,4 +1274,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Pages {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Condensing…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">No readable text in this range to recap.</sys:String>
+    <sys:String x:Key="Str_Axo_Send">Send to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">Send this summary to Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">Save to Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">Saved to Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">Document is not in the database Books or Articles folder. Axo note not saved.</sys:String>
 </ResourceDictionary>

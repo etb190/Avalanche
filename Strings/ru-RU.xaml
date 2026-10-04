@@ -1274,4 +1274,9 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Страницы {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Сжатие…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">В этом диапазоне нет читаемого текста для краткого пересказа.</sys:String>
+    <sys:String x:Key="Str_Axo_Send">Отправить в Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">Отправить эту сводку в Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">Сохранить в Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">Сохранено в Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">Документ не находится в папке Books или Articles базы данных. Заметка Axo не сохранена.</sys:String>
 </ResourceDictionary>

@@ -1254,4 +1254,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Páginas {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Condensando…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">No hay texto legible en este rango para resumir.</sys:String>
+    <sys:String x:Key="Str_Axo_Send">Enviar a Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">Enviar este resumen a Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">Guardar en Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">Guardado en Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">El documento no está en la carpeta Books o Articles de la base de datos. Nota de Axo no guardada.</sys:String>
 </ResourceDictionary>

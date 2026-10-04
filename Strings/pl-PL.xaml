@@ -1262,4 +1262,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strony {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Kondensowanie…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">W tym zakresie nie ma czytelnego tekstu do podsumowania.</sys:String>
+    <sys:String x:Key="Str_Axo_Send">Wyślij do Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">Wyślij to podsumowanie do Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">Zapisz w Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">Zapisano w Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">Dokument nie znajduje się w folderze Books ani Articles bazy danych. Notatka Axo nie została zapisana.</sys:String>
 </ResourceDictionary>

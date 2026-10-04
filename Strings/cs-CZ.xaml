@@ -1259,4 +1259,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Recap_RangeTitle">Recap — Strany {0}–{1}</sys:String>
     <sys:String x:Key="Str_Recap_Loading">Zhušťování…</sys:String>
     <sys:String x:Key="Str_Recap_Empty">V tomto rozsahu není žádný čitelný text k shrnutí.</sys:String>
+    <sys:String x:Key="Str_Axo_Send">Odeslat do Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SendTT">Odeslat toto shrnutí do Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_SaveCard">Uložit do Axo Notes</sys:String>
+    <sys:String x:Key="Str_Axo_Saved">Uloženo do Axo ✓</sys:String>
+    <sys:String x:Key="Str_Axo_NotInDb">Dokument není ve složce databáze Books ani Articles. Axo poznámka nebyla uložena.</sys:String>
 </ResourceDictionary>

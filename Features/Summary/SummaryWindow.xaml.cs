@@ -1877,7 +1877,7 @@ namespace Avalanche.Features.Summary
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(0, 0, 0, 4),
-                ToolTip = "Save to Axo Notes",
+                ToolTip = _loc("Str_Axo_SaveCard"),
                 Visibility = Visibility.Collapsed
             };
             _actionAxoBtn.PreviewMouseLeftButtonDown += (_, e) =>
@@ -2242,7 +2242,7 @@ namespace Avalanche.Features.Summary
                 if (saved)
                 {
                     object restore = AxoSaveBtn.Content;
-                    AxoSaveBtn.Content = "Saved to Axo \u2713";
+                    AxoSaveBtn.Content = _loc("Str_Axo_Saved");
                     var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.6) };
                     timer.Tick += (_, _) =>
                     {
@@ -2254,7 +2254,7 @@ namespace Avalanche.Features.Summary
                 else
                 {
                     StatusText.Text =
-                        "Document is not in the database Books or Articles folder. Axo note not saved.";
+                        _loc("Str_Axo_NotInDb");
                 }
             }
             finally
@@ -2281,7 +2281,7 @@ namespace Avalanche.Features.Summary
                 else
                 {
                     SetPopupStatus(
-                        "Document is not in the database Books or Articles folder. Axo note not saved.");
+                        _loc("Str_Axo_NotInDb"));
                 }
             }
         }
