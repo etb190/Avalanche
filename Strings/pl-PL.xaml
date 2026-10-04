@@ -1278,6 +1278,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_OmniHint">Szukaj lub wpisz adres sieciowy</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Pobieranie PDF dla czytnika...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Nie znaleziono środowiska WebView2. Zainstaluj Evergreen Runtime od Microsoftu i otwórz przeglądarkę ponownie.</sys:String>
+    <sys:String x:Key="Str_Web_NewTab">Nowa karta</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

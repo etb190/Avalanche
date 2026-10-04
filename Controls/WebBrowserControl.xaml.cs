@@ -25,6 +25,10 @@ namespace Avalanche.Controls
         /// <summary>A local PDF is ready for the reader. Raised on the UI thread.</summary>
         public event Action<string>? PdfRequested;
 
+        /// <summary>The browser tab's label changed - a page title arrived, or a
+        /// navigation fell back to the address host. Raised on the UI thread.</summary>
+        public event Action<string>? TitleChanged;
+
         private const string HomePage = "https://duckduckgo.com/";
 
         private bool _initStarted;
@@ -111,6 +115,7 @@ namespace Avalanche.Controls
             core.HistoryChanged += (_, _) => RefreshHistoryButtons();
             Browser.NavigationStarting += OnNavigationStarting;
             Browser.NavigationCompleted += OnNavigationCompleted;
+            core.DocumentTitleChanged += (_, _) => RaiseTitleChanged();
             SetChromeEnabled(true);
             NavigateTo(_pendingUrl ?? HomePage);
             _pendingUrl = null;
@@ -202,6 +207,18 @@ namespace Avalanche.Controls
         private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             SyncOmniFromBrowser();
+            RaiseTitleChanged();
+        }
+
+        /// <summary>The tab's title: the page's own when it has one, otherwise the
+        /// address host. Empty stays silent - the tab keeps whatever it wore.</summary>
+        private void RaiseTitleChanged()
+        {
+            CoreWebView2? core = Browser.CoreWebView2;
+            if (core is null) return;
+            string title = core.DocumentTitle;
+            if (string.IsNullOrWhiteSpace(title)) title = Browser.Source?.Host ?? string.Empty;
+            if (title.Length > 0) TitleChanged?.Invoke(title);
         }
 
         private void SyncOmniFromBrowser()

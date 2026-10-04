@@ -1290,6 +1290,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_OmniHint">Поиск или веб-адрес</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Получение PDF для читалки...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Среда WebView2 не найдена. Установите Evergreen Runtime от Microsoft и снова откройте браузер.</sys:String>
+    <sys:String x:Key="Str_Web_NewTab">Новая вкладка</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

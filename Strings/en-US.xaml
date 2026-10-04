@@ -1290,6 +1290,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_OmniHint">Search or enter web address</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Fetching the PDF for the reader...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">The WebView2 runtime was not found. Install the Evergreen Runtime from Microsoft, then reopen the browser.</sys:String>
+    <sys:String x:Key="Str_Web_NewTab">New tab</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

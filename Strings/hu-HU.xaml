@@ -1277,6 +1277,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_OmniHint">Keresés vagy webcím megadása</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">PDF letöltése az olvasóhoz...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">A WebView2 futtatókörnyezet nem található. Telepítse a Microsoft Evergreen Runtime-ját, majd nyissa meg újra a böngészőt.</sys:String>
+    <sys:String x:Key="Str_Web_NewTab">Új lap</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

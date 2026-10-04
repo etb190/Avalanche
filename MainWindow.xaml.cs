@@ -2185,11 +2185,14 @@ namespace Avalanche
                 string.Join(" ", l.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text))));
         }
 
-        // ── The web browser pane (v1.19.0) ──────────────────────────────────────────────
-        // The toolbar globe swaps the document area for the lightweight WebView2 card.
-        // Any PDF the web offers - a clicked .pdf link or a finished download - comes
-        // back through PdfRequested and opens as an ordinary reader tab, with the pane
-        // stepping aside first. The engine is lazy and suspended whenever the pane hides.
+        // ── The web browser pane (v1.19.1) ──────────────────────────────────────────────
+        // The toolbar globe swaps the document area for the lightweight WebView2 card,
+        // hosted in exactly the PDF card's footprint under its own tab band: while the
+        // pane is up, the band's single live-title tab IS the strip - close it and the
+        // PDF tabs return. Any PDF the web offers - a clicked .pdf link or a finished
+        // download - comes back through PdfRequested and opens as an ordinary reader
+        // tab, with the pane stepping aside first. The engine is lazy and suspended
+        // whenever the pane hides.
         private void WireWebPane()
         {
             WebPane.PdfRequested += path =>
@@ -2197,26 +2200,35 @@ namespace Avalanche
                 HideWebPane();
                 OpenInNewTab(path);
             };
+            // The browser tab wears the page's own title, the way a browser tab does;
+            // the tooltip carries the same words in full.
+            WebPane.TitleChanged += title =>
+            {
+                WebTabLabel.Text = title;
+                WebTab.ToolTip = title;
+            };
         }
 
         private void WebBrowserBtn_Click(object sender, RoutedEventArgs e) => ToggleWebPane();
 
+        private void WebTabClose_Click(object sender, RoutedEventArgs e) => HideWebPane();
+
         private void ToggleWebPane()
         {
-            if (WebPaneCard.Visibility == Visibility.Visible) HideWebPane();
+            if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
             else ShowWebPane();
         }
 
         private void ShowWebPane()
         {
-            WebPaneCard.Visibility = Visibility.Visible;
+            WebPaneHost.Visibility = Visibility.Visible;
             WebPane.OnPaneShown();
         }
 
         private void HideWebPane()
         {
-            if (WebPaneCard.Visibility != Visibility.Visible) return;
-            WebPaneCard.Visibility = Visibility.Collapsed;
+            if (WebPaneHost.Visibility != Visibility.Visible) return;
+            WebPaneHost.Visibility = Visibility.Collapsed;
             WebPane.OnPaneHidden();
         }
     }
