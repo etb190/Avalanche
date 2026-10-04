@@ -1,3 +1,4 @@
+using System.Threading;
 using Avalanche.Services;
 
 namespace Avalanche.Features
@@ -30,6 +31,12 @@ namespace Avalanche.Features
         private int _matchCursor = -1;
         private int _totalHits;
 
+        // The async scan's cancellation + staleness: a newer query (or a closed
+        // bar) cancels the in-flight walk, and the generation counter makes any
+        // late batch or completion from the old run drop silently.
+        private CancellationTokenSource? _searchCts;
+        private int _runGen;
+
         /// <summary>True while any page has result rects - the F3 and repaint-on-page-change gate.</summary>
         internal bool HasResults => AllSearchRects.Count > 0;
 
@@ -46,6 +53,7 @@ namespace Avalanche.Features
         /// <summary>The query-too-short reset (search box text dropped under 2 chars).</summary>
         internal void ClearMatches()
         {
+            CancelActiveSearch();
             AllSearchRects.Clear();
             ResultPages.Clear();
             _matches.Clear();
@@ -57,13 +65,28 @@ namespace Avalanche.Features
         /// cleared when these were fields (the match list is rebuilt by the next Run).</summary>
         internal void ClearPageResults()
         {
+            CancelActiveSearch();
             AllSearchRects.Clear();
             ResultPages.Clear();
             PageCursor = -1;
         }
 
-        internal void Run(string query)
+        /// <summary>
+        /// The async scan: the PdfPig walk parks in Task.Run so the UI never
+        /// freezes on a big book (the old synchronous Run held the whole message
+        /// pump for 5-25s), a newer query or a closed bar cancels the in-flight
+        /// walk at the next page boundary, and pages with hits stream back in
+        /// batches - the reader sees matches appear while the rest of the
+        /// document is still scanning. The cursor jump + final counter land
+        /// once, on completion.
+        /// </summary>
+        internal async Task RunAsync(string query)
         {
+            try { _searchCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _searchCts?.Dispose();
+            var cts = _searchCts = new CancellationTokenSource();
+            int gen = ++_runGen;
+
             _host.ClearHighlights();
             AllSearchRects.Clear();
             ResultPages.Clear();
@@ -77,39 +100,79 @@ namespace Avalanche.Features
                 return;
             }
 
+            _host.SetResultText("Searching…");
+
+            string file = _host.CurrentFile;
             try
             {
-                var sr = SearchService.Search(_host.CurrentFile, query);
-
-                foreach (var kvp in sr.PageRects)
-                    AllSearchRects[kvp.Key] = kvp.Value;
-                ResultPages.AddRange(sr.ResultPages);
-
-                // Flatten every match into one reading-ordered list (page asc, then top-to-bottom,
-                // then left-to-right) so navigation steps word-by-word across the whole document.
-                foreach (var page in ResultPages)
-                    foreach (var (left, bottom, right, top) in AllSearchRects[page].OrderByDescending(r => r.top).ThenBy(r => r.left))
-                        _matches.Add((page, left, bottom, right, top));
-
-                if (_matches.Count == 0)
+                await Task.Run(() =>
                 {
-                    _host.SetResultText(_host.Loc("Str_Search_NoMatches"));
-                    return;
-                }
+                    SearchService.Search(file, query, cts.Token,
+                        onPageHits: (page, hits) =>
+                            _host.PostToUi(() => MergeBatch(gen, page, hits)));
+                });
 
-                _totalHits = sr.TotalHits;
-
-                // Start at the first match on or after the current page.
-                int startPage = _host.CurrentPageIndex;
-                _matchCursor = _matches.FindIndex(m => m.page >= startPage);
-                if (_matchCursor < 0) _matchCursor = 0;
-
-                GoToCurrentMatch();
+                if (gen != _runGen) return;     // superseded while scanning
+                CompleteSearch();
+            }
+            catch (OperationCanceledException)
+            {
+                // a newer query (or the closed bar) owns the field now
             }
             catch
             {
-                _host.SetResultText(_host.Loc("Str_Search_Error"));
+                if (gen == _runGen)
+                {
+                    _host.SetResultText(_host.Loc("Str_Search_Error"));
+                }
             }
+        }
+
+        // One page's hits landed while the scan still runs: park the rects,
+        // extend the reading-ordered match list, and repaint so the partial
+        // results show at once. A batch from a superseded run is dropped.
+        private void MergeBatch(int gen, int page,
+            IReadOnlyList<(double Left, double Bottom, double Right, double Top)> hits)
+        {
+            if (gen != _runGen || AllSearchRects.ContainsKey(page)) return;
+
+            AllSearchRects[page] = [.. hits];
+            ResultPages.Add(page);
+            // Reading order within the page: top-to-bottom, then left-to-right.
+            foreach (var (left, bottom, right, top) in hits.OrderByDescending(r => r.Top).ThenBy(r => r.Left))
+                _matches.Add((page, left, bottom, right, top));
+
+            _host.RepaintHighlights();
+            _host.SetResultCount(_matches.Count + " …", null);
+        }
+
+        // The scan finished under this generation: flatten done (MergeBatch kept
+        // the reading order), pick the cursor and jump to the first match.
+        private void CompleteSearch()
+        {
+            if (_matches.Count == 0)
+            {
+                _host.SetResultText(_host.Loc("Str_Search_NoMatches"));
+                return;
+            }
+
+            // Start at the first match on or after the current page.
+            int startPage = _host.CurrentPageIndex;
+            _matchCursor = _matches.FindIndex(m => m.page >= startPage);
+            if (_matchCursor < 0) _matchCursor = 0;
+
+            GoToCurrentMatch();
+        }
+
+        /// <summary>Cancels any in-flight scan - the query dropped under two
+        /// characters, the bar closed, a document switch. The RunAsync awaiter
+        /// wakes cancelled and bails silently.</summary>
+        internal void CancelActiveSearch()
+        {
+            _runGen++;
+            try { _searchCts?.Cancel(); } catch (ObjectDisposedException) { }
+            _searchCts?.Dispose();
+            _searchCts = null;
         }
 
         internal void Next()

@@ -362,6 +362,8 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
             <Button x:Name="StartBtn" Grid.Column="0" Style="{StaticResource SumActionBtn}"
                     Background="#FF1B5E20" BorderBrush="#FF0F3D14"
@@ -371,6 +373,10 @@
                     Background="#FF0D47A1" BorderBrush="#FF08306B"
                     Content="{DynamicResource Str_SummaryReset}"
                     ToolTip="{DynamicResource Str_SummaryReset}"/>
+            <Button x:Name="AxoSaveBtn" Grid.Column="4" Style="{StaticResource SumActionBtn}"
+                    Background="#FF6A1B9A" BorderBrush="#FF4A148C"
+                    Content="Send to Axo"
+                    ToolTip="Send this summary to Axo Notes"/>
         </Grid>
 
         <!-- Row 2: range chips (they reshape the displayed range only), then the word

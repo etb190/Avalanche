@@ -422,9 +422,34 @@ namespace Avalanche
             };
             copyBtn.Click += CopyNoteCard_Click;
 
+            // Save Note to Axo: parks this card in the title's Axo notes
+            // JSON (database Books/Articles folders only). Same flat chip
+            // face as copy, sitting immediately to its left.
+            var axoBtn = new Button
+            {
+                Content = "\uE70B",   // Segoe MDL2 Edit
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 11,
+                Width = 22,
+                Height = 20,
+                Padding = new Thickness(0),
+                Margin = new Thickness(6, 0, 4, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)),
+                BorderThickness = new Thickness(0),   // the flat chip look
+                Foreground = Brushes.White,
+                Style = (Style)FindResource("DarkButton"),
+                ToolTip = "Save to Axo Notes",
+                Tag = card,
+                FocusVisualStyle = null
+            };
+            axoBtn.Click += AxoSaveNoteCard_Click;
+
             var header = new DockPanel { LastChildFill = true };
             header.Children.Add(copyBtn);
             DockPanel.SetDock(copyBtn, Dock.Right);
+            header.Children.Add(axoBtn);
+            DockPanel.SetDock(axoBtn, Dock.Right);
             header.Children.Add(title);
 
             // The note renders as real markdown (the model's card: bold page
@@ -484,6 +509,34 @@ namespace Avalanche
 
             CopyNotesToClipboard([card]);
             FlashCopyButton(btn);
+        }
+
+        // Sends one note card to the title's Axo notes JSON. The card rides
+        // with its pages header, exactly the shape the copy chip pastes; the
+        // folder rule (database Books/Articles only) lives in AxoNotesService,
+        // and a card outside those folders says so on the panel's status line
+        // instead of writing a file.
+        private async void AxoSaveNoteCard_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not NoteCard card)
+            {
+                return;
+            }
+
+            string? pdfPath = _originalFile ?? _notesDocumentPath;
+            bool saved = await Services.AxoNotesService.AppendNoteAsync(
+                pdfPath,
+                "**" + NoteTitle(card) + "**\n\n" + card.Content,
+                card.FirstPage, card.LastPage);
+            if (saved)
+            {
+                FlashCopyButton(btn);
+            }
+            else
+            {
+                ShowNotesStatus(
+                    "Document is not in the database Books or Articles folder. Axo note not saved.");
+            }
         }
 
         /// <summary>Copies "**Pages X - Y**\n\n{content}" per card - the same

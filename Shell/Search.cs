@@ -52,6 +52,8 @@ namespace Avalanche
 
         void ISearchHost.ClearHighlights() => ClearSearchHighlights();
         void ISearchHost.RepaintHighlights() => HighlightSearchResultsOnCurrentPage();
+        void ISearchHost.PostToUi(Action action) =>
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, action);
 
         private void Search_Click(object sender, RoutedEventArgs e) => ToggleSearchBar();
 
@@ -276,6 +278,7 @@ namespace Avalanche
                 };
                 bar.BeginAnimation(UIElement.OpacityProperty, fade);
             }
+            Search.CancelActiveSearch();    // the bar is going away: the walk stops
             ClearSearchHighlights();
         }
 
@@ -304,6 +307,7 @@ namespace Avalanche
             if (text.Length < 2)
             {
                 _searchDebounce?.Stop();
+                Search.CancelActiveSearch();    // a half-typed query kills the in-flight scan
                 ClearSearchHighlights();
                 Search.ClearMatches();
                 _searchStatus?.Text = "";
@@ -319,7 +323,7 @@ namespace Avalanche
                 {
                     _searchDebounce!.Stop();
                     var q = _searchBox?.Text ?? "";
-                    if (q.Length >= 2) Search.Run(q);
+                    if (q.Length >= 2) _ = Search.RunAsync(q);
                 };
             }
             _searchDebounce.Stop();

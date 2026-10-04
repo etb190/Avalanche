@@ -99,6 +99,7 @@ namespace Avalanche.Features.Summary
         private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
         private int _runFirstPage = 1;  // the range the current/last digest covered; the
         private int _runLastPage = 1;   // verification badge maps its audit onto these pages
+        private string? _axoPath;       // the book's real (non-temp) path for Axo notes
 
         // The active pass's raw extraction, keyed by the stretch it covers: the
         // floating action popup's Explain serves the author's pages from here
@@ -123,7 +124,8 @@ namespace Avalanche.Features.Summary
             int pageCount,
             Func<int> currentPageProvider,
             Func<AiProviderConfig> configProvider,
-            Func<string, string> loc)
+            Func<string, string> loc,
+            string? axoPath = null)
         {
             InitializeComponent();
             _filePath = filePath;
@@ -132,6 +134,7 @@ namespace Avalanche.Features.Summary
             _currentPageProvider = currentPageProvider;
             _configProvider = configProvider;
             _loc = loc;
+            _axoPath = axoPath;     // the book's real path for the Axo folder rule
 
             // fade:false - the navigator owns its own two-sided choreography (the
             // pop-in entrance plus the pop-flavored fade close just below);
@@ -259,6 +262,10 @@ namespace Avalanche.Features.Summary
             // Start and Reset: with the arrows, the only generation owners there are.
             StartBtn.Click += (_, _) => StartGeneration();
             ResetBtn.Click += (_, _) => ResetAll();
+
+            // Send to Axo: the generated digest parks in the title's Axo notes
+            // JSON - database Books/Articles folders only.
+            AxoSaveBtn.Click += (_, _) => AxoSend_Click();
 
             // Range chips: label from Strings, page count from Tag. A click checks the
             // chip (accent state) and reshapes the displayed range - deliberately NOT
@@ -1385,6 +1392,15 @@ namespace Avalanche.Features.Summary
             try
             {
                 AppDataPaths.SetSetting("summary.digest." + _documentId, _fullText);
+                // The exact pages this digest was generated from ride beside the
+                // text: a restored digest must explain itself from the pages
+                // that actually produced it, never from the 1/1 defaults.
+                AppDataPaths.SetSetting(
+                    "summary.digest." + _documentId + ".first",
+                    _runFirstPage.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting(
+                    "summary.digest." + _documentId + ".last",
+                    _runLastPage.ToString(CultureInfo.InvariantCulture));
             }
             catch
             {
@@ -1400,6 +1416,37 @@ namespace Avalanche.Features.Summary
                 if (text.Length == 0)
                 {
                     return;
+                }
+
+                // The pages that produced this digest come back with it. A
+                // restored digest used to leave the run range at the 1/1
+                // defaults, so Explain extracted only page 1 - usually an
+                // un-OCR'd cover leaf reading as "[p. 1]" - and the model had
+                // nothing real to stand on. Saved first/last win; a digest
+                // saved before ranges were persisted falls back to the range
+                // on screen.
+                if (int.TryParse(
+                        AppDataPaths.GetSetting("summary.digest." + _documentId + ".first"),
+                        NumberStyles.Integer, CultureInfo.InvariantCulture, out int savedFirst)
+                    && savedFirst >= 1 && savedFirst <= _pageCount)
+                {
+                    _runFirstPage = savedFirst;
+                }
+                else
+                {
+                    _runFirstPage = _startPage;
+                }
+
+                if (int.TryParse(
+                        AppDataPaths.GetSetting("summary.digest." + _documentId + ".last"),
+                        NumberStyles.Integer, CultureInfo.InvariantCulture, out int savedLast)
+                    && savedLast >= _runFirstPage && savedLast <= _pageCount)
+                {
+                    _runLastPage = savedLast;
+                }
+                else
+                {
+                    _runLastPage = Math.Min(_startPage + _rangePages - 1, _pageCount);
                 }
 
                 _fullText = text;
@@ -1443,6 +1490,7 @@ namespace Avalanche.Features.Summary
         private Button? _actionDefineBtn;
         private Button? _actionExplainBtn;
         private Button? _actionCopyBtn;
+        private Button? _actionAxoBtn;                  // saves the answer into the Axo notes
         private Border? _actionCard;                    // the collapsible result card
         private TextBlock? _actionStatus;               // the loading line
         private TextBlock? _actionError;                // the provider detail under an error
@@ -1649,6 +1697,11 @@ namespace Avalanche.Features.Summary
                 copy.Visibility = Visibility.Collapsed;
             }
 
+            if (_actionAxoBtn is { } axo)
+            {
+                axo.Visibility = Visibility.Collapsed;
+            }
+
             SetActionButtonsEnabled(true);
             _actionGen++;
 
@@ -1811,9 +1864,45 @@ namespace Avalanche.Features.Summary
                 }
             };
 
+            // Save to Axo: parks the generated answer in the title's Axo
+            // notes JSON - same 24px chip face as copy, sitting to its left.
+            var axoGlyph = new TextBlock { Text = "\uE70B", FontFamily = UiKit.IconFont, FontSize = 12 };
+            axoGlyph.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            _actionAxoBtn = new Button
+            {
+                Style = (Style)FindResource("SumTitleBtn"),
+                Width = 24,
+                Height = 24,
+                Content = axoGlyph,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 0, 0, 4),
+                ToolTip = "Save to Axo Notes",
+                Visibility = Visibility.Collapsed
+            };
+            _actionAxoBtn.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                string text = _actionResultBox!.GetValue(AiMarkdown.TextProperty) as string ?? string.Empty;
+                if (text.Length == 0)
+                {
+                    return;
+                }
+
+                AxoSendFromPopup(text);
+            };
+
             var resultRow = new Grid();
             resultRow.Children.Add(_actionResultBox);
-            resultRow.Children.Add(_actionCopyBtn);
+            var cardActions = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            cardActions.Children.Add(_actionAxoBtn);
+            cardActions.Children.Add(_actionCopyBtn);
+            resultRow.Children.Add(cardActions);
             _actionCard = new Border
             {
                 Visibility = Visibility.Collapsed,
@@ -2002,6 +2091,11 @@ namespace Avalanche.Features.Summary
                 copy.Visibility = Visibility.Collapsed;
             }
 
+            if (_actionAxoBtn is { } axo)
+            {
+                axo.Visibility = Visibility.Collapsed;
+            }
+
             SetPopupStatus(_loc(action == "define" ? "Str_SummaryPopupDefining" : "Str_SummaryPopupExplaining"));
             SetActionButtonsEnabled(false);
             AiProviderConfig config = _configProvider();
@@ -2028,6 +2122,11 @@ namespace Avalanche.Features.Summary
                     if (_actionCopyBtn is { } copyShown)
                     {
                         copyShown.Visibility = Visibility.Visible;
+                    }
+
+                    if (_actionAxoBtn is { } axoShown)
+                    {
+                        axoShown.Visibility = Visibility.Visible;
                     }
                 }
             }
@@ -2059,27 +2158,41 @@ namespace Avalanche.Features.Summary
         // through ExtractRangeAsync once and refills the cache.
         private async Task<string> ExplainFromRangeAsync(AiProviderConfig config, string target, CancellationToken ct)
         {
+            // Defensive range check: a degenerate or unrestored run range must
+            // never explain from a lone page-1 cover leaf. The pages the
+            // window is SHOWING are the honest fallback, not the 1/1 defaults.
+            int first = _runFirstPage;
+            int last = _runLastPage;
+            if (first <= 0 || last < first ||
+                (first == 1 && last == 1 && _pageCount > 1 && _rangePages > 1))
+            {
+                first = _startPage;
+                last = RangeEnd();
+                _runFirstPage = first;
+                _runLastPage = last;
+            }
+
             string raw;
             if (!string.IsNullOrEmpty(_cachedRangeRawText)
-                && _cachedRangeFirst == _runFirstPage && _cachedRangeLast == _runLastPage)
+                && _cachedRangeFirst == first && _cachedRangeLast == last)
             {
                 raw = _cachedRangeRawText;
             }
             else
             {
-                raw = await PageSummarizer.ExtractRangeAsync(_filePath, _runFirstPage, _runLastPage, ct);
+                raw = await PageSummarizer.ExtractRangeAsync(_filePath, first, last, ct);
                 if (string.IsNullOrWhiteSpace(raw))
                 {
                     return string.Empty;    // no text layer on these pages
                 }
 
                 _cachedRangeRawText = raw;
-                _cachedRangeFirst = _runFirstPage;
-                _cachedRangeLast = _runLastPage;
+                _cachedRangeFirst = first;
+                _cachedRangeLast = last;
             }
 
             return await PageSummarizer.ExplainExcerptAsync(
-                config, TruncateForExplain(target), raw, _runFirstPage, _runLastPage, ct);
+                config, TruncateForExplain(target), raw, first, last, ct);
         }
 
         private void ShowPopupError(string? detail)
@@ -2102,6 +2215,90 @@ namespace Avalanche.Features.Summary
             {
                 copy.Visibility = Visibility.Collapsed;
             }
+
+            if (_actionAxoBtn is { } axo)
+            {
+                axo.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        // Send to Axo: the generated digest parks in the title's Axo notes
+        // JSON (database Books/Articles folders only), tagged with the exact
+        // pages the run covered. The button flashes a check on success; a
+        // book outside those folders leaves a gentle note on the status line
+        // and writes no file.
+        private async void AxoSend_Click()
+        {
+            if (string.IsNullOrWhiteSpace(_fullText))
+            {
+                return;     // nothing generated yet
+            }
+
+            AxoSaveBtn.IsEnabled = false;
+            try
+            {
+                bool saved = await Services.AxoNotesService.AppendNoteAsync(
+                    _axoPath ?? _filePath, _fullText, _runFirstPage, _runLastPage);
+                if (saved)
+                {
+                    object restore = AxoSaveBtn.Content;
+                    AxoSaveBtn.Content = "Saved to Axo \u2713";
+                    var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.6) };
+                    timer.Tick += (_, _) =>
+                    {
+                        AxoSaveBtn.Content = restore;
+                        timer.Stop();
+                    };
+                    timer.Start();
+                }
+                else
+                {
+                    StatusText.Text =
+                        "Document is not in the database Books or Articles folder. Axo note not saved.";
+                }
+            }
+            finally
+            {
+                AxoSaveBtn.IsEnabled = true;
+            }
+        }
+
+        // The popup's answer lands in Axo under an "Explain · target" head,
+        // tagged with the pages the explanation grounded itself in.
+        private async void AxoSendFromPopup(string explanationMarkdown)
+        {
+            string head = _actionTarget.Length > 44 ? _actionTarget[..44] + "\u2026" : _actionTarget;
+            bool saved = await Services.AxoNotesService.AppendNoteAsync(
+                _axoPath ?? _filePath,
+                "**Explain \u00b7 " + head + "**\n\n" + explanationMarkdown,
+                Math.Max(1, _runFirstPage), Math.Max(1, _runLastPage));
+            if (_actionAxoBtn is { } chip)
+            {
+                if (saved)
+                {
+                    FlashChip(chip);
+                }
+                else
+                {
+                    SetPopupStatus(
+                        "Document is not in the database Books or Articles folder. Axo note not saved.");
+                }
+            }
+        }
+
+        // The popup chips' success flash: the glyph swaps to a check for a
+        // moment, the same manner the sidebar's copy chip shows.
+        private void FlashChip(Button chip)
+        {
+            object restore = chip.Content;
+            chip.Content = "\u2713";
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1200) };
+            timer.Tick += (_, _) =>
+            {
+                chip.Content = restore;
+                timer.Stop();
+            };
+            timer.Start();
         }
 
         /// <summary>The range the navigator is showing right now, for the page list's

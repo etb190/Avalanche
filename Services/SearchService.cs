@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading;
 using Avalanche.Features.AI;
 using UglyToad.PdfPig;
 
@@ -18,6 +19,19 @@ namespace Avalanche.Services
         /// Returns an empty result when query is blank or the file cannot be opened.
         /// </summary>
         public static SearchResult Search(string filePath, string query)
+            => Search(filePath, query, CancellationToken.None);
+
+        /// <summary>
+        /// The cancellable scan the editor's search bar runs. The caller parks it
+        /// in Task.Run (the loop is pure background work - file parsing plus word
+        /// geometry), the token fires after every page so a newer query or a
+        /// closed bar ends the walk at once, and every page with hits is handed
+        /// to <paramref name="onPageHits"/> the moment it is found so the UI can
+        /// show partial results while the rest of the book is still scanning.
+        /// Cancellation surfaces as OperationCanceledException - never swallowed.
+        /// </summary>
+        public static SearchResult Search(string filePath, string query, CancellationToken ct,
+            Action<int, IReadOnlyList<(double Left, double Bottom, double Right, double Top)>>? onPageHits = null)
         {
             var result = new SearchResult();
             if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(filePath))
@@ -28,6 +42,7 @@ namespace Avalanche.Services
                 using var doc = PdfDocument.Open(filePath);
                 for (int pi = 0; pi < doc.NumberOfPages; pi++)
                 {
+                    ct.ThrowIfCancellationRequested();
                     var page = doc.GetPage(pi + 1);
                     var hits = FindMatchesOnPage(page, query);
                     if (hits.Count > 0)
@@ -35,8 +50,13 @@ namespace Avalanche.Services
                         result.PageRects[pi] = hits;
                         result.ResultPages.Add(pi);
                         result.TotalHits += hits.Count;
+                        onPageHits?.Invoke(pi, hits);
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;      // the caller owns cancellation - it must hear about it
             }
             catch { /* return whatever was collected so far */ }
 
@@ -65,16 +85,23 @@ namespace Avalanche.Services
 
                 if (!isPhrase) continue;
 
-                // Multi-word match
-                string combined = words[i].Text;
-                for (int j = i + 1; j < words.Count && combined.Length < query.Length + 20; j++)
+                // Multi-word match - a sliding StringBuilder window instead of
+                // the old per-start re-concatenation (every start word used to
+                // rebuild its candidate string from scratch, `combined += " " +
+                // word`, quadratic allocations on dense pages). The window now
+                // grows one word at a time from each start, with the same
+                // length cap and the same first-match-wins semantics.
+                var combined = new System.Text.StringBuilder(words[i].Text);
+                int last = i;
+                while (last + 1 < words.Count && combined.Length < query.Length + 20)
                 {
-                    combined += " " + words[j].Text;
-                    if (combined.Contains(query, System.StringComparison.OrdinalIgnoreCase))
+                    combined.Append(' ').Append(words[last + 1].Text);
+                    last++;
+                    if (combined.ToString().Contains(query, System.StringComparison.OrdinalIgnoreCase))
                     {
                         double minX = double.MaxValue, minY = double.MaxValue;
                         double maxX = double.MinValue, maxY = double.MinValue;
-                        for (int k = i; k <= j; k++)
+                        for (int k = i; k <= last; k++)
                         {
                             var wbb = words[k].BoundingBox;
                             minX = Math.Min(minX, wbb.Left);

@@ -29,5 +29,9 @@ namespace Avalanche.Features
         /// <summary>Repaints highlights on every page on screen right now, with the current
         /// match emphasized.</summary>
         void RepaintHighlights();
+
+        /// <summary>Runs the action on the UI thread - the background scan's
+        /// batched result merges land here.</summary>
+        void PostToUi(Action action);
     }
 }
