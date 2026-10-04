@@ -1278,4 +1278,17 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Axo_Saved">Сохранено в Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Документ не находится в папке Books или Articles базы данных. Заметка Axo не сохранена.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Не удалось сохранить заметку Axo.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Браузер</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Обзор интернета - ищите книги, статьи и документы и открывайте найденное прямо здесь</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Назад</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Вперёд</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Обновить</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Главная</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Преобразовать страницу в PDF и открыть в читалке</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Поиск или веб-адрес</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Получение PDF для читалки...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Среда WebView2 не найдена. Установите Evergreen Runtime от Microsoft и снова откройте браузер.</sys:String>
+
 </ResourceDictionary>

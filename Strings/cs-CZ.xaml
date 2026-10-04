@@ -1263,4 +1263,17 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Axo_Saved">Uloženo do Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Dokument není ve složce databáze Books ani Articles. Axo poznámka nebyla uložena.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Axo poznámku nebylo možné uložit.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Prohlížeč</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Procházejte web - hledejte knihy, články a dokumenty a nalezené otevřete přímo tady</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Zpět</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Vpřed</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Obnovit</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Domů</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Převést tuto stránku na PDF a otevřít v čtečce</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Hledat nebo zadat adresu webu</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Načítá se PDF pro čtečku...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Modul WebView2 nebyl nalezen. Nainstalujte Evergreen Runtime od Microsoftu a prohlížeč otevřete znovu.</sys:String>
+
 </ResourceDictionary>

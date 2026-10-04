@@ -1278,4 +1278,17 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Axo_Saved">Saved to Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Document is not in the database Books or Articles folder. Axo note not saved.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Couldn't save the Axo note.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Browser</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Browse the web - search books, papers and documents, then open what you find right here</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Back</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Forward</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Refresh</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Home</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Convert this page to PDF and open it in the reader</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Search or enter web address</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Fetching the PDF for the reader...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">The WebView2 runtime was not found. Install the Evergreen Runtime from Microsoft, then reopen the browser.</sys:String>
+
 </ResourceDictionary>

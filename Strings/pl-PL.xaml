@@ -1266,4 +1266,17 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Axo_Saved">Zapisano w Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Dokument nie znajduje się w folderze Books ani Articles bazy danych. Notatka Axo nie została zapisana.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Nie można zapisać notatki Axo.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Przeglądarka</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Przeglądaj sieć - szukaj książek, artykułów i dokumentów, a znalezione otwieraj od razu tutaj</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Wstecz</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Dalej</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Odśwież</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Strona główna</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Konwertuj tę stronę do PDF i otwórz w czytniku</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Szukaj lub wpisz adres sieciowy</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Pobieranie PDF dla czytnika...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Nie znaleziono środowiska WebView2. Zainstaluj Evergreen Runtime od Microsoftu i otwórz przeglądarkę ponownie.</sys:String>
+
 </ResourceDictionary>

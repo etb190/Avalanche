@@ -1265,4 +1265,17 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Axo_Saved">Mentve az Axo Notesba ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">A dokumentum nem a Books vagy Articles adatbázismappában van. Az Axo-jegyzet nem lett mentve.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Az Axo-jegyzet mentése nem sikerült.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Böngésző</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Böngésszen a weben - keressen könyveket, tanulmányokat és dokumentumokat, és nyissa meg őket itt</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Vissza</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Előre</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Frissítés</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Kezdőlap</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Oldal átalakítása PDF-fé és megnyitás az olvasóban</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Keresés vagy webcím megadása</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">PDF letöltése az olvasóhoz...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">A WebView2 futtatókörnyezet nem található. Telepítse a Microsoft Evergreen Runtime-ját, majd nyissa meg újra a böngészőt.</sys:String>
+
 </ResourceDictionary>

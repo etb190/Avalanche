@@ -1260,4 +1260,17 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Axo_Saved">已儲存到 Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">文件不在資料庫的 Books 或 Articles 資料夾中，Axo 筆記未儲存。</sys:String>
     <sys:String x:Key="Str_Axo_Failed">無法儲存 Axo 筆記。</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">瀏覽器</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">瀏覽網頁 - 搜尋書籍、論文與文件，找到的內容可直接在此開啟</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">後退</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">前進</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">重新整理</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">首頁</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">將此頁面轉換為 PDF 並在閱讀器中開啟</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">搜尋或輸入網址</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">正在為閱讀器取得 PDF…</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">找不到 WebView2 執行隱式。請安裝 Microsoft Evergreen Runtime 後重新開啟瀏覽器。</sys:String>
+
 </ResourceDictionary>

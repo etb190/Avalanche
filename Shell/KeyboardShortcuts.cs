@@ -674,20 +674,33 @@ namespace Avalanche
             cm.IsOpen = true;
         }
 
-        // One Up/Down arrow press scrolls this many DIP; key auto-repeat makes holding the key a
-        // smooth continuous scroll. Kept smaller than a wheel notch (144 DIP, see WheelScrollFactor)
-        // for fine reading control.
-        private const double ArrowScrollStep = 48.0;
+        // One Up/Down arrow press glides this many DIP; key auto-repeat chains the glides
+        // into one continuous drift. Prompt v1.19.0 asked keyboard reading to be gentle:
+        // a smaller step under a short ease-out instead of the old instant 48 DIP jump.
+        // The mouse wheel path (PagePreview_PreviewMouseWheel / NavigatePageByWheel) is
+        // deliberately untouched.
+        private const double ArrowScrollStep = 28.0;
+
+        // Length of one press's glide: short enough that a held key reads as continuous
+        // motion, long enough that each step lands soft instead of jerking.
+        private const double ArrowScrollMs = 200.0;
+
+        private System.Windows.Threading.DispatcherTimer? _kbGlideTimer;
+        private double _kbGlideFrom, _kbGlideTarget, _kbGlideLast;
+        private long _kbGlideStamp;
 
         // Up/Down arrow behavior, mirroring PagePreview_PreviewMouseWheel exactly: Grid and
         // Continuous are one scroll over the whole document, so the keys always scroll; Single/
         // Two-Page scroll within the page and flip to the previous/next page at the edges.
+        // The scroll itself glides now (ease-out quad, the PdfViewer page-turn curve) instead
+        // of teleporting. Each press retires the glide in flight and chains from the live
+        // offset, so holding the key reads as one motion, and the wheel taking over mid-glide
+        // stands the glide down (the takeover guard in KbGlideTick).
         private void ScrollOrFlipByKey(bool up)
         {
-            double step = up ? -ArrowScrollStep : ArrowScrollStep;
             if (_viewMode == ViewMode.Grid || _viewMode == ViewMode.Continuous)
             {
-                PagePreviewPanel.ScrollToVerticalOffset(PagePreviewPanel.VerticalOffset + step);
+                StartKeyboardGlide(up ? -ArrowScrollStep : ArrowScrollStep);
                 return;
             }
             // NavigatePageByWheel treats positive delta as "previous page" (wheel-up), so reuse
@@ -704,7 +717,58 @@ namespace Avalanche
                 NavigatePageByWheel(up ? 120 : -120);
                 return;
             }
-            PagePreviewPanel.ScrollToVerticalOffset(PagePreviewPanel.VerticalOffset + step);
+            StartKeyboardGlide(up ? -ArrowScrollStep : ArrowScrollStep);
+        }
+
+        private void StartKeyboardGlide(double delta)
+        {
+            double from = PagePreviewPanel.VerticalOffset;
+            _kbGlideFrom = from;
+            _kbGlideTarget = Math.Clamp(from + delta, 0, Math.Max(0, PagePreviewPanel.ScrollableHeight));
+            if (_kbGlideTarget - _kbGlideFrom is > -0.5 and < 0.5)
+            {
+                StopKeyboardGlide();
+                return;    // already parked at the edge: nothing to move
+            }
+            _kbGlideLast = _kbGlideFrom;
+            _kbGlideStamp = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (_kbGlideTimer is null)
+            {
+                _kbGlideTimer = new System.Windows.Threading.DispatcherTimer(
+                    System.Windows.Threading.DispatcherPriority.Render)
+                { Interval = TimeSpan.FromMilliseconds(16) };
+                _kbGlideTimer.Tick += KbGlideTick;
+            }
+            _kbGlideTimer.Start();
+        }
+
+        private void KbGlideTick(object? sender, EventArgs e)
+        {
+            if (PagePreviewPanel is null) { StopKeyboardGlide(); return; }
+            double live = PagePreviewPanel.VerticalOffset;
+            if (Math.Abs(live - _kbGlideLast) > 1.5)
+            {
+                // The view moved since the glide's last frame (wheel, scrollbar, zoom):
+                // the reader took over, so the glide stands down mid-flight.
+                StopKeyboardGlide();
+                return;
+            }
+            double ms = System.Diagnostics.Stopwatch.GetElapsedTime(_kbGlideStamp).TotalMilliseconds;
+            double t = Math.Min(1.0, ms / ArrowScrollMs);
+            double eased = 1.0 - (1.0 - t) * (1.0 - t);   // ease-out quad
+            double now = _kbGlideFrom + (_kbGlideTarget - _kbGlideFrom) * eased;
+            PagePreviewPanel.ScrollToVerticalOffset(now);
+            _kbGlideLast = now;
+            if (t >= 1.0)
+            {
+                PagePreviewPanel.ScrollToVerticalOffset(_kbGlideTarget);   // land exactly
+                StopKeyboardGlide();
+            }
+        }
+
+        private void StopKeyboardGlide()
+        {
+            _kbGlideTimer?.Stop();
         }
 
         protected override void OnPreviewKeyUp(KeyEventArgs e)

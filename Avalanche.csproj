@@ -13,14 +13,14 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.18.11</Version>
+    <Version>1.19.0</Version>
 
-    <AssemblyVersion>1.18.11.0</AssemblyVersion>
-    <FileVersion>1.18.11.0</FileVersion>
+    <AssemblyVersion>1.19.0.0</AssemblyVersion>
+    <FileVersion>1.19.0.0</FileVersion>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
          CHANGELOG section; release.ps1 enforces that before packaging. -->
-    <ReleaseDate>2026-10-03</ReleaseDate>
+    <ReleaseDate>2026-10-05</ReleaseDate>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>Avalanche.App</AssemblyName>
     <RootNamespace>Avalanche</RootNamespace>
@@ -105,6 +105,10 @@
     <PackageReference Include="PdfPig" Version="0.1.15" />
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
+    <!-- The in-app browser (v1.19.0): the managed wrapper only - Windows' Evergreen
+         runtime supplies the actual Chromium, so the payload grows by well under
+         2 MB and never by a bundled engine. -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4258.31" />
     <!-- We embed the x64 natives as resources and self-extract them at runtime (OcrNativeBootstrap), so the
          package's loose x86/x64 native copies in the output are dead weight. ExcludeAssets stops that copy
          while keeping the managed assembly (compile/runtime) and the GeneratePathProperty path for the embed. -->

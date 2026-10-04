@@ -1278,4 +1278,17 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Axo_Saved">Đã lưu vào Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Tài liệu không nằm trong thư mục Books hoặc Articles của cơ sở dỹ liệu. Chưa lưu ghi chép Axo.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Không thể lưu ghi chép Axo.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Trình duyệt</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Duyệt web - tìm sách, bài báo và tài liệu, rồi mở ngay những gì bạn tìm được tại đây</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Quay lại</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Tiếp tục</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Làm mới</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Trang chủ</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Chuyển trang này thành PDF và mở trong trình đọc</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Tìm kiếm hoặc nhập địa chỉ web</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Đang tải PDF cho trình đọc...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Không tìm thấy runtime WebView2. Hãy cài Evergreen Runtime của Microsoft rồi mở lại trình duyệt.</sys:String>
+
 </ResourceDictionary>

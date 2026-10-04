@@ -1258,4 +1258,17 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Axo_Saved">Axo'ya kaydedildi ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Belge, veri tabanındaki Books veya Articles klasöründe değil. Axo notu kaydedilmedi.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Axo notu kaydedilemedi.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Tarayıcı</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Web'de gezinin - kitap, makale ve belge arayın, bulduğunuzu doğrudan burada açın</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Geri</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">İleri</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Yenile</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Giriş</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Bu sayfayı PDF'e çevirip okuyucuda aç</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Ara veya web adresi gir</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Okuyucu için PDF alınıyor...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 çalışma zamanı bulunamadı. Microsoft Evergreen Runtime'ı kurup tarayıcıyı yeniden açın.</sys:String>
+
 </ResourceDictionary>

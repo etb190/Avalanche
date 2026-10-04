@@ -2300,14 +2300,14 @@ namespace Avalanche.Features.Summary
 
             double from = DocBox.VerticalOffset;
             double target = Math.Clamp(
-                from + (direction * Math.Max(viewport * 0.85, 40.0)), 0.0, extent - viewport);
+                from + (direction * Math.Max(viewport * 0.25, 60.0)), 0.0, extent - viewport);
             if (Math.Abs(target - from) < 0.5)
             {
                 return true;    // parked at an edge: swallow, nothing to move
             }
 
             BeginAnimation(DigestOffsetProperty, new System.Windows.Media.Animation.DoubleAnimation(
-                from, target, TimeSpan.FromMilliseconds(340))
+                from, target, TimeSpan.FromMilliseconds(220))
             {
                 EasingFunction = new System.Windows.Media.Animation.CubicEase
                 {

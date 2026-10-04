@@ -1278,4 +1278,17 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Axo_Saved">Salvato in Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Il documento non è nella cartella Books o Articles del database. Nota Axo non salvata.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Impossibile salvare la nota Axo.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Browser</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Esplora il web: cerca libri, articoli e documenti e apri qui ciò che trovi</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Indietro</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Avanti</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Aggiorna</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Home</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Converti questa pagina in PDF e aprila nel lettore</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Cerca o digita un indirizzo web</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Recupero del PDF per il lettore...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Runtime WebView2 non trovato. Installa la Evergreen Runtime di Microsoft e riapri il browser.</sys:String>
+
 </ResourceDictionary>

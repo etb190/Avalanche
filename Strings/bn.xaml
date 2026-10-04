@@ -1258,4 +1258,17 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Axo_Saved">Axo-তে সংরক্ষিত ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">নথিটি ডেটাবেসের Books বা Articles ফোল্ডারে নেই। Axo নোট সংরক্ষিত হয়নি।</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Axo নোটটি সংরক্ষণ করা যায়নি।</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">ব্রাউজার</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">ওয়েব ব্রাউজ করুন - বই, প্রবন্ধ ও নথি খুঁজুন এবং যা পান তা এখানেই খুলুন</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">পিছনে</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">সামনে</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">রিফ্রেশ</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">হোম</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">এই পৃষ্ঠাটি PDF-এ রূপান্তর করে রিডারে খুলুন</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">সন্ধান করুন বা ওয়েব ঠিকানা লিখুন</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">রিডারের জন্য PDF আনা হচ্ছে...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 রানটাইম পাওয়া যায়নি। Microsoft-এর Evergreen Runtime ইনস্টল করে ব্রাউজারটি আবার খুলুন।</sys:String>
+
 </ResourceDictionary>

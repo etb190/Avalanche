@@ -111,6 +111,14 @@ Microsoft.CSharp.dll
 Microsoft.DiaSymReader.Native.amd64.dll
 Microsoft.VisualBasic.Core.dll
 Microsoft.VisualBasic.dll
+Microsoft.Web.WebView2.Core.dll
+Microsoft.Web.WebView2.Core.xml
+Microsoft.Web.WebView2.WinForms.dll
+Microsoft.Web.WebView2.WinForms.xml
+Microsoft.Web.WebView2.Wpf.dll
+Microsoft.Web.WebView2.Wpf.xml
+WebView2Loader.dll
+runtimes/win-x64/native/WebView2Loader.dll
 Microsoft.Win32.Primitives.dll
 Microsoft.Win32.Registry.AccessControl.dll
 Microsoft.Win32.Registry.dll

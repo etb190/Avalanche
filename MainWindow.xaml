@@ -1578,6 +1578,11 @@
                              verifier that probes what the model actually saw - the
                              third member of the AI pair, right of the chat clone. -->
                         <Button x:Name="AiTestBtn" Content="&#xE9D9;" Style="{StaticResource ToolbarButton}" Click="AiTestBtn_Click" MouseRightButtonUp="AiTestBtn_RightClick" ToolTip="{DynamicResource Str_TT_AiTest}"/>
+                        <!-- The web browser (v1.19.0): a globe closing the row, swapping the
+                             document area for the lightweight WebView2 pane. The caption map
+                             dresses it like every other button in every label mode. -->
+                        <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="4,6"/>
+                        <Button x:Name="WebBrowserBtn" Content="&#xE774;" Style="{StaticResource ToolbarButton}" Click="WebBrowserBtn_Click" ToolTip="{DynamicResource Str_TT_WebBrowser}"/>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
@@ -2679,6 +2684,19 @@
                         LostMouseCapture="SplitHandle_LostMouseCapture"/>
 
                 <ctrl:PdfViewer x:Name="ViewerB" Grid.Column="2" Visibility="Collapsed"/>
+
+                <!-- The web pane (v1.19.0): one WebView2 card over the document area,
+                     toggled by the toolbar globe. Lazy - no browser process until the
+                     first open - and suspended again whenever the pane hides. The
+                     ZIndex keeps it above both viewers but under the comparison bar. -->
+                <Border x:Name="WebPaneCard" Grid.Row="0" Grid.RowSpan="2" Grid.ColumnSpan="3"
+                        Panel.ZIndex="90" Visibility="Collapsed"
+                        Margin="0,-1,8,8"
+                        Background="{DynamicResource SidebarPaneBrush}"
+                        BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                        CornerRadius="4">
+                    <ctrl:WebBrowserControl x:Name="WebPane"/>
+                </Border>
 
                 <Border x:Name="ComparisonBar" Grid.Row="1" Grid.ColumnSpan="3" Panel.ZIndex="100"
                         Visibility="Collapsed" HorizontalAlignment="Stretch"

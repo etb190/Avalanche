@@ -1264,4 +1264,17 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Axo_Saved">In Axo gespeichert ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Das Dokument liegt nicht im Datenbank-Ordner Books oder Articles. Axo-Notiz nicht gespeichert.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Die Axo-Notiz konnte nicht gespeichert werden.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Browser</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Das Web durchsuchen - Bücher, Aufsätze und Dokumente finden und das Gefundene direkt hier öffnen</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Zurück</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Vorwärts</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Aktualisieren</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Startseite</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Diese Seite als PDF in den Reader übernehmen</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Suchen oder Webadresse eingeben</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">PDF wird für den Reader geladen ...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Die WebView2-Laufzeit wurde nicht gefunden. Installieren Sie die Evergreen Runtime von Microsoft und öffnen Sie den Browser erneut.</sys:String>
+
 </ResourceDictionary>

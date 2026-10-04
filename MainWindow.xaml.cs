@@ -421,6 +421,7 @@ namespace Avalanche
             RestoreToolSettings();   // Draw + Text tool styles carry across sessions
             Loaded += (_, _) => AdjustZoomBoxWidth();   // fit the zoom box to the longest localized term
             IndexToolbarButtons();
+            WireWebPane();
             LoadSignatures();
             BuildContextMenu();
             SetTool(EditTool.Select);
@@ -428,7 +429,7 @@ namespace Avalanche
             ApplyToolNumberTooltips();   // append the 1-9 toolbar positions to the tool tooltips
             BuildShortcutsOverlay();     // generate the shortcuts card from the single-source table (ShortcutsOverlay.cs)
             SourceInitialized += MainWindow_SourceInitialized;
-            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseEngineDocumentSession(); App.CleanupSessionTemps(); };
+            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseEngineDocumentSession(); App.CleanupSessionTemps(); WebPane.ShutdownForExit(); };
 
             // Open a file passed via command-line / file association (e.g. double-clicking a .pdf)
             // Also show the portable badge when running outside the install location.
@@ -2182,6 +2183,41 @@ namespace Avalanche
             // to pull words into the wrong order within a line.
             return string.Join("\n", lines.Select(l =>
                 string.Join(" ", l.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text))));
+        }
+
+        // ── The web browser pane (v1.19.0) ──────────────────────────────────────────────
+        // The toolbar globe swaps the document area for the lightweight WebView2 card.
+        // Any PDF the web offers - a clicked .pdf link or a finished download - comes
+        // back through PdfRequested and opens as an ordinary reader tab, with the pane
+        // stepping aside first. The engine is lazy and suspended whenever the pane hides.
+        private void WireWebPane()
+        {
+            WebPane.PdfRequested += path =>
+            {
+                HideWebPane();
+                OpenInNewTab(path);
+            };
+        }
+
+        private void WebBrowserBtn_Click(object sender, RoutedEventArgs e) => ToggleWebPane();
+
+        private void ToggleWebPane()
+        {
+            if (WebPaneCard.Visibility == Visibility.Visible) HideWebPane();
+            else ShowWebPane();
+        }
+
+        private void ShowWebPane()
+        {
+            WebPaneCard.Visibility = Visibility.Visible;
+            WebPane.OnPaneShown();
+        }
+
+        private void HideWebPane()
+        {
+            if (WebPaneCard.Visibility != Visibility.Visible) return;
+            WebPaneCard.Visibility = Visibility.Collapsed;
+            WebPane.OnPaneHidden();
         }
     }
 }

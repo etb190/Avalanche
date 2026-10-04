@@ -1277,4 +1277,17 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Axo_Saved">Axo-ға сақталды ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Құжат дереққордың Books немесе Articles қалтасында емес. Axo жазбасы сақталмады.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Axo жазбасын сақтау мүмкін болмады.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Браузер</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Интернетті шолу - кітаптарды, мақалалар мен құжаттарды іздеңіз және табылғанды дәл осында ашыңыз</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Артқа</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Алға</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Жаңарту</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Басты бет</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Осы бетті PDF-ге айналдырып, оқу құралында ашу</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Іздеу немесе веб-мекенжай енгізу</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Оқу құралы үшін PDF жүктелуде...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 жүйесі табылмады. Microsoft Evergreen Runtime орнатып, браузерді қайта ашыңыз.</sys:String>
+
 </ResourceDictionary>

@@ -1258,4 +1258,17 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Guardado en Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">El documento no está en la carpeta Books o Articles de la base de datos. Nota de Axo no guardada.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">No se pudo guardar la nota de Axo.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Navegador</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Navegue por la web: busque libros, artículos y documentos y abra aquí mismo lo que encuentre</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Atrás</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Adelante</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Actualizar</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Inicio</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Convertir esta página en PDF y abrirla en el lector</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Buscar o escribir dirección web</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Descargando el PDF para el lector...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">No se encontró el runtime de WebView2. Instale el Evergreen Runtime de Microsoft y vuelva a abrir el navegador.</sys:String>
+
 </ResourceDictionary>

@@ -1278,4 +1278,17 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Axo_Saved">Enregistré dans Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Le document n'est pas dans le dossier Books ou Articles de la base de données. Note Axo non enregistrée.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Impossible d'enregistrer la note Axo.</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">Navigateur</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">Parcourir le web - chercher des livres, des articles et des documents, puis ouvrir ce que vous trouvez ici même</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">Précédent</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">Suivant</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">Actualiser</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">Accueil</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">Convertir cette page en PDF et l'ouvrir dans le lecteur</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">Rechercher ou saisir une adresse web</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">Récupération du PDF pour le lecteur...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">Le runtime WebView2 est introuvable. Installez le Evergreen Runtime de Microsoft, puis rouvrez le navigateur.</sys:String>
+
 </ResourceDictionary>

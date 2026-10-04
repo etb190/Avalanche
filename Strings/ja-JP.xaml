@@ -1278,4 +1278,17 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Axo_Saved">Axo に保存しました ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">ドキュメントがデータベースの Books または Articles フォルダー内にありません。Axo ノートは保存されていません。</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Axo ノートを保存できませんでした。</sys:String>
+
+    <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_WebBrowser">ブラウザー</sys:String>
+    <sys:String x:Key="Str_TT_WebBrowser">ウェブを閲覧 - 書籍・論文・資料を検索し、見つけたものをその場で開けます</sys:String>
+    <sys:String x:Key="Str_TT_WebBack">戻る</sys:String>
+    <sys:String x:Key="Str_TT_WebForward">進む</sys:String>
+    <sys:String x:Key="Str_TT_WebRefresh">更新</sys:String>
+    <sys:String x:Key="Str_TT_WebHome">ホーム</sys:String>
+    <sys:String x:Key="Str_TT_WebOpenPdf">このページを PDF に変換してリーダーで開く</sys:String>
+    <sys:String x:Key="Str_Web_OmniHint">検索またはウェブアドレスを入力</sys:String>
+    <sys:String x:Key="Str_Web_PdfOpening">リーダー用の PDF を取得しています...</sys:String>
+    <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 ランタイムが見つかりません。Microsoft の Evergreen Runtime をインストールしてから、ブラウザーを開き直してください。</sys:String>
+
 </ResourceDictionary>

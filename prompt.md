@@ -1,3 +1,10 @@
+> **Status: EXECUTED (v1.19.0).** The WebView2 browser (sections 1-4) and the keyboard
+> scrolling tuning (section 5) shipped in the version this receipt rides with. The
+> managed `Microsoft.Web.WebView2` wrapper is the only addition to the payload - no
+> bundled Chromium - and the size delta is inside the section 6 budget. The arXiv and
+> Project Gutenberg PDF hand-off checks were verified in code: `.pdf` links, arXiv
+> `/pdf/<id>` links (no suffix) and PDF downloads all land in the reader's own tab.
+
 # TASK: Lightweight In-App Browser Integration via Microsoft WebView2
 
 Repository: `https://github.com/etb190/Avalanche`  

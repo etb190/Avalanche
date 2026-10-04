@@ -20,6 +20,14 @@ UglyToad.PdfPig.Tokenization.dll
 UglyToad.PdfPig.Tokens.dll
 e_sqlite3.dll
 Microsoft.Data.Sqlite.dll
+Microsoft.Web.WebView2.Core.dll
+Microsoft.Web.WebView2.Core.xml
+Microsoft.Web.WebView2.WinForms.dll
+Microsoft.Web.WebView2.WinForms.xml
+Microsoft.Web.WebView2.Wpf.dll
+Microsoft.Web.WebView2.Wpf.xml
+WebView2Loader.dll
+runtimes/win-x64/native/WebView2Loader.dll
 SQLitePCLRaw.batteries_v2.dll
 SQLitePCLRaw.core.dll
 SQLitePCLRaw.provider.e_sqlite3.dll
