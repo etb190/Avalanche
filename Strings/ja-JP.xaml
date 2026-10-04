@@ -1290,5 +1290,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_OmniHint">検索またはウェブアドレスを入力</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">リーダー用の PDF を取得しています...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 ランタイムが見つかりません。Microsoft の Evergreen Runtime をインストールしてから、ブラウザーを開き直してください。</sys:String>
-
+    <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
+    <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
 </ResourceDictionary>

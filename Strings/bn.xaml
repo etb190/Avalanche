@@ -1270,5 +1270,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_OmniHint">সন্ধান করুন বা ওয়েব ঠিকানা লিখুন</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">রিডারের জন্য PDF আনা হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 রানটাইম পাওয়া যায়নি। Microsoft-এর Evergreen Runtime ইনস্টল করে ব্রাউজারটি আবার খুলুন।</sys:String>
-
+    <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
+    <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
 </ResourceDictionary>

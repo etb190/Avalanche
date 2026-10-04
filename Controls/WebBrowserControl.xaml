@@ -114,11 +114,11 @@
 
         <!-- Quick access: the curated academic hubs from the browser brief -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10,7,10,2">
-            <Button Style="{StaticResource WebDialChip}" Tag="https://archive.org/" Click="DialChip_Click" Content="Internet Archive"/>
-            <Button Style="{StaticResource WebDialChip}" Tag="https://scholar.google.com/" Click="DialChip_Click" Content="Google Scholar"/>
-            <Button Style="{StaticResource WebDialChip}" Tag="https://www.gutenberg.org/" Click="DialChip_Click" Content="Project Gutenberg"/>
-            <Button Style="{StaticResource WebDialChip}" Tag="https://arxiv.org/" Click="DialChip_Click" Content="arXiv"/>
-            <Button Style="{StaticResource WebDialChip}" Tag="https://pubmed.ncbi.nlm.nih.gov/" Click="DialChip_Click" Content="PubMed"/>
+            <Button Style="{StaticResource WebDialChip}" Tag="https://archive.org/" Click="DialChip_Click" Content="{DynamicResource Str_Web_Dial_Archive}"/>
+            <Button Style="{StaticResource WebDialChip}" Tag="https://scholar.google.com/" Click="DialChip_Click" Content="{DynamicResource Str_Web_Dial_Scholar}"/>
+            <Button Style="{StaticResource WebDialChip}" Tag="https://www.gutenberg.org/" Click="DialChip_Click" Content="{DynamicResource Str_Web_Dial_Gutenberg}"/>
+            <Button Style="{StaticResource WebDialChip}" Tag="https://arxiv.org/" Click="DialChip_Click" Content="{DynamicResource Str_Web_Dial_Arxiv}"/>
+            <Button Style="{StaticResource WebDialChip}" Tag="https://pubmed.ncbi.nlm.nih.gov/" Click="DialChip_Click" Content="{DynamicResource Str_Web_Dial_PubMed}"/>
         </StackPanel>
 
         <!-- Status strip: PDF hand-off progress here (never over the webview - a live

@@ -1275,5 +1275,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_OmniHint">Hledat nebo zadat adresu webu</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Načítá se PDF pro čtečku...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Modul WebView2 nebyl nalezen. Nainstalujte Evergreen Runtime od Microsoftu a prohlížeč otevřete znovu.</sys:String>
-
+    <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
+    <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
 </ResourceDictionary>

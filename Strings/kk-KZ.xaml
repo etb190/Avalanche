@@ -1289,5 +1289,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_OmniHint">Іздеу немесе веб-мекенжай енгізу</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Оқу құралы үшін PDF жүктелуде...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 жүйесі табылмады. Microsoft Evergreen Runtime орнатып, браузерді қайта ашыңыз.</sys:String>
-
+    <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
+    <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
 </ResourceDictionary>

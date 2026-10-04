@@ -1290,5 +1290,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_OmniHint">Cerca o digita un indirizzo web</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Recupero del PDF per il lettore...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Runtime WebView2 non trovato. Installa la Evergreen Runtime di Microsoft e riapri il browser.</sys:String>
-
+    <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
+    <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
 </ResourceDictionary>

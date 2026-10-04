@@ -1270,5 +1270,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_OmniHint">Ara veya web adresi gir</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Okuyucu için PDF alınıyor...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 çalışma zamanı bulunamadı. Microsoft Evergreen Runtime'ı kurup tarayıcıyı yeniden açın.</sys:String>
-
+    <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
+    <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
+    <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
 </ResourceDictionary>
