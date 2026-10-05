@@ -1,240 +1,161 @@
-# TASK: UI Polish — Close Buttons, Status Indicator, Bookmarks, Extension Fix, Tab Stability
+# TASK: Switch Chat AI from Ollama gpt-oss:120b-cloud to NVIDIA Nemotron-3-Ultra-550B
 
 Repository: `https://github.com/etb190/Avalanche`  
-Target Files: `Controls/WebBrowserControl.xaml`, `Controls/WebBrowserControl.xaml.cs`, `MainWindow.xaml`, `MainWindow.xaml.cs`, `Resources/WebExtensions/avalanche-pdf/content.js`  
-Version: `1.19.11` (or next patch)
+Target Files: `Features/AI/AiModels.cs`, `Features/AI/AiSettingsViewModel.cs`, `Features/AI/OpenAiCompatibleProvider.cs`, `Features/Summary/PageSummarizer.cs`, `Features/Notes/NotesGenerator.cs`  
+Version: next patch
 
 ---
 
-## Issue 1: Add ✕ Close Button to Sidebar Web Tab Cards
+## What Is Changing
 
-### Current State
-The **top tab strip** already has a ✕ close button per tab (`WebTabStripClose_Click` at line 2869 of `MainWindow.xaml`). But the **left sidebar gallery cards** (the `WebTabsPanel` at line 1938, with `WebTabsList` ItemsControl at line 1957) do NOT have any close button. Each card is a `Button` that only navigates to the tab on click — there is no way to close a tab from the sidebar.
+Switch the **chat generation model** from `gpt-oss:120b-cloud` (via Ollama localhost) to `nvidia/nemotron-3-ultra-550b-a55b` (via NVIDIA NIM cloud API). This is a **free** API with ~40 req/min rate limit. The API is OpenAI-compatible (`/v1/chat/completions`), so the existing `OpenAiCompatibleProvider` works as-is.
 
-### Required Fix
-Add a small ✕ button to each sidebar card in `MainWindow.xaml`, inside the card's `DataTemplate` (line 1960–1999). Place it in the top-right corner of the card, overlaying the preview thumbnail:
-```xaml
-<!-- Inside the card's StackPanel (line 1973), add a close button overlaying the top-right -->
-<Grid>
-    <!-- existing preview Border + Title + Host TextBlocks -->
-    <Button Content="&#xE711;" 
-            FontFamily="{DynamicResource IconFont}" FontSize="9"
-            Width="18" Height="18" Padding="0"
-            HorizontalAlignment="Right" VerticalAlignment="Top"
-            Margin="0,2,2,0" Cursor="Hand"
-            Style="{DynamicResource TabCloseButton}"
-            Tag="{Binding Url}" Click="WebSidebarTabClose_Click"/>
-</Grid>
+**Embeddings stay on local Ollama** (`embeddinggemma:latest` via `/api/embed`). No changes to `OllamaEmbeddingClient`.
+
+---
+
+## New Default Configuration
+
+| Setting | Old Value | New Value |
+|---------|-----------|-----------|
+| ProviderType | `"Ollama"` | `"NVIDIA NIM"` |
+| BaseUrl | `"http://localhost:11434/v1"` | `"https://integrate.api.nvidia.com/v1"` |
+| ApiKey | `"ollama"` | `"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"` |
+| Model | `"gpt-oss:120b-cloud"` | `"nvidia/nemotron-3-ultra-550b-a55b"` |
+| MaxTokens | `4096` | `16384` |
+| Temperature | `0.2` | `0.5` |
+| TopP | `1.0` | `0.95` |
+| ReasoningEffort | `"low"` | keep `"low"` |
+
+**Embeddings unchanged**: model = `embeddinggemma:latest`, local Ollama.
+
+---
+
+## Required Code Changes
+
+### 1. `Features/AI/AiModels.cs` — Update `AiProviderConfig` Defaults
+
+Lines 189–226. Change defaults:
+```csharp
+public string ProviderType { get; set; } = "NVIDIA NIM";
+public string BaseUrl { get; set; } = "https://integrate.api.nvidia.com/v1";
+public string ApiKey { get; set; } = "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";
+public string Model { get; set; } = "nvidia/nemotron-3-ultra-550b-a55b";
+// ...
+public double Temperature { get; set; } = 0.5;
+public int MaxTokens { get; set; } = 16384;
+public double TopP { get; set; } = 0.95;
 ```
 
-Add a handler in `MainWindow.xaml.cs`:
+Update the `IsCloudModel` detection (line 226) — it currently checks for `-cloud` suffix which won't match the new model name. Change to detect non-localhost base URLs:
 ```csharp
-private void WebSidebarTabClose_Click(object sender, RoutedEventArgs e)
+public bool IsCloudModel => !string.IsNullOrEmpty(BaseUrl) 
+    && !BaseUrl.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+    && !BaseUrl.Contains("127.0.0.1");
+```
+
+Update comments that reference `gpt-oss:120b-cloud` (lines 189-190, 196-198, 219-220).
+
+### 2. `Features/AI/AiSettingsViewModel.cs` — Update Defaults and Preset
+
+**Default field values** (lines 14-21):
+```csharp
+private string _genProviderType = "NVIDIA NIM";
+private string _genBaseUrl = "https://integrate.api.nvidia.com/v1";
+private string _genApiKey = "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";
+private string _genModel = "nvidia/nemotron-3-ultra-550b-a55b";
+private double _genTemperature = 0.5;
+private int _genMaxTokens = 16384;
+private double _genTopP = 0.95;
+private string _genReasoningEffort = "low";
+```
+
+**`ApplyOllamaPreset()`** (line 191) — Keep it as a secondary option for users who want to go back to local Ollama. Rename if desired, but the important thing is the new default is NVIDIA NIM.
+
+**Add a new preset method** for the NVIDIA NIM config:
+```csharp
+public void ApplyNvidiaNimPreset()
 {
-    if (sender is Button { Tag: string url } && url.Length > 0)
-        WebPane.CloseTab(url);
+    GenProviderType = "NVIDIA NIM";
+    GenBaseUrl = "https://integrate.api.nvidia.com/v1";
+    GenApiKey = "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";
+    GenModel = "nvidia/nemotron-3-ultra-550b-a55b";
+    EmbeddingModel = "embeddinggemma:latest";  // unchanged
+    GenTemperature = 0.5;
+    GenMaxTokens = 16384;
+    GenTopP = 0.95;
+    GenReasoningEffort = "low";
 }
 ```
 
-The close behavior should be identical to the top strip's `WebTabStripClose_Click` — it calls `WebPane.CloseTab(url)` which removes the card, switches to the next tab, or hides the browser if it was the last tab.
-
----
-
-## Issue 2: Replace "Convert to PDF" Button with Inline Status Indicator
-
-### Current State
-- There is a "Convert to PDF / Open in Avalanche" button (`WebOpenPdfBtn`, line 110 of `WebBrowserControl.xaml`) after the address bar.
-- The status strip (`WebStatus`, line 127) is a separate `TextBlock` at Grid.Row 2 that shows "Fetching the PDF..." text. When it appears, it **adds vertical space** and pushes the WebView down.
-
-### Required Changes
-
-**A. Remove `WebOpenPdfBtn`** (line 110-111 in `WebBrowserControl.xaml`). Delete it entirely.
-
-**B. Replace `WebStatus` TextBlock with an inline icon indicator** placed where `WebOpenPdfBtn` used to be (right after the address bar, same row, no extra vertical space):
-- **Default state**: Hidden/collapsed (no space taken).
-- **Loading state**: An animated spinning circle icon (use a `RotateTransform` animation on a circular arrow glyph like `&#xE72C;` or a custom Path). Appears in the same toolbar row right after the omnibox.
-- **Success state**: Green checkmark icon (`&#xE73E;` in green). Shows for 2 seconds, then auto-hides.
-- **Failure state**: Red ✕ icon (`&#xE711;` in red). Shows for 3 seconds, then auto-hides.
-
-**C. Update C# code:**
-- `ShowStatus()` → show the spinning indicator
-- `HideStatus()` → show green checkmark, then auto-hide after 2s
-- `ShowTransientStatus()` → show red ✕, then auto-hide after 3s
-- Remove all references to `WebOpenPdfBtn` from `SetChromeEnabled()` (line 532) and the click handler `WebOpenPdfBtn_Click` (line 238).
-
-The indicator should be a small icon (same size as nav buttons, ~24x24) sitting right after the address bar `Border`, inside the same `StackPanel` (line 87). It must NOT add or remove vertical space — only its visibility changes.
-
----
-
-## Issue 3: Extension Button Not Showing on Wiley (`/doi/pdf/...`)
-
-### The Problem
-The extension button works on most PDF viewer pages but does NOT appear on:
-`https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
-
-### Root Cause
-Wiley uses **Cloudflare Turnstile** which first shows a challenge page (HTTP 403, `text/html`). After the challenge is solved, Wiley serves the PDF through its **own custom embedded PDF viewer** — not Chromium's default viewer. Wiley wraps the PDF inside an HTML page with an `<iframe>` or `<object>` tag pointing to the actual PDF URL on a CDN.
-
-The current extension detection (line 6-8 of `content.js`) only checks:
-```javascript
-const isPdf = document.contentType === 'application/pdf'
-    || window.location.href.startsWith('chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/')
-    || document.querySelector('embed[type="application/pdf"]') !== null;
-```
-
-This misses:
-1. **`<iframe>` with a PDF src** — Wiley and many academic publishers use `<iframe src="https://cdn.example.com/article.pdf">` instead of `<embed>`.
-2. **`<object>` with a PDF data/type** — some viewers use `<object data="url" type="application/pdf">`.
-3. **Custom viewer wrappers** — the page URL contains `/pdf/` or `/doi/pdf/` but `document.contentType` is `text/html` (it's an HTML wrapper around the PDF).
-
-### Required Fix in `content.js`
-Expand the detection to cover all these cases:
-```javascript
-(function() {
-  // Detect PDF pages - both native viewer and embedded/wrapped PDFs
-  const isPdf = document.contentType === 'application/pdf'
-    || window.location.href.startsWith('chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/')
-    || document.querySelector('embed[type="application/pdf"]') !== null
-    || document.querySelector('iframe[src$=".pdf"]') !== null
-    || document.querySelector('iframe[src*="application/pdf"]') !== null
-    || document.querySelector('object[type="application/pdf"]') !== null
-    || document.querySelector('object[data$=".pdf"]') !== null;
-
-  // Also check if the URL itself suggests a PDF page (publisher PDF viewer wrappers)
-  const urlPath = window.location.pathname.toLowerCase();
-  const urlLooksPdf = urlPath.endsWith('.pdf')
-    || /\/pdf\//.test(urlPath)
-    || /\/doi\/pdf\//.test(urlPath)
-    || /getpdf/i.test(urlPath)
-    || /viewcontent\.cgi/i.test(urlPath);
-
-  if (!isPdf && !urlLooksPdf) return;
-  if (document.getElementById('avalanche-open-btn')) return;
-
-  // ... rest of button creation code unchanged ...
-  
-  // For wrapper pages (urlLooksPdf but not isPdf), try to find the actual PDF URL
-  // from an iframe/embed/object on the page
-  btn.addEventListener('click', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Try to find the actual PDF URL from embedded elements
-    var pdfUrl = window.location.href;
-    var embed = document.querySelector('embed[type="application/pdf"]');
-    var iframe = document.querySelector('iframe[src$=".pdf"]') 
-              || document.querySelector('iframe[src*="pdf"]');
-    var obj = document.querySelector('object[type="application/pdf"]')
-           || document.querySelector('object[data$=".pdf"]');
-    
-    if (embed && embed.src) pdfUrl = embed.src;
-    else if (iframe && iframe.src) pdfUrl = iframe.src;
-    else if (obj && (obj.data || obj.getAttribute('data'))) pdfUrl = obj.data || obj.getAttribute('data');
-    
-    try {
-      var a = document.createElement('a');
-      a.href = pdfUrl;
-      a.download = 'document.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch(err) {
-      try {
-        window.chrome.webview.postMessage(JSON.stringify({
-          type: 'avalanche-open-pdf',
-          url: pdfUrl
-        }));
-      } catch(e2) {}
-    }
-  });
-  
-  document.body.appendChild(btn);
-})();
-```
-
-Also consider running the detection on a **`MutationObserver`** or a delayed re-check (e.g. `setTimeout` of 2 seconds), since Wiley's viewer may load the `<iframe>` after `document_idle`.
-
----
-
-## Issue 4: Replace Quick-Access Dial Chips with Bookmarks System
-
-### Current State
-Below the address bar there is a `StackPanel` (line 116–122 of `WebBrowserControl.xaml`) with hardcoded "dial chips" for Archive.org, Google Scholar, Gutenberg, arXiv, and PubMed. These were never requested by the user.
-
-### Required Changes
-
-**A. Remove the hardcoded dial chips** (lines 115–122 of `WebBrowserControl.xaml`). Delete the entire `StackPanel` with the `WebDialChip` buttons.
-
-**B. Add a Bookmark button** in the toolbar row (Grid.Row 0), right after the status indicator (Issue 2), separated by a vertical border/divider:
-```xaml
-<!-- Divider after status indicator -->
-<Border Width="1" Height="18" Background="{DynamicResource CardBorderBrush}" Margin="4,0"/>
-<!-- Bookmark button -->
-<Button x:Name="WebBookmarkBtn" Content="&#xE728;" Style="{StaticResource WebNavBtn}"
-        Click="WebBookmarkBtn_Click" ToolTip="{DynamicResource Str_TT_WebBookmark}"/>
-```
-- `&#xE728;` is the "Add to favorites" star icon in Segoe MDL2 Assets.
-- When the current page is already bookmarked, show a filled star (`&#xE735;`) instead.
-
-**C. Bookmark behavior:**
-- **Click on unfilled star**: Opens a small popup/flyout with:
-  - A text field pre-filled with the page title (editable — the user can rename it or leave it as the URL).
-  - A "Save" button that adds the bookmark.
-- **Click on filled star**: Removes the bookmark.
-- **Storage**: Save bookmarks as a simple JSON file in the app's data directory (e.g., `WebView2Data/bookmarks.json`). Each entry: `{ "name": "...", "url": "...", "favicon": "..." }`.
-
-**D. Display bookmarks** where the dial chips used to be (Grid.Row 1 area). Use a horizontal wrapping `WrapPanel` or `ItemsControl`:
-- Each bookmark shows as a small chip with the site's favicon (or a globe icon if unavailable) and the bookmark name.
-- Clicking a bookmark navigates to its URL.
-- Right-clicking (or long press) shows a context menu with "Edit" and "Delete" options.
-- If there are no bookmarks, show a subtle hint: "Bookmark pages with ☆".
-
----
-
-## Issue 5: Tabs Should NOT Reorder When Switching Between Them
-
-### Current State
-In `UpdateTabCardAsync()` (line 1228) and `OpenNewTab()` (line 1196), when a user **revisits** an existing tab:
+**Update `CloudWarningText`** (line 147) — change `ollama.com` to `integrate.api.nvidia.com`:
 ```csharp
-int at = Tabs.IndexOf(card);   // a revisit moves back to the top - the newest end
-if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
+public string CloudWarningText => "⚠ This model sends your questions and document passages to the cloud (NVIDIA NIM API). Documents leave this computer.";
 ```
-This moves the tab card back to position 0 (top) every time the user clicks on it or navigates to it. This causes tabs to **jump around** in the sidebar list every time the user switches between them, which is disorienting.
 
-### Required Fix
-Tabs should be sorted by **creation order** (newest on top, oldest on bottom) and should **stay in that position** until closed. Only a **brand new** tab gets inserted at position 0. Revisiting an existing tab should only update the `IsActive` flag — NOT move the card.
+### 3. `Features/AI/OpenAiCompatibleProvider.cs` — Nemotron Compatibility
 
-**In `UpdateTabCardAsync()` (line 1263–1266):** Remove the reordering:
+**A. Add `chat_template_kwargs` to request body** — The Nemotron API uses `chat_template_kwargs: { enable_thinking: true }` to activate reasoning/thinking traces. Add this to `BuildRequestBody()` (around line 315):
 ```csharp
-// BEFORE (moves revisited tab to top):
-int at = Tabs.IndexOf(card);
-if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
-
-// AFTER (leave it where it is):
-// Do nothing — the card stays at its creation position.
-// Only update its Title, Host, Thumb, and IsActive flag.
+// Nemotron reasoning: enable thinking via chat_template_kwargs
+if (config.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase)
+    && reasoningEffort is not null)
+{
+    body["chat_template_kwargs"] = new { enable_thinking = true };
+}
 ```
 
-**In `OpenNewTab()` (line 1210–1213):** Same fix for the revisit branch:
+**B. Handle `reasoning_content` in non-streaming response** — The current `ParseResponse` (line 355) looks for a `"reasoning"` field. Nemotron uses `"reasoning_content"`. Add a fallback check:
 ```csharp
-// BEFORE:
-int at = Tabs.IndexOf(card);
-if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
-
-// AFTER:
-// Tab already exists — just activate it, don't move it.
+// Check both reasoning field names (gpt-oss uses "reasoning", Nemotron uses "reasoning_content")
+if (message.TryGetProperty("reasoning_content", out var reasoningContentProp)
+    && reasoningContentProp.ValueKind == JsonValueKind.String)
+{
+    System.Diagnostics.Debug.WriteLine($"[AI Reasoning]: {reasoningContentProp.GetString()}");
+}
 ```
 
-The `Tabs.Insert(0, card)` for **new** cards (lines 1207 and 1260) should remain unchanged — new tabs still go to the top.
+**C. Connection failure error message** — Line 182 throws `AiErrorCategory.OllamaNotRunning` for connection failures. When using the NVIDIA NIM API (non-localhost), the error message should say something appropriate instead of "Ollama not running". Consider adding a separate error category or adjusting the error message based on whether the BaseUrl is localhost or cloud.
+
+### 4. `Features/Summary/PageSummarizer.cs` — Update Context Window Budget
+
+Line 63-66: The comment and budget are based on gpt-oss's 128k context. Nemotron-3-Ultra has **1M token context**:
+```csharp
+// nvidia/nemotron-3-ultra-550b-a55b has a 1M-token context window:
+// entire papers fit in ONE pass without chunking, so the single-pass
+// budget rides at ~300k chars (conservatively), and the map-reduce
+// slicing below only wakes up for truly enormous ranges.
+private const int SinglePassCharBudget = 300000;  // can increase if needed
+```
+
+The budget can stay at 300k for now (conservative) or be increased later.
+
+### 5. `Features/Notes/NotesGenerator.cs` — Update Model Reference
+
+Line 11: Update comment from `gpt-oss:120b-cloud` to `nvidia/nemotron-3-ultra-550b-a55b`.
+
+### 6. Cloud Warning Detection
+
+`UpdateCloudWarning()` in `AiSettingsViewModel.cs` — ensure it correctly detects the NVIDIA NIM URL as a cloud model (not just the `-cloud` model name suffix). The `IsCloudModel` fix in step 1 handles this.
 
 ---
 
-## Summary
+## What NOT to Change
 
-| # | Issue | Change |
-|---|-------|--------|
-| 1 | No close button on sidebar tab cards | Add ✕ overlay button to each card |
-| 2 | "Convert to PDF" button + text status bar | Replace with inline animated icon indicator (spinner → ✓/✕) |
-| 3 | Extension missing on Wiley | Detect `<iframe>`, `<object>`, and URL-based PDF wrappers |
-| 4 | Unwanted hardcoded dial chips | Replace with user bookmark system (star button + chips) |
-| 5 | Tabs jump when switching | Only insert new tabs at top; revisits don't move |
+- **`OllamaEmbeddingClient.cs`** — Embeddings stay on local Ollama. Do NOT touch.
+- **`VectorIndex.cs`** — Uses `OllamaEmbeddingClient`. Do NOT touch.
+- **`DocumentIndexer.cs`** — Uses `OllamaEmbeddingClient`. Do NOT touch.
+- **`HybridRetriever.cs`** — Uses `OllamaEmbeddingClient`. Do NOT touch.
+- **Ollama preset** — Keep `ApplyOllamaPreset()` available as a fallback option.
+
+---
+
+## Verification
+
+1. **Chat works**: Send a question in the AI sidebar → get a response from Nemotron.
+2. **Reasoning traces**: If reasoning is enabled, `reasoning_content` should appear in debug output.
+3. **Summarizer works**: The Recap/summary feature uses the same provider → should work with Nemotron.
+4. **Notes generator works**: The notes feature uses the same provider → should work with Nemotron.
+5. **Embeddings still work**: Semantic search still uses local Ollama `embeddinggemma:latest`.
+6. **Cloud warning shows**: The warning about documents leaving the computer displays for the NIM URL.
+7. **Ollama preset still works**: Clicking the Ollama preset button switches back to local model.
