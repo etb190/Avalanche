@@ -34,7 +34,10 @@ namespace Avalanche.Controls
     /// interrupted by a suspend. v1.19.7: the capture no longer asks whose frame an
     /// answer was for - every application/pdf response is captured wherever it came
     /// from, the engine is asked to hand PDFs over as downloads instead of rendering
-    /// them, and every status word takes itself down. Everything
+    /// them, and every status word takes itself down. v1.19.8: a verified pdf answer
+    /// starts the hand-off wherever it came from, a challenge page gets its engine
+    /// back whatever status code it carries, and a handed-off document leaves no tab
+    /// behind - the browser settles while the engine is still awake. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -328,11 +331,18 @@ namespace Avalanche.Controls
                 // pdf-shaped, "null" means the viewer is on screen and the document
                 // still comes out: the capture, the page's own fetch, the credentialed
                 // one - whatever answers with real PDF bytes.
+                // v1.19.8: a viewer DOM IS Chromium's own pdf plugin - ordinary
+                // pages always answer text/html - so it is a candidate on its own
+                // word now, never gated behind a pdf-shaped address: the
+                // viewcontent.cgi routes and the query-string repositories ride it
+                // too. A capture the engine has already filled is a candidate as
+                // well.
                 bool isPdf = plain.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
                 bool viewerDom = plain.Length == 0 || plain.Equals("null", StringComparison.OrdinalIgnoreCase);
-                if (!isPdf && !(viewerDom && LooksLikePdf(url)))
+                bool captured = _pdfCapture is { Task.IsCompleted: true };
+                if (!isPdf && !viewerDom && !captured && !LooksLikePdf(url))
                 {
-                    DropVisualGuard(restore: true);   // a pdf-shaped address delivered an ordinary page
+                    DropVisualGuard(restore: true);   // an ordinary page: the viewer was never coming
                     return;
                 }
                 if (url.Length == 0 || !_pdfInFlight.Add(url)) return;
@@ -341,7 +351,9 @@ namespace Avalanche.Controls
                     ShowStatus(TryLoc("Str_Web_PdfOpening"));
                     byte[]? bytes = await CapturePdfFromBrowserAsync(url);
                     handed = await HandPdfToReaderAsync(url, bytes);
-                    RetreatFromInlinePdf();   // rest on the page that offered the PDF, never on a viewer
+                    // v1.19.8: the retreat is the hand-off's own last step now -
+                    // SettleAfterHandoff walks the view back BEFORE the pane hides,
+                    // never across the suspension the hide asks for.
                 }
                 finally
                 {
@@ -451,11 +463,10 @@ namespace Avalanche.Controls
                 byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
                 if (bytes != null && HasPdfHeader(bytes))
                 {
+                    // v1.19.8: no delayed retreat across the pane's suspension -
+                    // the hand-off itself settles the browser while the engine is
+                    // still awake: guard down, view back, no pdf tab left behind.
                     handed = await HandPdfToReaderAsync(url, bytes);   // the pane steps aside; the reader tab opens
-                    _ = Task.Delay(600).ContinueWith(_ => Dispatcher.BeginInvoke(
-                        (Action)(() => RetreatFromInlinePdf())));
-                    // the guard stays up: the engine hides with the pane, and the
-                    // retreat lands on the offering page before any reopen
                 }
                 else
                 {
@@ -628,6 +639,11 @@ namespace Avalanche.Controls
                 string target = TempPdfPath(SafePdfName(path));
                 await File.WriteAllBytesAsync(target, bytes);
                 HideStatus();
+                // v1.19.8: the browser settles BEFORE the reader hears of the
+                // document - guard down, view back on the page that offered it,
+                // no pdf tab left behind - all while the engine is still awake,
+                // never across the suspension the pane's hide asks for.
+                SettleAfterHandoff(url);
                 PdfRequested?.Invoke(target);
                 return true;
             }
@@ -635,6 +651,58 @@ namespace Avalanche.Controls
             {
                 return false;
             }
+        }
+
+        /// <summary>v1.19.8: the browser's debt, paid the moment a document reaches the
+        /// reader - synchronously, while the engine is still awake and BEFORE
+        /// PdfRequested sends the pane off to hide and suspend. The guard comes
+        /// down; the view that carried the document steps back to the page that
+        /// offered it; and its gallery card goes with it - closed when other views
+        /// are open, reset to a live page when it held the tab alone - so a
+        /// reopened browser lands on a working page, never on the frozen viewer a
+        /// pdf tab used to keep.</summary>
+        private void SettleAfterHandoff(string url)
+        {
+            try { DropVisualGuard(restore: true); } catch { /* a paint flag only */ }
+            try
+            {
+                CoreWebView2? core = Browser.CoreWebView2;
+                if (core is null) return;
+                if (Tabs.Count > 1)
+                {
+                    // Other views are open: the document's tab closes and the
+                    // browser lands on the next newest view - the search results
+                    // or journal index the reader came from.
+                    WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+                    if (card is not null) { CloseTab(url); return; }
+                    foreach (WebTabCardVm t in Tabs) t.IsActive = false;
+                    Tabs[0].IsActive = true;
+                    try
+                    {
+                        if (!UriEquals(Browser.Source?.ToString(), Tabs[0].Url))
+                            NavigateTo(Tabs[0].Url);
+                    }
+                    catch { NavigateTo(Tabs[0].Url); }
+                    return;
+                }
+                // The document held the tab alone: step back at once - history
+                // first, home when nothing stands behind - and the card that wore
+                // the document leaves with it, so nothing lingers as a pdf. The
+                // home card is seeded when the retreat lands there and none waits.
+                WebTabCardVm? solo = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+                if (solo is not null) Tabs.Remove(solo);
+                RetreatFromInlinePdf();
+                if (!core.CanGoBack && !Tabs.Any(t => UriEquals(t.Url, HomePage)))
+                {
+                    Tabs.Insert(0, new WebTabCardVm(HomePage)
+                    {
+                        Title = TryLoc("Str_Web_NewTab") ?? "duckduckgo.com",
+                        Host = "duckduckgo.com",
+                        IsActive = true,
+                    });
+                }
+            }
+            catch { /* a settle that stumbles never blocks the hand-off */ }
         }
 
         /// <summary>The fetch, with the session's own credentials: the cookies the WebView2
@@ -733,6 +801,7 @@ namespace Avalanche.Controls
         {
             string mime = e.DownloadOperation.MimeType ?? string.Empty;
             string suggested = e.ResultFilePath ?? string.Empty;
+            string dlUrl = e.DownloadOperation.Uri ?? string.Empty;   // v1.19.8: the address the document came from
             bool isPdf = mime.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
                 || mime.Equals("application/x-pdf", StringComparison.OrdinalIgnoreCase)
                 || (mime.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase)
@@ -752,6 +821,17 @@ namespace Avalanche.Controls
                     if (op.State == CoreWebView2DownloadState.Completed && HasPdfHeaderFile(target))
                     {
                         HideStatus();
+                        // v1.19.8: a document the engine delivered as a download
+                        // settles the view too when the browser stands on its
+                        // address - a download navigation leaves a blank view
+                        // otherwise, dressed as a frozen tab on reopen.
+                        try
+                        {
+                            string view = Browser.Source?.ToString() ?? string.Empty;
+                            if (view.Length > 0 && (UriEquals(view, dlUrl) || LooksLikePdf(view)))
+                                SettleAfterHandoff(view);
+                        }
+                        catch { /* a settle that stumbles never blocks the hand-off */ }
                         PdfRequested?.Invoke(target);
                     }
                     else if (op.State == CoreWebView2DownloadState.Completed)
@@ -806,8 +886,16 @@ namespace Avalanche.Controls
                     // v1.19.5: a pdf-shaped address that delivered an ordinary page
                     // (2xx, the top-level answer) gets the engine straight back -
                     // the viewer was never coming.
-                    if (_browserGuarded && e.Response.StatusCode is >= 200 and < 300
-                        && (mainDocument || UriEquals(uri, _mainNavUri)) && LooksLikePdf(uri))
+                    // v1.19.8: an HTML answer - a Cloudflare challenge included -
+                    // is a page the reader must see and solve, WHATEVER status code
+                    // it carries: Wiley's interstitial answers 403, and the old
+                    // 2xx-only stand-down kept the engine blanked through the whole
+                    // challenge, invisible and unclickable.
+                    bool interstitial = mime.StartsWith("text/html", StringComparison.OrdinalIgnoreCase)
+                        && (mainDocument || UriEquals(uri, _mainNavUri));
+                    if (_browserGuarded && (interstitial
+                        || (e.Response.StatusCode is >= 200 and < 300
+                            && (mainDocument || UriEquals(uri, _mainNavUri)) && LooksLikePdf(uri))))
                         DropVisualGuard(restore: true);
                     return;
                 }
@@ -819,17 +907,12 @@ namespace Avalanche.Controls
                 // application/pdf answer is captured WHATEVER frame asked for it:
                 // cross-origin redirect chains strip the fetch metadata down to
                 // "empty", the <embed>/<object> wrappers report a frame's dest, and
-                // both were skipped as if they were not documents at all. Only the
-                // hand-off START is gated: a named frame's document - the view on
-                // screen, however it arrived - or a pdf-shaped address starts it at
-                // once; an unnamed response, a prefetch or a probe, feeds the slot
-                // without hijacking the view, and a worker already waiting is fed,
-                // never orphaned.
+                // both were skipped as if they were not documents at all.
+                // v1.19.8: the start gate is gone with it - the header's word alone
+                // starts the hand-off, because a pdf answer arriving anywhere is
+                // the document the reader meant to open; a worker already waiting
+                // is fed, never orphaned.
                 TaskCompletionSource<byte[]?> capture;
-                bool frameDocument = dest.Equals("embed", StringComparison.OrdinalIgnoreCase)
-                    || dest.Equals("object", StringComparison.OrdinalIgnoreCase)
-                    || dest.Equals("iframe", StringComparison.OrdinalIgnoreCase)
-                    || dest.Equals("frame", StringComparison.OrdinalIgnoreCase);
                 if (_earlyHandoff && _pdfCapture is not null)
                 {
                     capture = _pdfCapture;
@@ -838,8 +921,7 @@ namespace Avalanche.Controls
                 {
                     capture = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     _pdfCapture = capture;
-                    if (mainDocument || frameDocument || LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
-                        StartEarlyPdfHandoff(uri);
+                    StartEarlyPdfHandoff(uri);
                 }
                 Stream? content = await e.Response.GetContentAsync();
                 if (content is null) { capture.TrySetResult(null); return; }
