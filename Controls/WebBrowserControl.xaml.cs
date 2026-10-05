@@ -37,7 +37,10 @@ namespace Avalanche.Controls
     /// them, and every status word takes itself down. v1.19.8: a verified pdf answer
     /// starts the hand-off wherever it came from, a challenge page gets its engine
     /// back whatever status code it carries, and a handed-off document leaves no tab
-    /// behind - the browser settles while the engine is still awake. Everything
+    /// behind - the browser settles while the engine is still awake. v1.19.9:
+    /// the capture grows its last resort - the print of the very page the
+    /// viewer rendered, so the one document every fetch layer loses still
+    /// reaches the reader. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -166,17 +169,15 @@ namespace Avalanche.Controls
             {
                 string dataDir = Path.Combine(AppDataPaths.UserRoot, "WebView2Data");
                 Directory.CreateDirectory(dataDir);
-                // v1.19.7: the engine is asked to treat PDFs as downloads instead of
-                // rendering them inline - the "some browsers only preview downloaded
-                // pdfs" behavior, so Chromium's viewer never gets a document to show
-                // and every PDF click rides DownloadStarting. A runtime that does not
-                // know the feature name simply ignores the switch, and the capture
-                // below is the answer that does not depend on it.
-                CoreWebView2EnvironmentOptions options = new()
-                {
-                    AdditionalBrowserArguments = "--disable-features=PdfInlineViewer",
-                };
-                env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
+                // v1.19.9: the download-first switch is gone. "--disable-features=
+                // PdfInlineViewer" was never a feature name this runtime knew - an
+                // unknown feature rides to Chromium in silence and is dropped
+                // there, so the argument did nothing from the day it arrived and
+                // only muddied the story. The hand-off never depended on it: the
+                // capture below is the answer, and its last layer now prints
+                // whatever the viewer managed to render, so the viewer's one
+                // success is the reader's too.
+                env = await CoreWebView2Environment.CreateAsync(null, dataDir);
                 await Browser.EnsureCoreWebView2Async(env);
             }
             catch
@@ -189,9 +190,10 @@ namespace Avalanche.Controls
             HideStatus();
             CoreWebView2 core = Browser.CoreWebView2!;
             // v1.19.7: the built-in viewer's toolbar is pinned explicitly; the
-            // viewer's real ban lives in the download-first engine switch and the
-            // capture - a document that still reaches the viewer is pulled straight
-            // back out before it can be a PDF surface this app never promised.
+            // viewer's real ban lives in the capture - a document that still
+            // reaches the viewer is pulled straight back out before it can be a
+            // PDF surface this app never promised, and v1.19.9 gives that pull
+            // a print for the one document the fetch layers all lose.
             try { core.Settings.HiddenPdfToolbarItems = CoreWebView2PdfToolbarItems.None; }
             catch { /* a runtime without the setting keeps its defaults */ }
             core.DownloadStarting += OnDownloadStarting;
@@ -570,9 +572,15 @@ namespace Avalanche.Controls
         /// first the response the engine itself received for this very document (no
         /// second request exists for a CDN or an anti-bot wall to distrust), then a fetch
         /// running inside the page - the session's own cookies, tokens and TLS
-        /// handshake - and only then the credentialed out-of-process fetch that shares
-        /// the engine's cookies and user agent. The first source that yields real PDF
-        /// bytes wins; null means every one of them failed.</summary>
+        /// handshake - then the credentialed out-of-process fetch that shares
+        /// the engine's cookies and user agent, and finally v1.19.9's last resort:
+        /// the print of the very page the viewer rendered. The first source that
+        /// yields real PDF bytes wins; null means every one of them failed. The
+        /// print is the layer no wall can beat, because it asks for nothing: the
+        /// response stream the viewer's own pipeline consumed, the fetch the
+        /// viewer's extension DOM refuses, the re-request the anti-bot wall
+        /// answers with 403 - all of them lose a document Chromium already has
+        /// on screen, and the print takes the screen's bytes.</summary>
         private async Task<byte[]?> CapturePdfFromBrowserAsync(string url)
         {
             byte[]? captured = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
@@ -581,7 +589,43 @@ namespace Avalanche.Controls
             if (scripted != null && HasPdfHeader(scripted)) return scripted;
             byte[]? fetched = await FetchBrowserBytesAsync(url);
             if (fetched != null && HasPdfHeader(fetched)) return fetched;
+            byte[]? printed = await PrintRenderedPdfAsync();
+            if (printed != null && HasPdfHeader(printed)) return printed;
             return null;
+        }
+
+        /// <summary>The last resort: print the page the viewer is showing. A document
+        /// Chromium's viewer managed to render is ON the screen, and PrintToPdfAsync
+        /// writes exactly that render - a valid pdf of the document itself, no
+        /// second request any wall can refuse. The print only runs when the
+        /// rendered page IS the document - the viewer's own DOM, the one whose
+        /// contentType answers "null", or a pdf answer itself; an html page here
+        /// is a challenge wall or an error, and printing it would hand the reader
+        /// a screenshot of the wall dressed as the paper, so the honest word stays
+        /// the caller's failure message. The guard comes down before the print for
+        /// the reason the open-in-Avalanche button already knows: the printed
+        /// page, not a blanked engine, is the product.</summary>
+        private async Task<byte[]?> PrintRenderedPdfAsync()
+        {
+            try
+            {
+                CoreWebView2? core = Browser.CoreWebView2;
+                if (core is null) return null;
+                string type;
+                try { type = (await core.ExecuteScriptAsync("document.contentType")).Trim('"'); }
+                catch { return null; }   // a page that refuses probing is not a viewer DOM
+                bool viewerDom = type.Length == 0 || type.Equals("null", StringComparison.OrdinalIgnoreCase);
+                bool pdfDoc = type.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+                if (!viewerDom && !pdfDoc) return null;
+                DropVisualGuard(restore: true);   // the print needs the engine alive, not blanked
+                string target = TempPdfPath(
+                    "print-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
+                if (!await core.PrintToPdfAsync(target, null)) return null;
+                byte[] printed = await File.ReadAllBytesAsync(target);
+                try { File.Delete(target); } catch { /* the temp print is a courtesy */ }
+                return printed;
+            }
+            catch { return null; }
         }
 
         /// <summary>Waits a moment for the engine's own response bytes to finish copying:
