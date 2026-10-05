@@ -426,3 +426,9 @@ zh-Hant/UIAutomationClientSideProviders.resources.dll
 zh-Hant/UIAutomationProvider.resources.dll
 zh-Hant/UIAutomationTypes.resources.dll
 zh-Hant/WindowsBase.resources.dll
+
+# v1.19.10: the riding pdf helper extension - the one-click "open in
+# Avalanche" button the browser viewer wears when everything else failed.
+Resources/WebExtensions/avalanche-pdf/button.css
+Resources/WebExtensions/avalanche-pdf/content.js
+Resources/WebExtensions/avalanche-pdf/manifest.json
