@@ -39,6 +39,16 @@ namespace Avalanche.Features.AI
         private string _indexingStatus = "";
         private double _indexingProgress = 0.0;
         private string _semanticStatus = "";
+
+        // v1.19.5: the semantic embedding pass is OPT-IN. Rapidly browsing papers
+        // must not fan the GPU for books the reader only skims: the lexical channel
+        // (text extraction, chunking, BM25) stays instant and automatic, and the
+        // vector pass runs only when the reader clicks the research button.
+        private bool _semanticResearchEnabled;   // the reader asked for THIS document's index
+        private bool _semanticBuilding;          // an embedding pass is in flight
+        private bool _semanticIndexReady;        // the current document's index finished
+        private int _semanticTextlessPages;      // carried from indexing for the ready line
+        private CancellationTokenSource? _semanticPassCts;   // the on-demand pass's lifetime
         private CancellationTokenSource? _indexingCts;
         private bool _isProcessing;
         private readonly object _processingLock = new();
@@ -83,6 +93,12 @@ namespace Avalanche.Features.AI
             get => _semanticStatus;
             private set { _semanticStatus = value; OnPropertyChanged(); }
         }
+
+        /// <summary>Drives the research button's face: lit in the accent while the
+        /// semantic layer builds or is ready, muted while idle. (v1.19.5)</summary>
+        public bool SemanticResearchActive => _semanticBuilding || _semanticIndexReady;
+
+        private void OnSemanticStateChanged() => OnPropertyChanged(nameof(SemanticResearchActive));
 
         public bool IsProcessing
         {
@@ -201,6 +217,13 @@ namespace Avalanche.Features.AI
                 _currentIndex = null;
                 _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
 
+                // v1.19.5: the research button is per-document. A new book starts
+                // idle - zero embedding compute until the reader asks for it.
+                _semanticResearchEnabled = false;
+                _semanticIndexReady = false;
+                _semanticTextlessPages = 0;
+                OnSemanticStateChanged();
+
                 // Restore this document's saved transcript, if any (C6).
                 restored = _historyByDocument.ContainsKey(_currentDocumentId);
             }
@@ -292,163 +315,14 @@ namespace Avalanche.Features.AI
                 // waited on it (D1). Failures degrade search to keyword-only
                 // and surface as a one-line localized status - they are never
                 // fatal for the chat (D3).
-                var embeddingModel = _configProvider().EmbeddingModel;
-                var documentPrefix = _configProvider().EmbeddingDocumentPrefix;
-                var queryPrefix = _configProvider().EmbeddingQueryPrefix;
-                SemanticStatus = _loc("Str_AiChatSemanticBuilding");
-
-                // Live per-batch progress for the semantic status line: the
-                // IndexingStatus row goes dark once IsIndexing clears, so a
-                // background pass used to show a FROZEN "building..." for its
-                // whole duration - indistinguishable from a hang (regression
-                // report: "wont go away"). Now every batch updates the line.
-                var embedProgress = new FanOutProgress(progress, p =>
-                {
-                    if (p.Stage != IndexingStage.Embedding || p.Total <= 0) return;
-                    try
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                            SemanticStatus = string.Format(_loc("Str_AiChatSemanticBuildingProgress"), p.Done, p.Total));
-                    }
-                    catch { /* app shutting down */ }
-                });
-
-                _ = Task.Run(async () =>
-                {
-                    CancellationToken passToken = default;
-                    var passStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                    int chunkCount = index.Chunks.Count;
-                    bool staleStatus = false;
-
-                    // One full embedding attempt. Success publishes the ready
-                    // status; failures propagate to the handlers below.
-                    async Task AttemptAsync()
-                    {
-                        await _indexer.EnsureEmbeddingsAsync(index,
-                            (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
-                            embeddingModel, embedProgress, passToken,
-                            documentPrefix, queryPrefix);
-
-                        lock (_processingLock)
-                        {
-                            if (generation != _initGeneration)
-                            {
-                                staleStatus = true;
-                                return;
-                            }
-                        }
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            if (textlessPages > 0)
-                                SemanticStatus = string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages) +
-                                                 " " + _loc("Str_AiChatSemanticReady");
-                            else
-                                SemanticStatus = _loc("Str_AiChatSemanticReady");
-                        });
-                        Avalanche.Services.AiHighlightLog.Log(
-                            $"embedding pass DONE in {passStopwatch.ElapsedMilliseconds}ms: {chunkCount} chunk(s), semantic channel ready");
-                    }
-
-                    // NO total pass deadline. The previous 10-minute CancelAfter
-                    // murdered HEALTHY passes on slow machines: CPU-only Ollama
-                    // needs more than ten minutes for a large PDF, the pass died
-                    // mid-flight, the semantic channel never came up and every
-                    // answer degraded to keyword-only ("not as detailed as they
-                    // used to be"). The pass is already bounded where it matters:
-                    // probe 15s, each batch 60s (split-retried when a single
-                    // batch alone cannot fit), so a wedged endpoint surfaces as
-                    // a failure within minutes - while a slow one runs to
-                    // completion with live progress above.
-                    try
-                    {
-                        passToken = indexingCts.Token;
-                        Avalanche.Services.AiHighlightLog.Log(
-                            $"embedding pass START: gen={generation} chunks={chunkCount} model={embeddingModel}");
-                        await AttemptAsync();
-                    }
-                    catch (OperationCanceledException) when (passToken.IsCancellationRequested)
-                    {
-                        // Document switched (or panel re-bound): the pass was
-                        // cancelled - previously this exited SILENTLY and left
-                        // the status line stuck on "building" forever.
-                        staleStatus = true;
-                        Avalanche.Services.AiHighlightLog.Log(
-                            $"embedding pass CANCELLED after {passStopwatch.ElapsedMilliseconds}ms (document switch, gen={generation})");
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Batch deadlines survived every split (the endpoint
-                        // cannot embed even a handful of passages in time):
-                        // visible keyword-only state instead of an eternal wait.
-                        Avalanche.Services.AiHighlightLog.Log(
-                            $"embedding pass TIMEOUT after {passStopwatch.ElapsedMilliseconds}ms - endpoint never finished; keyword-only mode");
-                        try
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                                SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
-                        }
-                        catch { /* app shutting down */ }
-                    }
-                    catch (AiProviderException pex) when (pex.Category == AiErrorCategory.ModelNotFound)
-                    {
-                        Avalanche.Services.AiHighlightLog.Log(
-                            $"embedding pass FAILED in {passStopwatch.ElapsedMilliseconds}ms: model missing ({pex.ModelName})");
-                        Application.Current.Dispatcher.Invoke(() =>
-                            SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
-                    }
-                    catch (Exception embedEx)
-                    {
-                        // Transient endpoint trouble (Ollama cold-starting the
-                        // model, user restarting it): ONE delayed retry after
-                        // the probe cool-down. Cold model loads exceed the 15s
-                        // probe window on slow disks, and the pass used to die
-                        // permanently on exactly that - the semantic channel
-                        // never recovered until the next app start.
-                        Avalanche.Services.AiHighlightLog.Log(
-                            $"embedding pass FAILED after {passStopwatch.ElapsedMilliseconds}ms ({embedEx.GetType().Name}: {TruncLog(embedEx.Message)}) - retrying once in 65s");
-
-                        var outcome = await RetryEmbeddingOnceAsync(
-                            passToken, generation, AttemptAsync,
-                            stale => staleStatus |= stale);
-
-                        if (outcome == SemanticRetryOutcome.ModelMissing)
-                        {
-                            string missingModel = embeddingModel;
-                            if (embedEx is AiProviderException firstTyped && !string.IsNullOrEmpty(firstTyped.ModelName))
-                                missingModel = firstTyped.ModelName;
-                            else if (embedEx.InnerException is AiProviderException innerTyped && !string.IsNullOrEmpty(innerTyped.ModelName))
-                                missingModel = innerTyped.ModelName;
-                            Application.Current.Dispatcher.Invoke(() =>
-                                SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), missingModel));
-                        }
-                        else if (outcome == SemanticRetryOutcome.Unavailable)
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                                SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
-                        }
-                        // Ready / Cancelled / Stale need no message here: Ready
-                        // was published by the attempt itself, Cancelled/Stale
-                        // clear the line in the finally below.
-                    }
-                    finally
-                    {
-                        // A cancelled/orphaned pass must not leave "building"
-                        // on the status line: clear it when this generation
-                        // no longer owns the panel.
-                        if (staleStatus)
-                        {
-                            try
-                            {
-                                Application.Current.Dispatcher.Invoke(() =>
-                                {
-                                    if (SemanticStatus == _loc("Str_AiChatSemanticBuilding"))
-                                        SemanticStatus = "";
-                                });
-                            }
-                            catch { /* app shutting down */ }
-                        }
-                    }
-                });
+                // v1.19.5: the pass is OPT-IN. Rapidly browsing papers must not fan
+                // the GPU for books the reader only skims: the lexical channel above
+                // is live, and the embedding pass runs only when the reader clicks
+                // the research button (ToggleSemanticResearch) - which lands here
+                // with its own demand token.
+                _semanticTextlessPages = textlessPages;
+                if (_semanticResearchEnabled)
+                    StartSemanticEmbeddingPass(index, textlessPages, generation, progress, indexingCts.Token);
 
                 // Nothing else to publish here: the lexical index went live
                 // BEFORE the embedding pass, so readiness never waited on it.
@@ -496,6 +370,222 @@ namespace Avalanche.Features.AI
                     }
                 });
             }
+        }
+
+        /// <summary>The semantic embedding pass, lifted out of IndexDocumentAsync
+        /// unchanged (v1.19.5): background, fail-soft, generation-guarded. The
+        /// token owns the pass's lifetime - document initialization passes the
+        /// indexing CTS's token, the research button passes its own demand token,
+        /// and both share the same cancel-and-stale semantics.</summary>
+        private void StartSemanticEmbeddingPass(
+            DocumentIndex index,
+            int textlessPages,
+            int generation,
+            IProgress<IndexingProgress>? progress,
+            CancellationToken passCt)
+        {
+            _semanticBuilding = true;
+            OnSemanticStateChanged();
+            var embeddingModel = _configProvider().EmbeddingModel;
+            var documentPrefix = _configProvider().EmbeddingDocumentPrefix;
+            var queryPrefix = _configProvider().EmbeddingQueryPrefix;
+            SemanticStatus = _loc("Str_AiChatSemanticBuilding");
+
+            // Live per-batch progress for the semantic status line: the
+            // IndexingStatus row goes dark once IsIndexing clears, so a
+            // background pass used to show a FROZEN "building..." for its
+            // whole duration - indistinguishable from a hang (regression
+            // report: "wont go away"). Now every batch updates the line.
+            var embedProgress = new FanOutProgress(progress, p =>
+            {
+                if (p.Stage != IndexingStage.Embedding || p.Total <= 0) return;
+                try
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                        SemanticStatus = string.Format(_loc("Str_AiChatSemanticBuildingProgress"), p.Done, p.Total));
+                }
+                catch { /* app shutting down */ }
+            });
+
+            _ = Task.Run(async () =>
+            {
+                CancellationToken passToken = default;
+                var passStopwatch = System.Diagnostics.Stopwatch.StartNew();
+                int chunkCount = index.Chunks.Count;
+                bool staleStatus = false;
+
+                // One full embedding attempt. Success publishes the ready
+                // status; failures propagate to the handlers below.
+                async Task AttemptAsync()
+                {
+                    await _indexer.EnsureEmbeddingsAsync(index,
+                        (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
+                        embeddingModel, embedProgress, passToken,
+                        documentPrefix, queryPrefix);
+
+                    lock (_processingLock)
+                    {
+                        if (generation != _initGeneration)
+                        {
+                            staleStatus = true;
+                            return;
+                        }
+                    }
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        _semanticIndexReady = true;
+                        OnSemanticStateChanged();
+                        if (textlessPages > 0)
+                            SemanticStatus = string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages) +
+                                             " " + _loc("Str_AiChatSemanticReady");
+                        else
+                            SemanticStatus = _loc("Str_AiChatSemanticReady");
+                    });
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass DONE in {passStopwatch.ElapsedMilliseconds}ms: {chunkCount} chunk(s), semantic channel ready");
+                }
+
+                // NO total pass deadline. The previous 10-minute CancelAfter
+                // murdered HEALTHY passes on slow machines: CPU-only Ollama
+                // needs more than ten minutes for a large PDF, the pass died
+                // mid-flight, the semantic channel never came up and every
+                // answer degraded to keyword-only ("not as detailed as they
+                // used to be"). The pass is already bounded where it matters:
+                // probe 15s, each batch 60s (split-retried when a single
+                // batch alone cannot fit), so a wedged endpoint surfaces as
+                // a failure within minutes - while a slow one runs to
+                // completion with live progress above.
+                try
+                {
+                    passToken = passCt;
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass START: gen={generation} chunks={chunkCount} model={embeddingModel}");
+                    await AttemptAsync();
+                }
+                catch (OperationCanceledException) when (passToken.IsCancellationRequested)
+                {
+                    // Document switched (or panel re-bound): the pass was
+                    // cancelled - previously this exited SILENTLY and left
+                    // the status line stuck on "building" forever.
+                    staleStatus = true;
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass CANCELLED after {passStopwatch.ElapsedMilliseconds}ms (document switch, gen={generation})");
+                }
+                catch (OperationCanceledException)
+                {
+                    // Batch deadlines survived every split (the endpoint
+                    // cannot embed even a handful of passages in time):
+                    // visible keyword-only state instead of an eternal wait.
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass TIMEOUT after {passStopwatch.ElapsedMilliseconds}ms - endpoint never finished; keyword-only mode");
+                    try
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                            SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
+                    }
+                    catch { /* app shutting down */ }
+                }
+                catch (AiProviderException pex) when (pex.Category == AiErrorCategory.ModelNotFound)
+                {
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass FAILED in {passStopwatch.ElapsedMilliseconds}ms: model missing ({pex.ModelName})");
+                    Application.Current.Dispatcher.Invoke(() =>
+                        SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
+                }
+                catch (Exception embedEx)
+                {
+                    // Transient endpoint trouble (Ollama cold-starting the
+                    // model, user restarting it): ONE delayed retry after
+                    // the probe cool-down. Cold model loads exceed the 15s
+                    // probe window on slow disks, and the pass used to die
+                    // permanently on exactly that - the semantic channel
+                    // never recovered until the next app start.
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"embedding pass FAILED after {passStopwatch.ElapsedMilliseconds}ms ({embedEx.GetType().Name}: {TruncLog(embedEx.Message)}) - retrying once in 65s");
+
+                    var outcome = await RetryEmbeddingOnceAsync(
+                        passToken, generation, AttemptAsync,
+                        stale => staleStatus |= stale);
+
+                    if (outcome == SemanticRetryOutcome.ModelMissing)
+                    {
+                        string missingModel = embeddingModel;
+                        if (embedEx is AiProviderException firstTyped && !string.IsNullOrEmpty(firstTyped.ModelName))
+                            missingModel = firstTyped.ModelName;
+                        else if (embedEx.InnerException is AiProviderException innerTyped && !string.IsNullOrEmpty(innerTyped.ModelName))
+                            missingModel = innerTyped.ModelName;
+                        Application.Current.Dispatcher.Invoke(() =>
+                            SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), missingModel));
+                    }
+                    else if (outcome == SemanticRetryOutcome.Unavailable)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                            SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
+                    }
+                    // Ready / Cancelled / Stale need no message here: Ready
+                    // was published by the attempt itself, Cancelled/Stale
+                    // clear the line in the finally below.
+                }
+                finally
+                {
+                    // A cancelled/orphaned pass must not leave "building"
+                    // on the status line: clear it when this generation
+                    // no longer owns the panel.
+                    if (staleStatus)
+                    {
+                        try
+                        {
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                if (SemanticStatus == _loc("Str_AiChatSemanticBuilding"))
+                                    SemanticStatus = "";
+                            });
+                        }
+                        catch { /* app shutting down */ }
+                    }
+
+                    // v1.19.5: the research button follows the pass - building
+                    // is over either way (ready, failed, cancelled or stale).
+                    try
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            _semanticBuilding = false;
+                            OnSemanticStateChanged();
+                        });
+                    }
+                    catch { /* app shutting down */ }
+                }
+            });
+        }
+
+        /// <summary>The reader clicked the research button (v1.19.5): build the
+        /// semantic layer for the current document on demand - or, while it is
+        /// building, cancel the pass. A ready index needs no second build; the
+        /// accent on the button IS the feedback. No lexical index yet (the
+        /// document is still preparing): a no-op worth one more click.</summary>
+        public void ToggleSemanticResearch()
+        {
+            DocumentIndex? index;
+            int generation;
+            lock (_processingLock)
+            {
+                index = _currentIndex;
+                generation = _initGeneration;
+            }
+            if (index is null) return;
+
+            if (_semanticBuilding)
+            {
+                try { _semanticPassCts?.Cancel(); } catch (ObjectDisposedException) { }
+                return;
+            }
+            if (_semanticIndexReady) return;   // already built; the accent is the feedback
+
+            _semanticResearchEnabled = true;
+            try { _semanticPassCts?.Dispose(); } catch (ObjectDisposedException) { }
+            _semanticPassCts = new CancellationTokenSource();
+            StartSemanticEmbeddingPass(index, _semanticTextlessPages, generation, null, _semanticPassCts.Token);
         }
 
         /// <summary>Outcome of the single delayed embedding retry.</summary>
@@ -1089,6 +1179,7 @@ namespace Avalanche.Features.AI
                 _initGeneration++;
                 try { _replyCts?.Cancel(); } catch (ObjectDisposedException) { }
                 try { _indexingCts?.Cancel(); } catch (ObjectDisposedException) { }
+                try { _semanticPassCts?.Cancel(); } catch (ObjectDisposedException) { }
                 _currentIndex = null;
                 _currentFilePath = "";
                 _currentDocumentId = "";
@@ -1099,6 +1190,12 @@ namespace Avalanche.Features.AI
             {
                 Messages.Clear();
                 SemanticStatus = "";
+                // v1.19.5: the research button returns to idle with the book.
+                _semanticResearchEnabled = false;
+                _semanticBuilding = false;
+                _semanticIndexReady = false;
+                _semanticTextlessPages = 0;
+                OnSemanticStateChanged();
             });
         }
 

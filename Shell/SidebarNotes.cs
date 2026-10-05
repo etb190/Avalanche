@@ -40,7 +40,17 @@ namespace Avalanche
         private bool _notesBusy;
         private bool _notesRangeWired;                // the range field's input gates wire once
 
-        private void SidebarNotesTab_Click(object sender, RoutedEventArgs e) => SwitchSidebarToNotesTab();
+        private void SidebarNotesTab_Click(object sender, RoutedEventArgs e)
+        {
+            // v1.19.5: the notes cards outrank the web gallery in the rail, and the
+            // browser itself stays up - closing it later returns to these notes.
+            if (WebTabsPanel.Visibility == Visibility.Visible)
+            {
+                WebTabsPanel.Visibility = Visibility.Collapsed;
+                _webSidebarWasNotes = true;
+            }
+            SwitchSidebarToNotesTab();
+        }
 
         private void SwitchSidebarToNotesTab()
         {

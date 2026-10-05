@@ -1281,6 +1281,10 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_NewTab">Nowa karta</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ten link nie dostarczył pliku PDF - pokazywana jest sama strona.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Nie udało się pobrać tego pliku PDF - witryna zablokowała pobieranie.</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">Zbuduj semantyczny indeks badawczy tego dokumentu (kliknij ponownie podczas budowania, aby anulować)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">Zapisz ten internetowy PDF na komputerze</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">Zapisz PDF</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">Tutaj pojawiają się strony otwarte w przeglądarce.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

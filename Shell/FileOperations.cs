@@ -994,6 +994,18 @@ namespace Avalanche
                 if (!string.IsNullOrWhiteSpace(_originalFile))
                 {
                     var seedDir = System.IO.Path.GetDirectoryName(_originalFile);
+                    // v1.19.5: a web-downloaded book lives in the reader's temp area -
+                    // aiming the dialog THERE would bury the kept copy in %TEMP%. The
+                    // save lands where the reader keeps books: Downloads, falling back
+                    // to Documents when Downloads does not exist yet.
+                    if (Controls.WebBrowserControl.IsWebDownloadsPath(_originalFile))
+                    {
+                        string home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+                        string downloads = System.IO.Path.Combine(home, "Downloads");
+                        seedDir = System.IO.Directory.Exists(downloads)
+                            ? downloads
+                            : System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+                    }
                     if (!string.IsNullOrEmpty(seedDir) && System.IO.Directory.Exists(seedDir))
                         dlg.InitialDirectory = seedDir;
                 }

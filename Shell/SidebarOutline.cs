@@ -17,7 +17,13 @@ namespace Avalanche
         // Shell/SidebarNotes.cs)
         // ============================================================
 
-        private void SidebarPagesTab_Click(object sender, RoutedEventArgs e) => SwitchSidebarToPagesTab();
+        private void SidebarPagesTab_Click(object sender, RoutedEventArgs e)
+        {
+            // v1.19.5: the page list belongs to the reader - opening it while the
+            // browser pane is up steps the browser aside first.
+            HideWebPane();
+            SwitchSidebarToPagesTab();
+        }
 
         private const double SidebarMaxPages = 234;   // stops when the 200px-capped thumbnail fills (200 + margins + scrollbar)
         private const double SidebarMinOpen = 120;   // narrowest readable width before labels/header clip

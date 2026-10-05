@@ -1636,6 +1636,10 @@ namespace Avalanche
             {
                 OpenSummaryWindow();
             }
+
+            // v1.19.5: the toolbar's save button follows the book on screen -
+            // it exists only while the active document is a web-downloaded PDF.
+            RefreshWebSaveButton(filePath);
         }
 
         /// <summary>A closed tab takes its navigator wish with it: the book's
@@ -2199,6 +2203,10 @@ namespace Avalanche
             {
                 HideWebPane();
                 OpenInNewTab(path);
+                // v1.19.5: a fresh web download IS the save button's client -
+                // belt and braces beside the ActiveDocumentChanged that fires
+                // on the tab switch above.
+                RefreshWebSaveButton(path);
             };
             // The browser tab wears the page's own title, the way a browser tab does;
             // the tooltip carries the same words in full.
@@ -2223,6 +2231,7 @@ namespace Avalanche
         {
             WebPaneHost.Visibility = Visibility.Visible;
             WebPane.OnPaneShown();
+            EnterWebSidebarMode();
         }
 
         private void HideWebPane()
@@ -2230,6 +2239,67 @@ namespace Avalanche
             if (WebPaneHost.Visibility != Visibility.Visible) return;
             WebPaneHost.Visibility = Visibility.Collapsed;
             WebPane.OnPaneHidden();
+            ExitWebSidebarMode();
         }
+
+        // ── The sidebar's web-tabs gallery (v1.19.5) ────────────────────────────────────
+        // While the browser is up, the left rail shows its open views instead of the
+        // page thumbnails of a book that is not on screen. The rail's own tab row
+        // keeps working: PAGES belongs to the reader and closes the browser; NOTES
+        // keeps the browser and trades the gallery for the notes cards.
+
+        private bool _webSidebarWasNotes;   // the sidebar mode the reader left behind
+
+        private void EnterWebSidebarMode()
+        {
+            _webSidebarWasNotes = _sidebarShowingNotes;
+            PageList.Visibility = Visibility.Collapsed;
+            NotesPanel.Visibility = Visibility.Collapsed;
+            PageControlsRow.Visibility = Visibility.Collapsed;
+            WebTabsPanel.Visibility = Visibility.Visible;
+            SidebarPagesTab.Tag = null;
+            SidebarNotesTab.Tag = null;
+        }
+
+        private void ExitWebSidebarMode()
+        {
+            if (WebTabsPanel.Visibility != Visibility.Visible) return;
+            WebTabsPanel.Visibility = Visibility.Collapsed;
+            if (_webSidebarWasNotes) SwitchSidebarToNotesTab();
+            else SwitchSidebarToPagesTab();
+        }
+
+        /// <summary>A gallery card was clicked: the browser switches to that
+        /// view, matching the tab strip's behavior.</summary>
+        private void WebTabCard_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: string url } && url.Length > 0)
+                WebPane.ActivateTab(url);
+        }
+
+        /// <summary>The toolbar's save button follows the book on screen: it
+        /// appears only while the active document is a PDF the browser
+        /// downloaded into the reader's temp area.</summary>
+        private void RefreshWebSaveButton(string? path)
+        {
+            WebSavePdfBtn.Visibility = Controls.WebBrowserControl.IsWebDownloadsPath(path)
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>Keep this web PDF: the reader's own Save As dialog, seeded
+        /// for the temp-backed document (FileOperations aims it at Downloads),
+        /// then the button re-reads the active tab - a saved copy is a real
+        /// file now and the button steps aside.</summary>
+        private void WebSavePdfBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_doc is null) return;
+            SaveAs_Click(sender, e);
+            RefreshWebSaveButton(_originalFile ?? _currentFile);
+        }
+
+        /// <summary>Build (or cancel) the semantic research index on demand -
+        /// the AI chat's embedding pass is opt-in since v1.19.5.</summary>
+        private void AiSemanticBtn_Click(object sender, RoutedEventArgs e)
+            => _aiChatViewModel?.ToggleSemanticResearch();
     }
 }

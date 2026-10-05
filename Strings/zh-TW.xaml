@@ -1275,6 +1275,10 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Web_NewTab">新增索引標籤</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">該連結未提供 PDF 檔案 - 改為顯示網頁本身。</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">無法取得此 PDF - 網站阻擋了下载。</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">為本文件建置語意研究索引 (建置期間再次點擊可取消)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">將此網頁 PDF 儲存到您的電腦</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">儲存 PDF</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">在瀏覽器中開啟的網頁會顯示在這裡。</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

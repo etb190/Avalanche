@@ -1293,6 +1293,10 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_NewTab">Tab mới</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Liên kết này không trả về tệp PDF - thay vào đó, trang sẽ được hiển thị.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Không thể tải tệp PDF này - trang web đã chặn việc tải xuống.</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">Dựng chỉ mục nghiên cứu ngữ nghĩa cho tài liệu này (nhấp lần nữa khi đang dựng để hủy)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">Lưu PDF web này vào máy tính của bạn</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">Lưu PDF</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">Các trang bạn mở trong trình duyệt sẽ xuất hiện tại đây.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

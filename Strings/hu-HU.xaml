@@ -1280,6 +1280,10 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_NewTab">Új lap</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ez a hivatkozás nem PDF-fájlt adott - maga az oldal jelenik meg.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Ezt a PDF-et nem sikerült letölteni - az oldal letiltotta a letöltést.</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">Szemantikus kutatási index létrehozása ehhez a dokumentumhoz (építés közben kattintson újra a megszakításhoz)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">Ezen webes PDF mentése a számítógépre</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">PDF mentése</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">Itt jelennek meg a böngészőben megnyitott oldalak.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

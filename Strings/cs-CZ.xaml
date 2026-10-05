@@ -1278,6 +1278,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_NewTab">Nová karta</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Tento odkaz nevedl na soubor PDF - zobrazuje se samotná stránka.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Toto PDF se nepodařilo získat - stránka zablokovala stažení.</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">Vytvořit sémantický výzkumný index tohoto dokumentu (kliknutím znovu během vytváření zrušíte)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">Uložit tento webový PDF do počítače</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">Uložit PDF</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">Zde se zobrazují stránky otevřené v prohlížeči.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

@@ -1528,6 +1528,14 @@
                              extended set came up. The caption map dresses it like every
                              other button in every label mode. -->
                         <Button x:Name="WebBrowserBtn" Content="&#xE774;" Style="{StaticResource ToolbarButton}" Click="WebBrowserBtn_Click" ToolTip="{DynamicResource Str_TT_WebBrowser}"/>
+                        <!-- Save Web PDF (v1.19.5): a book the browser downloaded lives in
+                             the reader's temp area - this is the one-glance way to keep it.
+                             Visible only while the active document IS a web download; the
+                             native Save As dialog opens pre-aimed at Downloads. Lit in the
+                             accent so it reads as an action waiting for the reader. -->
+                        <Button x:Name="WebSavePdfBtn" Content="&#xE792;" Style="{StaticResource ToolbarButton}"
+                                Click="WebSavePdfBtn_Click" ToolTip="{DynamicResource Str_TT_SaveWebPdf}"
+                                Foreground="{DynamicResource PrimaryBrush}" Visibility="Collapsed"/>
                         <!-- A literal copy of the search button, renamed: the same
                              string-glyph content, the same ToolbarButton style, no
                              local size or padding - the caption engine owns this face
@@ -1917,6 +1925,82 @@
                             </Border.RenderTransform>
                         </Border>
                         </Grid>
+                        <!-- v1.19.5: the DockPanel's fill slot becomes a plain Grid so the
+                             notes cards and the web-tabs gallery can trade the same space
+                             without re-docking anything - exactly one of the two is visible,
+                             and both fill the room the DockPanel hands its last child. -->
+                        <Grid>
+                            <!-- Web tabs gallery (v1.19.5): while the browser pane is up, the
+                                 page thumbnails belong to no book on screen - the rail shows
+                                 the browser's open views instead. One card per view, in visit
+                                 order: captured preview, page title, host. The view on screen
+                                 wears the accent ring, and a click switches the browser to it. -->
+                            <ScrollViewer x:Name="WebTabsPanel" Visibility="Collapsed"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          Focusable="False" Margin="4,2,2,2">
+                                <StackPanel>
+                                    <TextBlock x:Name="WebTabsEmptyHint"
+                                               Text="{DynamicResource Str_Web_TabsEmpty}"
+                                               FontSize="11" TextWrapping="Wrap" Margin="8,10,8,10">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasItems, ElementName=WebTabsList}" Value="True">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <ItemsControl x:Name="WebTabsList"
+                                                  ItemsSource="{Binding Tabs, ElementName=WebPane}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Click="WebTabCard_Click" Tag="{Binding Url}"
+                                                        Cursor="Hand" ToolTip="{Binding Title}"
+                                                        Margin="0,0,0,6" HorizontalContentAlignment="Stretch"
+                                                        FocusVisualStyle="{x:Null}">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="CardFace"
+                                                                    Background="{DynamicResource PaneBrush}"
+                                                                    BorderBrush="{DynamicResource CardBorderBrush}"
+                                                                    BorderThickness="1"
+                                                                    CornerRadius="{DynamicResource ControlCornerRadius}"
+                                                                    Padding="6">
+                                                                <StackPanel>
+                                                                    <Border Background="White" Height="74"
+                                                                            CornerRadius="2" ClipToBounds="True">
+                                                                        <Image Source="{Binding Thumb}" Stretch="Uniform"
+                                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    </Border>
+                                                                    <TextBlock Text="{Binding Title}" FontSize="11"
+                                                                               Foreground="{DynamicResource TextBrush}"
+                                                                               TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+                                                                    <TextBlock Text="{Binding Host}" FontSize="10"
+                                                                               Foreground="{DynamicResource MutedTextBrush}"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="CardFace" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                                                </Trigger>
+                                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                                    <Setter TargetName="CardFace" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                                                                    <Setter TargetName="CardFace" Property="BorderThickness" Value="1.5"/>
+                                                                </DataTrigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </ScrollViewer>
                         <!-- Notes panel (visible when the NOTES tab is active). The
                              controls header is pinned outside the ScrollViewer: one
                              [start]-[end] range field speaking the AI tester's dialect
@@ -1996,6 +2080,7 @@
                                 </StackPanel>
                             </ScrollViewer>
                         </DockPanel>
+                        </Grid>
                     </DockPanel>
                     </Grid>
                 </Border>
@@ -2968,25 +3053,45 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ctrl:RobotIcon Grid.Column="0" Width="16" Height="16"
                                             Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiChatTitle}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                            <!-- Semantic research (v1.19.5): the embedding pass is opt-in.
+                                 Muted while idle, lit in the accent while the index builds
+                                 or is ready; a click builds it for this document, a second
+                                 click mid-build cancels the pass. -->
+                            <Button Grid.Column="2" x:Name="AiSemanticBtn" Content="&#xE945;"
+                                    ToolTip="{DynamicResource Str_TT_AiSemanticResearch}"
+                                    Click="AiSemanticBtn_Click" Width="24" Height="24" Padding="0"
+                                    FontSize="10" VerticalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
+                                        <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SemanticResearchActive}" Value="True">
+                                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                             <!-- New chat: sweeps the conversation (document index kept)
                                  so the next question starts clean. Disabled while a
                                  reply is streaming (CanStartNewChat). -->
-                            <Button Grid.Column="2" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="3" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiSettingsOpen}" Click="AiChatSettingsBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="3" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="4" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatNewChat}" Click="AiChatNewChatBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     IsEnabled="{Binding CanStartNewChat}"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="4" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="5" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>

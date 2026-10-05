@@ -1,10 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -59,6 +65,15 @@ namespace Avalanche.Controls
         // lands, because TrySuspendAsync mid-download is how a "damaged" PDF is born.
         private int _activeDownloads;
 
+        // v1.19.5: the early visual guard. Chromium's viewer must never paint: a
+        // main-frame response that announces application/pdf (or a pdf-shaped
+        // address) blanks the engine the instant that is knowable, and the bytes
+        // ride the capture that is already copying the response. The guard belongs
+        // to one navigation; every exit path restores the engine.
+        private bool _browserGuarded;
+        private bool _earlyHandoff;      // one early hand-off attempt per navigation
+        private string? _mainNavUri;     // the address the top-level navigation started from
+
         public WebBrowserControl()
         {
             InitializeComponent();
@@ -81,6 +96,14 @@ namespace Avalanche.Controls
             {
                 try { Browser.CoreWebView2?.Resume(); } catch { /* busy or gone: the next show retries */ }
             }
+            // v1.19.5: a reopened pane never sits on Chromium's viewer - if the
+            // last navigation ended on a document, step back to what offered it.
+            DropVisualGuard(restore: true);
+            try
+            {
+                if (LooksLikePdf(Browser.Source?.ToString())) RetreatFromInlinePdf();
+            }
+            catch { /* a source that refuses probing stays as it is */ }
             // The address bar takes the caret, browser-style - deferred once so the
             // first show (pane still measuring) cannot silently drop the focus.
             Dispatcher.BeginInvoke(
@@ -237,6 +260,8 @@ namespace Avalanche.Controls
             RaiseTitleChanged();
             _lastPageUrl = Browser.Source?.ToString();
             if (e.IsSuccess) _ = CatchInlinePdfAsync();
+            else DropVisualGuard(restore: true);   // a dead navigation never strands a blanked engine
+            _ = UpdateTabCardAsync();   // the sidebar gallery's preview for this view
         }
 
         /// <summary>The one PDF the browser is allowed to show is none. A link no rule can
@@ -255,7 +280,10 @@ namespace Avalanche.Controls
                 if (core is null) return;
                 string type = await core.ExecuteScriptAsync("document.contentType");
                 if (!type.Trim('"').Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+                {
+                    DropVisualGuard(restore: true);   // a pdf-shaped address delivered an ordinary page
                     return;
+                }
                 string url = Browser.Source?.ToString() ?? string.Empty;
                 if (url.Length == 0 || !_pdfInFlight.Add(url)) return;
                 try
@@ -268,6 +296,7 @@ namespace Avalanche.Controls
                 finally
                 {
                     _pdfInFlight.Remove(url);   // the outcome is forgotten; only the race is guarded
+                    DropVisualGuard(restore: true);   // the engine paints again whatever stayed behind
                 }
             }
             catch
@@ -286,6 +315,101 @@ namespace Avalanche.Controls
                 else NavigateTo(HomePage);
             }
             catch { /* the retreat is a courtesy, never a requirement */ }
+        }
+
+        /// <summary>The pdf-shaped-address test for the EARLY VISUAL GUARD only -
+        /// it never cancels a navigation. A .pdf suffix or a publisher route
+        /// (/pdf/&lt;id&gt;, a trailing /pdf, /getpdf?id=) raises the guard a beat
+        /// before the response headers speak; a false positive costs one blanked
+        /// moment, and the header-driven stand-down gives the page straight back.</summary>
+        internal static bool LooksLikePdf(string? url)
+        {
+            if (string.IsNullOrEmpty(url) || !Uri.TryCreate(url, UriKind.Absolute, out Uri? u))
+                return false;
+            if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps)
+                return false;
+            string path = Uri.UnescapeDataString(u.AbsolutePath);
+            int jid = path.IndexOf(';');   // jsessionid trailings ride the path
+            if (jid >= 0) path = path[..jid];
+            if (path.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) return true;
+            string[] segs = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            for (int i = 0; i < segs.Length - 1; i++)
+                if (segs[i].Equals("pdf", StringComparison.OrdinalIgnoreCase)) return true;   // /pdf/&lt;id&gt;
+            if (segs.Length > 0)
+            {
+                string last = segs[^1];
+                if (last.Equals("pdf", StringComparison.OrdinalIgnoreCase)
+                    || last.Equals("getpdf", StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        /// <summary>Loose same-address test for the early hand-off: the main-frame
+        /// signal this SDK's WebResourceResponseReceived cannot give directly, so
+        /// the response is matched against the address the navigation started from
+        /// (NavigationStarting fires for the top-level document only).</summary>
+        private static bool UriEquals(string? a, string? b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
+            return string.Equals(a, b, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(a.TrimEnd('/'), b.TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Blank the engine the instant a PDF is known to be coming: the
+        /// status strip says what is happening and Chromium's viewer canvas never
+        /// paints. The guard belongs to one navigation; every exit path - the early
+        /// hand-off, the completed-navigation probe, a failed navigation - restores
+        /// the engine.</summary>
+        private void ArmVisualGuard()
+        {
+            ShowStatus(TryLoc("Str_Web_PdfOpening"));
+            if (_browserGuarded) return;
+            _browserGuarded = true;
+            Browser.Visibility = Visibility.Hidden;
+        }
+
+        private void DropVisualGuard(bool restore)
+        {
+            if (!_browserGuarded) return;
+            _browserGuarded = false;
+            if (restore) Browser.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>The response headers just said the MAIN document is a PDF: the
+        /// viewer must never paint, and the engine's own bytes are already copying
+        /// (OnWebResourceResponseReceived). Wait for the capture, check the header,
+        /// hand the reader the document; on success the browser steps back to the
+        /// page that offered the link once the navigation has somewhere to go back
+        /// to. A failure stands the guard down and leaves the NavigationCompleted
+        /// fallback its three sources.</summary>
+        private async void StartEarlyPdfHandoff(string url)
+        {
+            if (_earlyHandoff || url.Length == 0) return;
+            _earlyHandoff = true;
+            try
+            {
+                if (!_pdfInFlight.Add(url)) return;
+                ShowStatus(TryLoc("Str_Web_PdfOpening"));
+                byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
+                if (bytes != null && HasPdfHeader(bytes))
+                {
+                    HideStatus();
+                    await HandPdfToReaderAsync(url, bytes);   // the pane steps aside; the reader tab opens
+                    _ = Task.Delay(600).ContinueWith(_ => Dispatcher.BeginInvoke(
+                        (Action)(() => RetreatFromInlinePdf())));
+                    // the guard stays up: the engine hides with the pane, and the
+                    // retreat lands on the offering page before any reopen
+                }
+                else
+                {
+                    _pdfInFlight.Remove(url);   // the completed-navigation fallback takes its turn
+                    DropVisualGuard(restore: true);
+                }
+            }
+            finally
+            {
+                _earlyHandoff = false;
+            }
         }
 
         /// <summary>The tab's title: the page's own when it has one, otherwise the
@@ -340,8 +464,15 @@ namespace Avalanche.Controls
             // request to its download or its viewer, and the hand-off catches it there -
             // cancelling here is exactly what invalidated one-time download tokens and
             // left the session's request unanswered. Each navigation starts its capture
-            // fresh.
+            // fresh, with its own in-flight set.
             _pdfCapture = null;
+            _pdfInFlight.Clear();
+            _earlyHandoff = false;
+            _mainNavUri = e.Uri;
+            // v1.19.5: a pdf-shaped address blanks the engine before its first pixel -
+            // the response headers either confirm it (the early hand-off takes over)
+            // or stand the guard back down when the real page arrives.
+            if (LooksLikePdf(e.Uri)) ArmVisualGuard();
         }
 
         /// <summary>The document's bytes, from the sources closest to Chromium inward:
@@ -571,7 +702,24 @@ namespace Avalanche.Controls
                 string mime = headers.GetHeader("Content-Type") ?? string.Empty;
                 int cut = mime.IndexOf(';');
                 if (cut >= 0) mime = mime[..cut];
-                if (!mime.Trim().Equals("application/pdf", StringComparison.OrdinalIgnoreCase)) return;
+                bool isPdf = mime.Trim().Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+                if (!isPdf)
+                {
+                    // v1.19.5: a pdf-shaped address that delivered an ordinary page
+                    // (2xx, same address the navigation started from) gets the engine
+                    // straight back - the viewer was never coming.
+                    if (_browserGuarded && e.Response.StatusCode is >= 200 and < 300
+                        && UriEquals(e.Request.Uri, _mainNavUri) && LooksLikePdf(e.Request.Uri))
+                        DropVisualGuard(restore: true);
+                    return;
+                }
+                // v1.19.5: the MAIN document announcing itself as a PDF - the moment
+                // the headers arrive is the moment the hand-off starts, long before
+                // Chromium's viewer would paint a single pixel. Sub-frame PDFs keep
+                // feeding the capture the fallback sources share.
+                string uri = e.Request.Uri;
+                if (LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
+                    StartEarlyPdfHandoff(uri);
                 Stream? content = await e.Response.GetContentAsync();
                 if (content is null) return;
                 TaskCompletionSource<byte[]?> capture =
@@ -628,6 +776,7 @@ namespace Avalanche.Controls
                     }
                     catch { /* a page that refuses probing prints as usual */ }
                 }
+                DropVisualGuard(restore: true);   // the printed page, not a blanked engine, is the product
                 string target = TempPdfPath(
                     "page-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
                 await core.PrintToPdfAsync(target, null);
@@ -637,6 +786,74 @@ namespace Avalanche.Controls
             {
                 HideStatus();
             }
+        }
+
+        // ── The sidebar's web-tabs gallery (v1.19.5) ─────────────────────────────────────
+        // The window's left rail shows these cards while the pane is up: one per open
+        // view, in visit order - the captured preview, the page's title and its host -
+        // with the view on screen wearing the accent ring. Clicking a card is clicking
+        // that tab: the browser navigates there.
+
+        /// <summary>The gallery's cards, in visit order, oldest first. Capped at
+        /// a dozen; the oldest view falls off the end.</summary>
+        public ObservableCollection<WebTabCardVm> Tabs { get; } = new();
+
+        private const int MaxWebTabCards = 12;
+
+        /// <summary>The window clicked a gallery card: the browser switches to
+        /// that view, exactly as the tab strip would.</summary>
+        public void ActivateTab(string url) => NavigateTo(url);
+
+        /// <summary>Refresh this view's card after a navigation: preview from
+        /// CapturePreviewAsync, title from the document, host from the address.
+        /// A guarded (about-to-hand-off) document captures nothing, and neither
+        /// does a hidden pane - the engine may be suspended.</summary>
+        private async Task UpdateTabCardAsync()
+        {
+            try
+            {
+                CoreWebView2? core = Browser.CoreWebView2;
+                if (core is null || _browserGuarded || !IsVisible) return;
+                string url = Browser.Source?.ToString() ?? string.Empty;
+                if (url.Length == 0 || !Uri.TryCreate(url, UriKind.Absolute, out Uri? u)) return;
+                string title = core.DocumentTitle;
+                if (string.IsNullOrWhiteSpace(title)) title = u.Host;
+                byte[] png;
+                using (MemoryStream ms = new())
+                {
+                    await core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
+                    png = ms.ToArray();
+                }
+                ImageSource? thumb = null;
+                try
+                {
+                    BitmapImage img = new();
+                    img.BeginInit();
+                    img.CacheOption = BitmapCacheOption.OnLoad;
+                    img.StreamSource = new MemoryStream(png);
+                    img.EndInit();
+                    img.Freeze();
+                    thumb = img;
+                }
+                catch { /* a capture that will not decode leaves the old preview up */ }
+                WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+                if (card is null)
+                {
+                    card = new WebTabCardVm(url);
+                    Tabs.Add(card);
+                    while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(0);
+                }
+                else
+                {
+                    int at = Tabs.IndexOf(card);   // a revisit moves to the newest end
+                    if (at >= 0 && at != Tabs.Count - 1) { Tabs.RemoveAt(at); Tabs.Add(card); }
+                }
+                card.Title = title;
+                card.Host = u.Host;
+                if (thumb is not null) card.Thumb = thumb;
+                foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
+            }
+            catch { /* a gallery that stumbles never disturbs the browsing */ }
         }
 
         // ── Small shared helpers ──────────────────────────────────────────────────────────
@@ -653,9 +870,20 @@ namespace Avalanche.Controls
             return name;
         }
 
+        /// <summary>The temp area the reader's web-opened books live in. v1.19.5
+        /// hoisted the literal out of TempPdfPath so the window can recognize a
+        /// web-downloaded document for the toolbar's save button.</summary>
+        internal static string WebDownloadsDir => Path.Combine(Path.GetTempPath(), "Avalanche", "WebDownloads");
+
+        /// <summary>True when the path is a book the browser downloaded into the
+        /// reader's temp area - the web PDF the save button exists for.</summary>
+        internal static bool IsWebDownloadsPath(string? path)
+            => !string.IsNullOrEmpty(path)
+               && path.StartsWith(WebDownloadsDir, StringComparison.OrdinalIgnoreCase);
+
         private static string TempPdfPath(string name)
         {
-            string dir = Path.Combine(Path.GetTempPath(), "Avalanche", "WebDownloads");
+            string dir = WebDownloadsDir;
             Directory.CreateDirectory(dir);
             string stem = Path.GetFileNameWithoutExtension(name);
             string ext = Path.GetExtension(name);
@@ -675,5 +903,36 @@ namespace Avalanche.Controls
         private void HideStatus() => WebStatus.Visibility = Visibility.Collapsed;
 
         private string? TryLoc(string key) => TryFindResource(key) as string;
+    }
+
+    /// <summary>One card in the sidebar's web-tabs gallery (v1.19.5): the page's
+    /// captured preview, its title and host, and whether it is the view on
+    /// screen. Cards live in visit order; the active one wears the accent ring.</summary>
+    public sealed class WebTabCardVm : INotifyPropertyChanged
+    {
+        public WebTabCardVm(string url) { Url = url; }
+
+        /// <summary>The page's address - the card's identity and its click target.</summary>
+        public string Url { get; }
+
+        private string _title = "";
+        /// <summary>The page's own title, or its host until one arrives.</summary>
+        public string Title { get => _title; set { _title = value; OnPropertyChanged(); } }
+
+        private string _host = "";
+        /// <summary>The site the page came from (stands in for a favicon).</summary>
+        public string Host { get => _host; set { _host = value; OnPropertyChanged(); } }
+
+        private ImageSource? _thumb;
+        /// <summary>The captured preview; null keeps the previous frame.</summary>
+        public ImageSource? Thumb { get => _thumb; set { _thumb = value; OnPropertyChanged(); } }
+
+        private bool _isActive;
+        /// <summary>The view currently on screen - the accent ring's paint flag.</summary>
+        public bool IsActive { get => _isActive; set { _isActive = value; OnPropertyChanged(); } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name!));
     }
 }

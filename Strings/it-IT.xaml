@@ -1293,6 +1293,10 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_NewTab">Nuova scheda</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Questo link non ha fornito un file PDF - viene mostrata la pagina stessa.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Impossibile scaricare questo PDF - il sito ha bloccato il download.</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">Crea l'indice di ricerca semantica di questo documento (clicca di nuovo durante la creazione per annullare)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">Salva questo PDF web sul computer</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">Salva PDF</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">Qui compaiono le pagine aperte nel browser.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

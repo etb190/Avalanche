@@ -1292,6 +1292,10 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_NewTab">Жаңа қойынды</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Бұл сілтеме PDF файлын бермеді - оның орнына беттің өзі көрсетіледі.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Бұл PDF жүктеп алу мүмкін болмады - сайт жүктеп алуға тыйым салды.</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">Осы құжат үшін семантикалық зерттеу индексін құру (құру кезінде тоқтату үшін қайта басыңыз)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">Бұл веб-PDF компьютеріңізге сақтаңыз</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">PDF сақтау</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">Браузерде ашқан беттеріңіз осында пайда болады.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>

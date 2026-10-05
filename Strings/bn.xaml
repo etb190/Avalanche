@@ -1273,6 +1273,10 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_NewTab">নতুন ট্যাব</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">এই লিঙ্কটি কোনো PDF ফাইল দেয়নি - পরিবর্তে পাতাটি দেখানো হচ্ছে।</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">এই PDF আনা যায়নি - সাইটটি ডাউনলোড আটকে দিয়েছে।</sys:String>
+    <sys:String x:Key="Str_TT_AiSemanticResearch">এই নথির জন্য শব্দার্থিক গবেষণা সূচি তৈরি করুন (তৈরি হওয়ার সময় আবার ক্লিক করলে বাতিল হবে)</sys:String>
+    <sys:String x:Key="Str_TT_SaveWebPdf">এই ওয়েব PDF আপনার কম্পিউটারে সংরক্ষণ করুন</sys:String>
+    <sys:String x:Key="Str_Lbl_WebSavePdf">PDF সংরক্ষণ</sys:String>
+    <sys:String x:Key="Str_Web_TabsEmpty">ব্রাউজারে খোলা পৃষ্ঠাগুলি এখানে দেখা যাবে।</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>
     <sys:String x:Key="Str_Web_Dial_Scholar">Google Scholar</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
