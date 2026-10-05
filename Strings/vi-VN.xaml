@@ -1194,8 +1194,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
-	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
-	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Reading pages {0}-{1} (part {2} of {3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Summarizing...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Bắt đầu</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
@@ -1247,7 +1247,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryPopupExplain">Giải thích</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplainTT">Giải thích đoạn này với ngữ cảnh toàn bộ phạm vi trang</sys:String>
 	<sys:String x:Key="Str_SummaryPopupDefining">Đang định nghĩa...</sys:String>
-	<sys:String x:Key="Str_SummaryPopupExplaining">Đang phân tích các trang nguồn...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Đang đọc các trang nguồn...</sys:String>
 	<sys:String x:Key="Str_SummaryPopupError">Không thể tải giải thích.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>

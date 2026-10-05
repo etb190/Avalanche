@@ -5,10 +5,10 @@
 //    FILTER, and filtering is the enemy of "miss nothing". We extract the pages' text
 //    layer deterministically (TextRunService reading-order runs, same source the
 //    selection/search machinery uses) and hand all of it to the chat LLM.
-//  * <= ~300k chars of text on a local bridge, ~100k on the hosted cloud tier
-//    (the model's context spans a 100-page stretch several times over, but the
-//    free-tier server kills requests that outlast its patience):
-//    one direct streaming pass over the author's full argumentative arc - no
+//  * <= ~300k chars of text on a local bridge, 1.5M on the hosted cloud tier
+//    (the model's 1M-token context spans a whole book several times over, and
+//    with thinking off the hosted tier reads 300k chars in about half a minute):
+//    one direct buffered pass over the author's full argumentative arc - no
 //    "telephone game" of summarizing rough notes twice. Bigger ranges: map-reduce -
 //    exhaustive notes per whole-page segment, then a fusion pass that writes the
 //    final digest. Progress for every phase is streamed to the window.
@@ -63,19 +63,20 @@ namespace Avalanche.Features.Summary
     internal static class PageSummarizer
     {
         // nvidia/nemotron-3-ultra-550b-a55b runs a 1M-token context window:
-        // entire papers fit in ONE pass without chunking, so the single-pass
-        // budget rides at ~300k chars and the map-reduce slicing below only
-        // wakes up for truly enormous ranges. The hosted NIM endpoint once
-        // killed big single calls - but that was thinking mode ON and a 16k
-        // answer budget burning minutes of serverless GPU time; with the
-        // template switched off and the output capped at 8192 the same
-        // request reads in about half a minute, so the cloud floor now
-        // matches the local one and the digest is written from the content
+        // entire books fit in ONE pass without chunking, so the single-pass
+        // budget rides at 1.5M chars on the hosted tier (~375k tokens, about
+        // a third of the window) and the map-reduce slicing below only wakes
+        // up for doorstopper ranges. The hosted NIM endpoint once killed big
+        // single calls - but that was thinking mode ON and a 16k answer
+        // budget burning minutes of serverless GPU time; with the template
+        // switched off and the output capped at 8192, 300k chars read in
+        // about half a minute, so a whole-book call stays far inside the
+        // host's patience and the digest is written from the content
         // itself, not from notes about it. A host that still kills the big
         // call does not sink the run: the digest falls back to the
         // map-reduce road below and the reader keeps their summary.
         private const int SinglePassCharBudget = 300000;
-        private const int CloudSinglePassCharBudget = 300000;
+        private const int CloudSinglePassCharBudget = 1500000;
 
         // Cloud output ceiling: 8192 tokens is ~6000+ words, far more than
         // any digest, definition or explanation needs, and it keeps every
@@ -315,6 +316,11 @@ namespace Avalanche.Features.Summary
                 string? finalText = null;
                 if (segments.Count == 1)
                 {
+                    // An active status for the one direct pass: a whole-book read can
+                    // run for minutes, and the window must not sit on the extraction
+                    // line the whole time. The section fallback overwrites it with its
+                    // own per-part lines when it wakes.
+                    yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
                     // Buffered on purpose: the digest is inspected - and, when needed,
                     // escalated or mechanically flattened - BEFORE anything is shown.
                     try

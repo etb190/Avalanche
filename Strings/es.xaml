@@ -1174,8 +1174,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
-	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
-	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Reading pages {0}-{1} (part {2} of {3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Summarizing...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Iniciar</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
@@ -1227,7 +1227,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplain">Explicar</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplainTT">Explicar esta selección con el contexto del rango completo de páginas</sys:String>
 	<sys:String x:Key="Str_SummaryPopupDefining">Definiendo...</sys:String>
-	<sys:String x:Key="Str_SummaryPopupExplaining">Analizando las páginas de origen...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Leyendo las páginas de origen...</sys:String>
 	<sys:String x:Key="Str_SummaryPopupError">No se pudo cargar la explicación.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>

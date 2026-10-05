@@ -1194,8 +1194,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
-	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
-	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Reading pages {0}-{1} (part {2} of {3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Summarizing...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Start</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
@@ -1247,7 +1247,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryPopupExplain">Explain</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplainTT">Explain this selection using the full page range context</sys:String>
 	<sys:String x:Key="Str_SummaryPopupDefining">Defining...</sys:String>
-	<sys:String x:Key="Str_SummaryPopupExplaining">Analyzing source pages...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Reading the source pages...</sys:String>
 	<sys:String x:Key="Str_SummaryPopupError">Unable to load explanation.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>

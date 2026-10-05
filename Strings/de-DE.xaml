@@ -1180,8 +1180,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
-	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
-	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Reading pages {0}-{1} (part {2} of {3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Summarizing...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">Starten</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
@@ -1233,7 +1233,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryPopupExplain">Erklären</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplainTT">Diese Auswahl mit dem Kontext des gesamten Seitenbereichs erklären</sys:String>
 	<sys:String x:Key="Str_SummaryPopupDefining">Definiere...</sys:String>
-	<sys:String x:Key="Str_SummaryPopupExplaining">Quellseiten werden analysiert...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">Quellseiten werden gelesen...</sys:String>
 	<sys:String x:Key="Str_SummaryPopupError">Erklärung konnte nicht geladen werden.</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>

@@ -1174,8 +1174,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
-	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
-	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Reading pages {0}-{1} (part {2} of {3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Summarizing...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">শুরু</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
@@ -1227,7 +1227,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryPopupExplain">ব্যাখ্যা</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplainTT">সম্পূর্ণ পৃষ্ঠা পরিসরের প্রেক্ষাপটে এই নির্বাচনটি ব্যাখ্যা করুন</sys:String>
 	<sys:String x:Key="Str_SummaryPopupDefining">সংজ্ঞা দেওয়া হচ্ছে...</sys:String>
-	<sys:String x:Key="Str_SummaryPopupExplaining">উৎস পৃষ্ঠাগুলি বিশ্লেষণ করা হচ্ছে...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">উৎস পৃষ্ঠাগুলি পড়া হচ্ছে...</sys:String>
 	<sys:String x:Key="Str_SummaryPopupError">ব্যাখ্যা লোড করা যায়নি।</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>

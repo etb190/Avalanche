@@ -1176,8 +1176,8 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryDepthStandard">Standard (~1,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryDepthDeep">Deep (~2,000 words)</sys:String>
 	<sys:String x:Key="Str_SummaryPreparing">Extracting text from pages {0}-{1}...</sys:String>
-	<sys:String x:Key="Str_SummaryPass">Analyzing pages {0}-{1} (pass {2}/{3})...</sys:String>
-	<sys:String x:Key="Str_SummaryWriting">Fusing notes into the final summary...</sys:String>
+	<sys:String x:Key="Str_SummaryPass">Reading pages {0}-{1} (part {2} of {3})...</sys:String>
+	<sys:String x:Key="Str_SummaryWriting">Summarizing...</sys:String>
 	<sys:String x:Key="Str_SummaryDone">{0} words / {1} pages / {2}</sys:String>
 	<sys:String x:Key="Str_SummaryStart">開始</sys:String>
 	<sys:String x:Key="Str_SummaryReset">Reset</sys:String>
@@ -1229,7 +1229,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplain">詳解</sys:String>
 	<sys:String x:Key="Str_SummaryPopupExplainTT">使用完整頁面範圍上下文解釋此選取文字</sys:String>
 	<sys:String x:Key="Str_SummaryPopupDefining">釋義中...</sys:String>
-	<sys:String x:Key="Str_SummaryPopupExplaining">正在分析來源頁面...</sys:String>
+	<sys:String x:Key="Str_SummaryPopupExplaining">正在讀取來源頁面...</sys:String>
 	<sys:String x:Key="Str_SummaryPopupError">無法載入解釋。</sys:String>
 	<sys:String x:Key="Str_SummaryLangEn">English</sys:String>
 	<sys:String x:Key="Str_SummaryLangFr">Français</sys:String>
