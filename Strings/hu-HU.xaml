@@ -1278,6 +1278,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_PdfOpening">PDF letöltése az olvasóhoz...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">A WebView2 futtatókörnyezet nem található. Telepítse a Microsoft Evergreen Runtime-ját, majd nyissa meg újra a böngészőt.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Új lap</sys:String>
+    <sys:String x:Key="Str_TT_WebNewTab">Új lap (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ez a hivatkozás nem PDF-fájlt adott - maga az oldal jelenik meg.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Ezt a PDF-et nem sikerült letölteni - az oldal letiltotta a letöltést.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Szemantikus kutatási index létrehozása ehhez a dokumentumhoz (építés közben kattintson újra a megszakításhoz)</sys:String>

@@ -2221,6 +2221,10 @@ namespace Avalanche
 
         private void WebTabClose_Click(object sender, RoutedEventArgs e) => HideWebPane();
 
+        /// <summary>The band's + asks the browser for a fresh view: home page, seeded
+        /// gallery card, and the caret waiting in the omnibox.</summary>
+        private void WebNewTabBtn_Click(object sender, RoutedEventArgs e) => WebPane.OpenNewTab();
+
         private void ToggleWebPane()
         {
             if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();

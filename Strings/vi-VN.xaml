@@ -1291,6 +1291,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_PdfOpening">Đang tải PDF cho trình đọc...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Không tìm thấy runtime WebView2. Hãy cài Evergreen Runtime của Microsoft rồi mở lại trình duyệt.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Tab mới</sys:String>
+    <sys:String x:Key="Str_TT_WebNewTab">Tab mới (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Liên kết này không trả về tệp PDF - thay vào đó, trang sẽ được hiển thị.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Không thể tải tệp PDF này - trang web đã chặn việc tải xuống.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Dựng chỉ mục nghiên cứu ngữ nghĩa cho tài liệu này (nhấp lần nữa khi đang dựng để hủy)</sys:String>

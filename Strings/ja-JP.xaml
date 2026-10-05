@@ -1291,6 +1291,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">リーダー用の PDF を取得しています...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 ランタイムが見つかりません。Microsoft の Evergreen Runtime をインストールしてから、ブラウザーを開き直してください。</sys:String>
     <sys:String x:Key="Str_Web_NewTab">新しいタブ</sys:String>
+    <sys:String x:Key="Str_TT_WebNewTab">新しいタブ (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">このリンクはPDFファイルを返しませんでした - ページそのものを表示します。</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">このPDFは取得できませんでした - サイトがダウンロードをブロックしています。</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">この文書のセマンティック研究インデックスを構築します（構築中に再度クリックすると中止します）</sys:String>

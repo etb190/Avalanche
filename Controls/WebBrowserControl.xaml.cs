@@ -73,6 +73,8 @@ namespace Avalanche.Controls
         private bool _browserGuarded;
         private bool _earlyHandoff;      // one early hand-off attempt per navigation
         private string? _mainNavUri;     // the address the top-level navigation started from
+        private bool _navCompleted;      // the last navigation landed successfully - a failed
+                                         // early hand-off owes the completed fallback at once
 
         public WebBrowserControl()
         {
@@ -80,6 +82,17 @@ namespace Avalanche.Controls
             // A transparent engine over the themed card: no white flash while the page
             // loads, and the blank state belongs to the theme instead of Chromium.
             Browser.DefaultBackgroundColor = System.Drawing.Color.Transparent;
+            // Ctrl+T is the + button's keyboard face (the tooltip says so): the control
+            // tunnels the gesture wherever the browser's own surface holds the focus -
+            // the omnibox above all.
+            PreviewKeyDown += (_, e) =>
+            {
+                if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
+                {
+                    e.Handled = true;
+                    OpenNewTab();
+                }
+            };
         }
 
         // ── Lifecycle ─────────────────────────────────────────────────────────────────────
@@ -259,7 +272,11 @@ namespace Avalanche.Controls
             SyncOmniFromBrowser();
             RaiseTitleChanged();
             _lastPageUrl = Browser.Source?.ToString();
-            if (e.IsSuccess) _ = CatchInlinePdfAsync();
+            if (e.IsSuccess)
+            {
+                _navCompleted = true;   // a straggling early hand-off can owe the fallback now
+                _ = CatchInlinePdfAsync();
+            }
             else DropVisualGuard(restore: true);   // a dead navigation never strands a blanked engine
             _ = UpdateTabCardAsync();   // the sidebar gallery's preview for this view
         }
@@ -389,7 +406,7 @@ namespace Avalanche.Controls
             try
             {
                 if (!_pdfInFlight.Add(url)) return;
-                ShowStatus(TryLoc("Str_Web_PdfOpening"));
+                ArmVisualGuard();   // blanks the engine even when the address never looked like a PDF
                 byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
                 if (bytes != null && HasPdfHeader(bytes))
                 {
@@ -402,8 +419,14 @@ namespace Avalanche.Controls
                 }
                 else
                 {
-                    _pdfInFlight.Remove(url);   // the completed-navigation fallback takes its turn
+                    // v1.19.6: a failed early hand-off owes the completed-navigation
+                    // fallback its turn - immediately when the navigation already
+                    // landed, otherwise the moment it does (OnNavigationCompleted
+                    // runs it for a navigation still in flight).
+                    _pdfInFlight.Remove(url);
                     DropVisualGuard(restore: true);
+                    HideStatus();
+                    if (_navCompleted) _ = CatchInlinePdfAsync();
                 }
             }
             finally
@@ -468,6 +491,7 @@ namespace Avalanche.Controls
             _pdfCapture = null;
             _pdfInFlight.Clear();
             _earlyHandoff = false;
+            _navCompleted = false;
             _mainNavUri = e.Uri;
             // v1.19.5: a pdf-shaped address blanks the engine before its first pixel -
             // the response headers either confirm it (the early hand-off takes over)
@@ -702,29 +726,54 @@ namespace Avalanche.Controls
                 string mime = headers.GetHeader("Content-Type") ?? string.Empty;
                 int cut = mime.IndexOf(';');
                 if (cut >= 0) mime = mime[..cut];
-                bool isPdf = mime.Trim().Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+                mime = mime.Trim();
+                bool isPdf = mime.Equals("application/pdf", StringComparison.OrdinalIgnoreCase)
+                    || mime.Equals("application/x-pdf", StringComparison.OrdinalIgnoreCase);
+                string uri = e.Request.Uri;
+                // Fetch metadata rides every request Chromium makes: "document" names the
+                // top-level frame itself, iframe/frame a view inside someone else's page.
+                // A redirect ends the navigation at an address NavigationStarting never
+                // saw, so each top-level answer refreshes the recorded main address.
+                string dest = e.Request.Headers.Contains("Sec-Fetch-Dest")
+                    ? e.Request.Headers.GetHeader("Sec-Fetch-Dest") ?? string.Empty
+                    : string.Empty;
+                bool mainDocument = dest.Equals("document", StringComparison.OrdinalIgnoreCase);
+                if (mainDocument) _mainNavUri = uri;
                 if (!isPdf)
                 {
                     // v1.19.5: a pdf-shaped address that delivered an ordinary page
-                    // (2xx, same address the navigation started from) gets the engine
-                    // straight back - the viewer was never coming.
+                    // (2xx, the top-level answer) gets the engine straight back -
+                    // the viewer was never coming.
                     if (_browserGuarded && e.Response.StatusCode is >= 200 and < 300
-                        && UriEquals(e.Request.Uri, _mainNavUri) && LooksLikePdf(e.Request.Uri))
+                        && (mainDocument || UriEquals(uri, _mainNavUri)) && LooksLikePdf(uri))
                         DropVisualGuard(restore: true);
                     return;
                 }
-                // v1.19.5: the MAIN document announcing itself as a PDF - the moment
-                // the headers arrive is the moment the hand-off starts, long before
-                // Chromium's viewer would paint a single pixel. Sub-frame PDFs keep
-                // feeding the capture the fallback sources share.
-                string uri = e.Request.Uri;
-                if (LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
-                    StartEarlyPdfHandoff(uri);
+                // v1.19.6: the capture slot is built and assigned BEFORE the hand-off
+                // worker starts - the old order spawned the worker first, so it read a
+                // null slot, quit at once, and every document whose final address the
+                // shape tests could not match was left stranded on Chromium's viewer.
+                // Now the worker waits on a source that already exists and the bytes the
+                // engine is copying land in it: the headers outrank the address, so a
+                // main answer announcing a PDF starts the hand-off wherever the redirect
+                // chain ended. An iframe's own document is not the page - its viewer
+                // plays where it lives, and a worker already waiting is fed, never
+                // orphaned.
+                if (dest.Length > 0 && !mainDocument) return;
+                TaskCompletionSource<byte[]?> capture;
+                if (_earlyHandoff && _pdfCapture is not null)
+                {
+                    capture = _pdfCapture;
+                }
+                else
+                {
+                    capture = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _pdfCapture = capture;
+                    if (mainDocument || LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
+                        StartEarlyPdfHandoff(uri);
+                }
                 Stream? content = await e.Response.GetContentAsync();
-                if (content is null) return;
-                TaskCompletionSource<byte[]?> capture =
-                    new(TaskCreationOptions.RunContinuationsAsynchronously);
-                _pdfCapture = capture;
+                if (content is null) { capture.TrySetResult(null); return; }
                 using MemoryStream bytes = new();
                 await content.CopyToAsync(bytes);   // read inside the handler, while the stream is live
                 capture.TrySetResult(bytes.ToArray());
@@ -803,6 +852,38 @@ namespace Avalanche.Controls
         /// <summary>The window clicked a gallery card: the browser switches to
         /// that view, exactly as the tab strip would.</summary>
         public void ActivateTab(string url) => NavigateTo(url);
+
+        /// <summary>The + button and Ctrl+T: a fresh view on the home page, its gallery
+        /// card seeded the moment the click lands, and the omnibox holding the caret for
+        /// whatever the reader is about to type. When the navigation lands,
+        /// UpdateTabCardAsync upgrades the seeded card with the page's own face.</summary>
+        public void OpenNewTab()
+        {
+            string url = HomePage;
+            WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+            if (card is null)
+            {
+                card = new WebTabCardVm(url)
+                {
+                    Title = TryLoc("Str_Web_NewTab") ?? "duckduckgo.com",
+                    Host = "duckduckgo.com",
+                };
+                Tabs.Add(card);
+                while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(0);
+            }
+            else
+            {
+                int at = Tabs.IndexOf(card);   // a revisit moves to the newest end
+                if (at >= 0 && at != Tabs.Count - 1) { Tabs.RemoveAt(at); Tabs.Add(card); }
+            }
+            foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
+            NavigateTo(url);
+            // The caret goes to the omnibox, deferred once so the click's own focus
+            // changes cannot undo it - the same defer OnPaneShown uses.
+            Dispatcher.BeginInvoke(
+                () => { OmniBox.Clear(); OmniBox.Focus(); },
+                System.Windows.Threading.DispatcherPriority.Input);
+        }
 
         /// <summary>Refresh this view's card after a navigation: preview from
         /// CapturePreviewAsync, title from the document, host from the address.

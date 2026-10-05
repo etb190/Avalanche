@@ -2814,65 +2814,76 @@
                                     Background="{DynamicResource PaneBorderBrush}"
                                     Visibility="{DynamicResource RetroTabJoinVisibility}"
                                     IsHitTestVisible="False"/>
-                            <Border x:Name="WebTab" HorizontalAlignment="Left"
-                                    CornerRadius="{DynamicResource TabCornerRadius}"
-                                    Margin="{DynamicResource TabActiveOnlyMargin}"
-                                    Padding="{DynamicResource TabActivePadding}"
-                                    MinWidth="120" MaxWidth="240"
-                                    UseLayoutRounding="True" SnapsToDevicePixels="True"
-                                    Cursor="Hand" Background="{DynamicResource BgCanvas}"
-                                    BorderThickness="{DynamicResource TabStripeThickness}"
-                                    BorderBrush="{DynamicResource TabActiveRingBrush}"
-                                    Effect="{DynamicResource BarShadowEffect}">
-                                <Grid>
-                                    <!-- Grain follows the tab's radius, as on every PDF tab. -->
-                                    <Border IsHitTestVisible="False"
-                                            CornerRadius="{DynamicResource TabCornerRadius}"
-                                            Margin="-12,-4,-5,-5"
-                                            Background="{DynamicResource GrainTileBrush}"
-                                            Opacity="{DynamicResource GrainOpacity}"/>
-                                    <DockPanel LastChildFill="True">
-                                        <Button DockPanel.Dock="Right" Content="&#xE711;"
-                                                Style="{DynamicResource TabCloseButton}"
-                                                FontFamily="{DynamicResource IconFont}" FontSize="9"
-                                                Width="16" Height="16" Margin="6,0,0,0" Padding="0"
-                                                VerticalAlignment="Center" FocusVisualStyle="{x:Null}"
-                                                ToolTip="{DynamicResource Str_TT_CloseTab}"
-                                                Click="WebTabClose_Click"/>
-                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <!-- The little globe: this strip is the web's, not the reader's. -->
-                                            <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                       Margin="0,1,5,0" VerticalAlignment="Center"
-                                                       Foreground="{DynamicResource TextBrush}" Opacity="0.75"/>
-                                            <TextBlock x:Name="WebTabLabel" Text="{DynamicResource Str_Web_NewTab}"
-                                                       FontFamily="{DynamicResource UiFont}" FontSize="11.5"
-                                                       FontWeight="Bold" Foreground="{DynamicResource TextBrush}"
-                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                        </StackPanel>
-                                    </DockPanel>
-                                    <!-- Retro chrome, painted above the label exactly as the
-                                         PDF tab paints it; modern themes zero every edge. -->
-                                    <Border IsHitTestVisible="False" Panel.ZIndex="3"
-                                            Margin="{DynamicResource TabActiveOuterOutlineMargin}"
-                                            BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
-                                            SnapsToDevicePixels="True"
-                                            Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
-                                    <Border IsHitTestVisible="False" Panel.ZIndex="4"
-                                            Margin="{DynamicResource TabBevelMargin}" SnapsToDevicePixels="True"
-                                            BorderBrush="{DynamicResource BevelLightBrush}"
-                                            BorderThickness="{DynamicResource BevelLightThickness}"/>
-                                    <Border IsHitTestVisible="False" Panel.ZIndex="4"
-                                            Margin="{DynamicResource TabActiveBevelDarkMargin}" SnapsToDevicePixels="True"
-                                            BorderBrush="{DynamicResource BevelDarkBrush}"
-                                            BorderThickness="{DynamicResource TabActiveBevelDarkThickness}"/>
-                                    <Border IsHitTestVisible="False" Panel.ZIndex="6"
-                                            Margin="{DynamicResource TabActiveInnerBevelMargin}"
-                                            BorderBrush="{DynamicResource TabActiveInnerBevelBrush}"
-                                            BorderThickness="{DynamicResource TabActiveInnerBevelThickness}"
-                                            SnapsToDevicePixels="True"
-                                            Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
-                                </Grid>
-                            </Border>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Border x:Name="WebTab" HorizontalAlignment="Left"
+                                        CornerRadius="{DynamicResource TabCornerRadius}"
+                                        Margin="{DynamicResource TabActiveOnlyMargin}"
+                                        Padding="{DynamicResource TabActivePadding}"
+                                        MinWidth="120" MaxWidth="240"
+                                        UseLayoutRounding="True" SnapsToDevicePixels="True"
+                                        Cursor="Hand" Background="{DynamicResource BgCanvas}"
+                                        BorderThickness="{DynamicResource TabStripeThickness}"
+                                        BorderBrush="{DynamicResource TabActiveRingBrush}"
+                                        Effect="{DynamicResource BarShadowEffect}">
+                                    <Grid>
+                                        <!-- Grain follows the tab's radius, as on every PDF tab. -->
+                                        <Border IsHitTestVisible="False"
+                                                CornerRadius="{DynamicResource TabCornerRadius}"
+                                                Margin="-12,-4,-5,-5"
+                                                Background="{DynamicResource GrainTileBrush}"
+                                                Opacity="{DynamicResource GrainOpacity}"/>
+                                        <DockPanel LastChildFill="True">
+                                            <Button DockPanel.Dock="Right" Content="&#xE711;"
+                                                    Style="{DynamicResource TabCloseButton}"
+                                                    FontFamily="{DynamicResource IconFont}" FontSize="9"
+                                                    Width="16" Height="16" Margin="6,0,0,0" Padding="0"
+                                                    VerticalAlignment="Center" FocusVisualStyle="{x:Null}"
+                                                    ToolTip="{DynamicResource Str_TT_CloseTab}"
+                                                    Click="WebTabClose_Click"/>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <!-- The little globe: this strip is the web's, not the reader's. -->
+                                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                           Margin="0,1,5,0" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextBrush}" Opacity="0.75"/>
+                                                <TextBlock x:Name="WebTabLabel" Text="{DynamicResource Str_Web_NewTab}"
+                                                           FontFamily="{DynamicResource UiFont}" FontSize="11.5"
+                                                           FontWeight="Bold" Foreground="{DynamicResource TextBrush}"
+                                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <!-- Retro chrome, painted above the label exactly as the
+                                             PDF tab paints it; modern themes zero every edge. -->
+                                        <Border IsHitTestVisible="False" Panel.ZIndex="3"
+                                                Margin="{DynamicResource TabActiveOuterOutlineMargin}"
+                                                BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,1,1,0"
+                                                SnapsToDevicePixels="True"
+                                                Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
+                                        <Border IsHitTestVisible="False" Panel.ZIndex="4"
+                                                Margin="{DynamicResource TabBevelMargin}" SnapsToDevicePixels="True"
+                                                BorderBrush="{DynamicResource BevelLightBrush}"
+                                                BorderThickness="{DynamicResource BevelLightThickness}"/>
+                                        <Border IsHitTestVisible="False" Panel.ZIndex="4"
+                                                Margin="{DynamicResource TabActiveBevelDarkMargin}" SnapsToDevicePixels="True"
+                                                BorderBrush="{DynamicResource BevelDarkBrush}"
+                                                BorderThickness="{DynamicResource TabActiveBevelDarkThickness}"/>
+                                        <Border IsHitTestVisible="False" Panel.ZIndex="6"
+                                                Margin="{DynamicResource TabActiveInnerBevelMargin}"
+                                                BorderBrush="{DynamicResource TabActiveInnerBevelBrush}"
+                                                BorderThickness="{DynamicResource TabActiveInnerBevelThickness}"
+                                                SnapsToDevicePixels="True"
+                                                Visibility="{DynamicResource RetroActiveTabOutlineVisibility}"/>
+                                    </Grid>
+                                </Border>
+                                <!-- The fresh-tab face: the + sits next to whatever
+                                     view is open, the way the reader's own strip does. -->
+                                <Button x:Name="WebNewTabBtn" Content="&#xE710;"
+                                        Style="{DynamicResource TabNewButton}"
+                                        FontFamily="{DynamicResource IconFont}" FontSize="11"
+                                        Width="24" Height="22" Margin="4,0,0,0" VerticalAlignment="Center"
+                                        FocusVisualStyle="{x:Null}"
+                                        ToolTip="{DynamicResource Str_TT_WebNewTab}"
+                                        Click="WebNewTabBtn_Click"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
