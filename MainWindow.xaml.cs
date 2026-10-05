@@ -2219,11 +2219,13 @@ namespace Avalanche
         private void WebBrowserBtn_Click(object sender, RoutedEventArgs e) => ToggleWebPane();
 
         /// <summary>A strip tab was clicked: the browser switches to that view,
-        /// exactly as a gallery card click does.</summary>
+        /// exactly as a gallery card click does. v1.19.13: the click speaks in
+        /// cards - a tab's address follows its page now, so the card itself is
+        /// the identity.</summary>
         private void WebTabStripTab_Click(object sender, MouseButtonEventArgs e)
         {
-            if (sender is System.Windows.Controls.Border { Tag: string url } && url.Length > 0)
-                WebPane.ActivateTab(url);
+            if (sender is System.Windows.Controls.Border { DataContext: Controls.WebTabCardVm card })
+                WebPane.ActivateTab(card);
         }
 
         /// <summary>A strip tab's ✕ closed that tab: the card leaves the gallery
@@ -2231,8 +2233,8 @@ namespace Avalanche
         /// view closed.</summary>
         private void WebTabStripClose_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button { Tag: string url } && url.Length > 0)
-                WebPane.CloseTab(url);
+            if (sender is Button { DataContext: Controls.WebTabCardVm card })
+                WebPane.CloseTab(card);
         }
 
         /// <summary>The band's + asks the browser for a fresh view: home page, seeded
@@ -2288,11 +2290,277 @@ namespace Avalanche
         }
 
         /// <summary>A gallery card was clicked: the browser switches to that
-        /// view, matching the tab strip's behavior.</summary>
+        /// view, matching the tab strip's behavior. A click raised by a button
+        /// NESTED inside the card (the card's own ✕) never counts - it arrives
+        /// here wearing the card as its sender, and acting on it would reopen
+        /// the very tab the ✕ just closed.</summary>
         private void WebTabCard_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button { Tag: string url } && url.Length > 0)
-                WebPane.ActivateTab(url);
+            if (_webTabDragJustEnded) return;   // a drag's release is not a click
+            if (!ReferenceEquals(e.OriginalSource, sender)) return;   // a nested button's click, not the card's own
+            if (sender is Button { DataContext: Controls.WebTabCardVm card })
+                WebPane.ActivateTab(card);
+        }
+
+        /// <summary>A gallery card's close button (v1.19.11) closed that tab: the
+        /// same hand the strip's ✕ offers, now also where the cards live - the
+        /// card leaves the gallery and the browser moves on, or the window steps
+        /// aside when the last view closed.</summary>
+        private void WebSidebarTabClose_Click(object sender, RoutedEventArgs e)
+        {
+            // v1.19.12: the ✕ lives INSIDE the card button. Click bubbles - an
+            // unhandled one reaches the card and fires ActivateTab on the very
+            // address the ✕ just closed, so the tab came back and landed at the
+            // top of the rail. Handled here, the click dies with the close.
+            // v1.19.13: the card, not the address, is what closes.
+            e.Handled = true;
+            if (sender is Button { DataContext: Controls.WebTabCardVm card })
+                WebPane.CloseTab(card);
+        }
+
+        // ── Grab and move (v1.19.13) ────────────────────────────────────────────────
+        // The strip's tabs and the rail's cards are one list wearing two faces, so a
+        // drag on either reorders the same collection and both faces follow. A press
+        // arms the drag, the drag threshold captures the mouse, the grabbed tab rides
+        // a TranslateTransform under the pointer, a neighbor whose midpoint the
+        // advancing edge crossed swaps with it, and the release settles the tab into
+        // its slot with a short glide - the same dialect the reader's own PDF strip
+        // speaks (PdfViewer.TabStrip.cs). The ✕ never starts a drag: its press dies
+        // with the close.
+
+        private Controls.WebTabCardVm? _webTabDragCard;
+        private System.Windows.Controls.ItemsControl? _webTabDragFace;
+        private System.Windows.FrameworkElement? _webTabDragElement;
+        private Point _webTabDragStart;
+        private double _webTabGrabOffset;
+        private bool _webTabDragging;
+        private bool _webTabDragJustEnded;
+
+        private static System.Windows.FrameworkElement? WebTabContainer(
+            System.Windows.Controls.ItemsControl face, object item)
+            => face.ItemContainerGenerator.ContainerFromItem(item) as System.Windows.FrameworkElement;
+
+        /// <summary>Midpoint X of a tab's LAYOUT slot (ignores any in-flight drag transform).</summary>
+        private static double WebTabSlotMidX(System.Windows.FrameworkElement fe)
+        {
+            var slot = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(fe);
+            return slot.X + slot.Width / 2;
+        }
+
+        /// <summary>Midpoint Y of a card's LAYOUT slot (ignores any in-flight drag transform).</summary>
+        private static double WebTabSlotMidY(System.Windows.FrameworkElement fe)
+        {
+            var slot = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(fe);
+            return slot.Y + slot.Height / 2;
+        }
+
+        private static void SetWebTabDragOffset(System.Windows.FrameworkElement tab, double x, double y)
+        {
+            if (tab.RenderTransform is not TranslateTransform tt)
+            {
+                tt = new TranslateTransform();
+                tab.RenderTransform = tt;
+            }
+            tt.BeginAnimation(TranslateTransform.XProperty, null);   // drop any prior animation so the set sticks
+            tt.BeginAnimation(TranslateTransform.YProperty, null);
+            tt.X = x;
+            tt.Y = y;
+        }
+
+        /// <summary>Did the press land on a button (the card's own ✕) rather than on
+        /// the tab face? The ✕ keeps its press; the drag never starts over it.</summary>
+        private static bool WebTabPressOnNestedButton(object source, System.Windows.DependencyObject stop)
+        {
+            System.Windows.DependencyObject? d = source as System.Windows.DependencyObject;
+            while (d is not null && !ReferenceEquals(d, stop))
+            {
+                if (d is Button) return true;
+                d = d is System.Windows.Media.Visual || d is System.Windows.Media.Media3D.Visual3D
+                    ? System.Windows.Media.VisualTreeHelper.GetParent(d)
+                    : System.Windows.LogicalTreeHelper.GetParent(d);
+            }
+            return false;
+        }
+
+        private void WebStripTabDragDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.Border bd
+                || bd.DataContext is not Controls.WebTabCardVm card) return;
+            if (WebTabPressOnNestedButton(e.OriginalSource, bd)) return;   // the ✕ keeps its press
+            _webTabDragCard = card;
+            _webTabDragFace = WebTabStrip;
+            _webTabDragElement = bd;
+            _webTabDragStart = e.GetPosition(WebTabStrip);
+            _webTabGrabOffset = WebTabContainer(WebTabStrip, card) is { } cont
+                ? _webTabDragStart.X - System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(cont).X
+                : 0;
+            _webTabDragging = false;
+        }
+
+        private void WebStripTabDragMove(object sender, MouseEventArgs e)
+        {
+            if (_webTabDragCard is null || _webTabDragElement is null) return;
+            double x = e.GetPosition(_webTabDragFace).X;
+            if (!_webTabDragging)
+            {
+                if (Math.Abs(x - _webTabDragStart.X) < SystemParameters.MinimumHorizontalDragDistance) return;
+                _webTabDragging = true;
+                try { _webTabDragElement.CaptureMouse(); } catch { /* the drag can live without it */ }
+            }
+            DragWebTab(x, horizontal: true);
+        }
+
+        private void WebStripTabDragUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_webTabDragCard is null) return;
+            EndWebTabDrag();
+        }
+
+        private void WebTabCardDragDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Button bd || bd.DataContext is not Controls.WebTabCardVm card) return;
+            if (WebTabPressOnNestedButton(e.OriginalSource, bd)) return;   // the card's ✕ keeps its press
+            // v1.19.14: the press itself routes. A click's own machinery has too many
+            // quiet ways to lose a release - the drag threshold reading a firm hand
+            // as a drag, the capture swallowing the up that would raise Click - so
+            // the card answers the press, the way the strip's tabs and every browser
+            // the reader has used always have. A release Click then lands on an
+            // already-active tab and changes nothing.
+            WebPane.ActivateTab(card);
+            _webTabDragCard = card;
+            _webTabDragFace = WebTabsList;
+            _webTabDragElement = bd;
+            _webTabDragStart = e.GetPosition(WebTabsList);
+            _webTabGrabOffset = WebTabContainer(WebTabsList, card) is { } cont
+                ? _webTabDragStart.Y - System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(cont).Y
+                : 0;
+            _webTabDragging = false;
+        }
+
+        private void WebTabCardDragMove(object sender, MouseEventArgs e)
+        {
+            if (_webTabDragCard is null || _webTabDragElement is null) return;
+            double y = e.GetPosition(_webTabDragFace).Y;
+            if (!_webTabDragging)
+            {
+                if (Math.Abs(y - _webTabDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+                _webTabDragging = true;
+                try { _webTabDragElement.CaptureMouse(); } catch { /* the drag can live without it */ }
+            }
+            DragWebTab(y, horizontal: false);
+        }
+
+        private void WebTabCardDragUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_webTabDragCard is null) return;
+            bool wasDragging = _webTabDragging;
+            EndWebTabDrag();
+            if (wasDragging)
+            {
+                e.Handled = true;   // a drag's release never clicks the card
+                _webTabDragJustEnded = true;   // belt and braces beside the swallowed up event
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input,
+                    (Action)(() => _webTabDragJustEnded = false));
+            }
+        }
+
+        /// <summary>The grab follows the pointer; a neighbor whose midpoint the
+        /// dragged tab's advancing edge crossed swaps places with it - edges against
+        /// midpoints, the PDF strip's own hysteresis, so a tab parked on a boundary
+        /// does not bounce. The same collection underlies strip and rail, so one
+        /// drag dresses both faces.</summary>
+        private void DragWebTab(double coord, bool horizontal)
+        {
+            var face = _webTabDragFace;
+            var card = _webTabDragCard;
+            if (face is null || card is null) return;
+            System.Windows.FrameworkElement? cont = WebTabContainer(face, card);
+            if (cont is null) return;
+            var slot = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(cont);
+            double rawLeft = coord - _webTabGrabOffset;
+            System.Collections.ObjectModel.ObservableCollection<Controls.WebTabCardVm> tabs = WebPane.Tabs;
+            int cur = tabs.IndexOf(card);
+            if (horizontal)
+            {
+                double leftEdge = rawLeft;
+                double rightEdge = rawLeft + cont.ActualWidth;
+                if (cur + 1 < tabs.Count && WebTabContainer(face, tabs[cur + 1]) is { } right
+                    && rightEdge > WebTabSlotMidX(right))
+                {
+                    tabs.Move(cur, cur + 1);
+                    face.UpdateLayout();
+                }
+                else if (cur - 1 >= 0 && WebTabContainer(face, tabs[cur - 1]) is { } left
+                    && leftEdge < WebTabSlotMidX(left))
+                {
+                    tabs.Move(cur, cur - 1);
+                    face.UpdateLayout();
+                }
+            }
+            else
+            {
+                double topEdge = rawLeft;
+                double bottomEdge = rawLeft + cont.ActualHeight;
+                if (cur + 1 < tabs.Count && WebTabContainer(face, tabs[cur + 1]) is { } down
+                    && bottomEdge > WebTabSlotMidY(down))
+                {
+                    tabs.Move(cur, cur + 1);
+                    face.UpdateLayout();
+                }
+                else if (cur - 1 >= 0 && WebTabContainer(face, tabs[cur - 1]) is { } up
+                    && topEdge < WebTabSlotMidY(up))
+                {
+                    tabs.Move(cur, cur - 1);
+                    face.UpdateLayout();
+                }
+            }
+            cont = WebTabContainer(face, card);   // the slot moved with the swap
+            if (cont is null) return;
+            slot = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(cont);
+            double maxLeft = Math.Max(0, horizontal ? face.ActualWidth - cont.ActualWidth
+                                                    : face.ActualHeight - cont.ActualHeight);
+            double renderLeft = Math.Min(Math.Max(0, rawLeft), maxLeft);
+            SetWebTabDragOffset(cont, horizontal ? renderLeft - slot.X : 0,
+                                       horizontal ? 0 : renderLeft - slot.Y);
+        }
+
+        /// <summary>The grab ends: the capture goes back, and the dragged tab
+        /// settles from its dragged offset into its final slot with a short glide
+        /// - the release should read as a landing, not a teleport.</summary>
+        private void EndWebTabDrag()
+        {
+            var card = _webTabDragCard;
+            var face = _webTabDragFace;
+            var element = _webTabDragElement;
+            bool wasDragging = _webTabDragging;
+            _webTabDragCard = null;
+            _webTabDragFace = null;
+            _webTabDragElement = null;
+            _webTabDragging = false;
+            try { element?.ReleaseMouseCapture(); } catch { /* the capture was never taken */ }
+            if (!wasDragging || card is null || face is null) return;
+            if (WebTabContainer(face, card) is { } cont
+                && cont.RenderTransform is TranslateTransform tt
+                && (Math.Abs(tt.X) > 0.5 || Math.Abs(tt.Y) > 0.5))
+            {
+                var settle = new System.Windows.Media.Animation.DoubleAnimation(0,
+                    new Duration(TimeSpan.FromMilliseconds(120)))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.CubicEase
+                        { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut },
+                };
+                settle.Completed += (_, _) => CleanupWebTabTransforms(face);
+                if (Math.Abs(tt.X) > 0.5) tt.BeginAnimation(TranslateTransform.XProperty, settle);
+                if (Math.Abs(tt.Y) > 0.5) tt.BeginAnimation(TranslateTransform.YProperty, settle);
+            }
+            else CleanupWebTabTransforms(face);
+        }
+
+        private static void CleanupWebTabTransforms(System.Windows.Controls.ItemsControl face)
+        {
+            foreach (object item in face.Items)
+                if (WebTabContainer(face, item) is { } c)
+                    c.RenderTransform = null;
         }
 
         /// <summary>The toolbar's save button follows the book on screen: it

@@ -34,6 +34,16 @@ namespace Avalanche
                 e.Handled = true;
                 return;
             }
+            // v1.19.14: a page that owns the keyboard owns the chord. The chain below
+            // speaks for the reader's own surfaces; while a web page holds the keys,
+            // every gesture falls through to it - Ctrl+A/C/V/X/Z select, copy, paste
+            // and undo the PAGE's work, Ctrl+R reloads it, and the rest of the chain
+            // waits for the reader to come home. The Ctrl+Shift+K master toggle above
+            // keeps its meaning everywhere.
+            if (WebPaneHost.Visibility == Visibility.Visible
+                && (e.OriginalSource is Microsoft.Web.WebView2.Wpf.WebView2
+                    || WebPane.PageOwnsKeyboard()))
+                return;
             if (!KeyboardShortcutsEnabled)
             {
                 e.Handled = ShortcutTogglePolicy.SuppressWhenDisabled(

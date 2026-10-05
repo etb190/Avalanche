@@ -1303,4 +1303,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
     <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
     <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
+
+    <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
+    <sys:String x:Key="Str_TT_WebBookmark">Aggiungi questa pagina ai segnalibri</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkHint">Salva le pagine con ☆</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkName">Nome</sys:String>
 </ResourceDictionary>
