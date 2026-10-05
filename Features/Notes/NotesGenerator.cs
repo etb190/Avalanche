@@ -34,6 +34,11 @@ namespace Avalanche.Features.Notes
     {
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
 
+        // Cloud free-tier guard, shared with the summarizer: the hosted
+        // endpoint answers an 8192-token request and kills a bigger one,
+        // and ~200-word cards never needed more room than that anyway.
+        private const int CloudMaxTokens = 8192;
+
         private const string NotesSystemPrompt = """
             You are a master analytical reader creating high-yield, comprehensive review notes.
             For each 50-page block you are given, generate a dense, comprehensive note of roughly 200 words following this exact structure:
@@ -157,6 +162,15 @@ namespace Avalanche.Features.Notes
         private static HttpRequestMessage BuildNotesRequest(
             AiProviderConfig config, string userText, int maxTokens)
         {
+            // Cloud free-tier guard: same ceiling as the summarizer's
+            // requests - the hosted endpoint kills long-running ones, and
+            // the doubled budgets a local bridge may keep are exactly what
+            // the free tier answers with HTTP 500.
+            if (!AiEndpoints.IsLocal(config.BaseUrl))
+            {
+                maxTokens = Math.Min(maxTokens, CloudMaxTokens);
+            }
+
             var body = new Dictionary<string, object?>
             {
                 ["model"] = config.Model,
@@ -169,6 +183,15 @@ namespace Avalanche.Features.Notes
                 ["max_tokens"] = maxTokens,
                 ["stream"] = false
             };
+
+            // Nemotron reasoning: the notes want cards, not think traces -
+            // thinking is explicitly disabled for the same reason the
+            // summarizer disables it (the sidebar chat turns it on instead).
+            if (config.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
+            {
+                body["chat_template_kwargs"] = new { enable_thinking = false };
+            }
+
             var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 (config.BaseUrl ?? string.Empty).TrimEnd('/') + "/chat/completions")

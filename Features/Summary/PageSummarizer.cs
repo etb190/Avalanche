@@ -5,8 +5,9 @@
 //    FILTER, and filtering is the enemy of "miss nothing". We extract the pages' text
 //    layer deterministically (TextRunService reading-order runs, same source the
 //    selection/search machinery uses) and hand all of it to the chat LLM.
-//  * <= ~300k chars of text (the 1M-token model's context spans a 100-page stretch
-//    several times over, so the budget is a conservative floor, not a ceiling):
+//  * <= ~300k chars of text on a local bridge, ~100k on the hosted cloud tier
+//    (the model's context spans a 100-page stretch several times over, but the
+//    free-tier server kills requests that outlast its patience):
 //    one direct streaming pass over the author's full argumentative arc - no
 //    "telephone game" of summarizing rough notes twice. Bigger ranges: map-reduce -
 //    exhaustive notes per whole-page segment, then a fusion pass that writes the
@@ -64,8 +65,21 @@ namespace Avalanche.Features.Summary
         // nvidia/nemotron-3-ultra-550b-a55b runs a 1M-token context window:
         // entire papers fit in ONE pass without chunking, so the single-pass
         // budget rides at ~300k chars (conservatively) and the map-reduce
-        // slicing below only wakes up for truly enormous ranges.
+        // slicing below only wakes up for truly enormous ranges - on a local
+        // bridge, where no one kills a slow request. The hosted NIM endpoint
+        // is a serverless, rate-limited free tier: a ~75k-token request asks
+        // for minutes of GPU time and the server answers with HTTP 500 long
+        // before the model is done, so the cloud floor rides far lower and
+        // oversized ranges take the map-reduce road there instead.
         private const int SinglePassCharBudget = 300000;
+        private const int CloudSinglePassCharBudget = 100000;
+
+        // Cloud output ceiling: 8192 tokens is ~6000+ words, far more than
+        // any digest, definition or explanation needs, and it keeps every
+        // request short enough that the hosted endpoint answers instead of
+        // dying. Local bridges keep their own ceilings; caps only cost when
+        // they are used.
+        private const int CloudMaxTokens = 8192;
         private const int SegmentCharBudget = 30000;
 
         // Page anchors: the compact [p. N] form the normalizer emits, plus the
@@ -294,7 +308,7 @@ namespace Avalanche.Features.Summary
                     }
                 }
 
-                List<string> segments = SegmentPages(rangeText);
+                List<string> segments = SegmentPages(config, rangeText);
                 string finalText;
                 if (segments.Count == 1)
                 {
@@ -1027,7 +1041,7 @@ namespace Avalanche.Features.Summary
         // Segmentation
         // ------------------------------------------------------------------
 
-        private static List<string> SegmentPages(string rangeText)
+        private static List<string> SegmentPages(AiProviderConfig config, string rangeText)
         {
             // Under the single-pass budget the WHOLE range travels as one segment: one
             // direct digest pass over the author's full argumentative arc. Beyond it the
@@ -1035,8 +1049,14 @@ namespace Avalanche.Features.Summary
             // whole-page boundaries - the [p. N] anchor of every page is a segment
             // start, so a segment never opens with an orphaned paragraph. (The old
             // "\n\n" split cleaved through pages' internal paragraph breaks and left
-            // marker-less fragments in the next segment.)
-            if (rangeText.Length <= SinglePassCharBudget)
+            // marker-less fragments in the next segment.) On a cloud endpoint the
+            // single-pass floor is far lower: the hosted free tier answers a
+            // ~100k-char request but kills a 300k-char one, so a big range rides
+            // map-reduce there instead of betting the whole digest on one call.
+            int effectiveBudget = AiEndpoints.IsLocal(config.BaseUrl)
+                ? SinglePassCharBudget
+                : CloudSinglePassCharBudget;
+            if (rangeText.Length <= effectiveBudget)
             {
                 return new List<string> { rangeText };
             }
@@ -1227,6 +1247,17 @@ namespace Avalanche.Features.Summary
 
         private static HttpRequestMessage BuildRequest(AiProviderConfig config, string system, string user, int maxTokens, bool stream, double? temperature = null)
         {
+            // Cloud free-tier guard: the hosted endpoint kills long-running
+            // requests (HTTP 500 after minutes of GPU time), so the output
+            // budget never exceeds 8192 there no matter how the callers floored
+            // or doubled it - the digest retry, the streaming floor and the
+            // popup passes all travel through this one door. A local bridge
+            // keeps its own ceilings; a cap only costs when it is used.
+            if (!AiEndpoints.IsLocal(config.BaseUrl))
+            {
+                maxTokens = Math.Min(maxTokens, CloudMaxTokens);
+            }
+
             var body = new Dictionary<string, object?>
             {
                 ["model"] = config.Model,
@@ -1239,6 +1270,18 @@ namespace Avalanche.Features.Summary
                 ["max_tokens"] = maxTokens,
                 ["stream"] = stream
             };
+
+            // Nemotron reasoning: the thinking mode is a chat-template switch,
+            // not a request field, and an unconfigured request is exactly what
+            // the endpoint punished. The summarizer wants the digest, not the
+            // think, so thinking is explicitly disabled - every token and
+            // every second goes to the answer (the sidebar chat turns it on;
+            // this side of the app never reads the traces).
+            if (config.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
+            {
+                body["chat_template_kwargs"] = new { enable_thinking = false };
+            }
+
             var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 (config.BaseUrl ?? string.Empty).TrimEnd('/') + "/chat/completions")
@@ -1276,8 +1319,11 @@ namespace Avalanche.Features.Summary
         {
             // Reasoning models split max_tokens between their think and the answer,
             // and a 4,500-word ceiling needs real room: floor at 3k + 4 tokens per
-            // target word, never below 10k. Caps only cost when they are used.
+            // target word, never below 10k. Caps only cost when they are used -
+            // and on a cloud endpoint this floor is capped right back down, since
+            // the hosted tier dies on long requests and no digest needs more.
             int budget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * targetWords)));
+            if (!AiEndpoints.IsLocal(config.BaseUrl)) budget = Math.Min(budget, CloudMaxTokens);
             string digest = await RunBufferedPassAsync(config, system, user, ct, budget).ConfigureAwait(false);
 
             if (string.IsNullOrWhiteSpace(digest))
