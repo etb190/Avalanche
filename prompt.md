@@ -1,151 +1,161 @@
-# TASK: Fix Remaining Academic PDF Failures (Chicago Unbound, Indiana Law, Wiley) and Zombie PDF Tabs in Browser
+# TASK: Fix Remaining Academic PDF Failures — The Real Root Cause (v1.19.9)
 
 Repository: `https://github.com/etb190/Avalanche`  
-Target Files: `Controls/WebBrowserControl.xaml.cs`, `MainWindow.xaml.cs`  
-Version: `1.19.8` (or next patch)
+Target Files: `Controls/WebBrowserControl.xaml.cs`  
+Version: `1.19.9` (or next patch)
 
 ---
 
-## 1. Status Update & Remaining Issues
+## 1. Status After v1.19.8
 
-In v1.19.7, PDF handoff reliability improved (e.g. ResearchGate and AJR now succeed). However:
-1. **Three academic PDF links still fail to port automatically (opening in Chromium's internal PDF viewer)**:
-   - `https://chicagounbound.uchicago.edu/cgi/viewcontent.cgi?article=13702&context=journal_articles`
-   - `https://www.repository.law.indiana.edu/cgi/viewcontent.cgi?article=11519&context=ilj`
-   - `https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
-   *(Crucial Clue: When Chrome's viewer opens on these pages, clicking its built-in 'Save' button immediately triggers Avalanche's reader via `OnDownloadStarting`. The document is 100% accessible and delivered without error; only the automatic launch triggers failed to fire!)*
-2. **New Issue: The PDF does not close from the browser after going to the PDF editor; it stays in the browser and bugs out**:
-   - When a PDF is handed off to Avalanche's reader, the web browser pane hides, but the PDF tab is left open in `WebPane.Tabs` (top tab strip and sidebar gallery).
-   - When reopening the web browser, the tab is stuck on the PDF URL or Chromium's internal viewer in a frozen/blanked state.
+The zombie-tab / browser-bugs-out issue is **fixed** ✅ (`SettleAfterHandoff` works correctly).
 
----
+The three academic PDF links **still fail to auto-port** to Avalanche's PDF editor:
+- `https://chicagounbound.uchicago.edu/cgi/viewcontent.cgi?article=13702&context=journal_articles`
+- `https://www.repository.law.indiana.edu/cgi/viewcontent.cgi?article=11519&context=ilj`
+- `https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
 
-## 2. Root Cause Analysis
-
-### Cause 1: Why Chicago Unbound & Indiana Law Fail
-1. **The `LooksLikePdf` Gatekeeper in `OnNavigationCompleted` (Line 333 of `WebBrowserControl.xaml.cs`)**:
-   ```csharp
-   string type = await core.ExecuteScriptAsync("document.contentType");
-   string plain = type.Trim('"');
-   string url = Browser.Source?.ToString() ?? string.Empty;
-   bool isPdf = plain.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
-   bool viewerDom = plain.Length == 0 || plain.Equals("null", StringComparison.OrdinalIgnoreCase);
-   if (!isPdf && !(viewerDom && LooksLikePdf(url)))
-   {
-       DropVisualGuard(restore: true);
-       return;
-   }
-   ```
-   - When Chromium renders its internal PDF viewer plugin, `document.contentType` returns `"null"`, so `viewerDom` is `true`.
-   - However, for Chicago Unbound and Indiana Law, the URL is `/cgi/viewcontent.cgi?article=13702&context=journal_articles`.
-   - `LooksLikePdf(url)` checks only for `.pdf` or `/pdf/` or `getpdf`. It returns **`false`** for `viewcontent.cgi`!
-   - Because `LooksLikePdf(url)` is `false`, `!(viewerDom && LooksLikePdf(url))` is `true`, and line 333 **returns immediately without calling `CatchInlinePdfAsync()`**! Chromium's internal viewer stays open on screen.
-   - **Crucial insight**: When `viewerDom` is `true` (`plain == "null"`), Chromium is hosting its internal PDF plugin. Normal web pages ALWAYS return `"text/html"`. Gating `viewerDom` behind `LooksLikePdf` is an architectural error that breaks every academic repository using query strings or CGI scripts.
-
-2. **The `StartEarlyPdfHandoff` Gate in `OnWebResourceResponseReceived` (Line 841)**:
-   ```csharp
-   if (mainDocument || frameDocument || LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
-       StartEarlyPdfHandoff(uri);
-   ```
-   - Chicago Unbound and Indiana Law use Cloudflare bot mitigation (`cf-mitigated: challenge`).
-   - When Cloudflare finishes verifying and delivers the PDF, `dest` is empty, `LooksLikePdf(uri)` is `false` (`viewcontent.cgi`), and `UriEquals(uri, _mainNavUri)` is `false` if redirect tokens were appended.
-   - None of the 4 conditions match, so `StartEarlyPdfHandoff` is never called even though `Content-Type: application/pdf` was confirmed!
-
-### Cause 2: Why Wiley Fails
-1. Wiley links (`/doi/pdf/...`) trigger `ArmVisualGuard()` on navigation start because `LooksLikePdf` is `true`. This sets `Browser.Visibility = Visibility.Hidden;`.
-2. Wiley immediately serves a Cloudflare challenge page with HTTP 403 Forbidden.
-3. In `OnWebResourceResponseReceived`, line 809:
-   ```csharp
-   if (_browserGuarded && e.Response.StatusCode is >= 200 and < 300 ...)
-       DropVisualGuard(restore: true);
-   ```
-   Because the status code is 403, line 809 **never drops the visual guard**! The browser stays `Visibility.Hidden`, preventing Cloudflare's interactive challenge (Turnstile) from being visible or completed.
-
-### Cause 3: Why the PDF Remains in the Browser and Bugs Out
-1. In `StartEarlyPdfHandoff`:
-   ```csharp
-   handed = await HandPdfToReaderAsync(url, bytes);   // the pane steps aside; the reader tab opens
-   _ = Task.Delay(600).ContinueWith(_ => Dispatcher.BeginInvoke(
-       (Action)(() => RetreatFromInlinePdf())));
-   ```
-2. When `HandPdfToReaderAsync` succeeds, it fires `PdfRequested`.
-3. In `MainWindow.xaml.cs`:
-   ```csharp
-   WebPane.PdfRequested += path =>
-   {
-       HideWebPane();
-       OpenInNewTab(path);
-       RefreshWebSaveButton(path);
-   };
-   ```
-4. `HideWebPane()` immediately sets `WebPaneHost.Visibility = Collapsed` and calls `WebPane.OnPaneHidden()`, which runs `await core.TrySuspendAsync()`.
-5. **The WebView2 engine is suspended immediately!**
-   - The delayed `Task.Delay(600)` retreat never executes cleanly on a suspended engine.
-   - More critically: **no one removes or closes the PDF tab from `WebPane.Tabs`**!
-   - The card in `WebPane.Tabs` stays in the top tab strip and sidebar gallery with the PDF title and URL.
-6. When the user re-opens the web browser, the active tab is still the PDF tab pointing to the suspended/unretreated PDF viewer, resulting in a frozen, broken, or bugged state.
+**Critical user observation**: When these PDFs open in Chromium's built-in viewer and the user clicks Chrome's built-in **Save/Download button**, the `OnDownloadStarting` event fires immediately and Avalanche's reader opens the document. The PDF bytes are 100% accessible — only the automatic launch fails.
 
 ---
 
-## 3. Required Architectural Solutions
+## 2. The REAL Root Cause — Why All Three Capture Layers Fail
 
-### A. Remove the `LooksLikePdf` Restriction on Viewer DOMs in `OnNavigationCompleted`
-In `OnNavigationCompleted` (`WebBrowserControl.xaml.cs`):
+### Why `--disable-features=PdfInlineViewer` Does Nothing (Line 177)
+The browser argument `--disable-features=PdfInlineViewer` in `EnsureReadyAsync()` is **NOT a supported WebView2 flag**. WebView2 silently ignores unknown Chromium feature flags passed via `AdditionalBrowserArguments`. The built-in PDF viewer remains fully active. PDFs are rendered inline by Chromium's viewer instead of triggering `OnDownloadStarting`. This means the entire PDF interception strategy depends on the three fallback capture layers — and all three fail for these sites.
+
+### Why Layer 1 Fails: `WaitPdfCaptureAsync` / `GetContentAsync()` Returns Null
+In `OnWebResourceResponseReceived` (line 926):
 ```csharp
-bool isPdf = plain.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
-bool viewerDom = plain.Length == 0 || plain.Equals("null", StringComparison.OrdinalIgnoreCase);
+Stream? content = await e.Response.GetContentAsync();
+if (content is null) { capture.TrySetResult(null); return; }
+```
+**`GetContentAsync()` is a known limitation of WebView2 for PDF responses.** When Chromium renders a PDF in its internal viewer, the response stream is consumed internally by the viewer's rendering pipeline. `GetContentAsync()` returns `null` or throws `HRESULT: 0x800700E8` ("The pipe is being closed"). The capture slot is set to `null`, and `WaitPdfCaptureAsync` returns `null`.
 
-// Any page that reports application/pdf OR has a viewer DOM ("null") is a PDF candidate!
-// Also support common academic repository query patterns (viewcontent.cgi, download=true, etc.)
-if (!isPdf && !viewerDom && !LooksLikePdf(url))
+### Why Layer 2 Fails: `FetchViaPageScriptAsync()` Returns Empty
+When Chromium renders a PDF, the page DOM is Chromium's internal PDF viewer extension (`chrome-extension://...` or `<embed type="application/pdf">`). Running `fetch(location.href)` inside this context is blocked by Content Security Policy (CSP). The script returns an empty string.
+
+### Why Layer 3 Fails: `FetchBrowserBytesAsync()` Gets 403'd
+The out-of-process `HttpClient` fetch carries the session cookies but **NOT the Cloudflare challenge tokens** (`cf_clearance`, `__cf_bm`). Even with cookies copied, Cloudflare's Turnstile validation is tied to the browser's JavaScript execution environment. An `HttpClient` request from a different process looks like a fresh bot and gets 403 Forbidden.
+
+### Summary: The Capture Pipeline Is Fundamentally Broken for These Sites
+All three layers return null → `CapturePdfFromBrowserAsync` returns null → `HandPdfToReaderAsync` returns false → handoff fails → the user sees Chromium's viewer.
+
+---
+
+## 3. The Solution: Force WebView2 to Treat PDFs as Downloads
+
+Since `--disable-features=PdfInlineViewer` does not work, we need to use the **only reliable WebView2 API method**: intercept the navigation BEFORE Chromium's PDF viewer can render, and force a download.
+
+### A. Use `NavigationStarting` + `WebResourceRequested` to Force Download Behavior
+The correct approach is to use `AddWebResourceRequestedFilter` and `WebResourceRequested` to intercept PDF navigations and modify the response headers to force download behavior:
+
+```csharp
+// In EnsureReadyAsync(), after subscribing to events:
+core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceRequestedEventArgs...);
+```
+
+**However**, the simplest and most reliable approach is:
+
+### B. Cancel Navigation and Re-request as Download (Recommended)
+In `OnNavigationStarting`, when a PDF-shaped URL is detected OR when we have evidence a PDF is incoming:
+
+1. **Do NOT cancel navigations** (we already established this breaks one-time tokens).
+2. Instead, let the navigation proceed but **monitor the response**.
+
+### C. The Real Fix: Intercept in `OnWebResourceResponseReceived` and Force a Download
+When `OnWebResourceResponseReceived` detects `Content-Type: application/pdf`:
+1. Instead of trying to read the response stream (which fails), **initiate a programmatic download** using `CoreWebView2.DownloadStarting` by navigating the browser to the same URL with a download hint.
+2. OR: Use `CoreWebView2.CallDevToolsProtocolMethodAsync("Page.setDownloadBehavior", ...)` to force download behavior.
+3. OR: The simplest approach — **call `PrintToPdfAsync`** on the rendered PDF page.
+
+### D. PrintToPdfAsync — The Reliable Fallback (Simplest Fix)
+`PrintToPdfAsync` works on ANY page Chromium has rendered, including PDFs in the built-in viewer. It outputs a valid PDF file. This is officially supported by Microsoft.
+
+**Change `CapturePdfFromBrowserAsync` to add `PrintToPdfAsync` as a 4th fallback layer**:
+```csharp
+private async Task<byte[]?> CapturePdfFromBrowserAsync(string url)
 {
-    DropVisualGuard(restore: true);
-    return;
+    // Layer 1: Engine's own response stream (often null for PDFs)
+    byte[]? captured = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
+    if (captured != null && HasPdfHeader(captured)) return captured;
+    
+    // Layer 2: In-page JavaScript fetch (fails on viewer DOMs)
+    byte[]? scripted = await FetchViaPageScriptAsync();
+    if (scripted != null && HasPdfHeader(scripted)) return scripted;
+    
+    // Layer 3: Out-of-process credentialed fetch (fails on Cloudflare)
+    byte[]? fetched = await FetchBrowserBytesAsync(url);
+    if (fetched != null && HasPdfHeader(fetched)) return fetched;
+    
+    // Layer 4 (NEW): PrintToPdfAsync — always works on rendered PDFs
+    byte[]? printed = await PrintRenderedPdfAsync();
+    if (printed != null && HasPdfHeader(printed)) return printed;
+    
+    return null;
+}
+
+private async Task<byte[]?> PrintRenderedPdfAsync()
+{
+    try
+    {
+        CoreWebView2? core = Browser.CoreWebView2;
+        if (core is null) return null;
+        string temp = TempPdfPath("print-capture-" + 
+            DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
+        await core.PrintToPdfAsync(temp, null);
+        byte[] bytes = await File.ReadAllBytesAsync(temp);
+        try { File.Delete(temp); } catch { }
+        return bytes;
+    }
+    catch { return null; }
 }
 ```
-If `viewerDom` is true or `_pdfCapture` holds bytes, **always** trigger `CatchInlinePdfAsync()`.
 
-### B. Trigger `StartEarlyPdfHandoff` on Any Verified PDF Response
-In `OnWebResourceResponseReceived`:
-If `isPdf` is true (`application/pdf` or `application/x-pdf`):
-- Do NOT gate `StartEarlyPdfHandoff` behind `LooksLikePdf(uri)` or `mainDocument`.
-- An incoming PDF payload to the browser is always a document the user intended to open in Avalanche.
-- Ensure `StartEarlyPdfHandoff(uri)` is started whenever `isPdf` is true and handoff is not already in flight.
+### E. Even Better: Trigger Download via DevTools Protocol
+Use `CallDevToolsProtocolMethodAsync` to programmatically trigger a download of the current page URL. This causes Chromium to re-fetch the URL as a download, which fires `OnDownloadStarting`:
+```csharp
+// Force current PDF URL to download instead of render
+await core.CallDevToolsProtocolMethodAsync("Page.navigate", 
+    $"{{\"url\":\"{url}\",\"transitionType\":\"typed\"}}");
+```
 
-### C. Handle Challenges and Interstitials (Wiley / Cloudflare 403)
-- In `OnWebResourceResponseReceived`, do NOT keep the visual guard active if the response is an HTML page (regardless of whether status code is 200, 403, or 429).
-- If `!isPdf && _browserGuarded`:
-  ```csharp
-  DropVisualGuard(restore: true);
-  ```
-  If a challenge page or Turnstile appears, the user must be able to see and interact with it.
+Or use:
+```csharp
+// Set download behavior for PDFs
+await core.CallDevToolsProtocolMethodAsync("Browser.setDownloadBehavior",
+    "{\"behavior\":\"allowAndName\",\"downloadPath\":\"" + tempDir + "\"}");
+```
 
-### D. Clean Up Web Browser State Immediately on Successful PDF Handoff
-When a PDF is successfully handed to Avalanche reader (`handed == true`):
-1. **Immediately clean up the browser before hiding / suspending**:
-   - If `WebPane.Tabs.Count > 1` (the PDF opened as a new tab or there were other tabs open):
-     - Automatically close the PDF tab: call `CloseTab(url)`.
-     - The browser switches back to the previous active web page (e.g. search results or journal index).
-   - If `WebPane.Tabs.Count <= 1`:
-     - Immediately navigate back (`if (core.CanGoBack) core.GoBack(); else NavigateTo(HomePage);`).
-     - Reset the tab card in `Tabs` to the target page URL and title so it doesn't linger as a PDF.
-2. **Synchronous Retreat**:
-   - Do NOT rely on `Task.Delay(600)` across engine suspension.
-   - Perform the retreat or tab closure **before** calling `PdfRequested?.Invoke(target)` (or immediately within `HandPdfToReaderAsync`), and ensure `DropVisualGuard(restore: true)` is executed so the browser is clean for the next time it opens.
+### F. Alternative: `NavigationStarting` Header Injection
+Another approach is to add `Content-Disposition: attachment` to the request via `WebResourceRequested`, which forces Chromium to treat the response as a download:
+```csharp
+core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.Document);
+core.WebResourceRequested += (s, e) =>
+{
+    // If we detect this is a PDF navigation, add header to force download
+};
+```
 
 ---
 
-## 4. Verification Checklist
+## 4. Recommended Implementation Order
 
-1. **Test Academic Repositories**:
+1. **Add `PrintToPdfAsync` as Layer 4** in `CapturePdfFromBrowserAsync`. This is the safest, simplest change with zero risk of breaking existing functionality. It catches every PDF that Chromium's viewer managed to render.
+2. **Remove the dead `--disable-features=PdfInlineViewer`** flag to avoid confusion.
+3. **Test all three failing URLs** to verify `PrintToPdfAsync` captures them.
+4. **Optional future improvement**: Investigate DevTools Protocol `Page.setDownloadBehavior` to prevent Chromium's viewer from ever rendering PDFs, making all PDFs go through `OnDownloadStarting` directly.
+
+---
+
+## 5. Verification Checklist
+
+1. **Test the three still-failing links**:
    - `https://chicagounbound.uchicago.edu/cgi/viewcontent.cgi?article=13702&context=journal_articles`
    - `https://www.repository.law.indiana.edu/cgi/viewcontent.cgi?article=11519&context=ilj`
    - `https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
-   - Verify all 3 hand over to Avalanche's PDF reader editor.
-2. **Verify Browser Tab Cleanup**:
-   - Open a search page in the browser (e.g. Google Scholar).
-   - Click a PDF link.
-   - Once the PDF opens in Avalanche, click the web browser globe button to reopen the browser.
-   - Verify the browser is cleanly showing the previous web page (or home page), NOT a bugged/frozen PDF viewer or a lingering PDF tab.
-3. **Verify Status Strip**:
-   - Verify the status bar cleanly hides without leaving "Fetching the PDF..." stuck.
+   - All three must auto-port to Avalanche's PDF reader without user intervention.
+2. **Verify previously working links still work**:
+   - JSTOR, Academia, SSRN links should continue working as before.
+3. **Verify the zombie-tab fix still works** (it does — no changes needed there).
+4. **Verify status bar** never gets stuck on "Fetching the PDF..."
