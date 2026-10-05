@@ -1,275 +1,240 @@
-# TASK: Two-Pronged Fix — Extension Button Fallback + Fix Automatic PrintToPdf Capture
+# TASK: UI Polish — Close Buttons, Status Indicator, Bookmarks, Extension Fix, Tab Stability
 
 Repository: `https://github.com/etb190/Avalanche`  
-Target Files: `Controls/WebBrowserControl.xaml.cs`, new extension folder  
-Version: `1.19.10` (or next patch)
+Target Files: `Controls/WebBrowserControl.xaml`, `Controls/WebBrowserControl.xaml.cs`, `MainWindow.xaml`, `MainWindow.xaml.cs`, `Resources/WebExtensions/avalanche-pdf/content.js`  
+Version: `1.19.11` (or next patch)
 
 ---
 
-## PART A: Fix the Automatic `PrintRenderedPdfAsync` (Layer 4)
+## Issue 1: Add ✕ Close Button to Sidebar Web Tab Cards
 
-### Why Layer 4 Failed in v1.19.9
+### Current State
+The **top tab strip** already has a ✕ close button per tab (`WebTabStripClose_Click` at line 2869 of `MainWindow.xaml`). But the **left sidebar gallery cards** (the `WebTabsPanel` at line 1938, with `WebTabsList` ItemsControl at line 1957) do NOT have any close button. Each card is a `Button` that only navigates to the tab on click — there is no way to close a tab from the sidebar.
 
-The `PrintRenderedPdfAsync` method (line 608) has two bugs preventing it from working:
-
-#### Bug 1: `document.contentType` Runs in the Wrong Frame
-Chromium's PDF viewer is a **two-frame structure**:
-- **Outer frame** (top-level): An HTML shell page (`text/html`) that hosts the viewer UI (toolbar, scroll, zoom).
-- **Inner frame**: The actual PDF content rendered by the `chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/` extension.
-
-When `ExecuteScriptAsync("document.contentType")` runs at line 615, it executes in the **outer (top-level) frame**, which returns `"text/html"` — NOT `"null"` or `"application/pdf"`.
-
-Because `viewerDom` and `pdfDoc` are both `false`, line 619 returns `null` immediately:
-```csharp
-if (!viewerDom && !pdfDoc) return null;   // ← exits here! Never reaches PrintToPdfAsync!
+### Required Fix
+Add a small ✕ button to each sidebar card in `MainWindow.xaml`, inside the card's `DataTemplate` (line 1960–1999). Place it in the top-right corner of the card, overlaying the preview thumbnail:
+```xaml
+<!-- Inside the card's StackPanel (line 1973), add a close button overlaying the top-right -->
+<Grid>
+    <!-- existing preview Border + Title + Host TextBlocks -->
+    <Button Content="&#xE711;" 
+            FontFamily="{DynamicResource IconFont}" FontSize="9"
+            Width="18" Height="18" Padding="0"
+            HorizontalAlignment="Right" VerticalAlignment="Top"
+            Margin="0,2,2,0" Cursor="Hand"
+            Style="{DynamicResource TabCloseButton}"
+            Tag="{Binding Url}" Click="WebSidebarTabClose_Click"/>
+</Grid>
 ```
 
-**Fix**: Do NOT gate `PrintRenderedPdfAsync` behind `document.contentType`. By the time Layer 4 runs, Layers 1–3 have already failed. The only question that matters is: "Is the browser currently showing a PDF?" Check the **URL** instead:
+Add a handler in `MainWindow.xaml.cs`:
 ```csharp
-private async Task<byte[]?> PrintRenderedPdfAsync()
+private void WebSidebarTabClose_Click(object sender, RoutedEventArgs e)
 {
-    try
-    {
-        CoreWebView2? core = Browser.CoreWebView2;
-        if (core is null) return null;
-        string url = Browser.Source?.ToString() ?? string.Empty;
-        
-        // By this point, layers 1-3 all failed. If we're here and the URL
-        // looks like a PDF or we have a pending capture, try the print.
-        // Also check if the page is Chromium's viewer by probing for its
-        // specific extension URL pattern.
-        bool onViewer = url.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase)
-            || LooksLikePdf(url)
-            || _pdfCapture is not null;  // a capture was attempted = we know a PDF arrived
-        if (!onViewer) return null;
-        
-        DropVisualGuard(restore: true);
-        string target = TempPdfPath(
-            "print-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
-        if (!await core.PrintToPdfAsync(target, null)) return null;
-        byte[] printed = await File.ReadAllBytesAsync(target);
-        try { File.Delete(target); } catch { }
-        return printed;
-    }
-    catch { return null; }
+    if (sender is Button { Tag: string url } && url.Length > 0)
+        WebPane.CloseTab(url);
 }
 ```
 
-#### Bug 2: `PrintToPdfAsync` on the Viewer Produces a Re-rendered PDF, Not the Original
-`PrintToPdfAsync` prints the **page as Chromium sees it**. When the PDF viewer is active, it re-rasterizes the rendered content through the print pipeline. The output:
-- IS a valid PDF (has `%PDF-` header, passes `HasPdfHeader`).
-- BUT may look slightly different from the original (re-rendered text, possibly different page sizes/margins).
-- This is still a **usable document** — all the text and images are there. The user can read and annotate it in Avalanche.
-
-If `PrintToPdfAsync` returns `false` or throws (which it might on some Chromium versions for extension-hosted pages), the method returns `null` and the extension button (Part B below) serves as the guaranteed fallback.
-
-#### Additional Fix: The `LooksLikePdf` Gap for CGI URLs
-`LooksLikePdf` still doesn't match `viewcontent.cgi` URLs. Since `PrintRenderedPdfAsync` is the last automatic layer, it should also check if `_pdfCapture` was ever set (meaning `OnWebResourceResponseReceived` confirmed a `Content-Type: application/pdf` arrived). If a capture was attempted, we know a PDF was delivered regardless of URL shape.
+The close behavior should be identical to the top strip's `WebTabStripClose_Click` — it calls `WebPane.CloseTab(url)` which removes the card, switches to the next tab, or hides the browser if it was the last tab.
 
 ---
 
-## PART B: Add "Open in Avalanche" Extension Button
+## Issue 2: Replace "Convert to PDF" Button with Inline Status Indicator
 
-For PDFs where even the fixed Layer 4 fails, add a visible one-click escape button.
+### Current State
+- There is a "Convert to PDF / Open in Avalanche" button (`WebOpenPdfBtn`, line 110 of `WebBrowserControl.xaml`) after the address bar.
+- The status strip (`WebStatus`, line 127) is a separate `TextBlock` at Grid.Row 2 that shows "Fetching the PDF..." text. When it appears, it **adds vertical space** and pushes the WebView down.
 
-### How It Works
-A tiny WebView2 browser extension (3 files, ~2KB total) bundled with the app:
-1. **Detects PDF viewer pages** — checks `document.contentType === 'application/pdf'` OR the page is `chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/` (Chromium's PDF viewer extension ID).
-2. **Injects a floating "Open in Avalanche" button** — bottom-right corner, semi-transparent, circular.
-3. **On click, triggers a download** — creates an `<a download>` link and clicks it, which fires `OnDownloadStarting` — the same path as Chrome's Save button (proven 100% reliable).
+### Required Changes
 
-### Extension Files (bundle in `Resources/WebExtensions/avalanche-pdf/`)
+**A. Remove `WebOpenPdfBtn`** (line 110-111 in `WebBrowserControl.xaml`). Delete it entirely.
 
-**`manifest.json`:**
-```json
-{
-  "manifest_version": 3,
-  "name": "Avalanche PDF Helper",
-  "version": "1.0",
-  "description": "Opens PDFs in Avalanche reader",
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["button.css"],
-      "run_at": "document_idle"
-    }
-  ],
-  "permissions": []
-}
-```
+**B. Replace `WebStatus` TextBlock with an inline icon indicator** placed where `WebOpenPdfBtn` used to be (right after the address bar, same row, no extra vertical space):
+- **Default state**: Hidden/collapsed (no space taken).
+- **Loading state**: An animated spinning circle icon (use a `RotateTransform` animation on a circular arrow glyph like `&#xE72C;` or a custom Path). Appears in the same toolbar row right after the omnibox.
+- **Success state**: Green checkmark icon (`&#xE73E;` in green). Shows for 2 seconds, then auto-hides.
+- **Failure state**: Red ✕ icon (`&#xE711;` in red). Shows for 3 seconds, then auto-hides.
 
-**`content.js`:**
+**C. Update C# code:**
+- `ShowStatus()` → show the spinning indicator
+- `HideStatus()` → show green checkmark, then auto-hide after 2s
+- `ShowTransientStatus()` → show red ✕, then auto-hide after 3s
+- Remove all references to `WebOpenPdfBtn` from `SetChromeEnabled()` (line 532) and the click handler `WebOpenPdfBtn_Click` (line 238).
+
+The indicator should be a small icon (same size as nav buttons, ~24x24) sitting right after the address bar `Border`, inside the same `StackPanel` (line 87). It must NOT add or remove vertical space — only its visibility changes.
+
+---
+
+## Issue 3: Extension Button Not Showing on Wiley (`/doi/pdf/...`)
+
+### The Problem
+The extension button works on most PDF viewer pages but does NOT appear on:
+`https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
+
+### Root Cause
+Wiley uses **Cloudflare Turnstile** which first shows a challenge page (HTTP 403, `text/html`). After the challenge is solved, Wiley serves the PDF through its **own custom embedded PDF viewer** — not Chromium's default viewer. Wiley wraps the PDF inside an HTML page with an `<iframe>` or `<object>` tag pointing to the actual PDF URL on a CDN.
+
+The current extension detection (line 6-8 of `content.js`) only checks:
 ```javascript
-(function() {
-  // Detect Chromium's PDF viewer:
-  // 1. document.contentType is 'application/pdf'
-  // 2. We're inside the PDF viewer extension
-  // 3. There's an embed[type="application/pdf"] on the page
-  const isPdf = document.contentType === 'application/pdf'
+const isPdf = document.contentType === 'application/pdf'
     || window.location.href.startsWith('chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/')
     || document.querySelector('embed[type="application/pdf"]') !== null;
+```
 
-  if (!isPdf) return;
+This misses:
+1. **`<iframe>` with a PDF src** — Wiley and many academic publishers use `<iframe src="https://cdn.example.com/article.pdf">` instead of `<embed>`.
+2. **`<object>` with a PDF data/type** — some viewers use `<object data="url" type="application/pdf">`.
+3. **Custom viewer wrappers** — the page URL contains `/pdf/` or `/doi/pdf/` but `document.contentType` is `text/html` (it's an HTML wrapper around the PDF).
+
+### Required Fix in `content.js`
+Expand the detection to cover all these cases:
+```javascript
+(function() {
+  // Detect PDF pages - both native viewer and embedded/wrapped PDFs
+  const isPdf = document.contentType === 'application/pdf'
+    || window.location.href.startsWith('chrome-extension://mhjfbmdgcfjbbpaeojofohoefgiehjai/')
+    || document.querySelector('embed[type="application/pdf"]') !== null
+    || document.querySelector('iframe[src$=".pdf"]') !== null
+    || document.querySelector('iframe[src*="application/pdf"]') !== null
+    || document.querySelector('object[type="application/pdf"]') !== null
+    || document.querySelector('object[data$=".pdf"]') !== null;
+
+  // Also check if the URL itself suggests a PDF page (publisher PDF viewer wrappers)
+  const urlPath = window.location.pathname.toLowerCase();
+  const urlLooksPdf = urlPath.endsWith('.pdf')
+    || /\/pdf\//.test(urlPath)
+    || /\/doi\/pdf\//.test(urlPath)
+    || /getpdf/i.test(urlPath)
+    || /viewcontent\.cgi/i.test(urlPath);
+
+  if (!isPdf && !urlLooksPdf) return;
   if (document.getElementById('avalanche-open-btn')) return;
 
-  const btn = document.createElement('button');
-  btn.id = 'avalanche-open-btn';
-  btn.title = 'Open in Avalanche';
-  btn.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="white">' +
-    '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>' +
-    '<polyline points="14,2 14,8 20,8" fill="none" stroke="white" stroke-width="1.5"/>' +
-    '<line x1="9" y1="13" x2="15" y2="13" stroke="rgba(74,144,217,1)" stroke-width="1.5"/>' +
-    '<line x1="9" y1="17" x2="13" y2="17" stroke="rgba(74,144,217,1)" stroke-width="1.5"/>' +
-    '</svg>';
-
+  // ... rest of button creation code unchanged ...
+  
+  // For wrapper pages (urlLooksPdf but not isPdf), try to find the actual PDF URL
+  // from an iframe/embed/object on the page
   btn.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    // Method 1: Try anchor download (triggers OnDownloadStarting)
+    
+    // Try to find the actual PDF URL from embedded elements
+    var pdfUrl = window.location.href;
+    var embed = document.querySelector('embed[type="application/pdf"]');
+    var iframe = document.querySelector('iframe[src$=".pdf"]') 
+              || document.querySelector('iframe[src*="pdf"]');
+    var obj = document.querySelector('object[type="application/pdf"]')
+           || document.querySelector('object[data$=".pdf"]');
+    
+    if (embed && embed.src) pdfUrl = embed.src;
+    else if (iframe && iframe.src) pdfUrl = iframe.src;
+    else if (obj && (obj.data || obj.getAttribute('data'))) pdfUrl = obj.data || obj.getAttribute('data');
+    
     try {
       var a = document.createElement('a');
-      a.href = window.location.href;
+      a.href = pdfUrl;
       a.download = 'document.pdf';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
     } catch(err) {
-      // Method 2: If anchor fails (CSP), use postMessage to C# host
       try {
         window.chrome.webview.postMessage(JSON.stringify({
           type: 'avalanche-open-pdf',
-          url: window.location.href
+          url: pdfUrl
         }));
       } catch(e2) {}
     }
   });
-
+  
   document.body.appendChild(btn);
 })();
 ```
 
-**`button.css`:**
-```css
-#avalanche-open-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 2147483647;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.3s ease;
-  opacity: 0.85;
-  padding: 0;
-}
-#avalanche-open-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
-  opacity: 1;
-}
-#avalanche-open-btn:active { transform: scale(0.95); }
-#avalanche-open-btn svg { pointer-events: none; }
-```
-
-### C# Wiring in `WebBrowserControl.xaml.cs`
-
-**1. Enable extensions in `EnsureReadyAsync()`:**
-```csharp
-CoreWebView2EnvironmentOptions options = new()
-{
-    AreBrowserExtensionsEnabled = true,
-};
-```
-
-**2. Load the extension after init:**
-```csharp
-try
-{
-    string extPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-        "Resources", "WebExtensions", "avalanche-pdf");
-    if (Directory.Exists(extPath))
-        await core.Profile.AddBrowserExtensionAsync(extPath);
-}
-catch { /* extension loading is a courtesy */ }
-```
-
-**3. Handle postMessage fallback (if anchor download fails):**
-```csharp
-core.WebMessageReceived += OnWebMessageReceived;
-
-private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
-{
-    try
-    {
-        string json = e.WebMessageAsJson;
-        using var doc = System.Text.Json.JsonDocument.Parse(json);
-        if (doc.RootElement.GetProperty("type").GetString() != "avalanche-open-pdf") return;
-        string? url = doc.RootElement.GetProperty("url").GetString();
-        if (string.IsNullOrEmpty(url)) return;
-        ShowStatus(TryLoc("Str_Web_PdfOpening"));
-        _ = FetchAndHandOffAsync(url);
-    }
-    catch { }
-}
-
-private async Task FetchAndHandOffAsync(string url)
-{
-    try
-    {
-        byte[]? bytes = await FetchBrowserBytesAsync(url);
-        if (bytes != null && HasPdfHeader(bytes))
-        {
-            string target = TempPdfPath(SafePdfName("extension-download.pdf"));
-            await File.WriteAllBytesAsync(target, bytes);
-            SettleAfterHandoff(url);
-            HideStatus();
-            PdfRequested?.Invoke(target);
-            return;
-        }
-        ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
-    }
-    catch { HideStatus(); }
-}
-```
-
-**4. Deploy extension files in `.csproj`:**
-```xml
-<ItemGroup>
-  <Content Include="Resources\WebExtensions\avalanche-pdf\**\*">
-    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-  </Content>
-</ItemGroup>
-```
+Also consider running the detection on a **`MutationObserver`** or a delayed re-check (e.g. `setTimeout` of 2 seconds), since Wiley's viewer may load the `<iframe>` after `document_idle`.
 
 ---
 
-## 3. Summary: Defense in Depth
+## Issue 4: Replace Quick-Access Dial Chips with Bookmarks System
 
-| Layer | Method | Catches |
-|-------|--------|---------|
-| 1 | `GetContentAsync()` stream capture | Direct `.pdf` URLs, JSTOR, SSRN, Academia |
-| 2 | In-page `fetch()` script | Pages where stream was consumed but JS context works |
-| 3 | Out-of-process `HttpClient` with cookies | Sites without bot protection |
-| 4 | **`PrintToPdfAsync` (FIXED)** | PDFs stuck in viewer where URL or capture confirms PDF |
-| 5 | **Extension "Open in Avalanche" button (NEW)** | Everything else — user clicks once, triggers download path |
+### Current State
+Below the address bar there is a `StackPanel` (line 116–122 of `WebBrowserControl.xaml`) with hardcoded "dial chips" for Archive.org, Google Scholar, Gutenberg, arXiv, and PubMed. These were never requested by the user.
 
-The first 4 layers are automatic (no user action). Layer 5 is a visible one-click fallback that uses the proven `OnDownloadStarting` path.
+### Required Changes
+
+**A. Remove the hardcoded dial chips** (lines 115–122 of `WebBrowserControl.xaml`). Delete the entire `StackPanel` with the `WebDialChip` buttons.
+
+**B. Add a Bookmark button** in the toolbar row (Grid.Row 0), right after the status indicator (Issue 2), separated by a vertical border/divider:
+```xaml
+<!-- Divider after status indicator -->
+<Border Width="1" Height="18" Background="{DynamicResource CardBorderBrush}" Margin="4,0"/>
+<!-- Bookmark button -->
+<Button x:Name="WebBookmarkBtn" Content="&#xE728;" Style="{StaticResource WebNavBtn}"
+        Click="WebBookmarkBtn_Click" ToolTip="{DynamicResource Str_TT_WebBookmark}"/>
+```
+- `&#xE728;` is the "Add to favorites" star icon in Segoe MDL2 Assets.
+- When the current page is already bookmarked, show a filled star (`&#xE735;`) instead.
+
+**C. Bookmark behavior:**
+- **Click on unfilled star**: Opens a small popup/flyout with:
+  - A text field pre-filled with the page title (editable — the user can rename it or leave it as the URL).
+  - A "Save" button that adds the bookmark.
+- **Click on filled star**: Removes the bookmark.
+- **Storage**: Save bookmarks as a simple JSON file in the app's data directory (e.g., `WebView2Data/bookmarks.json`). Each entry: `{ "name": "...", "url": "...", "favicon": "..." }`.
+
+**D. Display bookmarks** where the dial chips used to be (Grid.Row 1 area). Use a horizontal wrapping `WrapPanel` or `ItemsControl`:
+- Each bookmark shows as a small chip with the site's favicon (or a globe icon if unavailable) and the bookmark name.
+- Clicking a bookmark navigates to its URL.
+- Right-clicking (or long press) shows a context menu with "Edit" and "Delete" options.
+- If there are no bookmarks, show a subtle hint: "Bookmark pages with ☆".
 
 ---
 
-## 4. Verification Checklist
+## Issue 5: Tabs Should NOT Reorder When Switching Between Them
 
-1. **Auto-handoff (Layers 1–4)**: Test JSTOR, SSRN, Academia — should still auto-port.
-2. **Fixed Layer 4**: Test Chicago Unbound, Indiana Law, Wiley — may now auto-port via `PrintToPdfAsync` with the frame/gate fix.
-3. **Extension button (Layer 5)**: If any PDF still lands in Chrome's viewer, verify the button appears bottom-right and clicking it opens the PDF in Avalanche instantly.
-4. **Button does NOT appear** on regular web pages (Google, search results, journal indexes).
-5. **Status bar** never gets stuck.
-6. **Zombie tabs** remain fixed (v1.19.8 `SettleAfterHandoff` still in place).
+### Current State
+In `UpdateTabCardAsync()` (line 1228) and `OpenNewTab()` (line 1196), when a user **revisits** an existing tab:
+```csharp
+int at = Tabs.IndexOf(card);   // a revisit moves back to the top - the newest end
+if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
+```
+This moves the tab card back to position 0 (top) every time the user clicks on it or navigates to it. This causes tabs to **jump around** in the sidebar list every time the user switches between them, which is disorienting.
+
+### Required Fix
+Tabs should be sorted by **creation order** (newest on top, oldest on bottom) and should **stay in that position** until closed. Only a **brand new** tab gets inserted at position 0. Revisiting an existing tab should only update the `IsActive` flag — NOT move the card.
+
+**In `UpdateTabCardAsync()` (line 1263–1266):** Remove the reordering:
+```csharp
+// BEFORE (moves revisited tab to top):
+int at = Tabs.IndexOf(card);
+if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
+
+// AFTER (leave it where it is):
+// Do nothing — the card stays at its creation position.
+// Only update its Title, Host, Thumb, and IsActive flag.
+```
+
+**In `OpenNewTab()` (line 1210–1213):** Same fix for the revisit branch:
+```csharp
+// BEFORE:
+int at = Tabs.IndexOf(card);
+if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
+
+// AFTER:
+// Tab already exists — just activate it, don't move it.
+```
+
+The `Tabs.Insert(0, card)` for **new** cards (lines 1207 and 1260) should remain unchanged — new tabs still go to the top.
+
+---
+
+## Summary
+
+| # | Issue | Change |
+|---|-------|--------|
+| 1 | No close button on sidebar tab cards | Add ✕ overlay button to each card |
+| 2 | "Convert to PDF" button + text status bar | Replace with inline animated icon indicator (spinner → ✓/✕) |
+| 3 | Extension missing on Wiley | Detect `<iframe>`, `<object>`, and URL-based PDF wrappers |
+| 4 | Unwanted hardcoded dial chips | Replace with user bookmark system (star button + chips) |
+| 5 | Tabs jump when switching | Only insert new tabs at top; revisits don't move |
