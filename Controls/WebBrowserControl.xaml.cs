@@ -59,7 +59,10 @@ namespace Avalanche.Controls
     /// rail's cards route on the press itself, the ANGLE backend speaks D3D11
     /// WARP, and AdGuard rides along: the Chrome Web Store cannot install into
     /// this engine, so the app fetches the very CRX the store would serve and
-    /// loads it through the same extension door the pdf helper uses. Everything
+    /// loads it through the same extension door the pdf helper uses.
+    /// v1.19.16: the omnibox is an address bar that also searches - a link
+    /// the reader types or pastes goes where it points, scheme or not, and
+    /// only a question with spaces in it stays a search. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -492,19 +495,97 @@ namespace Avalanche.Controls
                 : Visibility.Collapsed;
         }
 
-        /// <summary>An absolute http(s) address goes as-is; a bare www. host gains the
-        /// scheme; anything else is a search - the reading-browser default.</summary>
+        /// <summary>The omnibox is an address bar that also searches, not a search
+        /// box that also takes addresses: an absolute http(s)/ftp/file address goes
+        /// as-is; a bare host the reader plainly meant as a place - www., localhost,
+        /// an ipv4, a dotted name whose last label reads like a tld, port and path
+        /// included - gains https:// and goes; anything else is a search - the
+        /// reading-browser default. v1.19.16: a link goes where it points, scheme
+        /// or not, and a pasted address keeps working even when the copy ran it
+        /// across lines; a question with spaces in it stays a search.</summary>
         internal static string ParseInput(string raw)
         {
             string text = raw.Trim();
             if (text.Length == 0) return HomePage;
+            if (LooksLikeAddressStart(text))
+            {
+                // a pasted address often arrives with the copy's line wrapping still
+                // in it: a scheme'd paste wraps anywhere, so every break comes out;
+                // a www. paste only loses its line breaks - "www. what is this"
+                // keeps the space that makes it a search.
+                text = text.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                    ? StripLineBreaks(text)
+                    : StripWhitespace(text);
+            }
             if (Uri.TryCreate(text, UriKind.Absolute, out Uri? abs)
-                && (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+                && (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps
+                    || abs.Scheme == Uri.UriSchemeFtp || abs.Scheme == Uri.UriSchemeFile))
                 return abs.ToString();
             if (text.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
                 && Uri.TryCreate("https://" + text, UriKind.Absolute, out Uri? www))
                 return www.ToString();
+            if (LooksLikeBareHost(text, out string bare)
+                && Uri.TryCreate("https://" + bare, UriKind.Absolute, out Uri? host))
+                return host.ToString();
             return "https://www.google.com/search?q=" + Uri.EscapeDataString(text);
+        }
+
+        /// <summary>The reader has already said "address" when the text opens with a
+        /// scheme or a www. host - only then is the whitespace inside it the copy's
+        /// wrapping rather than the words of a search.</summary>
+        private static bool LooksLikeAddressStart(string text)
+            => text.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("file://", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("ftp://", StringComparison.OrdinalIgnoreCase)
+            || text.StartsWith("www.", StringComparison.OrdinalIgnoreCase);
+
+        private static string StripWhitespace(string text)
+            => new string(text.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+        private static string StripLineBreaks(string text)
+            => text.Replace("\r", "").Replace("\n", "").Replace("\t", "");
+
+        /// <summary>A place, not a question: no whitespace and no @ anywhere (an
+        /// email is a search, not a host), and the part before the first path,
+        /// query or fragment mark reads as a host - localhost, an ipv4, or a
+        /// dotted name whose last label is letters, the way every browser reads
+        /// example.com, arxiv.org and sub.domain.co.uk. The host it approves is
+        /// handed back, so the navigation goes to the same name the check read.</summary>
+        private static bool LooksLikeBareHost(string text, out string candidate)
+        {
+            candidate = text;
+            if (text.Length == 0 || text.IndexOf('@') >= 0 || text.Any(char.IsWhiteSpace))
+                return false;
+            string host = text;
+            string rest = "";
+            int cut = host.IndexOfAny(new[] { '/', '?', '#' });
+            if (cut >= 0) { rest = host[cut..]; host = host[..cut]; }
+            if (host.EndsWith('.')) host = host[..^1];   // a dns name may sign off with a dot
+            if (host.Length == 0) return false;
+            int colon = host.LastIndexOf(':');
+            if (colon >= 0)
+            {
+                string port = host[(colon + 1)..];
+                if (port.Length == 0 || port.Length > 5 || port.Any(c => !char.IsAsciiDigit(c)))
+                    return false;
+            }
+            string name = colon >= 0 ? host[..colon] : host;
+            if (name.Length == 0) return false;
+            bool place;
+            if (name.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+                place = true;
+            else
+            {
+                string[] labels = name.Split('.');
+                place = labels.Length >= 2 && labels.All(l => l.Length > 0)
+                    && (labels.Length == 4
+                        && labels.All(l => l.All(char.IsAsciiDigit))
+                        && labels.All(l => int.TryParse(l, NumberStyles.None, CultureInfo.InvariantCulture, out int o) && o <= 255)
+                        || labels[^1].Length >= 2 && labels[^1].All(char.IsAsciiLetter));
+            }
+            if (place) candidate = host + rest;   // the trimmed name, port and path intact
+            return place;
         }
 
         private void NavigateTo(string url)
