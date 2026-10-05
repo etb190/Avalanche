@@ -1103,6 +1103,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 
     <!-- AI Error Messages -->
     <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama isn't running. Start the Ollama app and try again.</sys:String>
+    <sys:String x:Key="Str_AiErrorServiceUnreachable">Službu AI se nepodařilo spojit. Zkontrolujte připojení k internetu a zkuste to znovu.</sys:String>
     <sys:String x:Key="Str_AiErrorNotSignedIn">Not signed in to Ollama cloud. Run: ollama signin</sys:String>
     <sys:String x:Key="Str_AiErrorModelNotFound">Model not found. Run: ollama pull {0}</sys:String>
     <sys:String x:Key="Str_AiErrorBusy">Ollama cloud is busy. Try again in a moment.</sys:String>

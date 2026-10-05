@@ -5,7 +5,8 @@
 //    FILTER, and filtering is the enemy of "miss nothing". We extract the pages' text
 //    layer deterministically (TextRunService reading-order runs, same source the
 //    selection/search machinery uses) and hand all of it to the chat LLM.
-//  * <= ~300k chars of text (a 100-page stretch fits the 128k-token model's context):
+//  * <= ~300k chars of text (the 1M-token model's context spans a 100-page stretch
+//    several times over, so the budget is a conservative floor, not a ceiling):
 //    one direct streaming pass over the author's full argumentative arc - no
 //    "telephone game" of summarizing rough notes twice. Bigger ranges: map-reduce -
 //    exhaustive notes per whole-page segment, then a fusion pass that writes the
@@ -60,9 +61,10 @@ namespace Avalanche.Features.Summary
 
     internal static class PageSummarizer
     {
-        // gpt-oss:120b-cloud runs a 128k-token context window: 100 pages (~250k chars)
-        // fit in ONE pass, so the single-pass budget rides at ~300k chars and the
-        // map-reduce slicing below only wakes up for truly enormous ranges.
+        // nvidia/nemotron-3-ultra-550b-a55b runs a 1M-token context window:
+        // entire papers fit in ONE pass without chunking, so the single-pass
+        // budget rides at ~300k chars (conservatively) and the map-reduce
+        // slicing below only wakes up for truly enormous ranges.
         private const int SinglePassCharBudget = 300000;
         private const int SegmentCharBudget = 30000;
 

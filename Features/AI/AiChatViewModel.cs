@@ -1340,6 +1340,8 @@ namespace Avalanche.Features.AI
                 {
                     case AiErrorCategory.OllamaNotRunning:
                         return _loc("Str_AiErrorOllamaNotRunning");
+                    case AiErrorCategory.ServiceUnreachable:
+                        return _loc("Str_AiErrorServiceUnreachable");
                     case AiErrorCategory.NotSignedIn:
                         return _loc("Str_AiErrorNotSignedIn");
                     case AiErrorCategory.ModelNotFound:

@@ -186,16 +186,18 @@ namespace Avalanche.Features.AI
     /// </summary>
     public sealed class AiProviderConfig
     {
-        // Ollama's localhost bridge is the only AI backend; gpt-oss:120b-cloud is
-        // the only model (routed to ollama.com through the local bridge).
-        public string ProviderType { get; set; } = "Ollama";
-        public string BaseUrl { get; set; } = "http://localhost:11434/v1";
-        public string ApiKey { get; set; } = "ollama";
-        public string Model { get; set; } = "gpt-oss:120b-cloud";
+        // NVIDIA's NIM cloud API is the chat backend; nemotron-3-ultra-550b-a55b
+        // is the default model (OpenAI-compatible /v1/chat/completions, ~40
+        // req/min free tier). The local Ollama bridge stays available through
+        // the settings' Ollama preset.
+        public string ProviderType { get; set; } = "NVIDIA NIM";
+        public string BaseUrl { get; set; } = "https://integrate.api.nvidia.com/v1";
+        public string ApiKey { get; set; } = "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";
+        public string Model { get; set; } = "nvidia/nemotron-3-ultra-550b-a55b";
 
         // Semantic retrieval model - used ONLY for Ollama /api/embed calls
         // (local vectors for the hybrid retriever). Never used for chat
-        // generation; that stays gpt-oss:120b-cloud.
+        // generation; that stays Nemotron on the NIM API.
         public string EmbeddingModel { get; set; } = "embeddinggemma:latest";
 
         // Retrieval behavior (was hardcoded in the AiChatViewModel ctor).
@@ -211,19 +213,21 @@ namespace Avalanche.Features.AI
         // state).
         public string EmbeddingDocumentPrefix { get; set; } = "title: none | text: ";
         public string EmbeddingQueryPrefix { get; set; } = "task: search results | query: ";
-        public double Temperature { get; set; } = 0.1;
-        public int MaxTokens { get; set; } = 4096;  // Increased default for reasoning models
-        public double TopP { get; set; } = 1.0;
+        public double Temperature { get; set; } = 0.5;
+        public int MaxTokens { get; set; } = 16384;
+        public double TopP { get; set; } = 0.95;
         public string? ReasoningEffort { get; set; } = "low";  // low, medium, high
 
-        // Ask the endpoint for JSON output (response_format). gpt-oss supports it;
-        // other OpenAI-compatible servers (e.g. Nemotron builds) may reject unknown
+        // Ask the endpoint for JSON output (response_format). The default NIM
+        // endpoint accepts it; other OpenAI-compatible servers may reject unknown
         // request fields. The provider also falls back automatically when the server
         // answers 400 naming the field; set false to never send it at all.
         public bool RequestJsonOutput { get; set; } = true;
-        
-        // Ollama-specific: cloud model detection
-        public bool IsCloudModel => Model?.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase) == true;
+
+        // Cloud model detection: any endpoint off this machine (NIM and friends)
+        // counts as cloud - the -cloud model-name suffix died with gpt-oss.
+        public bool IsCloudModel => !string.IsNullOrEmpty(BaseUrl)
+            && !AiEndpoints.IsLocal(BaseUrl);
     }
 
 }

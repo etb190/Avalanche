@@ -16,7 +16,8 @@ namespace Avalanche.Features.AI
         UsageLimit,
         CutOff,
         Timeout,
-        BadResponse
+        BadResponse,
+        ServiceUnreachable
     }
 
     /// <summary>The only exception type the provider throws at callers.

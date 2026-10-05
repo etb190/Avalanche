@@ -11,13 +11,13 @@ namespace Avalanche.Features.AI
     public sealed class AiSettingsViewModel : INotifyPropertyChanged
     {
         // Generation provider settings
-        private string _genProviderType = "Ollama";  // Default to Ollama
-        private string _genBaseUrl = "http://localhost:11434/v1";
-        private string _genApiKey = "ollama";  // Dummy key for Ollama
-        private string _genModel = "gpt-oss:120b-cloud";
-        private double _genTemperature = 0.2;
-        private int _genMaxTokens = 4096;
-        private double _genTopP = 1.0;
+        private string _genProviderType = "NVIDIA NIM";  // Default to NVIDIA NIM (cloud)
+        private string _genBaseUrl = "https://integrate.api.nvidia.com/v1";
+        private string _genApiKey = "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";
+        private string _genModel = "nvidia/nemotron-3-ultra-550b-a55b";
+        private double _genTemperature = 0.5;
+        private int _genMaxTokens = 16384;
+        private double _genTopP = 0.95;
         private string _genReasoningEffort = "low";
         private string _embeddingModel = "embeddinggemma:latest";
         private int _topK = 24;
@@ -144,7 +144,7 @@ namespace Avalanche.Features.AI
             private set { _showCloudWarning = value; OnPropertyChanged(); }
         }
 
-        public string CloudWarningText => "⚠ This model sends your questions and document passages to the cloud (ollama.com). Documents leave this computer.";
+        public string CloudWarningText => "⚠ This model sends your questions and document passages to the cloud (NVIDIA NIM API). Documents leave this computer.";
 
         public AiProviderConfig ToGenConfig()
         {
@@ -201,6 +201,21 @@ namespace Avalanche.Features.AI
             GenReasoningEffort = "low";
         }
 
+        /// <summary>The default: chat generation on NVIDIA's NIM cloud API,
+        /// embeddings still on the local Ollama bridge.</summary>
+        public void ApplyNvidiaNimPreset()
+        {
+            GenProviderType = "NVIDIA NIM";
+            GenBaseUrl = "https://integrate.api.nvidia.com/v1";
+            GenApiKey = "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";
+            GenModel = "nvidia/nemotron-3-ultra-550b-a55b";
+            EmbeddingModel = "embeddinggemma:latest";  // embeddings stay on local Ollama
+            GenTemperature = 0.5;
+            GenMaxTokens = 16384;
+            GenTopP = 0.95;
+            GenReasoningEffort = "low";
+        }
+
         public async Task TestConnectionAsync(Func<string, string> loc)
         {
             if (IsTestingConnection) return;
@@ -214,11 +229,22 @@ namespace Avalanche.Features.AI
                 var results = new System.Text.StringBuilder();
                 bool allOk = true;
 
-                // Test 1: Ollama reachable (native /api/version)
-                ConnectionStatus = loc("Str_AiTestOllamaReachable");
-                bool ollamaReachable = await TestOllamaReachableAsync(GenBaseUrl);
-                results.AppendLine(ollamaReachable ? "✓ " + loc("Str_AiTestOllamaOk") : "✗ " + loc("Str_AiTestOllamaFail"));
-                allOk &= ollamaReachable;
+                // Test 1: generation endpoint reachable. A local bridge answers
+                // its native /api/version; a cloud endpoint (NIM) has no such
+                // route, so for cloud the reachability question is left to
+                // Test 2 itself - a real chat reply is the only honest word.
+                bool ollamaReachable;
+                if (AiEndpoints.IsLocal(GenBaseUrl))
+                {
+                    ConnectionStatus = loc("Str_AiTestOllamaReachable");
+                    ollamaReachable = await TestOllamaReachableAsync(GenBaseUrl);
+                    results.AppendLine(ollamaReachable ? "✓ " + loc("Str_AiTestOllamaOk") : "✗ " + loc("Str_AiTestOllamaFail"));
+                    allOk &= ollamaReachable;
+                }
+                else
+                {
+                    ollamaReachable = true;   // the chat test speaks for the cloud
+                }
 
                 // Test 2: chat model answers a tiny request (only over a
                 // reachable server - and with typed errors, only a REAL reply

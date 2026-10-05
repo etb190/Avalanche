@@ -179,7 +179,12 @@ namespace Avalanche.Features.AI
                 }
                 catch (HttpRequestException hre) when (IsConnectionFailure(hre))
                 {
-                    throw new AiProviderException(AiErrorCategory.OllamaNotRunning, config.Model, null, hre);
+                    // A local bridge that refuses is Ollama not running; a remote
+                    // host that refuses is the service itself out of reach.
+                    AiErrorCategory category = AiEndpoints.IsLocal(config.BaseUrl)
+                        ? AiErrorCategory.OllamaNotRunning
+                        : AiErrorCategory.ServiceUnreachable;
+                    throw new AiProviderException(category, config.Model, null, hre);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -315,6 +320,15 @@ namespace Avalanche.Features.AI
             if (reasoningEffort is not null)
                 body["reasoning_effort"] = reasoningEffort;
 
+            // Nemotron reasoning: the thinking mode is not a request field but
+            // a chat-template switch - enable_thinking is what turns the
+            // reasoning traces on (gpt-oss speaks reasoning_effort instead).
+            if (config.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase)
+                && reasoningEffort is not null)
+            {
+                body["chat_template_kwargs"] = new { enable_thinking = true };
+            }
+
             return body;
         }
 
@@ -352,11 +366,17 @@ namespace Avalanche.Features.AI
 
                 var choice = choices[0];
 
-                // Reasoning field (gpt-oss): intentionally ignored for display.
+                // Reasoning fields, intentionally ignored for display:
+                // gpt-oss speaks "reasoning", Nemotron speaks "reasoning_content".
                 if (message.TryGetProperty("reasoning", out var reasoningProp)
                     && reasoningProp.ValueKind == JsonValueKind.String)
                 {
                     System.Diagnostics.Debug.WriteLine($"[AI Reasoning]: {reasoningProp.GetString()}");
+                }
+                if (message.TryGetProperty("reasoning_content", out var reasoningContentProp)
+                    && reasoningContentProp.ValueKind == JsonValueKind.String)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AI Reasoning]: {reasoningContentProp.GetString()}");
                 }
 
                 var content = message.TryGetProperty("content", out var contentProp)

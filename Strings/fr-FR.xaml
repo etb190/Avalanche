@@ -1118,6 +1118,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 
     <!-- AI Error Messages -->
     <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama isn't running. Start the Ollama app and try again.</sys:String>
+    <sys:String x:Key="Str_AiErrorServiceUnreachable">Impossible de joindre le service d'IA. Vérifiez votre connexion Internet et réessayez.</sys:String>
     <sys:String x:Key="Str_AiErrorNotSignedIn">Not signed in to Ollama cloud. Run: ollama signin</sys:String>
     <sys:String x:Key="Str_AiErrorModelNotFound">Model not found. Run: ollama pull {0}</sys:String>
     <sys:String x:Key="Str_AiErrorBusy">Ollama cloud is busy. Try again in a moment.</sys:String>

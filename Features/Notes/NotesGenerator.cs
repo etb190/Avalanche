@@ -8,8 +8,8 @@
 // reads the same token-dense text every other AI feature sees.
 //
 // Slicing: the requested span travels to the model as ONE continuous prompt
-// (gpt-oss:120b-cloud's 128k context spans it whole, so an argument that
-// starts on page 129 and finishes on 130 never dangles), but the prompt
+// (nvidia/nemotron-3-ultra-550b-a55b's 1M context spans it whole, so an argument
+// that starts on page 129 and finishes on 130 never dangles), but the prompt
 // demands the answer STRUCTURED as discrete 50-page cards, each headed
 // "## Pages <start> - <end>" - NotesRecallLogic.ParseCards splits those
 // headings back into per-block cards the sidebar renders and copies.

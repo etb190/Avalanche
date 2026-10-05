@@ -1098,6 +1098,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 
     <!-- ── AI Error Messages ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama চালু নেই। Ollama অ্যাপটি চালু করুন এবং আবার চেষ্টা করুন।</sys:String>
+    <sys:String x:Key="Str_AiErrorServiceUnreachable">AI পরিষেবায় পৌঁছানো যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।</sys:String>
     <sys:String x:Key="Str_AiErrorNotSignedIn">Ollama ক্লাউডে সাইন ইন নেই। চালান: ollama signin</sys:String>
     <sys:String x:Key="Str_AiErrorModelNotFound">মডেল পাওয়া যায়নি। চালান: ollama pull {0}</sys:String>
     <sys:String x:Key="Str_AiErrorBusy">Ollama ক্লাউড ব্যস্ত। একটু পর চেষ্টা করুন।</sys:String>

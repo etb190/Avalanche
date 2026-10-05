@@ -1118,6 +1118,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 
     <!-- AI Error Messages -->
     <sys:String x:Key="Str_AiErrorOllamaNotRunning">Ollama isn't running. Start the Ollama app and try again.</sys:String>
+    <sys:String x:Key="Str_AiErrorServiceUnreachable">Không thể kết nối đến dịch vụ AI. Vui lòng kiểm tra kết nối Internet và thử lại.</sys:String>
     <sys:String x:Key="Str_AiErrorNotSignedIn">Not signed in to Ollama cloud. Run: ollama signin</sys:String>
     <sys:String x:Key="Str_AiErrorModelNotFound">Model not found. Run: ollama pull {0}</sys:String>
     <sys:String x:Key="Str_AiErrorBusy">Ollama cloud is busy. Try again in a moment.</sys:String>
