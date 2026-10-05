@@ -102,6 +102,35 @@ namespace Avalanche.Features.Summary
             }
         }
 
+        // Reset's promise: the reader wiped the card, so the range's cached
+        // digests die with it - every model, every hash, every variant. Without
+        // this, Start after Reset just replays the digest the reader deleted:
+        // the wipe was cosmetic, the cache still held the card, and the run
+        // came back identical. The delete is best-effort like every cache
+        // path; the window arms a fresh-run flag alongside so a lost race
+        // still cannot replay the wiped digest.
+        public static void DeleteRange(string documentId, int firstPage, int lastPage)
+        {
+            try
+            {
+                lock (Gate)
+                {
+                    using var cmd = Connection().CreateCommand();
+                    cmd.CommandText =
+                        "DELETE FROM summary_cache_v2 WHERE document_id=$d AND " +
+                        "first_page=$f AND last_page=$l";
+                    cmd.Parameters.AddWithValue("$d", documentId);
+                    cmd.Parameters.AddWithValue("$f", firstPage);
+                    cmd.Parameters.AddWithValue("$l", lastPage);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
         private static SqliteConnection Connection()
         {
             if (_connection != null)

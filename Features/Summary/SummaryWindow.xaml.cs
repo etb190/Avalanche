@@ -89,6 +89,7 @@ namespace Avalanche.Features.Summary
         private bool _flushPending;
         private bool _closed;
         private int _generation;        // bumped by supersede/reset/close: stale continuations can't repaint
+        private bool _freshNextRun;     // armed by Reset: the next run must be GENERATED, never replayed from the cache
 
         private int _rangePages = 20;   // pages per digest: the selected range chip's value
         private int _targetWords = 1000;
@@ -732,8 +733,12 @@ namespace Avalanche.Features.Summary
             Overlay(null);
             SetBusy(true);
 
+            // Reset armed the fresh-run flag: this run skips the cache lookup so
+            // the wiped digest cannot replay. The arm survives failed runs (every
+            // retry stays cache-free) and is spent only when a digest lands.
             var request = new SummaryRequest(
-                _filePath, _documentId, first, last, _targetWords, _language, _genre, BypassCache: false);
+                _filePath, _documentId, first, last, _targetWords, _language, _genre,
+                BypassCache: _freshNextRun);
             _runFirstPage = first;
             _runLastPage = last;
             try
@@ -756,6 +761,9 @@ namespace Avalanche.Features.Summary
                         case "done":
                             if (gen == _generation)
                             {
+                                // A digest landed: Reset's fresh-run arm is spent. A run
+                                // that errored keeps the arm - its retries stay cache-free.
+                                _freshNextRun = false;
                                 if (update.RawRange.Length > 0)
                                 {
                                     // The pass's own unabridged extraction: the floating
@@ -922,6 +930,24 @@ namespace Avalanche.Features.Summary
             StatusText.Text = string.Empty;
             InvalidatePrefetch();   // the reset was manual: the buffer goes too
             SaveDigest();       // the reset was the reader's action: forget the digest
+            // The wipe is real, not cosmetic: the range's cached digests die with
+            // the card - both the range on screen and the range the deleted digest
+            // was generated from (they differ when the anchor moved after the run).
+            // Start would otherwise replay the very digest the reader deleted. The
+            // fresh-run arm covers a lost wipe race either way.
+            _freshNextRun = true;
+            string wipeDoc = _documentId;
+            int wipeFirst = _startPage;
+            int wipeLast = RangeEnd();
+            int runFirst = _runFirstPage, runLast = _runLastPage;
+            _ = Task.Run(() =>
+            {
+                SummaryCache.DeleteRange(wipeDoc, wipeFirst, wipeLast);
+                if (runFirst != wipeFirst || runLast != wipeLast)
+                {
+                    SummaryCache.DeleteRange(wipeDoc, runFirst, runLast);
+                }
+            });
             SetBusy(false);
         }
 
