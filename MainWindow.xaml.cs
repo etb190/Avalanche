@@ -2288,9 +2288,13 @@ namespace Avalanche
         }
 
         /// <summary>A gallery card was clicked: the browser switches to that
-        /// view, matching the tab strip's behavior.</summary>
+        /// view, matching the tab strip's behavior. A click raised by a button
+        /// NESTED inside the card (the card's own ✕) never counts - it arrives
+        /// here wearing the card as its sender, and acting on it would reopen
+        /// the very tab the ✕ just closed.</summary>
         private void WebTabCard_Click(object sender, RoutedEventArgs e)
         {
+            if (!ReferenceEquals(e.OriginalSource, sender)) return;   // a nested button's click, not the card's own
             if (sender is Button { Tag: string url } && url.Length > 0)
                 WebPane.ActivateTab(url);
         }
@@ -2301,6 +2305,11 @@ namespace Avalanche
         /// aside when the last view closed.</summary>
         private void WebSidebarTabClose_Click(object sender, RoutedEventArgs e)
         {
+            // v1.19.12: the ✕ lives INSIDE the card button. Click bubbles - an
+            // unhandled one reaches the card and fires ActivateTab on the very
+            // address the ✕ just closed, so the tab came back and landed at the
+            // top of the rail. Handled here, the click dies with the close.
+            e.Handled = true;
             if (sender is Button { Tag: string url } && url.Length > 0)
                 WebPane.CloseTab(url);
         }

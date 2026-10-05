@@ -187,7 +187,7 @@
              the star flips its fill either way. Enter saves, Escape closes. -->
         <Popup x:Name="WebBookmarkPopup" PlacementTarget="{Binding ElementName=WebBookmarkBtn}"
                Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-            <Border Background="{DynamicResource SidebarPaneBrush}"
+            <Border Background="{DynamicResource WebFlyoutBrush}"
                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                     CornerRadius="{DynamicResource ControlCornerRadius}" Padding="10" Margin="0,0,10,10">
                 <Border.Effect>

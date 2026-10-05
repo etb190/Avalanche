@@ -850,6 +850,24 @@ namespace Avalanche.Controls
             catch { /* a settle that stumbles never blocks the hand-off */ }
         }
 
+        /// <summary>v1.19.12: every pdf download attempt owes the view its exit, not
+        /// only the ones that succeed. The navigation Chromium turned into a download
+        /// leaves the engine standing on a blank provisional page when it stands on
+        /// the download's own address; the success path has settled since v1.19.8,
+        /// and the refused and interrupted attempts settle here now - the reader is
+        /// left on the page that offered the document, never on an about:blank shell
+        /// dressed as a tab.</summary>
+        private void SettleAfterDownloadAttempt(string dlUrl)
+        {
+            try
+            {
+                string view = Browser.Source?.ToString() ?? string.Empty;
+                if (view.Length > 0 && (UriEquals(view, dlUrl) || LooksLikePdf(view)))
+                    SettleAfterHandoff(view);
+            }
+            catch { /* a settle that stumbles never blocks the hand-off */ }
+        }
+
         /// <summary>The fetch, with the session's own credentials: the cookies the WebView2
         /// engine earned (sign-ins included, HttpOnly ones too), the engine's real user
         /// agent, the page that offered the link as referrer, and honest compression.
@@ -970,23 +988,26 @@ namespace Avalanche.Controls
                         // settles the view too when the browser stands on its
                         // address - a download navigation leaves a blank view
                         // otherwise, dressed as a frozen tab on reopen.
-                        try
-                        {
-                            string view = Browser.Source?.ToString() ?? string.Empty;
-                            if (view.Length > 0 && (UriEquals(view, dlUrl) || LooksLikePdf(view)))
-                                SettleAfterHandoff(view);
-                        }
-                        catch { /* a settle that stumbles never blocks the hand-off */ }
+                        SettleAfterDownloadAttempt(dlUrl);
                         PdfRequested?.Invoke(target);
                     }
                     else if (op.State == CoreWebView2DownloadState.Completed)
                     {
                         try { File.Delete(target); } catch { /* temp litter is harmless */ }
+                        // v1.19.12: a refused document settles the view too - the
+                        // navigation that became this download still left the engine
+                        // standing on a blank provisional page, and a red cross over
+                        // an about:blank shell is not much of an answer.
+                        SettleAfterDownloadAttempt(dlUrl);
                         ShowTransientStatus(TryLoc("Str_Web_PdfNotPdf"));   // v1.19.7: the word takes itself down
                     }
                     else
                     {
                         HideStatus();   // interrupted: the status line steps aside
+                        // v1.19.12: the interrupted attempt settles as well; the
+                        // view that carried the download goes home instead of
+                        // freezing on the blank it was left holding.
+                        SettleAfterDownloadAttempt(dlUrl);
                     }
                 });
             };
@@ -1083,9 +1104,15 @@ namespace Avalanche.Controls
         private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
         {
             // A page asking for a popup gets this view instead of a stranded offscreen
-            // window the reader can never see.
+            // window the reader can never see. A blank shell is the exception
+            // (v1.19.12): download tricks and scripting scaffolds open about:blank
+            // first and write into it after - routing THIS view there only blanked
+            // the page the reader was on, and nothing ever arrived in it. The shell
+            // is swallowed; the view stays where it was.
             e.Handled = true;
-            NavigateTo(e.Uri);
+            string popup = e.Uri ?? string.Empty;
+            if (popup.Length == 0 || popup.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return;
+            NavigateTo(popup);
         }
 
         /// <summary>v1.19.10: the riding helper's word. When even the fixed print
@@ -1109,8 +1136,10 @@ namespace Avalanche.Controls
                 string? url = doc.RootElement.TryGetProperty("url", out System.Text.Json.JsonElement u)
                     ? u.GetString() : null;
                 if (string.IsNullOrEmpty(url)) return;
+                string? alt = doc.RootElement.TryGetProperty("alt", out System.Text.Json.JsonElement altEl)
+                    ? altEl.GetString() : null;
                 ShowStatus(TryLoc("Str_Web_PdfOpening"));
-                _ = FetchAndHandOffAsync(url);
+                _ = FetchAndHandOffAsync(url, alt);
             }
             catch { /* a message that stumbles is never worth a crash */ }
         }
@@ -1119,21 +1148,32 @@ namespace Avalanche.Controls
         /// fetch - the session's own cookies and user agent - and the same
         /// hand-off the automatic layers use, settle and all, so a handed-off
         /// document leaves no tab behind here either. One flight per address,
-        /// like every other road; a failure lands the honest blocked word.</summary>
-        private async Task FetchAndHandOffAsync(string url)
+        /// like every other road. A wrapper page hands the helper two
+        /// candidates: the embedded document's address first, the wrapper's own
+        /// address second - each gets one fetch, and the first real PDF bytes
+        /// win. A failure lands the honest blocked word, and success is the one
+        /// place the green check lives (v1.19.12): the click's own receipt.</summary>
+        private async Task FetchAndHandOffAsync(string url, string? alt)
         {
             try
             {
                 if (!_pdfInFlight.Add(url)) { HideStatus(); return; }
                 try
                 {
-                    byte[]? bytes = await FetchBrowserBytesAsync(url);
+                    string handed = url;
+                    byte[]? bytes = await TryFetchPdfBytesAsync(url);
+                    if ((bytes is null || !HasPdfHeader(bytes))
+                        && !string.IsNullOrEmpty(alt) && !UriEquals(alt, url))
+                    {
+                        byte[]? second = await TryFetchPdfBytesAsync(alt);   // the wrapper's own address takes its turn
+                        if (second != null && HasPdfHeader(second)) { bytes = second; handed = alt; }
+                    }
                     if (bytes != null && HasPdfHeader(bytes))
                     {
                         string target = TempPdfPath(SafePdfName("extension-download.pdf"));
                         await File.WriteAllBytesAsync(target, bytes);
-                        SettleAfterHandoff(url);
-                        HideStatus();
+                        SettleAfterHandoff(handed);
+                        CelebrateHandoff();
                         PdfRequested?.Invoke(target);
                         return;
                     }
@@ -1142,6 +1182,16 @@ namespace Avalanche.Controls
                 finally { _pdfInFlight.Remove(url); }
             }
             catch { HideStatus(); }
+        }
+
+        /// <summary>The credentialed fetch with the sharp edges filed off: a site
+        /// that answers with a wall, a reset or an unsupported scheme returns
+        /// null - a verdict the caller can speak - instead of an exception that
+        /// would cut the second candidate off from its turn.</summary>
+        private async Task<byte[]?> TryFetchPdfBytesAsync(string url)
+        {
+            try { return await FetchBrowserBytesAsync(url); }
+            catch { return null; }
         }
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ─────────────────────────────────────
@@ -1466,13 +1516,24 @@ namespace Avalanche.Controls
             ScheduleActivityTakeDown(TimeSpan.FromSeconds(3));
         }
 
-        /// <summary>The verdict the reader cares about: the green check flashes for
-        /// two seconds and the light steps aside. While nothing was showing, the
-        /// light stays dark - a check nobody earned is noise.</summary>
+        /// <summary>Silence, not a verdict (v1.19.12): the light steps aside with
+        /// nothing said. The green check this method used to flash fired on every
+        /// road that ended well - automatic hand-offs, finished navigations,
+        /// cleanup paths - and a check nobody asked for reads as noise. The check
+        /// is the extension button's alone now: CelebrateHandoff shows it, and
+        /// this method only clears the stage.</summary>
         private void HideStatus()
         {
             WebStatus.Visibility = Visibility.Collapsed;
-            if (_activity == ActivityState.Hidden) return;
+            ClearActivity();
+        }
+
+        /// <summary>The extension button's success, and nobody else's: the green
+        /// check flashes for two seconds and the light steps aside. Every other
+        /// road ends in HideStatus - silence is the shared verdict, the check is
+        /// the click's own receipt.</summary>
+        private void CelebrateHandoff()
+        {
             ShowActivity(ActivityState.Success, null);
             ScheduleActivityTakeDown(TimeSpan.FromSeconds(2));
         }

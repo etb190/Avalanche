@@ -593,6 +593,13 @@ namespace Avalanche.Services
             if (!d.Contains("SplitPaneGutterWidth")) d["SplitPaneGutterWidth"] = 8.0;
             if (!d.Contains("ContentPaneMargin")) d["ContentPaneMargin"] = new Thickness(0, 0, 8, 0);
             if (!d.Contains("FileDialogPaneBrush")) d["FileDialogPaneBrush"] = d.Contains("PaneBrush") ? d["PaneBrush"] : Brushes.White;
+            // The web pane's bookmark flyout is a floating dialog: it must be opaque in
+            // every theme. SidebarPaneBrush is deliberately transparent in the modern
+            // palettes (the sidebar lets the app background continue through it), so a
+            // Popup dressed in it had nothing behind it at all - a see-through window.
+            // The flyout takes the theme's own PaneBrush instead, materialized here so
+            // every in-place theme switch re-answers it.
+            if (!d.Contains("WebFlyoutBrush")) d["WebFlyoutBrush"] = d.Contains("PaneBrush") ? d["PaneBrush"] : Brushes.White;
             // Theme dictionaries are copied into the live dictionary in place, so a key that is
             // absent from the next theme keeps the previous theme's value. 98SE sets this to zero;
             // materialize the modern default so switching away from 98SE restores both edge fades.
