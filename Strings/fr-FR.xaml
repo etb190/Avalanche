@@ -1303,4 +1303,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
     <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
     <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
+
+    <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
+    <sys:String x:Key="Str_TT_WebBookmark">Ajouter cette page aux favoris</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkHint">Ajoutez des pages avec ☆</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkName">Nom</sys:String>
 </ResourceDictionary>

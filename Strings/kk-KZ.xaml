@@ -1302,4 +1302,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
     <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
     <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
+
+    <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
+    <sys:String x:Key="Str_TT_WebBookmark">Бұл бетті бетбелгілерге қосу</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkHint">Беттерді ☆ арқылы сақтаңыз</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkName">Атауы</sys:String>
 </ResourceDictionary>

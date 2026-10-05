@@ -1283,4 +1283,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
     <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
     <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
+
+    <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
+    <sys:String x:Key="Str_TT_WebBookmark">Añadir esta página a marcadores</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkHint">Guarda páginas con ☆</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkName">Nombre</sys:String>
 </ResourceDictionary>

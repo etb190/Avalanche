@@ -1303,4 +1303,9 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
     <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
     <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
+
+    <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
+    <sys:String x:Key="Str_TT_WebBookmark">Добавить страницу в закладки</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkHint">Добавляйте страницы кнопкой ☆</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkName">Название</sys:String>
 </ResourceDictionary>

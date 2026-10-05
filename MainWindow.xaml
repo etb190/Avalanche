@@ -1932,9 +1932,11 @@
                         <Grid>
                             <!-- Web tabs gallery (v1.19.5): while the browser pane is up, the
                                  page thumbnails belong to no book on screen - the rail shows
-                                 the browser's open views instead. One card per view, in visit
-                                 order: captured preview, page title, host. The view on screen
-                                 wears the accent ring, and a click switches the browser to it. -->
+                                 the browser's open views instead. One card per view, in creation
+                                 order: a new card lands on top and holds its place. Captured
+                                 preview, page title, host. The view on screen wears the accent
+                                 ring, a click switches the browser to it, and the card's own
+                                 close button (v1.19.11) closes it from the rail. -->
                             <ScrollViewer x:Name="WebTabsPanel" Visibility="Collapsed"
                                           VerticalScrollBarVisibility="Auto"
                                           HorizontalScrollBarVisibility="Disabled"
@@ -1970,19 +1972,32 @@
                                                                     BorderThickness="1"
                                                                     CornerRadius="{DynamicResource ControlCornerRadius}"
                                                                     Padding="6">
-                                                                <StackPanel>
-                                                                    <Border Background="White" Height="74"
-                                                                            CornerRadius="2" ClipToBounds="True">
-                                                                        <Image Source="{Binding Thumb}" Stretch="Uniform"
-                                                                               RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                                    </Border>
-                                                                    <TextBlock Text="{Binding Title}" FontSize="11"
-                                                                               Foreground="{DynamicResource TextBrush}"
-                                                                               TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
-                                                                    <TextBlock Text="{Binding Host}" FontSize="10"
-                                                                               Foreground="{DynamicResource MutedTextBrush}"
-                                                                               TextTrimming="CharacterEllipsis"/>
-                                                                </StackPanel>
+                                                                <Grid>
+                                                                    <StackPanel>
+                                                                        <Border Background="White" Height="74"
+                                                                                CornerRadius="2" ClipToBounds="True">
+                                                                            <Image Source="{Binding Thumb}" Stretch="Uniform"
+                                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                        </Border>
+                                                                        <TextBlock Text="{Binding Title}" FontSize="11"
+                                                                                   Foreground="{DynamicResource TextBrush}"
+                                                                                   TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+                                                                        <TextBlock Text="{Binding Host}" FontSize="10"
+                                                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                                                   TextTrimming="CharacterEllipsis"/>
+                                                                    </StackPanel>
+                                                                    <!-- v1.19.11: the card's own close - the same ✕ the
+                                                                         strip tab wears, overlaying the preview's corner,
+                                                                         so a tab never has to be visited to be closed. -->
+                                                                    <Button Content="&#xE711;"
+                                                                            Style="{DynamicResource TabCloseButton}"
+                                                                            FontFamily="{DynamicResource IconFont}" FontSize="9"
+                                                                            Width="18" Height="18" Padding="0"
+                                                                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                            Margin="0,2,2,0" FocusVisualStyle="{x:Null}"
+                                                                            ToolTip="{DynamicResource Str_TT_CloseTab}"
+                                                                            Tag="{Binding Url}" Click="WebSidebarTabClose_Click"/>
+                                                                </Grid>
                                                             </Border>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsMouseOver" Value="True">

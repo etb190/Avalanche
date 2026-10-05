@@ -2295,6 +2295,16 @@ namespace Avalanche
                 WebPane.ActivateTab(url);
         }
 
+        /// <summary>A gallery card's close button (v1.19.11) closed that tab: the
+        /// same hand the strip's ✕ offers, now also where the cards live - the
+        /// card leaves the gallery and the browser moves on, or the window steps
+        /// aside when the last view closed.</summary>
+        private void WebSidebarTabClose_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: string url } && url.Length > 0)
+                WebPane.CloseTab(url);
+        }
+
         /// <summary>The toolbar's save button follows the book on screen: it
         /// appears only while the active document is a PDF the browser
         /// downloaded into the reader's temp area.</summary>

@@ -1285,4 +1285,9 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Web_Dial_Gutenberg">Project Gutenberg</sys:String>
     <sys:String x:Key="Str_Web_Dial_Arxiv">arXiv</sys:String>
     <sys:String x:Key="Str_Web_Dial_PubMed">PubMed</sys:String>
+
+    <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
+    <sys:String x:Key="Str_TT_WebBookmark">收藏此頁面</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkHint">使用 ☆ 收藏頁面</sys:String>
+    <sys:String x:Key="Str_Web_BookmarkName">名稱</sys:String>
 </ResourceDictionary>

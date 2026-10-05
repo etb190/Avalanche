@@ -43,7 +43,10 @@ namespace Avalanche.Controls
     /// reaches the reader. v1.19.10: the print asks the address instead of a
     /// frame that lies, and a tiny riding extension adds the one-click hand -
     /// a button on the viewer itself that downloads the document the proven
-    /// way. Everything
+    /// way. v1.19.11: the hand-off's word becomes a light in the toolbar row -
+    /// spinner, check, cross - the reader keeps its own bookmarks where the
+    /// curated dial chips used to sit, and the rail's tabs hold their place:
+    /// a revisit refreshes a card, never reshuffles the row. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -88,6 +91,24 @@ namespace Avalanche.Controls
         private bool _navCompleted;      // the last navigation landed successfully - a failed
                                          // early hand-off owes the completed fallback at once
 
+        // v1.19.11: the toolbar light's one state at a time - a spinner while the
+        // capture runs, a green check or a red cross for its verdict. The turning
+        // is a DispatcherTimer, the same idiom the transient word used.
+        private enum ActivityState { Hidden, Spinning, Success, Failed }
+        private ActivityState _activity = ActivityState.Hidden;
+        private System.Windows.Threading.DispatcherTimer? _spinTimer;
+        private System.Windows.Threading.DispatcherTimer? _activityTakeDown;
+
+        // v1.19.11: the reader's own bookmarks - one JSON file in the app's data
+        // root, one collection the chips wrap, and the star that mirrors whether
+        // the page on screen is already saved. The flyout edits one bookmark at
+        // a time; null means the next save is a new one.
+        private BookmarkVm? _bookmarkEditing;
+
+        // v1.19.11: false until the engine exists. Without it there is no toolbar
+        // light worth dressing a word in, so the strip keeps speaking.
+        private bool _engineReady;
+
         public WebBrowserControl()
         {
             InitializeComponent();
@@ -105,6 +126,9 @@ namespace Avalanche.Controls
                     OpenNewTab();
                 }
             };
+            // v1.19.11: the chips load before the pane is ever shown - the reader
+            // opens the browser onto its own saved pages, never an empty row.
+            LoadBookmarks();
         }
 
         // ── Lifecycle ─────────────────────────────────────────────────────────────────────
@@ -194,6 +218,7 @@ namespace Avalanche.Controls
             }
 
             HideStatus();
+            _engineReady = true;   // the light exists from here on; the strip retires
             CoreWebView2 core = Browser.CoreWebView2!;
             // v1.19.7: the built-in viewer's toolbar is pinned explicitly; the
             // viewer's real ban lives in the capture - a document that still
@@ -224,6 +249,7 @@ namespace Avalanche.Controls
             SetChromeEnabled(true);
             NavigateTo(_pendingUrl ?? HomePage);
             _pendingUrl = null;
+            RefreshBookmarkButton();
         }
 
         // ── Navigation ────────────────────────────────────────────────────────────────────
@@ -250,12 +276,59 @@ namespace Avalanche.Controls
 
         private void WebHomeBtn_Click(object sender, RoutedEventArgs e) => NavigateTo(HomePage);
 
-        private void DialChip_Click(object sender, RoutedEventArgs e)
+        // ── Bookmarks (v1.19.11) - the click surface ─────────────────────────────────
+        // The dial chips retired; their row wears the reader's saved pages. A chip
+        // click navigates, a right-click edits the name or deletes the chip, the
+        // star saves or forgets the page on screen, and the flyout holds the one
+        // name field the whole system needs. The file behind them is
+        // bookmarks.json in the app's data root - name, url, favicon.
+
+        private void BookmarkChip_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button { Tag: string url }) NavigateTo(url);
+            if (sender is Button { Tag: string url } && url.Length > 0) NavigateTo(url);
         }
 
-        private void WebOpenPdfBtn_Click(object sender, RoutedEventArgs e) => _ = OpenCurrentPageAsPdfAsync();
+        private void BookmarkEdit_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: BookmarkVm vm }) OpenBookmarkFlyout(vm);
+        }
+
+        private void BookmarkDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: BookmarkVm vm })
+            {
+                Bookmarks.Remove(vm);
+                PersistBookmarks();
+                RefreshBookmarksSurface();
+                RefreshBookmarkButton();
+            }
+        }
+
+        /// <summary>The star: a filled one forgets the page on screen; an outlined
+        /// one opens the naming flyout, prefilled with the page's own title.</summary>
+        private void WebBookmarkBtn_Click(object sender, RoutedEventArgs e)
+        {
+            string url = Browser.Source?.ToString() ?? string.Empty;
+            BookmarkVm? existing = FindBookmark(url);
+            if (existing is not null)
+            {
+                Bookmarks.Remove(existing);
+                PersistBookmarks();
+                RefreshBookmarksSurface();
+                RefreshBookmarkButton();
+                return;
+            }
+            if (url.Length == 0) return;
+            OpenBookmarkFlyout(null);
+        }
+
+        private void WebBookmarkSave_Click(object sender, RoutedEventArgs e) => CommitBookmarkFlyout();
+
+        private void WebBookmarkNameBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) { e.Handled = true; CommitBookmarkFlyout(); }
+            else if (e.Key == Key.Escape) { e.Handled = true; WebBookmarkPopup.IsOpen = false; }
+        }
 
         // The omnibox: Enter commits (address when it looks like one, search when it does
         // not), Escape hands the text back to the page and returns to the web.
@@ -312,6 +385,7 @@ namespace Avalanche.Controls
         private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
             SyncOmniFromBrowser();
+            RefreshBookmarkButton();   // v1.19.11: the star follows the page on screen
             RaiseTitleChanged();
             _lastPageUrl = Browser.Source?.ToString();
             if (e.IsSuccess)
@@ -550,7 +624,7 @@ namespace Avalanche.Controls
         private void SetChromeEnabled(bool on)
         {
             WebBackBtn.IsEnabled = WebForwardBtn.IsEnabled = WebRefreshBtn.IsEnabled
-                = WebHomeBtn.IsEnabled = WebOpenPdfBtn.IsEnabled = on;
+                = WebHomeBtn.IsEnabled = WebBookmarkBtn.IsEnabled = on;
             if (on) RefreshHistoryButtons();
         }
 
@@ -1070,75 +1144,17 @@ namespace Avalanche.Controls
             catch { HideStatus(); }
         }
 
-        /// <summary>The fallback that captures what the reader is looking at right now:
-        /// when the page is itself a document, its real bytes are handed over through the
-        /// same three sources as the automatic hand-off, and when it is not, the live
-        /// page prints to a temp PDF as always.</summary>
-        private async Task OpenCurrentPageAsPdfAsync()
-        {
-            CoreWebView2? core = Browser.CoreWebView2;
-            if (core is null) return;
-            ShowStatus(TryLoc("Str_Web_PdfOpening"));
-            bool handed = false;      // the reader or the printer took the page
-            bool ownsStrip = true;    // an in-flight hand-off owns the strip and its fate
-            try
-            {
-                string url = Browser.Source?.ToString() ?? string.Empty;
-                if (url.Length > 0)
-                {
-                    try
-                    {
-                        string type = await core.ExecuteScriptAsync("document.contentType");
-                        if (type.Trim('"').Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (_pdfInFlight.Add(url))
-                            {
-                                try
-                                {
-                                    byte[]? bytes = await CapturePdfFromBrowserAsync(url);
-                                    handed = await HandPdfToReaderAsync(url, bytes);
-                                }
-                                finally { _pdfInFlight.Remove(url); }
-                            }
-                            else
-                            {
-                                ownsStrip = false;   // in flight means it is already coming; its strip rules
-                            }
-                            return;   // a document page never prints
-                        }
-                    }
-                    catch { /* a page that refuses probing prints as usual */ }
-                }
-                DropVisualGuard(restore: true);   // the printed page, not a blanked engine, is the product
-                string target = TempPdfPath(
-                    "page-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
-                await core.PrintToPdfAsync(target, null);
-                PdfRequested?.Invoke(target);
-                handed = true;
-            }
-            finally
-            {
-                // v1.19.7: the strip can never stick - silence when the page was
-                // taken, a three-second word when the fetch failed. The old catch
-                // hid the strip and the print path said nothing; every ending
-                // lands a word now, and the word takes itself down.
-                if (ownsStrip)
-                {
-                    if (handed) HideStatus();
-                    else ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
-                }
-            }
-        }
-
         // ── The sidebar's web-tabs gallery (v1.19.5) ─────────────────────────────────────
         // The window's left rail shows these cards while the pane is up: one per open
-        // view, newest first since v1.19.7 - the captured preview, the page's title and
-        // its host - with the view on screen wearing the accent ring. Clicking a card
-        // is clicking that tab: the browser navigates there.
+        // view, newest first since v1.19.7 and holding its place since v1.19.11 - the
+        // captured preview, the page's title and its host - with the view on screen
+        // wearing the accent ring. Clicking a card is clicking that tab: the browser
+        // navigates there, and the card never jumps because of it.
 
-        /// <summary>The gallery's cards, newest first (v1.19.7 - the newest and the
-        /// active view live at the TOP of the rail). Capped at a dozen; the oldest
-        /// view falls off the end.</summary>
+        /// <summary>The gallery's cards, newest first: a brand-new tab lands on top
+        /// (v1.19.7), and since v1.19.11 it STAYS where creation put it - revisiting
+        /// a tab refreshes its face, never its position. Capped at a dozen; the
+        /// oldest view falls off the end.</summary>
         public ObservableCollection<WebTabCardVm> Tabs { get; } = new();
 
         private const int MaxWebTabCards = 12;
@@ -1204,14 +1220,12 @@ namespace Avalanche.Controls
                     Title = TryLoc("Str_Web_NewTab") ?? "duckduckgo.com",
                     Host = "duckduckgo.com",
                 };
-                Tabs.Insert(0, card);   // v1.19.7: newest on top
+                Tabs.Insert(0, card);   // a brand-new tab still lands on top (v1.19.7)
                 while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(Tabs.Count - 1);
             }
-            else
-            {
-                int at = Tabs.IndexOf(card);   // a revisit moves back to the top - the newest end
-                if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
-            }
+            // v1.19.11: a revisit activates the card where it lives - the rail keeps
+            // creation order, so switching tabs never reshuffles it. Only the ring
+            // moves.
             foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
             NavigateTo(url);
             // The caret goes to the omnibox, deferred once so the click's own focus
@@ -1257,20 +1271,125 @@ namespace Avalanche.Controls
                 if (card is null)
                 {
                     card = new WebTabCardVm(url);
-                    Tabs.Insert(0, card);   // v1.19.7: newest on top
+                    Tabs.Insert(0, card);   // a brand-new tab still lands on top (v1.19.7)
                     while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(Tabs.Count - 1);
                 }
-                else
-                {
-                    int at = Tabs.IndexOf(card);   // a revisit moves back to the top - the newest end
-                    if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
-                }
+                // v1.19.11: a known card stays where creation put it - only its
+                // Title, Host, Thumb and IsActive flags refresh below.
                 card.Title = title;
                 card.Host = u.Host;
                 if (thumb is not null) card.Thumb = thumb;
                 foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
             }
             catch { /* a gallery that stumbles never disturbs the browsing */ }
+        }
+
+        // ── Bookmarks (v1.19.11) - the storage and its surface ────────────────────────
+        // One JSON file, one collection, two refreshes: the chips' row (hint or
+        // list) and the star's fill. Everything else above is clicks.
+
+        /// <summary>The bookmarks, newest first. The chips' ItemsControl binds here.</summary>
+        public ObservableCollection<BookmarkVm> Bookmarks { get; } = new();
+
+        private static string BookmarksFile => Path.Combine(AppDataPaths.UserRoot, "bookmarks.json");
+
+        private void LoadBookmarks()
+        {
+            try
+            {
+                if (!File.Exists(BookmarksFile)) return;
+                List<BookmarkVm>? saved = System.Text.Json.JsonSerializer.Deserialize<List<BookmarkVm>>(
+                    File.ReadAllText(BookmarksFile));
+                if (saved is null) return;
+                foreach (BookmarkVm b in saved)
+                {
+                    if (b.Url.Length == 0) continue;
+                    Bookmarks.Add(b);
+                }
+            }
+            catch { /* a bookmarks file that will not read is not worth a crash */ }
+            RefreshBookmarksSurface();
+        }
+
+        private void PersistBookmarks()
+        {
+            try
+            {
+                Directory.CreateDirectory(AppDataPaths.UserRoot);
+                string json = System.Text.Json.JsonSerializer.Serialize(
+                    Bookmarks.ToList(),
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                string temporary = BookmarksFile + ".tmp";
+                File.WriteAllText(temporary, json);
+                File.Move(temporary, BookmarksFile, overwrite: true);
+            }
+            catch { /* a bookmarks file that will not write is not worth a crash */ }
+        }
+
+        private BookmarkVm? FindBookmark(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+            return Bookmarks.FirstOrDefault(b => UriEquals(b.Url, url));
+        }
+
+        private void OpenBookmarkFlyout(BookmarkVm? editing)
+        {
+            _bookmarkEditing = editing;
+            if (editing is not null)
+            {
+                WebBookmarkNameBox.Text = editing.Name;
+            }
+            else
+            {
+                string title = Browser.CoreWebView2?.DocumentTitle ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(title))
+                    title = Browser.Source?.Host ?? string.Empty;
+                WebBookmarkNameBox.Text = title;
+            }
+            WebBookmarkPopup.IsOpen = true;
+            Dispatcher.BeginInvoke(
+                () => { WebBookmarkNameBox.Focus(); WebBookmarkNameBox.SelectAll(); },
+                System.Windows.Threading.DispatcherPriority.Input);
+        }
+
+        private void CommitBookmarkFlyout()
+        {
+            string name = WebBookmarkNameBox.Text.Trim();
+            WebBookmarkPopup.IsOpen = false;
+            if (_bookmarkEditing is not null)
+            {
+                if (name.Length > 0) _bookmarkEditing.Name = name;   // an empty box keeps the old name
+                _bookmarkEditing = null;
+                PersistBookmarks();
+                return;
+            }
+            string url = Browser.Source?.ToString() ?? string.Empty;
+            if (url.Length == 0 || FindBookmark(url) is not null) return;
+            Bookmarks.Insert(0, new BookmarkVm
+            {
+                Name = name.Length > 0 ? name : (Browser.Source?.Host ?? url),
+                Url = url,
+                Favicon = string.Empty,   // the globe stands in until a favicon earns its keep
+            });
+            PersistBookmarks();
+            RefreshBookmarksSurface();
+            RefreshBookmarkButton();
+        }
+
+        /// <summary>The star's fill follows the page on screen: filled when the page
+        /// is already saved, outlined when it is new. Refreshed on navigation and on
+        /// every bookmarks change.</summary>
+        private void RefreshBookmarkButton()
+        {
+            string url = Browser.Source?.ToString() ?? string.Empty;
+            WebBookmarkBtn.Content = FindBookmark(url) is not null ? "\uE735" : "\uE728";
+        }
+
+        private void RefreshBookmarksSurface()
+        {
+            bool any = Bookmarks.Count > 0;
+            WebBookmarksHint.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+            WebBookmarksList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // ── Small shared helpers ──────────────────────────────────────────────────────────
@@ -1310,40 +1429,124 @@ namespace Avalanche.Controls
             return target;
         }
 
+        // ── The toolbar light (v1.19.11) ────────────────────────────────────────────
+        // The hand-off's word left the status strip for a 24px light in the toolbar
+        // row, right after the omnibox: a spinner while a document is being fetched,
+        // a green check for two seconds when the reader took it, a red cross for
+        // three when the site refused. The strip keeps only the runtime-missing
+        // message - with no engine at all there is no light worth dressing the word
+        // in - and the row's height never changes for any of them.
+
+        /// <summary>The capture is running: the spinner turns, and the word it used
+        /// to speak rides the tooltip. Before the engine exists the strip says it.</summary>
         private void ShowStatus(string? text)
         {
             if (string.IsNullOrEmpty(text)) return;
-            WebStatus.Text = text;
-            WebStatus.Visibility = Visibility.Visible;
+            if (!_engineReady)
+            {
+                WebStatus.Text = text;
+                WebStatus.Visibility = Visibility.Visible;
+                return;
+            }
+            ShowActivity(ActivityState.Spinning, text);
         }
 
-        /// <summary>A word that takes itself down: the strip shows the message for
-        /// three seconds and hides - unless another message replaced it, which one
-        /// owns its own fate. v1.19.7: failure words never stick on screen.</summary>
+        /// <summary>The refusal, as a red cross: three seconds and the light steps
+        /// aside on its own. v1.19.7's rule stands in a new shape - no word sticks.</summary>
         private void ShowTransientStatus(string? text)
         {
-            if (string.IsNullOrEmpty(text)) { HideStatus(); return; }
-            WebStatus.Text = text;
-            WebStatus.Visibility = Visibility.Visible;
-            System.Windows.Threading.DispatcherTimer takedown =
-                new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
-            takedown.Tick += (s, _) =>
+            if (string.IsNullOrEmpty(text)) { ClearActivity(); return; }
+            if (!_engineReady)
+            {
+                WebStatus.Text = text;
+                WebStatus.Visibility = Visibility.Visible;
+                return;
+            }
+            ShowActivity(ActivityState.Failed, text);
+            ScheduleActivityTakeDown(TimeSpan.FromSeconds(3));
+        }
+
+        /// <summary>The verdict the reader cares about: the green check flashes for
+        /// two seconds and the light steps aside. While nothing was showing, the
+        /// light stays dark - a check nobody earned is noise.</summary>
+        private void HideStatus()
+        {
+            WebStatus.Visibility = Visibility.Collapsed;
+            if (_activity == ActivityState.Hidden) return;
+            ShowActivity(ActivityState.Success, null);
+            ScheduleActivityTakeDown(TimeSpan.FromSeconds(2));
+        }
+
+        private void ShowActivity(ActivityState state, string? tip)
+        {
+            StopActivityTakeDown();
+            if (state == ActivityState.Hidden)
+            {
+                _activity = ActivityState.Hidden;
+                StopSpin();
+                WebActivityIndicator.Visibility = Visibility.Collapsed;
+                return;
+            }
+            bool spinning = state == ActivityState.Spinning;
+            WebActivityGlyph.Text = spinning ? "\uE72C"
+                : state == ActivityState.Success ? "\uE73E" : "\uE711";
+            WebActivityGlyph.Foreground = spinning
+                ? TryFindResource("MutedTextBrush") as Brush ?? Brushes.Gray
+                : state == ActivityState.Success ? Brushes.ForestGreen : Brushes.IndianRed;
+            WebActivityIndicator.ToolTip = tip;
+            WebActivityIndicator.Visibility = Visibility.Visible;
+            _activity = state;
+            if (spinning) StartSpin();
+            else
+            {
+                StopSpin();
+                WebActivitySpin.Angle = 0;
+            }
+        }
+
+        private void ClearActivity() => ShowActivity(ActivityState.Hidden, null);
+
+        private void ScheduleActivityTakeDown(TimeSpan delay)
+        {
+            StopActivityTakeDown();
+            _activityTakeDown = new System.Windows.Threading.DispatcherTimer { Interval = delay };
+            _activityTakeDown.Tick += (s, _) =>
             {
                 if (s is not System.Windows.Threading.DispatcherTimer timer) return;
                 timer.Stop();
-                if (WebStatus.Text == text) HideStatus();
+                _activityTakeDown = null;
+                ClearActivity();
             };
-            takedown.Start();
+            _activityTakeDown.Start();
         }
 
-        private void HideStatus() => WebStatus.Visibility = Visibility.Collapsed;
+        private void StopActivityTakeDown()
+        {
+            _activityTakeDown?.Stop();
+            _activityTakeDown = null;
+        }
+
+        private void StartSpin()
+        {
+            if (_spinTimer is not null) return;
+            _spinTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(40) };
+            _spinTimer.Tick += (_, _) => WebActivitySpin.Angle = (WebActivitySpin.Angle + 15) % 360;
+            _spinTimer.Start();
+        }
+
+        private void StopSpin()
+        {
+            _spinTimer?.Stop();
+            _spinTimer = null;
+        }
 
         private string? TryLoc(string key) => TryFindResource(key) as string;
     }
 
     /// <summary>One card in the sidebar's web-tabs gallery (v1.19.5): the page's
     /// captured preview, its title and host, and whether it is the view on
-    /// screen. Cards live newest first; the active one wears the accent ring.</summary>
+    /// screen. Cards keep their creation position (new ones land on top since
+    /// v1.19.11); the active one wears the accent ring.</summary>
     public sealed class WebTabCardVm : INotifyPropertyChanged
     {
         public WebTabCardVm(string url) { Url = url; }
@@ -1366,6 +1569,27 @@ namespace Avalanche.Controls
         private bool _isActive;
         /// <summary>The view currently on screen - the accent ring's paint flag.</summary>
         public bool IsActive { get => _isActive; set { _isActive = value; OnPropertyChanged(); } }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name!));
+    }
+
+    /// <summary>One saved page in the browser's bookmarks (v1.19.11): the name the
+    /// reader gave it, the address it opens, and the favicon slot the globe
+    /// stands in for. Rows live newest first and persist to bookmarks.json in
+    /// the app's data root.</summary>
+    public sealed class BookmarkVm : INotifyPropertyChanged
+    {
+        private string _name = "";
+        /// <summary>The chip's label - the page's own title until the reader renames it.</summary>
+        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+
+        /// <summary>The address the chip opens - the bookmark's identity.</summary>
+        public string Url { get; set; } = "";
+
+        /// <summary>Reserved for the site's icon; empty keeps the globe glyph.</summary>
+        public string Favicon { get; set; } = "";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
