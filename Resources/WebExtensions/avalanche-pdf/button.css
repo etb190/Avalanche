@@ -1,0 +1,26 @@
+#avalanche-open-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483647;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #4A90D9 0%, #357ABD 100%);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.3s ease;
+  opacity: 0.85;
+  padding: 0;
+}
+#avalanche-open-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4);
+  opacity: 1;
+}
+#avalanche-open-btn:active { transform: scale(0.95); }
+#avalanche-open-btn svg { pointer-events: none; }

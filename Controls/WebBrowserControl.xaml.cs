@@ -40,7 +40,10 @@ namespace Avalanche.Controls
     /// behind - the browser settles while the engine is still awake. v1.19.9:
     /// the capture grows its last resort - the print of the very page the
     /// viewer rendered, so the one document every fetch layer loses still
-    /// reaches the reader. Everything
+    /// reaches the reader. v1.19.10: the print asks the address instead of a
+    /// frame that lies, and a tiny riding extension adds the one-click hand -
+    /// a button on the viewer itself that downloads the document the proven
+    /// way. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -169,15 +172,18 @@ namespace Avalanche.Controls
             {
                 string dataDir = Path.Combine(AppDataPaths.UserRoot, "WebView2Data");
                 Directory.CreateDirectory(dataDir);
-                // v1.19.9: the download-first switch is gone. "--disable-features=
-                // PdfInlineViewer" was never a feature name this runtime knew - an
-                // unknown feature rides to Chromium in silence and is dropped
-                // there, so the argument did nothing from the day it arrived and
-                // only muddied the story. The hand-off never depended on it: the
-                // capture below is the answer, and its last layer now prints
-                // whatever the viewer managed to render, so the viewer's one
-                // success is the reader's too.
-                env = await CoreWebView2Environment.CreateAsync(null, dataDir);
+                // v1.19.10: the environment wears one switch now - extensions
+                // enabled - because the hand-off's last line of defense rides in
+                // one: a tiny helper extension that puts an "open in Avalanche"
+                // button on the viewer itself. The v1.19.9 retirement stands: no
+                // Chromium feature guesses ride along - a flag the runtime does
+                // not know is dropped in silence, and this one is a documented
+                // environment option the SDK speaks.
+                CoreWebView2EnvironmentOptions options = new()
+                {
+                    AreBrowserExtensionsEnabled = true,
+                };
+                env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
                 await Browser.EnsureCoreWebView2Async(env);
             }
             catch
@@ -203,6 +209,18 @@ namespace Avalanche.Controls
             Browser.NavigationStarting += OnNavigationStarting;
             Browser.NavigationCompleted += OnNavigationCompleted;
             core.DocumentTitleChanged += (_, _) => RaiseTitleChanged();
+            // v1.19.10: the riding helper - a two-kilobyte extension that wears
+            // the "open in Avalanche" button on the viewer itself - is loaded
+            // once per profile; loading it is a courtesy, never a requirement.
+            try
+            {
+                string extPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                    "Resources", "WebExtensions", "avalanche-pdf");
+                if (Directory.Exists(extPath))
+                    await core.Profile.AddBrowserExtensionAsync(extPath);
+            }
+            catch { /* extension loading is a courtesy */ }
+            core.WebMessageReceived += OnWebMessageReceived;
             SetChromeEnabled(true);
             NavigateTo(_pendingUrl ?? HomePage);
             _pendingUrl = null;
@@ -597,26 +615,35 @@ namespace Avalanche.Controls
         /// <summary>The last resort: print the page the viewer is showing. A document
         /// Chromium's viewer managed to render is ON the screen, and PrintToPdfAsync
         /// writes exactly that render - a valid pdf of the document itself, no
-        /// second request any wall can refuse. The print only runs when the
-        /// rendered page IS the document - the viewer's own DOM, the one whose
-        /// contentType answers "null", or a pdf answer itself; an html page here
-        /// is a challenge wall or an error, and printing it would hand the reader
-        /// a screenshot of the wall dressed as the paper, so the honest word stays
-        /// the caller's failure message. The guard comes down before the print for
-        /// the reason the open-in-Avalanche button already knows: the printed
-        /// page, not a blanked engine, is the product.</summary>
+        /// second request any wall can refuse. v1.19.10: the gate asks the
+        /// address now, not the frame - the viewer is a two-frame shell whose
+        /// OUTER frame answers text/html no matter what it shows, so the old
+        /// contentType probe returned a word that sent the print home empty
+        /// every time. The evidence the print accepts: the viewer extension's
+        /// own chrome-extension address, an address shaped like a document, or
+        /// a capture the engine has already built - proof an application/pdf
+        /// answer arrived whatever the address spells. Layers 1-3 have all
+        /// failed by the time this runs, so the only question left is "is a
+        /// document on screen", and the print is its answer. The guard comes
+        /// down before the print for the reason the open-in-Avalanche button
+        /// already knows: the printed page, not a blanked engine, is the
+        /// product.</summary>
         private async Task<byte[]?> PrintRenderedPdfAsync()
         {
             try
             {
                 CoreWebView2? core = Browser.CoreWebView2;
                 if (core is null) return null;
-                string type;
-                try { type = (await core.ExecuteScriptAsync("document.contentType")).Trim('"'); }
-                catch { return null; }   // a page that refuses probing is not a viewer DOM
-                bool viewerDom = type.Length == 0 || type.Equals("null", StringComparison.OrdinalIgnoreCase);
-                bool pdfDoc = type.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
-                if (!viewerDom && !pdfDoc) return null;
+                string url = Browser.Source?.ToString() ?? string.Empty;
+                // The viewer's outer frame lies about its contentType; the
+                // address and the capture do not. A capture slot exists only
+                // when an application/pdf answer arrived this navigation, so a
+                // viewcontent.cgi route whose address never looks like a pdf
+                // still reaches the print.
+                bool onViewer = url.StartsWith("chrome-extension://", StringComparison.OrdinalIgnoreCase)
+                    || LooksLikePdf(url)
+                    || _pdfCapture is not null;
+                if (!onViewer) return null;
                 DropVisualGuard(restore: true);   // the print needs the engine alive, not blanked
                 string target = TempPdfPath(
                     "print-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
@@ -985,6 +1012,62 @@ namespace Avalanche.Controls
             // window the reader can never see.
             e.Handled = true;
             NavigateTo(e.Uri);
+        }
+
+        /// <summary>v1.19.10: the riding helper's word. When even the fixed print
+        /// cannot take a document - and the button's anchor download is refused -
+        /// the extension falls back to a message to the host, and the host answers
+        /// with the credentialed fetch and the hand-off every other road uses.
+        /// The helper posts a JSON string, so WebMessageAsJson wraps it as a JSON
+        /// string literal: the payload is unwrapped before it is parsed, and a
+        /// page that posted the object directly parses as-is.</summary>
+        private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+        {
+            try
+            {
+                string payload = e.WebMessageAsJson;
+                try { payload = System.Text.Json.JsonSerializer.Deserialize<string>(payload) ?? payload; }
+                catch { /* already a JSON object - parse as-is */ }
+                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(payload);
+                if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object
+                    || !doc.RootElement.TryGetProperty("type", out System.Text.Json.JsonElement type)
+                    || type.GetString() != "avalanche-open-pdf") return;
+                string? url = doc.RootElement.TryGetProperty("url", out System.Text.Json.JsonElement u)
+                    ? u.GetString() : null;
+                if (string.IsNullOrEmpty(url)) return;
+                ShowStatus(TryLoc("Str_Web_PdfOpening"));
+                _ = FetchAndHandOffAsync(url);
+            }
+            catch { /* a message that stumbles is never worth a crash */ }
+        }
+
+        /// <summary>The extension button's road: the credentialed out-of-process
+        /// fetch - the session's own cookies and user agent - and the same
+        /// hand-off the automatic layers use, settle and all, so a handed-off
+        /// document leaves no tab behind here either. One flight per address,
+        /// like every other road; a failure lands the honest blocked word.</summary>
+        private async Task FetchAndHandOffAsync(string url)
+        {
+            try
+            {
+                if (!_pdfInFlight.Add(url)) { HideStatus(); return; }
+                try
+                {
+                    byte[]? bytes = await FetchBrowserBytesAsync(url);
+                    if (bytes != null && HasPdfHeader(bytes))
+                    {
+                        string target = TempPdfPath(SafePdfName("extension-download.pdf"));
+                        await File.WriteAllBytesAsync(target, bytes);
+                        SettleAfterHandoff(url);
+                        HideStatus();
+                        PdfRequested?.Invoke(target);
+                        return;
+                    }
+                    ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
+                }
+                finally { _pdfInFlight.Remove(url); }
+            }
+            catch { HideStatus(); }
         }
 
         /// <summary>The fallback that captures what the reader is looking at right now:

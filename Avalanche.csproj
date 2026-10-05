@@ -13,10 +13,10 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.19.9</Version>
+    <Version>1.19.10</Version>
 
-    <AssemblyVersion>1.19.9.0</AssemblyVersion>
-    <FileVersion>1.19.9.0</FileVersion>
+    <AssemblyVersion>1.19.10.0</AssemblyVersion>
+    <FileVersion>1.19.10.0</FileVersion>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
          CHANGELOG section; release.ps1 enforces that before packaging. -->
@@ -142,6 +142,16 @@
         <Resource Include="Resources\open_hand.cur" />
         <Resource Include="Resources\closed_hand.cur" />
     <EmbeddedResource Include="Resources\pdf-file.ico" />
+  </ItemGroup>
+
+  <!-- v1.19.10: the riding pdf helper extension - the one-click "open in
+       Avalanche" button the browser's own viewer wears when everything else
+       failed. Copied next to the binary so Profile.AddBrowserExtensionAsync
+       can find it at runtime. -->
+  <ItemGroup>
+    <Content Include="Resources\WebExtensions\avalanche-pdf\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 <!-- OCR: embed only the native Tesseract libs (x64) so the app still ships as a single exe. Language data
