@@ -64,15 +64,18 @@ namespace Avalanche.Features.Summary
     {
         // nvidia/nemotron-3-ultra-550b-a55b runs a 1M-token context window:
         // entire papers fit in ONE pass without chunking, so the single-pass
-        // budget rides at ~300k chars (conservatively) and the map-reduce
-        // slicing below only wakes up for truly enormous ranges - on a local
-        // bridge, where no one kills a slow request. The hosted NIM endpoint
-        // is a serverless, rate-limited free tier: a ~75k-token request asks
-        // for minutes of GPU time and the server answers with HTTP 500 long
-        // before the model is done, so the cloud floor rides far lower and
-        // oversized ranges take the map-reduce road there instead.
+        // budget rides at ~300k chars and the map-reduce slicing below only
+        // wakes up for truly enormous ranges. The hosted NIM endpoint once
+        // killed big single calls - but that was thinking mode ON and a 16k
+        // answer budget burning minutes of serverless GPU time; with the
+        // template switched off and the output capped at 8192 the same
+        // request reads in about half a minute, so the cloud floor now
+        // matches the local one and the digest is written from the content
+        // itself, not from notes about it. A host that still kills the big
+        // call does not sink the run: the digest falls back to the
+        // map-reduce road below and the reader keeps their summary.
         private const int SinglePassCharBudget = 300000;
-        private const int CloudSinglePassCharBudget = 100000;
+        private const int CloudSinglePassCharBudget = 300000;
 
         // Cloud output ceiling: 8192 tokens is ~6000+ words, far more than
         // any digest, definition or explanation needs, and it keeps every
@@ -309,16 +312,42 @@ namespace Avalanche.Features.Summary
                 }
 
                 List<string> segments = SegmentPages(config, rangeText);
-                string finalText;
+                string? finalText = null;
                 if (segments.Count == 1)
                 {
                     // Buffered on purpose: the digest is inspected - and, when needed,
                     // escalated or mechanically flattened - BEFORE anything is shown.
-                    finalText = await SolidDigestAsync(
-                        config, DigestSystemPrompt(request.TargetWords, request.Language, request.Genre, fromNotes: false),
-                        rangeText, ct, request.TargetWords).ConfigureAwait(false);
+                    try
+                    {
+                        finalText = await SolidDigestAsync(
+                            config, DigestSystemPrompt(request.TargetWords, request.Language, request.Genre, fromNotes: false),
+                            rangeText, ct, request.TargetWords).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        // The host killed the big single call (the free tier's HTTP
+                        // 500 and its kin). The reader still gets a digest: the same
+                        // range rides the section road below instead of the run
+                        // dying with nothing on the screen.
+                        SurfaceHealthLog.Log(
+                            "summary: direct pass over the full range failed (" + FriendlyError(ex) +
+                            ") - retrying as sections");
+                        segments = SegmentPages(config, rangeText, force: true);
+                        if (segments.Count == 1)
+                        {
+                            // The range cannot be sliced (one page, or no page
+                            // markers to split on) - the section road has nothing
+                            // to offer, so the original failure is the honest answer.
+                            throw;
+                        }
+                    }
                 }
-                else
+
+                if (segments.Count > 1)
                 {
                     var notes = new List<string>();
                     var missing = new List<int>();
@@ -335,7 +364,7 @@ namespace Avalanche.Features.Summary
                         try
                         {
                             note = await RunBufferedPassAsync(
-                                config, MiniSystemPrompt(), segments[i], ct, noteBudget);
+                                config, MiniSystemPrompt(request.Language), segments[i], ct, noteBudget);
                             if (string.IsNullOrWhiteSpace(note))
                             {
                                 // Buffered calls are the flakiest path (rate limits,
@@ -343,14 +372,14 @@ namespace Avalanche.Features.Summary
                                 // each kind before the segment is declared lost.
                                 await Task.Delay(1200, ct).ConfigureAwait(false);
                                 note = await RunBufferedPassAsync(
-                                    config, MiniSystemPrompt(), segments[i], ct, noteBudget);
+                                    config, MiniSystemPrompt(request.Language), segments[i], ct, noteBudget);
                             }
 
                             if (string.IsNullOrWhiteSpace(note))
                             {
                                 var streamed = new StringBuilder();
                                 await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                                    config, MiniSystemPrompt(), segments[i], ct))
+                                    config, MiniSystemPrompt(request.Language), segments[i], ct))
                                 {
                                     if (update.Kind == "delta")
                                     {
@@ -914,7 +943,10 @@ namespace Avalanche.Features.Summary
                   "first page tag to their last. Never copy the notes verbatim and never return " +
                   "one segment's notes unchanged.\n\n" +
                   "The notes are RAW MATERIAL, not a format template: they are bullet lists - your " +
-                  "summary must NOT be. BOOK HEADINGS: where the notes carry a markdown heading " +
+                  "summary must NOT be. The notes are a faithful record of the book's own pages: " +
+                  "write your summary as if you had read those pages yourself, speaking directly of " +
+                  "their subject - never mention the notes, the segments, the passes, or this " +
+                  "pipeline. BOOK HEADINGS: where the notes carry a markdown heading " +
                   "line (# Some Title, ## Some Title or ### Some Title - any legacy [[H]] " +
                   "wrappers likewise), that is the book's own printed section heading. Copy it " +
                   "VERBATIM as a markdown '### ' heading (drop the marks and wrappers) and " +
@@ -939,9 +971,12 @@ namespace Avalanche.Features.Summary
                   "output. Bullet points in your answer are a total failure.");
         }
 
-        private static string MiniSystemPrompt() =>
+        private static string MiniSystemPrompt(string language) =>
             "You produce exhaustive working notes from book page segments that will later be fused into " +
             "one digest.\n" +
+            "OUTPUT LANGUAGE: write every note bullet in " + language + ". The one exception is the " +
+            "book's own printed section headings: copy those VERBATIM in their original language " +
+            "exactly as printed.\n" +
             "Rules: list every argument, definition, fact, figure, name and example in order, one bullet " +
             "per item, ending each bullet with (p. N) using the [p. N] anchors (legacy [[p. N]]). When " +
             "the segment contains a book heading printed as a markdown heading line (# Heading Text, " +
@@ -1041,7 +1076,7 @@ namespace Avalanche.Features.Summary
         // Segmentation
         // ------------------------------------------------------------------
 
-        private static List<string> SegmentPages(AiProviderConfig config, string rangeText)
+        private static List<string> SegmentPages(AiProviderConfig config, string rangeText, bool force = false)
         {
             // Under the single-pass budget the WHOLE range travels as one segment: one
             // direct digest pass over the author's full argumentative arc. Beyond it the
@@ -1049,14 +1084,13 @@ namespace Avalanche.Features.Summary
             // whole-page boundaries - the [p. N] anchor of every page is a segment
             // start, so a segment never opens with an orphaned paragraph. (The old
             // "\n\n" split cleaved through pages' internal paragraph breaks and left
-            // marker-less fragments in the next segment.) On a cloud endpoint the
-            // single-pass floor is far lower: the hosted free tier answers a
-            // ~100k-char request but kills a 300k-char one, so a big range rides
-            // map-reduce there instead of betting the whole digest on one call.
+            // marker-less fragments in the next segment.) `force` skips the
+            // whole-range early return: it is the fallback's way of slicing a
+            // range whose direct pass the host already killed, whatever its size.
             int effectiveBudget = AiEndpoints.IsLocal(config.BaseUrl)
                 ? SinglePassCharBudget
                 : CloudSinglePassCharBudget;
-            if (rangeText.Length <= effectiveBudget)
+            if (!force && rangeText.Length <= effectiveBudget)
             {
                 return new List<string> { rangeText };
             }
