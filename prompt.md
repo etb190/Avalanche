@@ -1,116 +1,97 @@
-# TASK: Browser PDF Fast Interception, AI Semantic Toggle, Browser Tabs Gallery, & Web PDF Save Button
+# TASK: Fix Broken Browser PDF Porting & Add Fresh "New Tab" (+) Button
 
 Repository: `https://github.com/etb190/Avalanche`  
-Target Version: `1.19.5` (or next release)
+Target Files: `Controls/WebBrowserControl.xaml.cs`, `MainWindow.xaml`, `MainWindow.xaml.cs`  
+Version: `1.19.6` (or next patch)
 
 ---
 
-## 1. Overview of Tasks
+## 1. Issue 1: Fix Broken PDF Porting ("Doesn't port, only 1 PDF worked")
 
-This update addresses four key areas in Avalanche:
-1. **Early PDF Interception in In-App Browser**: Eliminate the flash/glimpse of Chromium's internal PDF viewer before handoff occurs.
-2. **AI Chat Semantic Research Manual Toggle**: Stop automatic, compute-heavy embedding passes when quickly browsing papers by adding an opt-in toggle button in the AI Chat header.
-3. **Sidebar Left Panel in Browser Mode**: When the browser is active, replace document page thumbnails with live tab preview screenshots/cards, allowing clicking to switch tabs.
-4. **"Save Web PDF to Disk" Toolbar Action**: When viewing a PDF downloaded from the browser (stored in temp), display a prominent "Save to Disk" / "Save As" button right after the browser tools on the toolbar so users can pick where to save it permanently.
+### Problem Diagnosis in `WebBrowserControl.xaml.cs`:
+In commit `ff4acf3`, early response interception was added, but it introduced a **fatal race condition and redirect disconnect** that broke PDF handoffs completely:
 
----
+1. **Race Condition in `OnWebResourceResponseReceived`**:
+   - Lines 721–727:
+     ```csharp
+     if (LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
+         StartEarlyPdfHandoff(uri);               // 1. Spawns asynchronous handoff worker
+     Stream? content = await e.Response.GetContentAsync();
+     ...
+     TaskCompletionSource<byte[]?> capture = new(...);
+     _pdfCapture = capture;                       // 2. Assigns _pdfCapture AFTER starting worker!
+     ```
+   - In `StartEarlyPdfHandoff(url)`, line 393:
+     ```csharp
+     byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
+     ```
+   - Because `StartEarlyPdfHandoff` runs before `_pdfCapture` is assigned, `WaitPdfCaptureAsync` immediately sees `_pdfCapture == null` and returns `null`.
+   - Line 405 runs:
+     ```csharp
+     _pdfInFlight.Remove(url);
+     DropVisualGuard(restore: true);
+     ```
+   - The handoff terminates prematurely with failure, drops the visual guard, and leaves the user stranded on Chromium's viewer or in limbo.
+2. **Redirect Disconnect with `_mainNavUri`**:
+   - `_mainNavUri` was recorded only in `OnNavigationStarting`.
+   - When a link redirects (e.g. `scholar.google.com/url?...` -> `sciencedirect.com/article/...` -> `cdn.sciencedirect.com/.../main.pdf`), `e.Request.Uri` in `OnWebResourceResponseReceived` does NOT match the initial `_mainNavUri`.
+   - Unless the final redirected URL ends strictly in `.pdf`, `UriEquals(uri, _mainNavUri)` is false, so `StartEarlyPdfHandoff` never even gets called.
+3. **Dead Fallback in `CatchInlinePdfAsync`**:
+   - After the early handoff aborts or fails due to the race condition, `NavigationCompleted` triggers `CatchInlinePdfAsync()`, but the internal flags/state prevent a clean recovery.
 
-## 2. Issue 1: Prevent Delayed Interception / Flash of Chromium's PDF Viewer
-
-### The Problem
-When a user clicks a PDF link, `NavigationCompleted` triggers `CatchInlinePdfAsync()`. Because this waits until the full document finishes rendering in Chromium, the user briefly sees the Edge/Chromium PDF viewer UI before Avalanche yanks it out and opens it in the reader tab.
-
-### Required Architecture & Fix
-1. **Intercept at `WebResourceResponseReceived` or `NavigationStarting`**:
-   - `core.WebResourceResponseReceived` fires as soon as the HTTP response headers arrive (`Response.Headers`).
-   - If the main frame response has `Content-Type: application/pdf` or `application/x-pdf`:
-     - Immediately start the handoff or redirect.
-2. **Early Visual Guard**:
-   - In `NavigationStarting`, if `LooksLikePdf(uri)` is true, or once response headers indicate a PDF, immediately blank or hide the WebView2 frame (or show the "Opening PDF in reader..." status plate) so Chromium's PDF viewer canvas is never painted to the screen.
-3. **Streamlined Capture**:
-   - Use the already-intercepted response body stream from `WebResourceResponseReceived` or `DownloadStarting` instead of waiting for full DOM completion in `NavigationCompleted`.
-
----
-
-## 3. Issue 2: AI Chat Manual "Semantic Research" Button
-
-### The Problem
-When rapidly opening PDFs and research papers from the browser, `AiChatViewModel.InitializeForDocumentAsync()` automatically kicks off background Ollama/embedding passes (`SemanticStatus = _loc("Str_AiChatSemanticBuilding")`). Running embeddings on every freshly opened paper burns massive CPU/GPU compute and causes unnecessary fan spin.
-
-### Required Architecture & Fix
-1. **Make Semantic Research Opt-In**:
-   - In `AiChatViewModel.cs`, disable automatic background embedding during document initialization.
-   - Text extraction, chunking, and BM25 keyword search remain instant and automatic.
-   - The semantic vector embedding pass only runs when the reader explicitly clicks the button.
-2. **UI Button in AI Chat Header (`MainWindow.xaml`)**:
-   - In the `AiChatOverlay` header row (currently containing `AiChatSettingsBtn`, `AiChatNewChatBtn`, `AiChatCloseBtn`):
-   - Add a new button **immediately to the left of `AiChatSettingsBtn`** (Column 2 or inserted before settings):
-     - Size: `24x24`, `Padding="0"`, `FontSize="10"`, `Style="{StaticResource ToolbarButton}"`.
-     - Icon: Segoe MDL2 icon representing research / embeddings / spark / brain (e.g. `\uE946` Sparkle, `\uF1AD` Research/Search, or `\uE773` Knowledge).
-     - ToolTip: DynamicResource `Str_TT_AiSemanticResearch` ("Build Semantic Research Index").
-     - Visual state: Accent color when semantic index is ready or building; muted when idle.
-3. **Click Behavior**:
-   - When clicked, if semantic index is not built, trigger `BuildSemanticIndexAsync()`.
-   - If already building or ready, provide clear feedback (or toggle off/cancel).
-
----
-
-## 4. Issue 3: Left Sidebar in Browser Mode — Web Tabs Gallery
-
-### The Problem
-When the browser view (`WebPaneHost`) is visible, the left sidebar still shows the thumbnail pages of the previously opened PDF document (`PageList`), which is completely disconnected from the active web session.
-
-### Required Architecture & Fix
-1. **Sidebar State Awareness**:
-   - When `ShowWebPane()` is called, switch the left sidebar content from `PageList` to a new `WebTabsHost` (or dedicated Web Tabs list panel).
-   - When `HideWebPane()` is called, restore `PageList`.
-2. **Tab Previews & Selection**:
-   - Display a vertical list of cards representing the browser tabs (or history/open views, e.g. Google Scholar, NotebookLM, arXiv):
-     - Each card shows a live or captured screenshot thumbnail of the page, the page title, and the site favicon/host.
-     - Sorted in tab order (active tab highlighted with theme border/accent).
-   - **Clicking a card**: Switches focus directly to that web tab/URL in the browser, matching the behavior of clicking the tab strip.
-3. **Capturing Thumbnails**:
-   - Use `CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream)` on page load / navigation complete to keep thumbnail images updated for each tab.
+### Required Architectural Fix:
+1. **Eliminate the Race Condition in `OnWebResourceResponseReceived`**:
+   - Create and assign `TaskCompletionSource<byte[]?>` **BEFORE** calling `StartEarlyPdfHandoff(uri)`.
+   - Read the response stream asynchronously, populate the byte array, and set `capture.TrySetResult(bytes)`.
+   - `StartEarlyPdfHandoff` will then reliably await and receive the full valid PDF bytes every time.
+2. **Handle Redirects Accurately**:
+   - Update `_mainNavUri` whenever navigation progresses or redirects occur, or check if the response `Content-Type` is `application/pdf` or `application/x-pdf` regardless of URL matching when it is a top-level document response.
+3. **Bulletproof Fallback in `CatchInlinePdfAsync`**:
+   - If early interception is missed or not triggered, `CatchInlinePdfAsync` in `NavigationCompleted` must execute its multi-layer capture:
+     1. Byte capture from the live engine stream.
+     2. In-page authenticated `fetch(location.href)` script.
+     3. Session-credentialed out-of-process fetch.
+   - If `%PDF-` header is verified, hand it to `PdfRequested` and step the browser back cleanly.
 
 ---
 
-## 5. Issue 4: "Save to Disk" Button for Web-Opened PDFs
+## 2. Issue 2: Add Fresh "New Tab" (+) Button to the Browser Tab Strip
 
-### The Problem
-When PDFs are opened from the browser, they live in a temporary cache (`AppData\Local\Temp\Avalanche\WebDownloads\...`). There is currently no prominent, obvious way for users to save the document to their Documents or Books folder without hunting for Save As in dropdown menus.
+### The Problem:
+In `MainWindow.xaml`, the browser tab strip (`WebPaneHost`) only displays a single static tab:
+`[ 🌐 New tab      ✕ ]`
+There is no `+` (New Tab) button. The reader cannot open a fresh tab or easily start a new search without manually erasing the address bar or closing the entire browser pane.
 
-### Required Architecture & Fix
-1. **Detect Web-Downloaded PDF**:
-   - Track whether the active tab's file was created by the in-app browser (e.g., `_isWebDownloadedPdf` or checking if `_currentFile` starts with the `WebDownloads` temp directory).
-2. **Toolbar Button Placement**:
-   - On the top toolbar, place a dedicated **"Save Web PDF to Disk"** icon button:
-     - Position: **Immediately after the browser tools** (`WebBrowserBtn` / `GrpWeb`).
-     - Visibility: `Visible` **ONLY** when the active document is a web-downloaded PDF; `Collapsed` for all ordinary local PDFs.
-     - Icon: `\uE74E` (Save As / Disk) or `\uE792` (Save/Export) with an accent highlight or download badge.
-     - ToolTip: `Str_TT_SaveWebPdf` ("Save this web PDF to your computer").
-3. **Click Behavior**:
-   - Automatically opens Avalanche's native `SaveAs_Click` file dialog.
-   - Pre-seeds the dialog with the document's cleaned title/filename and defaults to the user's Downloads or Documents directory.
-   - Once saved to a permanent location, update the tab's path and hide the temporary "Save Web PDF" button.
+### Required Architecture & Fix:
+1. **Add `+` (New Tab) Button in `MainWindow.xaml`**:
+   - In `WebPaneHost`'s tab band (row 0), right next to `WebTab`:
+     ```xaml
+     <Button x:Name="WebNewTabBtn" Content="&#xE710;"
+             Style="{DynamicResource TabNewButton}"
+             FontFamily="{DynamicResource IconFont}" FontSize="11"
+             Width="24" Height="22" Margin="4,0,0,0" VerticalAlignment="Center"
+             ToolTip="{DynamicResource Str_TT_WebNewTab}"
+             Click="WebNewTabBtn_Click"/>
+     ```
+2. **New Tab Click Behavior in `MainWindow.xaml.cs`**:
+   - Add click handler `WebNewTabBtn_Click`:
+     - Creates a fresh tab entry in the browser's tab collection (or navigates the browser to `HomePage` / DuckDuckGo).
+     - Clears the omnibox and focuses it immediately so the user can type a search query or URL right away.
+     - Adds a card to the sidebar's Web Tabs gallery (`WebPane.Tabs`), ensuring the new tab is visible and switchable.
+3. **Localization**:
+   - Add `Str_TT_WebNewTab` ("New Tab (Ctrl+T)") to `Strings/en-US.xaml` and all sister locale resource dictionaries.
 
 ---
 
-## 6. Implementation Checklist & Verification
+## 3. Verification Checklist
 
-1. **Browser PDF Handoff**:
-   - Click a PDF link on arXiv, Google Scholar, or direct PDF URL.
-   - Verify Chromium's native PDF viewer does NOT flash or render noticeably before opening in Avalanche.
-2. **AI Chat Semantic Toggle**:
-   - Open several PDFs from the web quickly.
-   - Verify embedding process does NOT run automatically.
-   - Click the new Semantic Research button in AI Chat header; verify embeddings build on demand.
-3. **Left Sidebar in Browser**:
-   - Toggle to Browser mode.
-   - Verify sidebar displays web tab cards with previews instead of PDF page thumbnails.
-   - Click a tab card; verify it switches to that tab.
-4. **Save Web PDF Button**:
-   - Open a PDF from the browser.
-   - Verify the "Save Web PDF" button appears on the toolbar next to browser tools.
-   - Click it, save to disk, and verify it saves cleanly and button disappears once persisted.
-5. **Regression & Parity**:
-   - Run `dotnet test` and ensure all localization keys and existing features pass.
+1. **PDF Porting Verification**:
+   - Test 10 different PDF links across various websites (arXiv, Google Scholar, ScienceDirect, PubMed, Springer, direct .pdf links, and tokenized redirect links).
+   - Verify that all valid PDFs are successfully ported into Avalanche reader tabs with high reliability (10/10).
+   - Verify that Chromium's internal viewer does not linger or freeze.
+2. **New Tab (+) Button Verification**:
+   - Open browser mode in Avalanche.
+   - Verify the `+` button appears directly next to the active web tab in the tab strip.
+   - Click the `+` button; verify a fresh tab opens, omnibox is cleared and focused, and the page is ready for browsing.
+3. **Test Suite**:
+   - Run `dotnet test` to verify all existing unit tests and localization key parity pass without errors.
