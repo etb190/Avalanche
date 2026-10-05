@@ -104,7 +104,8 @@
                                  BorderThickness="0" CaretBrush="{DynamicResource PrimaryBrush}"
                                  SelectionBrush="{DynamicResource RowSelectedBrush}" VerticalContentAlignment="Center"
                                  Margin="8,0" FontSize="12"
-                                 KeyDown="OmniBox_KeyDown" TextChanged="OmniBox_TextChanged"/>
+                                 KeyDown="OmniBox_KeyDown" TextChanged="OmniBox_TextChanged"
+                                 PreviewMouseLeftButtonDown="OmniBox_PreviewMouseDown"/>
                     </Grid>
                 </Border>
                 <!-- v1.19.11: the hand-off's word became a light in the toolbar row.
@@ -147,7 +148,8 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding Url}"
-                                Click="BookmarkChip_Click" ToolTip="{Binding Url}">
+                                Click="BookmarkChip_Click" ToolTip="{Binding Url}"
+                                ContextMenuOpening="BookmarkChip_ContextMenuOpening">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                            Margin="0,1,5,0" VerticalAlignment="Center"
@@ -156,8 +158,12 @@
                             </StackPanel>
                             <Button.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click"/>
-                                    <MenuItem Header="{DynamicResource Str_Ctx_BmDelete}" Click="BookmarkDelete_Click"/>
+                                    <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click">
+                                        <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="{DynamicResource Str_Ctx_BmDelete}" Click="BookmarkDelete_Click">
+                                        <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                    </MenuItem>
                                 </ContextMenu>
                             </Button.ContextMenu>
                         </Button>

@@ -167,14 +167,12 @@ namespace Avalanche.Features.Summary
                 CornerRadius = new CornerRadius(0),
                 UseAeroCaptionButtons = false
             });
-            // The toggle rail: Recap and Discord sit directly above the range
-            // stepper - the two rails share the exact same horizontal center,
-            // which is the whole point (the reader asked for pixel-perfect
-            // alignment with < [start-end] >). The 18px border is the clean
-            // separator gap between the two switches.
-            ToggleRail.Children.Add(BuildRecapToggle());
-            ToggleRail.Children.Add(new Border { Width = 18 });
-            ToggleRail.Children.Add(BuildDiscordToggle());
+            // The switches ride the navigator row itself: Recap into the slot left
+            // of the back arrow, Discord into the slot right of the forward arrow,
+            // each a small space from the arrows - and the window a full switch-row
+            // shorter than the rail-above-the-stepper layout it replaces.
+            RecapSlot.Content = BuildRecapToggle();
+            DiscordSlot.Content = BuildDiscordToggle();
             // The title bar: the wordmark, two digest-font chips before the close mark,
             // a close mark squared to the wordmark's height, and a hairline under the
             // whole bar separating it from the navigator's body.
@@ -188,9 +186,9 @@ namespace Avalanche.Features.Summary
                     // the close mark) is ~140px wide, which pulled the centered
                     // slot ~70px left of the window's true center - the reader's
                     // screenshot showed the pair floating, misaligned with the
-                    // stepper below. They live in the body now, in the
-                    // ToggleRail row directly above the range stepper, sharing
-                    // its exact horizontal center.
+                    // stepper below. They live in the body now, in the navigator
+                    // row itself - Recap left of the back arrow, Discord right
+                    // of the forward arrow (v1.19.15).
                     BeforeClose = new UIElement[]
                     {
                         // The test-this-range chip: leftmost of the three, the AI
@@ -1255,12 +1253,14 @@ namespace Avalanche.Features.Summary
         // style (the 40px track, the 16px white thumb gliding 18px in 150ms,
         // the style mirrored verbatim in this window's resources), the same
         // press-not-click flip taken in the tunnel so no stray drag ever
-        // turns a tap into a window move - beside a bold "Discord" label,
-        // the pair riding the body's toggle rail above the stepper. Checked
-        // the native IPC presence on and broadcasts the book on screen at
-        // once; unchecked clears the profile immediately. The state persists
-        // ("discord.rpc.enabled", default on) and the feature answers even
-        // while this window is closed.
+        // turns a tap into a window move - with a bold "Discord" label on
+        // its left, the pair riding the navigator row right of the forward
+        // arrow: the two switch pairs bookend the stepper, the Recap pair's
+        // label facing in from the left, the Discord pair's from the right
+        // (v1.19.15). Checked the native IPC presence on and broadcasts the
+        // book on screen at once; unchecked clears the profile immediately.
+        // The state persists ("discord.rpc.enabled", default on) and the
+        // feature answers even while this window is closed.
         private FrameworkElement BuildDiscordToggle()
         {
             var toggle = new ToggleButton
@@ -1283,7 +1283,7 @@ namespace Avalanche.Features.Summary
                 FontSize = 11.5,
                 FontWeight = FontWeights.Bold,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(7, 0, 0, 0),
+                Margin = new Thickness(0, 0, 7, 0),
                 ToolTip = _loc("Str_TT_DiscordRpc")
             };
             label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
@@ -1293,8 +1293,8 @@ namespace Avalanche.Features.Summary
                 Orientation = Orientation.Horizontal,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            row.Children.Add(toggle);
             row.Children.Add(label);
+            row.Children.Add(toggle);
             return row;
         }
 

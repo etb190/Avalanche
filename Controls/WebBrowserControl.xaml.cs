@@ -381,6 +381,25 @@ namespace Avalanche.Controls
             if (sender is Button { Tag: string url } && url.Length > 0) NavigateTo(url);
         }
 
+        // v1.19.15: the Edit/Delete menu wears the house face everywhere. The themed
+        // ContextMenu and MenuItem styles are window-scoped, and an implicit style does
+        // not always reach a menu declared inside a UserControl's template - a menu that
+        // opens in the framework's own chrome is the small white box the reader saw
+        // flash, its rows wearing the default gutter the house template fills. On the
+        // opening event, whatever the ambient lookup failed to dress is dressed by hand
+        // from the host window's own resources - a no-op where the ambient won.
+        private void BookmarkChip_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (sender is not Button { ContextMenu: ContextMenu menu } chip) return;
+            Window? host = Window.GetWindow(chip);
+            if (host is null) return;
+            if (menu.Style is null && host.TryFindResource(typeof(ContextMenu)) is Style menuFace)
+                menu.Style = menuFace;
+            foreach (MenuItem item in menu.Items.OfType<MenuItem>())
+                if (item.Style is null && host.TryFindResource(typeof(MenuItem)) is Style itemFace)
+                    item.Style = itemFace;
+        }
+
         private void BookmarkEdit_Click(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement { DataContext: BookmarkVm vm }) OpenBookmarkFlyout(vm);
@@ -421,6 +440,31 @@ namespace Avalanche.Controls
         {
             if (e.Key == Key.Enter) { e.Handled = true; CommitBookmarkFlyout(); }
             else if (e.Key == Key.Escape) { e.Handled = true; WebBookmarkPopup.IsOpen = false; }
+        }
+
+        // v1.19.15: the omnibox's first click selects the whole address - the browser
+        // convention. A second single click falls through to the caret's own business
+        // (place it where the reader pointed), and a double-click selects everything
+        // again instead of the one word WPF's TextBox would take.
+        private void OmniBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not TextBox box) return;
+            if (!box.IsKeyboardFocusWithin)
+            {
+                // First click on a resting omnibox: take the focus and select all.
+                // Handled, so the press's own caret placement cannot collapse the
+                // selection the moment it lands.
+                e.Handled = true;
+                box.Focus();
+                box.SelectAll();
+            }
+            else if (e.ClickCount >= 2)
+            {
+                // A press that arrives as a double-click selects the whole thing again.
+                e.Handled = true;
+                box.SelectAll();
+            }
+            // Every other press while focused: exactly what it does today.
         }
 
         // The omnibox: Enter commits (address when it looks like one, search when it does
