@@ -1,87 +1,116 @@
-# TASK: Fix In-App Browser PDF Interception & Eliminate "Site Blocked Download" Failures
+# TASK: Browser PDF Fast Interception, AI Semantic Toggle, Browser Tabs Gallery, & Web PDF Save Button
 
 Repository: `https://github.com/etb190/Avalanche`  
-Target File: `Controls/WebBrowserControl.xaml.cs`  
-Version: `1.19.4` (or next patch)
+Target Version: `1.19.5` (or next release)
 
 ---
 
-## 1. Problem Diagnosis: Why 6/10 PDFs Fail with "Site Blocked Download" or Open in Chromium's Viewer
+## 1. Overview of Tasks
 
-The reader currently encounters two major bugs when navigating and downloading PDFs via the in-app browser:
-1. **"This PDF couldn't be fetched - the site blocked the download" (`Str_Web_PdfBlocked`)**:
-   - Happens on 50%+ of academic, cloud-storage, and publisher links (ScienceDirect, Springer, JSTOR, Wiley, Cloudflare-protected sites, Google Drive, etc.).
-2. **Some PDFs still open inside Chromium's built-in PDF viewer**:
-   - Happens on indirect links (`/download?id=...`, dynamic redirects, JavaScript/form submissions) where the URL does not end in `.pdf`.
-
-### Root Causes in `WebBrowserControl.xaml.cs`:
-1. **Canceling Navigation and Using External C# `HttpClient`**:
-   - In `OnNavigationStarting`:
-     ```csharp
-     if (LooksLikePdf(e.Uri) && !_pdfTried.Contains(e.Uri))
-     {
-         e.Cancel = true;
-         _ = OpenRemotePdfAsync(e.Uri);
-     }
-     ```
-   - When a user clicks a link, canceling the navigation stops the authentic browser request.
-   - `FetchBrowserBytesAsync` then makes a separate out-of-process HTTP request using .NET `HttpClient`. Even though it copies cookies and User-Agent, modern CDNs and anti-bot systems (Cloudflare, Akamai, CloudFront) detect:
-     - **Missing Client Hints & Sec-* headers**: (`sec-ch-ua`, `sec-fetch-dest`, `sec-fetch-mode`).
-     - **TLS Fingerprint Mismatch**: .NET Schannel/TLS fingerprint does not match real Chromium.
-     - **Single-Use Signed Tokens**: Dynamic download tokens get invalidated because the original navigation was aborted.
-   - The server answers with HTTP 403 Forbidden, 401, or a Cloudflare CAPTCHA challenge page. `EnsureSuccessStatusCode()` throws, causing `Str_Web_PdfBlocked`.
-2. **Permanent Blacklisting in `_pdfTried`**:
-   - If a URL fails once, `_pdfTried.Add(url)` keeps it forever in memory. Any subsequent click or retry on that URL is blocked and rejected without even trying.
-3. **Indirect / Dynamic Redirects Bypass `LooksLikePdf`**:
-   - Links without explicit `/pdf/` or `.pdf` (e.g., tokenized routes) navigate through into Chromium's built-in PDF viewer.
-   - When `CatchInlinePdfAsync` tries to recover them via `FetchBrowserBytesAsync`, it hits the exact same `HttpClient` 403/block issue, falls back to `RetreatFromInlinePdf()`, or gets trapped in the viewer.
+This update addresses four key areas in Avalanche:
+1. **Early PDF Interception in In-App Browser**: Eliminate the flash/glimpse of Chromium's internal PDF viewer before handoff occurs.
+2. **AI Chat Semantic Research Manual Toggle**: Stop automatic, compute-heavy embedding passes when quickly browsing papers by adding an opt-in toggle button in the AI Chat header.
+3. **Sidebar Left Panel in Browser Mode**: When the browser is active, replace document page thumbnails with live tab preview screenshots/cards, allowing clicking to switch tabs.
+4. **"Save Web PDF to Disk" Toolbar Action**: When viewing a PDF downloaded from the browser (stored in temp), display a prominent "Save to Disk" / "Save As" button right after the browser tools on the toolbar so users can pick where to save it permanently.
 
 ---
 
-## 2. Architectural Solution
+## 2. Issue 1: Prevent Delayed Interception / Flash of Chromium's PDF Viewer
 
-Stop fighting Chromium's network engine. Chromium has already passed Cloudflare checks, negotiated TLS, handled CSRF tokens, and holds the active authenticated session.
+### The Problem
+When a user clicks a PDF link, `NavigationCompleted` triggers `CatchInlinePdfAsync()`. Because this waits until the full document finishes rendering in Chromium, the user briefly sees the Edge/Chromium PDF viewer UI before Avalanche yanks it out and opens it in the reader tab.
 
-### Core Principles:
-1. **Native Downloads via Chromium (`DownloadStarting`)**:
-   - When a link triggers a file download, let Chromium download it natively through `CoreWebView2.DownloadStarting`.
-   - Set `e.Handled = true` to suppress Edge's default UI tray.
-   - Set `e.ResultFilePath = target` so Chromium streams the authenticated bytes directly to Avalanche's temporary cache.
-   - Zero TLS mismatch, zero 403 blocks.
-2. **For Direct PDF Navigation (Inline PDF Viewing)**:
-   - When a URL navigates directly to a PDF and renders in the browser, extract the bytes from **within the authenticated browser context**:
-     - Option A: Fetch inside the browser page via `core.ExecuteScriptAsync` using native `window.fetch(location.href, {credentials: 'include'})` as Base64/Blob, avoiding external `HttpClient`.
-     - Option B: Use `CoreWebView2.WebResourceResponseReceived` to intercept the response stream directly as Chromium receives it.
-     - Option C: Set Chromium arguments / settings on `CoreWebView2EnvironmentOptions` to trigger downloads for PDF MIME types rather than rendering them.
-3. **Clean Up `_pdfTried` Blacklist**:
-   - Do NOT permanently blacklist URLs on error. Only track currently in-flight requests to avoid re-entrant loops. If a download fails, allow retrying.
-4. **Fallback Direct Print-to-PDF / Handoff**:
-   - Ensure the "Open in Avalanche" button (`WebOpenPdfBtn`) remains a reliable fallback that captures the current document/page immediately.
+### Required Architecture & Fix
+1. **Intercept at `WebResourceResponseReceived` or `NavigationStarting`**:
+   - `core.WebResourceResponseReceived` fires as soon as the HTTP response headers arrive (`Response.Headers`).
+   - If the main frame response has `Content-Type: application/pdf` or `application/x-pdf`:
+     - Immediately start the handoff or redirect.
+2. **Early Visual Guard**:
+   - In `NavigationStarting`, if `LooksLikePdf(uri)` is true, or once response headers indicate a PDF, immediately blank or hide the WebView2 frame (or show the "Opening PDF in reader..." status plate) so Chromium's PDF viewer canvas is never painted to the screen.
+3. **Streamlined Capture**:
+   - Use the already-intercepted response body stream from `WebResourceResponseReceived` or `DownloadStarting` instead of waiting for full DOM completion in `NavigationCompleted`.
 
 ---
 
-## 3. Required Changes in `Controls/WebBrowserControl.xaml.cs`
+## 3. Issue 2: AI Chat Manual "Semantic Research" Button
 
-1. **Remove `e.Cancel = true` for Downloadable PDF Links in `OnNavigationStarting`**:
-   - Let the navigation or download proceed to `OnDownloadStarting`.
-2. **Robust `OnDownloadStarting` Handling**:
-   - Ensure all MIME types of `application/pdf`, `application/x-pdf`, `application/octet-stream` (when filename ends in `.pdf`) are handled:
-   - Stream directly into `TempPdfPath(SafePdfName(suggested))`.
-   - Verify `%PDF-` header upon completion and invoke `PdfRequested`.
-3. **In-Browser Extraction for Inline PDFs (`CatchInlinePdfAsync`)**:
-   - When `document.contentType == "application/pdf"`, instead of spawning `HttpClient` which gets blocked by 403s, read the document stream directly from Chromium or extract via in-page JavaScript `fetch(location.href)` converted to base64.
-   - Step back (`GoBack()`) to the offering page once the file is handed to Avalanche.
-4. **Ensure Smooth Status Reporting**:
-   - Show status "Fetching PDF for reader..." and hide cleanly upon handoff or clear error.
+### The Problem
+When rapidly opening PDFs and research papers from the browser, `AiChatViewModel.InitializeForDocumentAsync()` automatically kicks off background Ollama/embedding passes (`SemanticStatus = _loc("Str_AiChatSemanticBuilding")`). Running embeddings on every freshly opened paper burns massive CPU/GPU compute and causes unnecessary fan spin.
+
+### Required Architecture & Fix
+1. **Make Semantic Research Opt-In**:
+   - In `AiChatViewModel.cs`, disable automatic background embedding during document initialization.
+   - Text extraction, chunking, and BM25 keyword search remain instant and automatic.
+   - The semantic vector embedding pass only runs when the reader explicitly clicks the button.
+2. **UI Button in AI Chat Header (`MainWindow.xaml`)**:
+   - In the `AiChatOverlay` header row (currently containing `AiChatSettingsBtn`, `AiChatNewChatBtn`, `AiChatCloseBtn`):
+   - Add a new button **immediately to the left of `AiChatSettingsBtn`** (Column 2 or inserted before settings):
+     - Size: `24x24`, `Padding="0"`, `FontSize="10"`, `Style="{StaticResource ToolbarButton}"`.
+     - Icon: Segoe MDL2 icon representing research / embeddings / spark / brain (e.g. `\uE946` Sparkle, `\uF1AD` Research/Search, or `\uE773` Knowledge).
+     - ToolTip: DynamicResource `Str_TT_AiSemanticResearch` ("Build Semantic Research Index").
+     - Visual state: Accent color when semantic index is ready or building; muted when idle.
+3. **Click Behavior**:
+   - When clicked, if semantic index is not built, trigger `BuildSemanticIndexAsync()`.
+   - If already building or ready, provide clear feedback (or toggle off/cancel).
 
 ---
 
-## 4. Verification Checklist
+## 4. Issue 3: Left Sidebar in Browser Mode — Web Tabs Gallery
 
-1. **Academic & Protected Links**:
-   - Test downloading PDFs from ScienceDirect, arXiv, PubMed Central, and cloud storage links.
-   - Verify links no longer show "site blocked the download" and load successfully into an Avalanche editor tab.
-2. **Zero In-Browser PDF Viewers**:
-   - Verify documents do not remain stuck inside Chromium's PDF reader.
-3. **Test Suite**:
-   - Ensure unit test suite (`dotnet test`) continues to pass with all string localizations intact.
+### The Problem
+When the browser view (`WebPaneHost`) is visible, the left sidebar still shows the thumbnail pages of the previously opened PDF document (`PageList`), which is completely disconnected from the active web session.
+
+### Required Architecture & Fix
+1. **Sidebar State Awareness**:
+   - When `ShowWebPane()` is called, switch the left sidebar content from `PageList` to a new `WebTabsHost` (or dedicated Web Tabs list panel).
+   - When `HideWebPane()` is called, restore `PageList`.
+2. **Tab Previews & Selection**:
+   - Display a vertical list of cards representing the browser tabs (or history/open views, e.g. Google Scholar, NotebookLM, arXiv):
+     - Each card shows a live or captured screenshot thumbnail of the page, the page title, and the site favicon/host.
+     - Sorted in tab order (active tab highlighted with theme border/accent).
+   - **Clicking a card**: Switches focus directly to that web tab/URL in the browser, matching the behavior of clicking the tab strip.
+3. **Capturing Thumbnails**:
+   - Use `CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream)` on page load / navigation complete to keep thumbnail images updated for each tab.
+
+---
+
+## 5. Issue 4: "Save to Disk" Button for Web-Opened PDFs
+
+### The Problem
+When PDFs are opened from the browser, they live in a temporary cache (`AppData\Local\Temp\Avalanche\WebDownloads\...`). There is currently no prominent, obvious way for users to save the document to their Documents or Books folder without hunting for Save As in dropdown menus.
+
+### Required Architecture & Fix
+1. **Detect Web-Downloaded PDF**:
+   - Track whether the active tab's file was created by the in-app browser (e.g., `_isWebDownloadedPdf` or checking if `_currentFile` starts with the `WebDownloads` temp directory).
+2. **Toolbar Button Placement**:
+   - On the top toolbar, place a dedicated **"Save Web PDF to Disk"** icon button:
+     - Position: **Immediately after the browser tools** (`WebBrowserBtn` / `GrpWeb`).
+     - Visibility: `Visible` **ONLY** when the active document is a web-downloaded PDF; `Collapsed` for all ordinary local PDFs.
+     - Icon: `\uE74E` (Save As / Disk) or `\uE792` (Save/Export) with an accent highlight or download badge.
+     - ToolTip: `Str_TT_SaveWebPdf` ("Save this web PDF to your computer").
+3. **Click Behavior**:
+   - Automatically opens Avalanche's native `SaveAs_Click` file dialog.
+   - Pre-seeds the dialog with the document's cleaned title/filename and defaults to the user's Downloads or Documents directory.
+   - Once saved to a permanent location, update the tab's path and hide the temporary "Save Web PDF" button.
+
+---
+
+## 6. Implementation Checklist & Verification
+
+1. **Browser PDF Handoff**:
+   - Click a PDF link on arXiv, Google Scholar, or direct PDF URL.
+   - Verify Chromium's native PDF viewer does NOT flash or render noticeably before opening in Avalanche.
+2. **AI Chat Semantic Toggle**:
+   - Open several PDFs from the web quickly.
+   - Verify embedding process does NOT run automatically.
+   - Click the new Semantic Research button in AI Chat header; verify embeddings build on demand.
+3. **Left Sidebar in Browser**:
+   - Toggle to Browser mode.
+   - Verify sidebar displays web tab cards with previews instead of PDF page thumbnails.
+   - Click a tab card; verify it switches to that tab.
+4. **Save Web PDF Button**:
+   - Open a PDF from the browser.
+   - Verify the "Save Web PDF" button appears on the toolbar next to browser tools.
+   - Click it, save to disk, and verify it saves cleanly and button disappears once persisted.
+5. **Regression & Parity**:
+   - Run `dotnet test` and ensure all localization keys and existing features pass.
