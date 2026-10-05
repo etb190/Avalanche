@@ -1,97 +1,127 @@
-# TASK: Fix Broken Browser PDF Porting & Add Fresh "New Tab" (+) Button
+# TASK: Fix Persistent Browser PDF Viewer Leaks, Infinite "Fetching" Status, and Tab Strip / Gallery Sync
 
 Repository: `https://github.com/etb190/Avalanche`  
 Target Files: `Controls/WebBrowserControl.xaml.cs`, `MainWindow.xaml`, `MainWindow.xaml.cs`  
-Version: `1.19.6` (or next patch)
+Version: `1.19.7` (or next patch)
 
 ---
 
-## 1. Issue 1: Fix Broken PDF Porting ("Doesn't port, only 1 PDF worked")
+## 1. Overview of Remaining Critical Issues
 
-### Problem Diagnosis in `WebBrowserControl.xaml.cs`:
-In commit `ff4acf3`, early response interception was added, but it introduced a **fatal race condition and redirect disconnect** that broke PDF handoffs completely:
+Users are testing real-world academic and journal PDF links and encountering three specific problems:
 
-1. **Race Condition in `OnWebResourceResponseReceived`**:
-   - Lines 721–727:
+### A. The Links Tested:
+1. **Working (delayed or instant)**:
+   - `https://www.jstor.org/stable/pdf/786314.pdf`
+   - `https://www.jstor.org/stable/pdf/789704.pdf`
+   - `https://www.academia.edu/download/124500573/1243.pdf`
+   - `https://www.stevehedley.com/odg/attachments/NEYERS_(Theory_of_VL).pdf`
+   - `https://papers.ssrn.com/sol3/Delivery.cfm?abstractid=2667080`
+   - `https://papers.ssrn.com/sol3/Delivery.cfm?abstractid=2432094`
+2. **Failed: Still opens in Chromium's internal PDF viewer (or link clicks do nothing)**:
+   - `https://chicagounbound.uchicago.edu/cgi/viewcontent.cgi?article=13702&context=journal_articles`
+   - `https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
+   - `https://www.researchgate.net/profile/Paula-Giliker/publication/272264532_Vicarious_Liability_or_Liability_for_the_Acts_of_Others_in_Tort_A_Comparative_Perspective/links/595f9197458515a357b3ee0b/Vicarious-Liability-or-Liability-for-the-Acts-of-Others-in-Tort-A-Comparative-Perspective.pdf`
+   - `https://www.repository.law.indiana.edu/cgi/viewcontent.cgi?article=11519&context=ilj`
+   - `https://ajronline.org/doi/pdf/10.2214/ajr.169.3.9275865`
+
+---
+
+## 2. Root Cause Analysis
+
+### Issue 1: Why those specific links open in Chromium's viewer or hang forever with "Fetching the PDF..."
+1. **The `Sec-Fetch-Dest` & Sub-frame trap in `OnWebResourceResponseReceived`**:
+   - In `WebBrowserControl.xaml.cs`:
      ```csharp
-     if (LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
-         StartEarlyPdfHandoff(uri);               // 1. Spawns asynchronous handoff worker
-     Stream? content = await e.Response.GetContentAsync();
+     string dest = e.Request.Headers.Contains("Sec-Fetch-Dest") ? ...;
+     bool mainDocument = dest.Equals("document", StringComparison.OrdinalIgnoreCase);
      ...
-     TaskCompletionSource<byte[]?> capture = new(...);
-     _pdfCapture = capture;                       // 2. Assigns _pdfCapture AFTER starting worker!
+     if (dest.Length > 0 && !mainDocument) return;
      ```
-   - In `StartEarlyPdfHandoff(url)`, line 393:
-     ```csharp
-     byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
-     ```
-   - Because `StartEarlyPdfHandoff` runs before `_pdfCapture` is assigned, `WaitPdfCaptureAsync` immediately sees `_pdfCapture == null` and returns `null`.
-   - Line 405 runs:
-     ```csharp
-     _pdfInFlight.Remove(url);
-     DropVisualGuard(restore: true);
-     ```
-   - The handoff terminates prematurely with failure, drops the visual guard, and leaves the user stranded on Chromium's viewer or in limbo.
-2. **Redirect Disconnect with `_mainNavUri`**:
-   - `_mainNavUri` was recorded only in `OnNavigationStarting`.
-   - When a link redirects (e.g. `scholar.google.com/url?...` -> `sciencedirect.com/article/...` -> `cdn.sciencedirect.com/.../main.pdf`), `e.Request.Uri` in `OnWebResourceResponseReceived` does NOT match the initial `_mainNavUri`.
-   - Unless the final redirected URL ends strictly in `.pdf`, `UriEquals(uri, _mainNavUri)` is false, so `StartEarlyPdfHandoff` never even gets called.
-3. **Dead Fallback in `CatchInlinePdfAsync`**:
-   - After the early handoff aborts or fails due to the race condition, `NavigationCompleted` triggers `CatchInlinePdfAsync()`, but the internal flags/state prevent a clean recovery.
-
-### Required Architectural Fix:
-1. **Eliminate the Race Condition in `OnWebResourceResponseReceived`**:
-   - Create and assign `TaskCompletionSource<byte[]?>` **BEFORE** calling `StartEarlyPdfHandoff(uri)`.
-   - Read the response stream asynchronously, populate the byte array, and set `capture.TrySetResult(bytes)`.
-   - `StartEarlyPdfHandoff` will then reliably await and receive the full valid PDF bytes every time.
-2. **Handle Redirects Accurately**:
-   - Update `_mainNavUri` whenever navigation progresses or redirects occur, or check if the response `Content-Type` is `application/pdf` or `application/x-pdf` regardless of URL matching when it is a top-level document response.
-3. **Bulletproof Fallback in `CatchInlinePdfAsync`**:
-   - If early interception is missed or not triggered, `CatchInlinePdfAsync` in `NavigationCompleted` must execute its multi-layer capture:
-     1. Byte capture from the live engine stream.
-     2. In-page authenticated `fetch(location.href)` script.
-     3. Session-credentialed out-of-process fetch.
-   - If `%PDF-` header is verified, hand it to `PdfRequested` and step the browser back cleanly.
+   - Sites like Wiley, ResearchGate, Chicago Unbound, Indiana Law Repository, and AJR deliver PDFs via:
+     - Cross-origin CDN redirects where `Sec-Fetch-Dest` is `empty` or not sent as `"document"`.
+     - In-page viewer plugins or embedded `<embed>` / `<object>` wrappers where `dest` is `"embed"` or `"object"` rather than `"document"`.
+     - Because `dest.Length > 0 && !mainDocument` evaluates to `true`, the response filter returns immediately!
+     - It completely skips capturing the stream!
+2. **The Infinite "Fetching the PDF..." Status**:
+   - `ShowStatus(TryLoc("Str_Web_PdfOpening"))` is displayed when `ArmVisualGuard()` or `StartEarlyPdfHandoff` is triggered.
+   - If the capture times out or fails (or if the response is ignored due to the `dest` filter above), `HideStatus()` is **never called** in several code paths (such as when `WaitPdfCaptureAsync` hangs waiting for a capture that was dropped, or when fallback methods silently return `null`).
+   - The reader is left staring at *"Fetching the PDF for the reader..."* permanently.
+3. **In-Page JavaScript Fetch Fails on Plugin / Viewer DOMs (`PageFetchScript`)**:
+   - When Chromium renders a PDF, the page DOM is not an HTML page with JavaScript `fetch()`: it is Chromium's internal PDF viewer extension (`chrome-extension://...` or `<embed type="application/pdf">`).
+   - Running `await core.ExecuteScriptAsync(PageFetchScript)` inside a native PDF extension either returns an empty string or throws a security exception (`SecurityError: Failed to fetch`).
+4. **Out-of-Process `FetchBrowserBytesAsync` Cookie Path Failure**:
+   - Adding cookies from WebView2 via `handler.CookieContainer.Add(target, new Cookie(...))` fails if `c.Domain` contains leading dots or port numbers that .NET's strict `Cookie` constructor rejects, throwing `CookieException` inside the loop and aborting the request.
 
 ---
 
-## 2. Issue 2: Add Fresh "New Tab" (+) Button to the Browser Tab Strip
+## 3. Required Architectural Solutions
+
+### A. Disable Chromium's PDF Viewer in WebView2 Settings (The Core Fix)
+The user noted:
+> *"Some browsers don't even preview pdfs, they only allow you to preview downloaded pdfs so if you try to click a pdf it downloads it, maybe doing that fixes that?"*
+
+**YES!** If we configure WebView2 to treat PDFs as downloads rather than rendering them internally, Chromium will **never** display its built-in viewer, and every PDF click will stream natively into `OnDownloadStarting`!
+- In `EnsureReadyAsync()`:
+  - Configure `core.Settings.HiddenPdfToolbarItems = CoreWebView2PdfToolbarItems.None;`
+  - Pass browser argument to disable internal PDF viewer plugin if applicable, OR:
+  - If a top-level response has `Content-Type: application/pdf`, **intercept regardless of `Sec-Fetch-Dest`**:
+    ```csharp
+    // Do NOT discard responses where dest != "document"!
+    // If the mime type is application/pdf, capture it!
+    ```
+
+### B. Guarantee "Fetching PDF" Status Strip Cleans Up:
+- Wrap all handoff routines (`StartEarlyPdfHandoff`, `CatchInlinePdfAsync`, `OpenRemotePdfAsync`) in a `finally` block that **always** calls `HideStatus()`:
+  ```csharp
+  try { ... }
+  finally { HideStatus(); }
+  ```
+- If the fetch fails, display a clear, brief status message (e.g. `Str_Web_PdfBlocked`), then hide it after 3 seconds so the status bar does not get stuck.
+
+### C. Fallback for Embedded / Viewer DOMs:
+- If Chromium renders a PDF page, do not rely on `document.contentType == "application/pdf"`.
+- Use `core.PrintToPdfAsync` or download the active URL directly using the WebView2 native download API (`core.DownloadStarting`), which bypasses DOM restrictions.
+
+---
+
+## 4. Issue 2: Sidebar Gallery Order & Top Tab Strip Sync
 
 ### The Problem:
-In `MainWindow.xaml`, the browser tab strip (`WebPaneHost`) only displays a single static tab:
-`[ 🌐 New tab      ✕ ]`
-There is no `+` (New Tab) button. The reader cannot open a fresh tab or easily start a new search without manually erasing the address bar or closing the entire browser pane.
+1. **Sidebar Gallery is inverted**:
+   - The active/newest tab appears at the bottom.
+   - The user requested: **"from newest to oldest from top to bottom"**.
+2. **Top Tab Strip only has one tab**:
+   - The top tab strip in `MainWindow.xaml` (`WebPaneHost`) only shows the single active tab.
+   - The user wants the top tab strip to populate with all open tabs just like the PDF viewer's tab strip, allowing the reader to switch between web tabs from the top strip as well as the sidebar.
 
 ### Required Architecture & Fix:
-1. **Add `+` (New Tab) Button in `MainWindow.xaml`**:
-   - In `WebPaneHost`'s tab band (row 0), right next to `WebTab`:
-     ```xaml
-     <Button x:Name="WebNewTabBtn" Content="&#xE710;"
-             Style="{DynamicResource TabNewButton}"
-             FontFamily="{DynamicResource IconFont}" FontSize="11"
-             Width="24" Height="22" Margin="4,0,0,0" VerticalAlignment="Center"
-             ToolTip="{DynamicResource Str_TT_WebNewTab}"
-             Click="WebNewTabBtn_Click"/>
-     ```
-2. **New Tab Click Behavior in `MainWindow.xaml.cs`**:
-   - Add click handler `WebNewTabBtn_Click`:
-     - Creates a fresh tab entry in the browser's tab collection (or navigates the browser to `HomePage` / DuckDuckGo).
-     - Clears the omnibox and focuses it immediately so the user can type a search query or URL right away.
-     - Adds a card to the sidebar's Web Tabs gallery (`WebPane.Tabs`), ensuring the new tab is visible and switchable.
-3. **Localization**:
-   - Add `Str_TT_WebNewTab` ("New Tab (Ctrl+T)") to `Strings/en-US.xaml` and all sister locale resource dictionaries.
+1. **Reverse Sidebar Gallery Order (Newest on Top)**:
+   - When adding a new or revisited card in `Tabs`:
+     - Use `Tabs.Insert(0, card)` instead of `Tabs.Add(card)`.
+     - When moving a revisited card, remove it and insert it at index `0`.
+     - This ensures the newest/active tab is always at the **top** of the left sidebar gallery, followed by older tabs below it.
+2. **Populate Top Tab Strip with Web Tabs**:
+   - In `MainWindow.xaml`, replace the single static `WebTab` with an `ItemsControl` (or dynamic tabs panel) bound to `WebPane.Tabs` (or synchronized list):
+     - Each tab in the top strip shows the tab title, globe icon, active face, and close button (`✕`).
+     - Clicking a tab in the top strip activates that tab (`WebPane.ActivateTab(tab.Url)`).
+     - The `+` (New Tab) button sits at the end of the top tab row.
 
 ---
 
-## 3. Verification Checklist
+## 5. Verification Checklist
 
-1. **PDF Porting Verification**:
-   - Test 10 different PDF links across various websites (arXiv, Google Scholar, ScienceDirect, PubMed, Springer, direct .pdf links, and tokenized redirect links).
-   - Verify that all valid PDFs are successfully ported into Avalanche reader tabs with high reliability (10/10).
-   - Verify that Chromium's internal viewer does not linger or freeze.
-2. **New Tab (+) Button Verification**:
-   - Open browser mode in Avalanche.
-   - Verify the `+` button appears directly next to the active web tab in the tab strip.
-   - Click the `+` button; verify a fresh tab opens, omnibox is cleared and focused, and the page is ready for browsing.
-3. **Test Suite**:
-   - Run `dotnet test` to verify all existing unit tests and localization key parity pass without errors.
+1. **Test the Previously Failing Links**:
+   - Test `chicagounbound.uchicago.edu`
+   - Test `onlinelibrary.wiley.com`
+   - Test `researchgate.net`
+   - Test `repository.law.indiana.edu`
+   - Test `ajronline.org`
+   - Verify all 5 links now successfully hand over to Avalanche without getting trapped in Chromium's viewer or clicking doing nothing.
+2. **Status Bar Clean-up**:
+   - Verify "Fetching the PDF for the reader..." never gets stuck on screen.
+3. **Sidebar Gallery Ordering**:
+   - Open multiple tabs (e.g. Google Scholar, JSTOR, arXiv).
+   - Verify the newest / currently active tab is at the **top** of the left rail.
+4. **Top Tab Strip Multi-Tab Support**:
+   - Verify the top tab strip displays all open web tabs side-by-side with close chips and the `+` button.
