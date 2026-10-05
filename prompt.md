@@ -9,10 +9,11 @@ Version: `1.19.8` (or next patch)
 ## 1. Status Update & Remaining Issues
 
 In v1.19.7, PDF handoff reliability improved (e.g. ResearchGate and AJR now succeed). However:
-1. **Three academic PDF links still fail to port (opening in Chromium's internal PDF viewer or getting stuck)**:
+1. **Three academic PDF links still fail to port automatically (opening in Chromium's internal PDF viewer)**:
    - `https://chicagounbound.uchicago.edu/cgi/viewcontent.cgi?article=13702&context=journal_articles`
    - `https://www.repository.law.indiana.edu/cgi/viewcontent.cgi?article=11519&context=ilj`
    - `https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1468-2230.1957.tb00440.x`
+   *(Crucial Clue: When Chrome's viewer opens on these pages, clicking its built-in 'Save' button immediately triggers Avalanche's reader via `OnDownloadStarting`. The document is 100% accessible and delivered without error; only the automatic launch triggers failed to fire!)*
 2. **New Issue: The PDF does not close from the browser after going to the PDF editor; it stays in the browser and bugs out**:
    - When a PDF is handed off to Avalanche's reader, the web browser pane hides, but the PDF tab is left open in `WebPane.Tabs` (top tab strip and sidebar gallery).
    - When reopening the web browser, the tab is stuck on the PDF URL or Chromium's internal viewer in a frozen/blanked state.
