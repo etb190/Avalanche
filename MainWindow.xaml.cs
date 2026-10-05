@@ -2191,12 +2191,13 @@ namespace Avalanche
 
         // ── The web browser pane (v1.19.1) ──────────────────────────────────────────────
         // The toolbar globe swaps the document area for the lightweight WebView2 card,
-        // hosted in exactly the PDF card's footprint under its own tab band: while the
-        // pane is up, the band's single live-title tab IS the strip - close it and the
-        // PDF tabs return. Any PDF the web offers - a clicked .pdf link or a finished
-        // download - comes back through PdfRequested and opens as an ordinary reader
-        // tab, with the pane stepping aside first. The engine is lazy and suspended
-        // whenever the pane hides.
+        // hosted in exactly the PDF card's footprint under its own tab band: since
+        // v1.19.7 the band carries every open view the way the reader's strip does -
+        // a tab per view, its own close chip, the + at the row's end - and closing the
+        // last one puts the browser away so the PDF tabs return. Any PDF the web
+        // offers - a clicked .pdf link or a finished download - comes back through
+        // PdfRequested and opens as an ordinary reader tab, with the pane stepping
+        // aside first. The engine is lazy and suspended whenever the pane hides.
         private void WireWebPane()
         {
             WebPane.PdfRequested += path =>
@@ -2208,18 +2209,31 @@ namespace Avalanche
                 // on the tab switch above.
                 RefreshWebSaveButton(path);
             };
-            // The browser tab wears the page's own title, the way a browser tab does;
-            // the tooltip carries the same words in full.
-            WebPane.TitleChanged += title =>
-            {
-                WebTabLabel.Text = title;
-                WebTab.ToolTip = title;
-            };
+            // v1.19.7: the strip's tabs carry their own titles now (the control
+            // renames the view's card the moment a title arrives), and closing the
+            // LAST tab asks the window to put the browser away - what closing the
+            // old single tab always did.
+            WebPane.CloseRequested += () => HideWebPane();
         }
 
         private void WebBrowserBtn_Click(object sender, RoutedEventArgs e) => ToggleWebPane();
 
-        private void WebTabClose_Click(object sender, RoutedEventArgs e) => HideWebPane();
+        /// <summary>A strip tab was clicked: the browser switches to that view,
+        /// exactly as a gallery card click does.</summary>
+        private void WebTabStripTab_Click(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Border { Tag: string url } && url.Length > 0)
+                WebPane.ActivateTab(url);
+        }
+
+        /// <summary>A strip tab's ✕ closed that tab: the card leaves the gallery
+        /// and the browser moves on - or the window steps aside when the last
+        /// view closed.</summary>
+        private void WebTabStripClose_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button { Tag: string url } && url.Length > 0)
+                WebPane.CloseTab(url);
+        }
 
         /// <summary>The band's + asks the browser for a fresh view: home page, seeded
         /// gallery card, and the caret waiting in the omnibox.</summary>

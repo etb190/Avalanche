@@ -31,7 +31,10 @@ namespace Avalanche.Controls
     /// credentialed out-of-process fetch as the last resort, every candidate checked
     /// for a real PDF header before the reader hears of it. A failed hand-off is never
     /// remembered, so a blocked link can always be retried, and no download is ever
-    /// interrupted by a suspend. Everything
+    /// interrupted by a suspend. v1.19.7: the capture no longer asks whose frame an
+    /// answer was for - every application/pdf response is captured wherever it came
+    /// from, the engine is asked to hand PDFs over as downloads instead of rendering
+    /// them, and every status word takes itself down. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -160,7 +163,17 @@ namespace Avalanche.Controls
             {
                 string dataDir = Path.Combine(AppDataPaths.UserRoot, "WebView2Data");
                 Directory.CreateDirectory(dataDir);
-                env = await CoreWebView2Environment.CreateAsync(null, dataDir);
+                // v1.19.7: the engine is asked to treat PDFs as downloads instead of
+                // rendering them inline - the "some browsers only preview downloaded
+                // pdfs" behavior, so Chromium's viewer never gets a document to show
+                // and every PDF click rides DownloadStarting. A runtime that does not
+                // know the feature name simply ignores the switch, and the capture
+                // below is the answer that does not depend on it.
+                CoreWebView2EnvironmentOptions options = new()
+                {
+                    AdditionalBrowserArguments = "--disable-features=PdfInlineViewer",
+                };
+                env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
                 await Browser.EnsureCoreWebView2Async(env);
             }
             catch
@@ -172,6 +185,12 @@ namespace Avalanche.Controls
 
             HideStatus();
             CoreWebView2 core = Browser.CoreWebView2!;
+            // v1.19.7: the built-in viewer's toolbar is pinned explicitly; the
+            // viewer's real ban lives in the download-first engine switch and the
+            // capture - a document that still reaches the viewer is pulled straight
+            // back out before it can be a PDF surface this app never promised.
+            try { core.Settings.HiddenPdfToolbarItems = CoreWebView2PdfToolbarItems.None; }
+            catch { /* a runtime without the setting keeps its defaults */ }
             core.DownloadStarting += OnDownloadStarting;
             core.WebResourceResponseReceived += OnWebResourceResponseReceived;
             core.NewWindowRequested += OnNewWindowRequested;
@@ -277,7 +296,11 @@ namespace Avalanche.Controls
                 _navCompleted = true;   // a straggling early hand-off can owe the fallback now
                 _ = CatchInlinePdfAsync();
             }
-            else DropVisualGuard(restore: true);   // a dead navigation never strands a blanked engine
+            else
+            {
+                DropVisualGuard(restore: true);   // a dead navigation never strands a blanked engine
+                HideStatus();   // v1.19.7: nor a "Fetching..." strip
+            }
             _ = UpdateTabCardAsync();   // the sidebar gallery's preview for this view
         }
 
@@ -291,34 +314,51 @@ namespace Avalanche.Controls
         /// a hand-off only guards the race it is running.</summary>
         private async Task CatchInlinePdfAsync()
         {
+            bool handed = false;   // the document reached the reader
             try
             {
                 CoreWebView2? core = Browser.CoreWebView2;
                 if (core is null) return;
                 string type = await core.ExecuteScriptAsync("document.contentType");
-                if (!type.Trim('"').Equals("application/pdf", StringComparison.OrdinalIgnoreCase))
+                string plain = type.Trim('"');
+                string url = Browser.Source?.ToString() ?? string.Empty;
+                // v1.19.7: the probe's word is not final. Chromium's viewer DOM is not
+                // a document - the expression comes back "null" or refuses to run - and
+                // an embed wrapper answers text/html. When the address itself is
+                // pdf-shaped, "null" means the viewer is on screen and the document
+                // still comes out: the capture, the page's own fetch, the credentialed
+                // one - whatever answers with real PDF bytes.
+                bool isPdf = plain.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+                bool viewerDom = plain.Length == 0 || plain.Equals("null", StringComparison.OrdinalIgnoreCase);
+                if (!isPdf && !(viewerDom && LooksLikePdf(url)))
                 {
                     DropVisualGuard(restore: true);   // a pdf-shaped address delivered an ordinary page
                     return;
                 }
-                string url = Browser.Source?.ToString() ?? string.Empty;
                 if (url.Length == 0 || !_pdfInFlight.Add(url)) return;
                 try
                 {
                     ShowStatus(TryLoc("Str_Web_PdfOpening"));
                     byte[]? bytes = await CapturePdfFromBrowserAsync(url);
-                    await HandPdfToReaderAsync(url, bytes);
+                    handed = await HandPdfToReaderAsync(url, bytes);
                     RetreatFromInlinePdf();   // rest on the page that offered the PDF, never on a viewer
                 }
                 finally
                 {
                     _pdfInFlight.Remove(url);   // the outcome is forgotten; only the race is guarded
                     DropVisualGuard(restore: true);   // the engine paints again whatever stayed behind
+                    // v1.19.7: the strip never sticks - silence when the reader took
+                    // the document, a three-second word when it did not.
+                    if (handed) HideStatus();
+                    else ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
                 }
             }
             catch
             {
-                // a catch-all that stumbles leaves the browser exactly as it is
+                // v1.19.7: a probe that stumbled still owes the engine its paint and
+                // the strip its silence - nothing here may strand either.
+                DropVisualGuard(restore: true);
+                HideStatus();
             }
         }
 
@@ -403,6 +443,7 @@ namespace Avalanche.Controls
         {
             if (_earlyHandoff || url.Length == 0) return;
             _earlyHandoff = true;
+            bool handed = false;   // the reader accepted the document
             try
             {
                 if (!_pdfInFlight.Add(url)) return;
@@ -410,8 +451,7 @@ namespace Avalanche.Controls
                 byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
                 if (bytes != null && HasPdfHeader(bytes))
                 {
-                    HideStatus();
-                    await HandPdfToReaderAsync(url, bytes);   // the pane steps aside; the reader tab opens
+                    handed = await HandPdfToReaderAsync(url, bytes);   // the pane steps aside; the reader tab opens
                     _ = Task.Delay(600).ContinueWith(_ => Dispatcher.BeginInvoke(
                         (Action)(() => RetreatFromInlinePdf())));
                     // the guard stays up: the engine hides with the pane, and the
@@ -432,6 +472,12 @@ namespace Avalanche.Controls
             finally
             {
                 _earlyHandoff = false;
+                // v1.19.7: the strip's fate is settled once, here, whatever the
+                // outcome - silence when the reader took the document or the
+                // fallback is taking its turn, a three-second word when the fetch
+                // failed and no fallback is coming.
+                if (handed || _navCompleted) HideStatus();
+                else ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
             }
         }
 
@@ -443,7 +489,17 @@ namespace Avalanche.Controls
             if (core is null) return;
             string title = core.DocumentTitle;
             if (string.IsNullOrWhiteSpace(title)) title = Browser.Source?.Host ?? string.Empty;
-            if (title.Length > 0) TitleChanged?.Invoke(title);
+            if (title.Length == 0) return;
+            // v1.19.7: the strip tab wears its title the moment it arrives - the
+            // card for the view the browser is on, not whatever rang before it.
+            try
+            {
+                string url = Browser.Source?.ToString() ?? string.Empty;
+                WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+                if (card is not null) card.Title = title;
+            }
+            catch { /* a gallery hiccup never disturbs the title event */ }
+            TitleChanged?.Invoke(title);
         }
 
         private void SyncOmniFromBrowser()
@@ -559,15 +615,12 @@ namespace Avalanche.Controls
         }
 
         /// <summary>Every road ends here: the bytes are checked for a real PDF header one
-        /// last time, written into the reader's temp area, and handed over; anything else
-        /// speaks through the status line instead of feeding the reader damaged goods.</summary>
-        private async Task HandPdfToReaderAsync(string url, byte[]? bytes)
+        /// last time, written into the reader's temp area, and handed over. The verdict
+        /// comes back as the return value - the caller owns the status strip now, so a
+        /// failure word outlives the caller's cleanup instead of being wiped by it.</summary>
+        private async Task<bool> HandPdfToReaderAsync(string url, byte[]? bytes)
         {
-            if (bytes is null || !HasPdfHeader(bytes))
-            {
-                ShowStatus(TryLoc("Str_Web_PdfBlocked"));
-                return;
-            }
+            if (bytes is null || !HasPdfHeader(bytes)) return false;
             try
             {
                 string path = Uri.TryCreate(url, UriKind.Absolute, out Uri? u)
@@ -576,10 +629,11 @@ namespace Avalanche.Controls
                 await File.WriteAllBytesAsync(target, bytes);
                 HideStatus();
                 PdfRequested?.Invoke(target);
+                return true;
             }
             catch
             {
-                ShowStatus(TryLoc("Str_Web_PdfBlocked"));
+                return false;
             }
         }
 
@@ -613,7 +667,15 @@ namespace Avalanche.Controls
                                 string.IsNullOrEmpty(c.Path) ? "/" : c.Path, c.Domain)
                             { Secure = c.IsSecure });
                         }
-                        catch { /* one uncooperative cookie skips itself, the rest ride along */ }
+                        catch
+                        {
+                            // v1.19.7: a cookie .NET's strict constructor rejects - a
+                            // leading-dot domain, a port, a stray character - gets a
+                            // second, minimal ride scoped to the target alone, so the
+                            // session itself never drops with one bad cookie.
+                            try { handler.CookieContainer.Add(target, new Cookie(c.Name, c.Value)); }
+                            catch { /* even the minimal cookie refuses; the rest ride along */ }
+                        }
                     }
                 }
                 catch { /* no cookies is a degraded fetch, not a failed one */ }
@@ -695,7 +757,7 @@ namespace Avalanche.Controls
                     else if (op.State == CoreWebView2DownloadState.Completed)
                     {
                         try { File.Delete(target); } catch { /* temp litter is harmless */ }
-                        ShowStatus(TryLoc("Str_Web_PdfNotPdf"));
+                        ShowTransientStatus(TryLoc("Str_Web_PdfNotPdf"));   // v1.19.7: the word takes itself down
                     }
                     else
                     {
@@ -750,17 +812,24 @@ namespace Avalanche.Controls
                     return;
                 }
                 // v1.19.6: the capture slot is built and assigned BEFORE the hand-off
-                // worker starts - the old order spawned the worker first, so it read a
-                // null slot, quit at once, and every document whose final address the
-                // shape tests could not match was left stranded on Chromium's viewer.
-                // Now the worker waits on a source that already exists and the bytes the
-                // engine is copying land in it: the headers outrank the address, so a
-                // main answer announcing a PDF starts the hand-off wherever the redirect
-                // chain ended. An iframe's own document is not the page - its viewer
-                // plays where it lives, and a worker already waiting is fed, never
-                // orphaned.
-                if (dest.Length > 0 && !mainDocument) return;
+                // worker starts, so the worker waits on a source that already exists
+                // and the bytes the engine is copying land in it.
+                // v1.19.7: the dest filter is GONE - the trap that left Wiley,
+                // ResearchGate and the viewcontent.cgi routes stranded. Every
+                // application/pdf answer is captured WHATEVER frame asked for it:
+                // cross-origin redirect chains strip the fetch metadata down to
+                // "empty", the <embed>/<object> wrappers report a frame's dest, and
+                // both were skipped as if they were not documents at all. Only the
+                // hand-off START is gated: a named frame's document - the view on
+                // screen, however it arrived - or a pdf-shaped address starts it at
+                // once; an unnamed response, a prefetch or a probe, feeds the slot
+                // without hijacking the view, and a worker already waiting is fed,
+                // never orphaned.
                 TaskCompletionSource<byte[]?> capture;
+                bool frameDocument = dest.Equals("embed", StringComparison.OrdinalIgnoreCase)
+                    || dest.Equals("object", StringComparison.OrdinalIgnoreCase)
+                    || dest.Equals("iframe", StringComparison.OrdinalIgnoreCase)
+                    || dest.Equals("frame", StringComparison.OrdinalIgnoreCase);
                 if (_earlyHandoff && _pdfCapture is not null)
                 {
                     capture = _pdfCapture;
@@ -769,7 +838,7 @@ namespace Avalanche.Controls
                 {
                     capture = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     _pdfCapture = capture;
-                    if (mainDocument || LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
+                    if (mainDocument || frameDocument || LooksLikePdf(uri) || UriEquals(uri, _mainNavUri))
                         StartEarlyPdfHandoff(uri);
                 }
                 Stream? content = await e.Response.GetContentAsync();
@@ -801,6 +870,8 @@ namespace Avalanche.Controls
             CoreWebView2? core = Browser.CoreWebView2;
             if (core is null) return;
             ShowStatus(TryLoc("Str_Web_PdfOpening"));
+            bool handed = false;      // the reader or the printer took the page
+            bool ownsStrip = true;    // an in-flight hand-off owns the strip and its fate
             try
             {
                 string url = Browser.Source?.ToString() ?? string.Empty;
@@ -816,11 +887,15 @@ namespace Avalanche.Controls
                                 try
                                 {
                                     byte[]? bytes = await CapturePdfFromBrowserAsync(url);
-                                    await HandPdfToReaderAsync(url, bytes);
+                                    handed = await HandPdfToReaderAsync(url, bytes);
                                 }
                                 finally { _pdfInFlight.Remove(url); }
                             }
-                            return;   // a document page never prints; in flight means it is already coming
+                            else
+                            {
+                                ownsStrip = false;   // in flight means it is already coming; its strip rules
+                            }
+                            return;   // a document page never prints
                         }
                     }
                     catch { /* a page that refuses probing prints as usual */ }
@@ -830,28 +905,80 @@ namespace Avalanche.Controls
                     "page-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
                 await core.PrintToPdfAsync(target, null);
                 PdfRequested?.Invoke(target);
+                handed = true;
             }
-            catch
+            finally
             {
-                HideStatus();
+                // v1.19.7: the strip can never stick - silence when the page was
+                // taken, a three-second word when the fetch failed. The old catch
+                // hid the strip and the print path said nothing; every ending
+                // lands a word now, and the word takes itself down.
+                if (ownsStrip)
+                {
+                    if (handed) HideStatus();
+                    else ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
+                }
             }
         }
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ─────────────────────────────────────
         // The window's left rail shows these cards while the pane is up: one per open
-        // view, in visit order - the captured preview, the page's title and its host -
-        // with the view on screen wearing the accent ring. Clicking a card is clicking
-        // that tab: the browser navigates there.
+        // view, newest first since v1.19.7 - the captured preview, the page's title and
+        // its host - with the view on screen wearing the accent ring. Clicking a card
+        // is clicking that tab: the browser navigates there.
 
-        /// <summary>The gallery's cards, in visit order, oldest first. Capped at
-        /// a dozen; the oldest view falls off the end.</summary>
+        /// <summary>The gallery's cards, newest first (v1.19.7 - the newest and the
+        /// active view live at the TOP of the rail). Capped at a dozen; the oldest
+        /// view falls off the end.</summary>
         public ObservableCollection<WebTabCardVm> Tabs { get; } = new();
 
         private const int MaxWebTabCards = 12;
 
-        /// <summary>The window clicked a gallery card: the browser switches to
-        /// that view, exactly as the tab strip would.</summary>
-        public void ActivateTab(string url) => NavigateTo(url);
+        /// <summary>The window clicked a gallery card or a strip tab: the browser
+        /// switches to that view. The ring moves at once - the click IS the switch,
+        /// the navigation only fills the view in - and a click on the view already
+        /// on screen does not reload it.</summary>
+        public void ActivateTab(string url)
+        {
+            foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
+            try
+            {
+                if (UriEquals(Browser.Source?.ToString(), url)) return;   // already there
+            }
+            catch { /* a source that refuses probing navigates as usual */ }
+            NavigateTo(url);
+        }
+
+        /// <summary>The window asked the pane to step aside because its last tab
+        /// closed. Raised on the UI thread.</summary>
+        public event Action? CloseRequested;
+
+        /// <summary>A strip tab's ✕: the card leaves the gallery, and when it was
+        /// the view on screen the browser lands on the next newest view - or the
+        /// window is asked to put the browser away when that was the last one,
+        /// exactly what closing the old single tab did.</summary>
+        public void CloseTab(string url)
+        {
+            WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+            if (card is null) return;
+            bool wasActive = card.IsActive;
+            Tabs.Remove(card);
+            if (!wasActive) return;
+            if (Tabs.Count == 0)
+            {
+                CloseRequested?.Invoke();
+                return;
+            }
+            foreach (WebTabCardVm t in Tabs) t.IsActive = false;
+            Tabs[0].IsActive = true;
+            string next = Tabs[0].Url;
+            try
+            {
+                if (UriEquals(Browser.Source?.ToString(), next)) return;   // already there
+            }
+            catch { /* a source that refuses probing navigates as usual */ }
+            NavigateTo(next);
+        }
 
         /// <summary>The + button and Ctrl+T: a fresh view on the home page, its gallery
         /// card seeded the moment the click lands, and the omnibox holding the caret for
@@ -868,13 +995,13 @@ namespace Avalanche.Controls
                     Title = TryLoc("Str_Web_NewTab") ?? "duckduckgo.com",
                     Host = "duckduckgo.com",
                 };
-                Tabs.Add(card);
-                while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(0);
+                Tabs.Insert(0, card);   // v1.19.7: newest on top
+                while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(Tabs.Count - 1);
             }
             else
             {
-                int at = Tabs.IndexOf(card);   // a revisit moves to the newest end
-                if (at >= 0 && at != Tabs.Count - 1) { Tabs.RemoveAt(at); Tabs.Add(card); }
+                int at = Tabs.IndexOf(card);   // a revisit moves back to the top - the newest end
+                if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
             }
             foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
             NavigateTo(url);
@@ -921,13 +1048,13 @@ namespace Avalanche.Controls
                 if (card is null)
                 {
                     card = new WebTabCardVm(url);
-                    Tabs.Add(card);
-                    while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(0);
+                    Tabs.Insert(0, card);   // v1.19.7: newest on top
+                    while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(Tabs.Count - 1);
                 }
                 else
                 {
-                    int at = Tabs.IndexOf(card);   // a revisit moves to the newest end
-                    if (at >= 0 && at != Tabs.Count - 1) { Tabs.RemoveAt(at); Tabs.Add(card); }
+                    int at = Tabs.IndexOf(card);   // a revisit moves back to the top - the newest end
+                    if (at > 0) { Tabs.RemoveAt(at); Tabs.Insert(0, card); }
                 }
                 card.Title = title;
                 card.Host = u.Host;
@@ -981,6 +1108,25 @@ namespace Avalanche.Controls
             WebStatus.Visibility = Visibility.Visible;
         }
 
+        /// <summary>A word that takes itself down: the strip shows the message for
+        /// three seconds and hides - unless another message replaced it, which one
+        /// owns its own fate. v1.19.7: failure words never stick on screen.</summary>
+        private void ShowTransientStatus(string? text)
+        {
+            if (string.IsNullOrEmpty(text)) { HideStatus(); return; }
+            WebStatus.Text = text;
+            WebStatus.Visibility = Visibility.Visible;
+            System.Windows.Threading.DispatcherTimer takedown =
+                new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+            takedown.Tick += (s, _) =>
+            {
+                if (s is not System.Windows.Threading.DispatcherTimer timer) return;
+                timer.Stop();
+                if (WebStatus.Text == text) HideStatus();
+            };
+            takedown.Start();
+        }
+
         private void HideStatus() => WebStatus.Visibility = Visibility.Collapsed;
 
         private string? TryLoc(string key) => TryFindResource(key) as string;
@@ -988,7 +1134,7 @@ namespace Avalanche.Controls
 
     /// <summary>One card in the sidebar's web-tabs gallery (v1.19.5): the page's
     /// captured preview, its title and host, and whether it is the view on
-    /// screen. Cards live in visit order; the active one wears the accent ring.</summary>
+    /// screen. Cards live newest first; the active one wears the accent ring.</summary>
     public sealed class WebTabCardVm : INotifyPropertyChanged
     {
         public WebTabCardVm(string url) { Url = url; }
