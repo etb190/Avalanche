@@ -1531,11 +1531,12 @@
                         <!-- Save Web PDF (v1.19.5): a book the browser downloaded lives in
                              the reader's temp area - this is the one-glance way to keep it.
                              Visible only while the active document IS a web download; the
-                             native Save As dialog opens pre-aimed at Downloads. Lit in the
-                             accent so it reads as an action waiting for the reader. -->
+                             native Save As dialog opens pre-aimed at Downloads. v1.19.14:
+                             the same white face as every other toolbar button - the accent
+                             told the reader this action was somehow not one of the bar's. -->
                         <Button x:Name="WebSavePdfBtn" Content="&#xE792;" Style="{StaticResource ToolbarButton}"
                                 Click="WebSavePdfBtn_Click" ToolTip="{DynamicResource Str_TT_SaveWebPdf}"
-                                Foreground="{DynamicResource PrimaryBrush}" Visibility="Collapsed"/>
+                                Visibility="Collapsed"/>
                         <!-- A literal copy of the search button, renamed: the same
                              string-glyph content, the same ToolbarButton style, no
                              local size or padding - the caption engine owns this face

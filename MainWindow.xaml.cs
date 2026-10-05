@@ -2420,6 +2420,13 @@ namespace Avalanche
         {
             if (sender is not Button bd || bd.DataContext is not Controls.WebTabCardVm card) return;
             if (WebTabPressOnNestedButton(e.OriginalSource, bd)) return;   // the card's ✕ keeps its press
+            // v1.19.14: the press itself routes. A click's own machinery has too many
+            // quiet ways to lose a release - the drag threshold reading a firm hand
+            // as a drag, the capture swallowing the up that would raise Click - so
+            // the card answers the press, the way the strip's tabs and every browser
+            // the reader has used always have. A release Click then lands on an
+            // already-active tab and changes nothing.
+            WebPane.ActivateTab(card);
             _webTabDragCard = card;
             _webTabDragFace = WebTabsList;
             _webTabDragElement = bd;

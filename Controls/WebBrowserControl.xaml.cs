@@ -52,7 +52,14 @@ namespace Avalanche.Controls
     /// rest instead of re-navigating a shared engine, so a tab keeps its page, its
     /// scroll and its typing until it is closed; the rail and the strip learn to
     /// drag a tab to its place; the omnibox search speaks Google; and the paste
-    /// shortcut reaches the page again. Everything
+    /// shortcut reaches the page again. v1.19.14: the reader's own shortcut chain
+    /// steps aside whenever a page holds the keyboard - Ctrl+A/C/V/X/Z/R and every
+    /// chord the chain ever took now do the page's work, exactly like any browser.
+    /// The toolbar's save button wears the same white as every toolbar button, the
+    /// rail's cards route on the press itself, the ANGLE backend speaks D3D11
+    /// WARP, and AdGuard rides along: the Chrome Web Store cannot install into
+    /// this engine, so the app fetches the very CRX the store would serve and
+    /// loads it through the same extension door the pdf helper uses. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -125,6 +132,28 @@ namespace Avalanche.Controls
         private bool _extensionLoaded;
         private int _viewGen;   // a newer switch owns the screen; an older build stands down
 
+        // v1.19.14: AdGuard AdBlocker rides with the browser. The Chrome Web Store
+        // cannot install into this engine - its installer is bound to full Chrome,
+        // so the CRX it sends dies as "Download interrupted" before it becomes an
+        // extension - so the app plays the installer: one fetch of the very CRX
+        // Google's official update endpoint serves for this extension id, unpacked
+        // into the app's data root and loaded through the same
+        // AddBrowserExtensionAsync door the little pdf helper rides. A failed fetch
+        // is never remembered; the next launch quietly tries again.
+        private const string AdGuardExtId = "bgnkhhnnamicmpeenaelnjfhikgbkllg";
+        private const string AdGuardCrxUrl =
+            "https://update.googleapis.com/service/update2/crx?response=redirect" +
+            "&acceptformat=crx2,crx3&x=id%3D" + AdGuardExtId +
+            "%26uc&prodversion=131.0.0.0";
+        private static string AdGuardExtDir =>
+            Path.Combine(AppDataPaths.UserRoot, "WebView2Data", "extensions", "adguard");
+        private static readonly System.Net.Http.HttpClient WbHttp = new()
+        {
+            Timeout = TimeSpan.FromSeconds(120),
+        };
+        private bool _adGuardLoaded;     // the profile has the extension (or it is on disk)
+        private bool _adGuardFetching;   // one fetch at a time
+
         /// <summary>The view the reader is looking at. Every navigation, capture and
         /// chrome refresh speaks about this one view; background views keep living
         /// their own lives until the reader closes them.</summary>
@@ -136,24 +165,17 @@ namespace Avalanche.Controls
             // Ctrl+T is the + button's keyboard face (the tooltip says so): the control
             // tunnels the gesture wherever the browser's own surface holds the focus -
             // the omnibox above all.
-            // v1.19.13: Ctrl+V rides the same tunnel, and for good reason: with the
-            // page's own surface holding the keyboard the shortcut died between WPF
-            // and Chromium - the omnibox pasted fine, the page only ever answered
-            // the right-click menu. The control takes the key and speaks it to the
-            // view again: one synthetic Ctrl+V, replayed at the win32 layer, is the
-            // paste the keyboard always meant.
+            // v1.19.14: Ctrl+V no longer rides a synthetic replay. The paste shortcut
+            // (and every other chord) died at the window's own tunnel, root-first -
+            // the reader's chain answered before the page could hear the key - so
+            // the window stands down now whenever a page holds the keyboard, and
+            // the chords reach the engine the honest way: as the keyboard's own.
             PreviewKeyDown += (_, e) =>
             {
                 if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
                 {
                     e.Handled = true;
                     OpenNewTab();
-                }
-                else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control
-                    && _activeView is { IsKeyboardFocusWithin: true })
-                {
-                    e.Handled = true;
-                    ForwardPasteToView();
                 }
             };
             // v1.19.11: the chips load before the pane is ever shown - the reader
@@ -183,6 +205,7 @@ namespace Avalanche.Controls
             // whose gallery closed entirely gets its one view back the same way.
             if (_env is null || _activeView is null) _ = EnsureReadyAsync();
             foreach (WebView2 v in _views.ToArray()) DropVisualGuard(v, restore: true);
+            _ = EnsureAdGuardAsync();   // v1.19.14: a fetch that failed earlier retries here
             // The address bar takes the caret, browser-style - deferred once so the
             // first show (pane still measuring) cannot silently drop the focus.
             Dispatcher.BeginInvoke(
@@ -241,9 +264,15 @@ namespace Avalanche.Controls
                     // Chromium feature guesses ride along - a flag the runtime does
                     // not know is dropped in silence, and this one is a documented
                     // environment option the SDK speaks.
+                    // v1.19.14: the ANGLE backend is pinned to D3D11 WARP - the
+                    // choice the reader already makes in every other browser
+                    // (brave://flags/#use-angle) - the software rasterizer that
+                    // trades a little speed for never wearing a GPU driver's
+                    // bugs: no black panes, no scrambled canvases, ever.
                     CoreWebView2EnvironmentOptions options = new()
                     {
                         AreBrowserExtensionsEnabled = true,
+                        AdditionalBrowserArguments = "--use-angle=warp",
                     };
                     _env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
                 }
@@ -271,6 +300,7 @@ namespace Avalanche.Controls
             }
             SetChromeEnabled(true);
             RefreshBookmarkButton();
+            _ = EnsureAdGuardAsync();   // v1.19.14: the blocker rides along, never in the way
         }
 
         /// <summary>The one wiring every view wears: the PDF hand-off's watchtowers,
@@ -308,6 +338,9 @@ namespace Avalanche.Controls
                         _ = core.Profile.AddBrowserExtensionAsync(extPath);
                 }
                 catch { /* extension loading is a courtesy */ }
+                // v1.19.14: AdGuard rides the same door the moment it is on disk -
+                // the first launch fetches it, every launch after finds it waiting.
+                TryLoadAdGuardOnce(core);
             }
             core.WebMessageReceived += OnWebMessageReceived;
         }
@@ -1795,64 +1828,136 @@ namespace Avalanche.Controls
             _spinTimer = null;
         }
 
-        // ── Paste forwarding (v1.19.13) ──────────────────────────────────────────────
-        // A real Ctrl+V, replayed at the win32 layer: key down/up for V while Ctrl
-        // is held (and one Ctrl pair of its own, harmless when the reader's finger
-        // is already holding it down). Chromium reads it exactly like the
-        // keyboard's own - paste events, editors and custom handlers all take it
-        // as the real thing. The original never leaves WPF (handled in the
-        // tunnel), so the paste happens exactly once.
+        // ── AdGuard (v1.19.14) ──────────────────────────────────────────────────────
+        // The store's own installer cannot speak to this engine, so the app plays
+        // the installer: one fetch of the CRX Google's update endpoint serves for
+        // the extension's id, the CRX3 envelope peeled off (four bytes of magic,
+        // a version, a signed header length, then the zip itself), the zip spread
+        // into the data root, and the folder handed to the profile exactly like
+        // the helper's. Nothing is remembered about a failure - the next launch
+        // fetches again, and a download that never lands changes nothing.
 
-        private const uint WB_INPUT_KEYBOARD = 1u;
-        private const ushort WB_VK_CONTROL = 0x11;
-        private const ushort WB_VK_V = 0x56;
-        private const uint WB_KEYEVENTF_KEYUP = 0x0002;
-
-        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
-        private static extern uint SendInput(uint nInputs, WbInput[] pInputs, int cbSize);
-
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        private struct WbInput
+        /// <summary>Load the on-disk AdGuard folder into the profile once per run.</summary>
+        private void TryLoadAdGuardOnce(CoreWebView2 core)
         {
-            public uint type;
-            public WbKeybd u;
+            if (_adGuardLoaded || !Directory.Exists(AdGuardExtDir)) return;
+            _adGuardLoaded = true;
+            try { _ = core.Profile.AddBrowserExtensionAsync(AdGuardExtDir); }
+            catch { /* a courtesy, like every extension load */ }
         }
 
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        private struct WbKeybd
+        /// <summary>The blocker on disk: fetch it once if it is missing, then let
+        /// the profile take it. Fire-and-forget on every path; browsing never waits.</summary>
+        private async Task EnsureAdGuardAsync()
         {
-            public ushort wVk;
-            public ushort wScan;
-            public uint dwFlags;
-            public uint time;
-            public System.IntPtr dwExtraInfo;
-        }
-
-        /// <summary>Ctrl+V pressed over the page goes to the page: the swallowed
-        /// shortcut is replayed as synthetic key events the engine receives like
-        /// any keyboard's. The right-click menu keeps doing what it always did.</summary>
-        private void ForwardPasteToView()
-        {
+            if (_adGuardLoaded) return;
+            if (Directory.Exists(AdGuardExtDir))
+            {
+                if (_activeView?.CoreWebView2 is { } existing) TryLoadAdGuardOnce(existing);
+                return;
+            }
+            if (_adGuardFetching) return;
+            _adGuardFetching = true;
             try
             {
-                WbInput[] inputs = new[]
-                {
-                    WbKey(WB_VK_CONTROL, 0),
-                    WbKey(WB_VK_V, 0),
-                    WbKey(WB_VK_V, WB_KEYEVENTF_KEYUP),
-                    WbKey(WB_VK_CONTROL, WB_KEYEVENTF_KEYUP),
-                };
-                SendInput((uint)inputs.Length, inputs,
-                    System.Runtime.InteropServices.Marshal.SizeOf<WbInput>());
+                byte[] crx = await WbHttp.GetByteArrayAsync(AdGuardCrxUrl);
+                UnpackAdGuardCrx(crx);
+                if (_activeView?.CoreWebView2 is { } core) TryLoadAdGuardOnce(core);
             }
-            catch { /* a paste that cannot be replayed is the context menu's turn */ }
+            catch
+            {
+                // a fetch that fails is a launch that browses without the
+                // blocker; nothing is remembered, so the next show tries again.
+            }
+            finally
+            {
+                _adGuardFetching = false;
+            }
         }
 
-        private static WbInput WbKey(ushort vk, uint flags) => new()
+        /// <summary>CRX3 in, extension folder out: the envelope is twelve bytes of
+        /// fixed header plus a proto header whose length the third dword carries;
+        /// everything after it is the zip the store itself ships.</summary>
+        private static void UnpackAdGuardCrx(byte[] crx)
         {
-            type = WB_INPUT_KEYBOARD,
-            u = new WbKeybd { wVk = vk, dwFlags = flags },
-        };
+            if (crx.Length < 16 || crx[0] != (byte)'C' || crx[1] != (byte)'r'
+                || crx[2] != (byte)'2' || crx[3] != (byte)'4')
+                throw new InvalidDataException("Not a CRX payload");
+            uint version = BitConverter.ToUInt32(crx, 4);
+            uint headerLen = BitConverter.ToUInt32(crx, 8);
+            if (version < 3 || headerLen == 0 || crx.Length <= 12 + (long)headerLen)
+                throw new InvalidDataException("Malformed CRX envelope");
+            string root = Path.Combine(AppDataPaths.UserRoot, "WebView2Data", "extensions");
+            Directory.CreateDirectory(root);
+            string tmp = Path.Combine(root,
+                "adguard.unpack." + Path.GetRandomFileName().Replace(".", ""));
+            try
+            {
+                using MemoryStream zipStream = new(crx, (int)(12 + headerLen),
+                    crx.Length - (int)(12 + headerLen), writable: false);
+                using System.IO.Compression.ZipArchive archive =
+                    new(zipStream, System.IO.Compression.ZipArchiveMode.Read);
+                foreach (System.IO.Compression.ZipArchiveEntry entry in archive.Entries)
+                {
+                    string rel = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
+                    if (rel.Length == 0 || rel.EndsWith(Path.DirectorySeparatorChar)) continue;
+                    if (rel.Split(Path.DirectorySeparatorChar).Contains("..")) continue;   // hygiene
+                    string target = Path.Combine(tmp, rel);
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    using Stream src = entry.Open();
+                    using FileStream dst = File.Create(target);
+                    src.CopyTo(dst);
+                }
+                if (!File.Exists(Path.Combine(tmp, "manifest.json")))
+                    throw new InvalidDataException("Extension archive has no manifest");
+                if (Directory.Exists(AdGuardExtDir))
+                    Directory.Delete(AdGuardExtDir, recursive: true);
+                Directory.Move(tmp, AdGuardExtDir);
+            }
+            finally
+            {
+                try { if (Directory.Exists(tmp)) Directory.Delete(tmp, recursive: true); }
+                catch { /* a stray temp folder outlives us only until the next fetch */ }
+            }
+        }
+
+        // ── The page's keyboard (v1.19.14) ──────────────────────────────────────────
+        // The reader's shortcut chain lives at the window's tunnel, and a tunnel runs
+        // root-first: when a web page holds the keyboard, the chain used to answer
+        // every chord before the page could - Ctrl+A selected the reader's list,
+        // Ctrl+C copied the reader's text, Ctrl+V pasted the reader's clipboard,
+        // Ctrl+R rotated the reader's pages, and the rest died the same quiet death.
+        // Now the control speaks for its views: when the keyboard's true owner is a
+        // page - WPF's own focus, or the win32 focus inside any live view - the
+        // window's chain steps aside and every chord reaches the engine as the
+        // keyboard delivered it, exactly like any browser the reader has used.
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr GetFocus();
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool IsChild(IntPtr hWndParent, IntPtr hWnd);
+
+        /// <summary>Does a live page own the keyboard right now? WPF's own focus
+        /// answer first - a view as the focused element - then the win32 truth:
+        /// the hwnd the thread's input currently serves must live inside one of
+        /// the engine's own views.</summary>
+        public bool PageOwnsKeyboard()
+        {
+            if (Keyboard.FocusedElement is WebView2) return true;
+            try
+            {
+                IntPtr focus = GetFocus();
+                if (focus == IntPtr.Zero) return false;
+                foreach (WebView2 v in _views)
+                {
+                    IntPtr h = ((System.Windows.Interop.IWin32Window)v).Handle;
+                    if (h != IntPtr.Zero && (h == focus || IsChild(h, focus))) return true;
+                }
+            }
+            catch { /* a view gone already is no keyboard owner */ }
+            return false;
+        }
 
         private string? TryLoc(string key) => TryFindResource(key) as string;
     }
