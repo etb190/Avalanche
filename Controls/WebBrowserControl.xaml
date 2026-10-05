@@ -1,7 +1,6 @@
 <UserControl x:Class="Avalanche.Controls.WebBrowserControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- The lightweight in-app browser (v1.19.0): navigation chrome, an omnibox that
          searches when the text is not an address, the reader's own bookmark chips
          (v1.19.11 - the curated dial chips retired), and one WebView2 host. Chromium
@@ -176,10 +175,14 @@
                    FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}"
                    TextTrimming="CharacterEllipsis"/>
 
-        <!-- The engine -->
+        <!-- The engine. v1.19.13: the host carries one live view per tab - every
+             card in the gallery owns its own WebView2 sharing the one profile, and
+             switching tabs shows one view and collapses the rest. Nothing navigates
+             on a switch, so a tab keeps its page, its scroll and its typing until
+             the reader closes it. -->
         <Border Grid.Row="3" Margin="8,4,8,8" Background="{DynamicResource PaneBrush}"
                 BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
-            <wv2:WebView2 x:Name="Browser"/>
+            <Grid x:Name="BrowserHost"/>
         </Border>
 
         <!-- v1.19.11: the bookmark naming flyout - one field, one save. It names a

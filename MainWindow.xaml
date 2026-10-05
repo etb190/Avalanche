@@ -1961,6 +1961,9 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Button Click="WebTabCard_Click" Tag="{Binding Url}"
+                                                        PreviewMouseLeftButtonDown="WebTabCardDragDown"
+                                                        PreviewMouseMove="WebTabCardDragMove"
+                                                        PreviewMouseLeftButtonUp="WebTabCardDragUp"
                                                         Cursor="Hand" ToolTip="{Binding Title}"
                                                         Margin="0,0,0,6" HorizontalContentAlignment="Stretch"
                                                         FocusVisualStyle="{x:Null}">
@@ -2866,7 +2869,10 @@
                                                     BorderThickness="0"
                                                     ToolTip="{Binding Title}"
                                                     Tag="{Binding Url}"
-                                                    MouseLeftButtonDown="WebTabStripTab_Click">
+                                                    MouseLeftButtonDown="WebTabStripTab_Click"
+                                                    PreviewMouseLeftButtonDown="WebStripTabDragDown"
+                                                    PreviewMouseMove="WebStripTabDragMove"
+                                                    PreviewMouseLeftButtonUp="WebStripTabDragUp">
                                                 <Grid>
                                                     <!-- Grain follows the tab's radius, as on every PDF tab. -->
                                                     <Border x:Name="webTabGrain" IsHitTestVisible="False"

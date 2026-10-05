@@ -16,6 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Avalanche.Services;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 
 namespace Avalanche.Controls
 {
@@ -46,7 +47,12 @@ namespace Avalanche.Controls
     /// way. v1.19.11: the hand-off's word becomes a light in the toolbar row -
     /// spinner, check, cross - the reader keeps its own bookmarks where the
     /// curated dial chips used to sit, and the rail's tabs hold their place:
-    /// a revisit refreshes a card, never reshuffles the row. Everything
+    /// a revisit refreshes a card, never reshuffles the row. v1.19.13:
+    /// every tab carries its own view - switching tabs shows one and collapses the
+    /// rest instead of re-navigating a shared engine, so a tab keeps its page, its
+    /// scroll and its typing until it is closed; the rail and the strip learn to
+    /// drag a tab to its place; the omnibox search speaks Google; and the paste
+    /// shortcut reaches the page again. Everything
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
@@ -60,9 +66,8 @@ namespace Avalanche.Controls
         /// navigation fell back to the address host. Raised on the UI thread.</summary>
         public event Action<string>? TitleChanged;
 
-        private const string HomePage = "https://duckduckgo.com/";
+        private const string HomePage = "https://www.google.com/";
 
-        private bool _initStarted;
         private string? _pendingUrl;
         private string? _lastPageUrl;
 
@@ -109,21 +114,46 @@ namespace Avalanche.Controls
         // light worth dressing a word in, so the strip keeps speaking.
         private bool _engineReady;
 
+        // v1.19.13: one engine environment, one live view per tab. Every card in the
+        // gallery owns its own WebView2 sharing the one profile, so switching tabs
+        // swaps which view is on screen instead of re-navigating one shared engine -
+        // a tab keeps its page, its scroll and its typing until it is closed.
+        private CoreWebView2Environment? _env;
+        private bool _envBuilding;
+        private readonly List<WebView2> _views = new();
+        private WebView2? _activeView;
+        private bool _extensionLoaded;
+        private int _viewGen;   // a newer switch owns the screen; an older build stands down
+
+        /// <summary>The view the reader is looking at. Every navigation, capture and
+        /// chrome refresh speaks about this one view; background views keep living
+        /// their own lives until the reader closes them.</summary>
+        private WebView2? Browser => _activeView;
+
         public WebBrowserControl()
         {
             InitializeComponent();
-            // A transparent engine over the themed card: no white flash while the page
-            // loads, and the blank state belongs to the theme instead of Chromium.
-            Browser.DefaultBackgroundColor = System.Drawing.Color.Transparent;
             // Ctrl+T is the + button's keyboard face (the tooltip says so): the control
             // tunnels the gesture wherever the browser's own surface holds the focus -
             // the omnibox above all.
+            // v1.19.13: Ctrl+V rides the same tunnel, and for good reason: with the
+            // page's own surface holding the keyboard the shortcut died between WPF
+            // and Chromium - the omnibox pasted fine, the page only ever answered
+            // the right-click menu. The control takes the key and speaks it to the
+            // view again: one synthetic Ctrl+V, replayed at the win32 layer, is the
+            // paste the keyboard always meant.
             PreviewKeyDown += (_, e) =>
             {
                 if (e.Key == Key.T && Keyboard.Modifiers == ModifierKeys.Control)
                 {
                     e.Handled = true;
                     OpenNewTab();
+                }
+                else if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control
+                    && _activeView is { IsKeyboardFocusWithin: true })
+                {
+                    e.Handled = true;
+                    ForwardPasteToView();
                 }
             };
             // v1.19.11: the chips load before the pane is ever shown - the reader
@@ -137,22 +167,22 @@ namespace Avalanche.Controls
         /// the first open is the only moment the browser process is ever created.</summary>
         public void OnPaneShown()
         {
-            if (!_initStarted)
+            if (_activeView is not null)
             {
-                _ = EnsureReadyAsync();
+                try { _activeView.CoreWebView2?.Resume(); } catch { /* busy or gone: the next show retries */ }
+                try
+                {
+                    // v1.19.5: a reopened pane never sits on Chromium's viewer - if
+                    // the last navigation ended on a document, step back to what
+                    // offered it.
+                    if (LooksLikePdf(_activeView.Source?.ToString())) RetreatFromInlinePdf(_activeView);
+                }
+                catch { /* a source that refuses probing stays as it is */ }
             }
-            else
-            {
-                try { Browser.CoreWebView2?.Resume(); } catch { /* busy or gone: the next show retries */ }
-            }
-            // v1.19.5: a reopened pane never sits on Chromium's viewer - if the
-            // last navigation ended on a document, step back to what offered it.
-            DropVisualGuard(restore: true);
-            try
-            {
-                if (LooksLikePdf(Browser.Source?.ToString())) RetreatFromInlinePdf();
-            }
-            catch { /* a source that refuses probing stays as it is */ }
+            // v1.19.13: the first show builds the engine and the first view; a pane
+            // whose gallery closed entirely gets its one view back the same way.
+            if (_env is null || _activeView is null) _ = EnsureReadyAsync();
+            foreach (WebView2 v in _views.ToArray()) DropVisualGuard(v, restore: true);
             // The address bar takes the caret, browser-style - deferred once so the
             // first show (pane still measuring) cannot silently drop the focus.
             Dispatcher.BeginInvoke(
@@ -170,56 +200,86 @@ namespace Avalanche.Controls
         /// <summary>The window is going away: stop the browser process cleanly.</summary>
         public void ShutdownForExit()
         {
-            try { Browser.Dispose(); } catch { /* best effort during shutdown */ }
+            foreach (WebView2 v in _views.ToArray())
+            {
+                try { v.Dispose(); } catch { /* best effort during shutdown */ }
+            }
         }
 
         private async Task SuspendAsync()
         {
             if (_activeDownloads > 0) return;   // a file is being written; suspension can wait
-            try
+            // v1.19.13: every view sleeps - the pane is gone, not one tab of it.
+            foreach (WebView2 v in _views.ToArray())
             {
-                if (Browser.CoreWebView2 is { } core)
-                    await core.TrySuspendAsync();
-            }
-            catch
-            {
-                // Suspension is a courtesy, never a requirement.
+                try
+                {
+                    if (v.CoreWebView2 is { } core)
+                        await core.TrySuspendAsync();
+                }
+                catch
+                {
+                    // Suspension is a courtesy, never a requirement.
+                }
             }
         }
 
         private async Task EnsureReadyAsync()
         {
-            if (_initStarted) return;
-            _initStarted = true;
-            CoreWebView2Environment env;
-            try
+            if (_env is null)
             {
-                string dataDir = Path.Combine(AppDataPaths.UserRoot, "WebView2Data");
-                Directory.CreateDirectory(dataDir);
-                // v1.19.10: the environment wears one switch now - extensions
-                // enabled - because the hand-off's last line of defense rides in
-                // one: a tiny helper extension that puts an "open in Avalanche"
-                // button on the viewer itself. The v1.19.9 retirement stands: no
-                // Chromium feature guesses ride along - a flag the runtime does
-                // not know is dropped in silence, and this one is a documented
-                // environment option the SDK speaks.
-                CoreWebView2EnvironmentOptions options = new()
+                if (_envBuilding) return;
+                _envBuilding = true;
+                try
                 {
-                    AreBrowserExtensionsEnabled = true,
-                };
-                env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
-                await Browser.EnsureCoreWebView2Async(env);
-            }
-            catch
-            {
-                _initStarted = false;   // the remedy (installing the runtime) can be retried live
-                ShowStatus(TryLoc("Str_Web_RuntimeMissing"));
-                return;
+                    string dataDir = Path.Combine(AppDataPaths.UserRoot, "WebView2Data");
+                    Directory.CreateDirectory(dataDir);
+                    // v1.19.10: the environment wears one switch now - extensions
+                    // enabled - because the hand-off's last line of defense rides in
+                    // one: a tiny helper extension that puts an "open in Avalanche"
+                    // button on the viewer itself. The v1.19.9 retirement stands: no
+                    // Chromium feature guesses ride along - a flag the runtime does
+                    // not know is dropped in silence, and this one is a documented
+                    // environment option the SDK speaks.
+                    CoreWebView2EnvironmentOptions options = new()
+                    {
+                        AreBrowserExtensionsEnabled = true,
+                    };
+                    _env = await CoreWebView2Environment.CreateAsync(null, dataDir, options);
+                }
+                catch
+                {
+                    _env = null;   // the remedy (installing the runtime) can be retried live
+                    ShowStatus(TryLoc("Str_Web_RuntimeMissing"));
+                    return;
+                }
+                finally
+                {
+                    _envBuilding = false;
+                }
+                HideStatus();
+                _engineReady = true;   // the light exists from here on; the strip retires
             }
 
-            HideStatus();
-            _engineReady = true;   // the light exists from here on; the strip retires
-            CoreWebView2 core = Browser.CoreWebView2!;
+            // A pane with no view - the very first open, or a + that arrived before
+            // the engine - gets one now: the address that was waiting, or home.
+            if (_activeView is null)
+            {
+                string url = _pendingUrl ?? HomePage;
+                _pendingUrl = null;
+                await CreateTabAsync(url);
+            }
+            SetChromeEnabled(true);
+            RefreshBookmarkButton();
+        }
+
+        /// <summary>The one wiring every view wears: the PDF hand-off's watchtowers,
+        /// the history keys, the title that names the tab, and the riding helper's
+        /// word. The extension loads once per profile; everything else is per view.
+        /// v1.19.7's viewer-toolbar ban stands on every view's own settings.</summary>
+        private void WireView(WebView2 view)
+        {
+            CoreWebView2 core = view.CoreWebView2!;
             // v1.19.7: the built-in viewer's toolbar is pinned explicitly; the
             // viewer's real ban lives in the capture - a document that still
             // reaches the viewer is pulled straight back out before it can be a
@@ -231,45 +291,45 @@ namespace Avalanche.Controls
             core.WebResourceResponseReceived += OnWebResourceResponseReceived;
             core.NewWindowRequested += OnNewWindowRequested;
             core.HistoryChanged += (_, _) => RefreshHistoryButtons();
-            Browser.NavigationStarting += OnNavigationStarting;
-            Browser.NavigationCompleted += OnNavigationCompleted;
-            core.DocumentTitleChanged += (_, _) => RaiseTitleChanged();
+            view.NavigationStarting += OnNavigationStarting;
+            view.NavigationCompleted += OnNavigationCompleted;
+            core.DocumentTitleChanged += (_, _) => HandleTitleChanged(view);
             // v1.19.10: the riding helper - a two-kilobyte extension that wears
             // the "open in Avalanche" button on the viewer itself - is loaded
             // once per profile; loading it is a courtesy, never a requirement.
-            try
+            if (!_extensionLoaded)
             {
-                string extPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                    "Resources", "WebExtensions", "avalanche-pdf");
-                if (Directory.Exists(extPath))
-                    await core.Profile.AddBrowserExtensionAsync(extPath);
+                _extensionLoaded = true;
+                try
+                {
+                    string extPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                        "Resources", "WebExtensions", "avalanche-pdf");
+                    if (Directory.Exists(extPath))
+                        _ = core.Profile.AddBrowserExtensionAsync(extPath);
+                }
+                catch { /* extension loading is a courtesy */ }
             }
-            catch { /* extension loading is a courtesy */ }
             core.WebMessageReceived += OnWebMessageReceived;
-            SetChromeEnabled(true);
-            NavigateTo(_pendingUrl ?? HomePage);
-            _pendingUrl = null;
-            RefreshBookmarkButton();
         }
 
         // ── Navigation ────────────────────────────────────────────────────────────────────
 
         private void WebBackBtn_Click(object sender, RoutedEventArgs e)
         {
-            try { Browser.CoreWebView2?.GoBack(); } catch { /* nothing to retrace yet */ }
+            try { Browser?.CoreWebView2?.GoBack(); } catch { /* nothing to retrace yet */ }
         }
 
         private void WebForwardBtn_Click(object sender, RoutedEventArgs e)
         {
-            try { Browser.CoreWebView2?.GoForward(); } catch { /* nothing to retrace yet */ }
+            try { Browser?.CoreWebView2?.GoForward(); } catch { /* nothing to retrace yet */ }
         }
 
         private void WebRefreshBtn_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (Browser.CoreWebView2 is null) _ = EnsureReadyAsync();
-                else Browser.Reload();
+                if (_activeView?.CoreWebView2 is null) _ = EnsureReadyAsync();
+                else _activeView.Reload();
             }
             catch { /* a reload that throws is the next one's problem */ }
         }
@@ -308,7 +368,7 @@ namespace Avalanche.Controls
         /// one opens the naming flyout, prefilled with the page's own title.</summary>
         private void WebBookmarkBtn_Click(object sender, RoutedEventArgs e)
         {
-            string url = Browser.Source?.ToString() ?? string.Empty;
+            string url = Browser?.Source?.ToString() ?? string.Empty;
             BookmarkVm? existing = FindBookmark(url);
             if (existing is not null)
             {
@@ -338,13 +398,13 @@ namespace Avalanche.Controls
             {
                 e.Handled = true;
                 NavigateTo(ParseInput(OmniBox.Text));
-                Browser.Focus();
+                try { _activeView?.Focus(); } catch { /* a view gone already */ }
             }
             else if (e.Key == Key.Escape)
             {
                 e.Handled = true;
                 SyncOmniFromBrowser();
-                Browser.Focus();
+                try { _activeView?.Focus(); } catch { /* a view gone already */ }
             }
         }
 
@@ -367,38 +427,44 @@ namespace Avalanche.Controls
             if (text.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
                 && Uri.TryCreate("https://" + text, UriKind.Absolute, out Uri? www))
                 return www.ToString();
-            return "https://duckduckgo.com/?q=" + Uri.EscapeDataString(text);
+            return "https://www.google.com/search?q=" + Uri.EscapeDataString(text);
         }
 
         private void NavigateTo(string url)
         {
-            if (Browser.CoreWebView2 is null)
+            if (_activeView?.CoreWebView2 is null)
             {
                 _pendingUrl = url;   // the first page waits for the engine, never the reverse
                 _ = EnsureReadyAsync();
                 return;
             }
-            try { Browser.CoreWebView2.Navigate(url); }
+            try { _activeView.CoreWebView2.Navigate(url); }
             catch { /* a navigation that throws is the next one's problem */ }
         }
 
         private void OnNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            if (sender is not WebView2 v) return;
+            if (!ReferenceEquals(v, _activeView))
+            {
+                _ = UpdateTabCardAsync(v, background: true);   // a background tab still updates its own face
+                return;
+            }
             SyncOmniFromBrowser();
             RefreshBookmarkButton();   // v1.19.11: the star follows the page on screen
-            RaiseTitleChanged();
-            _lastPageUrl = Browser.Source?.ToString();
+            HandleTitleChanged(v);
+            _lastPageUrl = v.Source?.ToString();
             if (e.IsSuccess)
             {
                 _navCompleted = true;   // a straggling early hand-off can owe the fallback now
-                _ = CatchInlinePdfAsync();
+                _ = CatchInlinePdfAsync(v);
             }
             else
             {
-                DropVisualGuard(restore: true);   // a dead navigation never strands a blanked engine
+                DropVisualGuard(v, restore: true);   // a dead navigation never strands a blanked engine
                 HideStatus();   // v1.19.7: nor a "Fetching..." strip
             }
-            _ = UpdateTabCardAsync();   // the sidebar gallery's preview for this view
+            _ = UpdateTabCardAsync(v);   // the sidebar gallery's preview for this view
         }
 
         /// <summary>The one PDF the browser is allowed to show is none. A link no rule can
@@ -409,16 +475,16 @@ namespace Avalanche.Controls
         /// out-of-process fetch - checked, and handed to the reader while the browser
         /// steps back to the page that offered it. Nothing is remembered about a failure:
         /// a hand-off only guards the race it is running.</summary>
-        private async Task CatchInlinePdfAsync()
+        private async Task CatchInlinePdfAsync(WebView2 v)
         {
             bool handed = false;   // the document reached the reader
             try
             {
-                CoreWebView2? core = Browser.CoreWebView2;
+                CoreWebView2? core = v.CoreWebView2;
                 if (core is null) return;
                 string type = await core.ExecuteScriptAsync("document.contentType");
                 string plain = type.Trim('"');
-                string url = Browser.Source?.ToString() ?? string.Empty;
+                string url = v.Source?.ToString() ?? string.Empty;
                 // v1.19.7: the probe's word is not final. Chromium's viewer DOM is not
                 // a document - the expression comes back "null" or refuses to run - and
                 // an embed wrapper answers text/html. When the address itself is
@@ -436,15 +502,15 @@ namespace Avalanche.Controls
                 bool captured = _pdfCapture is { Task.IsCompleted: true };
                 if (!isPdf && !viewerDom && !captured && !LooksLikePdf(url))
                 {
-                    DropVisualGuard(restore: true);   // an ordinary page: the viewer was never coming
+                    DropVisualGuard(v, restore: true);   // an ordinary page: the viewer was never coming
                     return;
                 }
                 if (url.Length == 0 || !_pdfInFlight.Add(url)) return;
                 try
                 {
                     ShowStatus(TryLoc("Str_Web_PdfOpening"));
-                    byte[]? bytes = await CapturePdfFromBrowserAsync(url);
-                    handed = await HandPdfToReaderAsync(url, bytes);
+                    byte[]? bytes = await CapturePdfFromBrowserAsync(url, v);
+                    handed = await HandPdfToReaderAsync(url, bytes, v);
                     // v1.19.8: the retreat is the hand-off's own last step now -
                     // SettleAfterHandoff walks the view back BEFORE the pane hides,
                     // never across the suspension the hide asks for.
@@ -452,7 +518,7 @@ namespace Avalanche.Controls
                 finally
                 {
                     _pdfInFlight.Remove(url);   // the outcome is forgotten; only the race is guarded
-                    DropVisualGuard(restore: true);   // the engine paints again whatever stayed behind
+                    DropVisualGuard(v, restore: true);   // the engine paints again whatever stayed behind
                     // v1.19.7: the strip never sticks - silence when the reader took
                     // the document, a three-second word when it did not.
                     if (handed) HideStatus();
@@ -463,19 +529,19 @@ namespace Avalanche.Controls
             {
                 // v1.19.7: a probe that stumbled still owes the engine its paint and
                 // the strip its silence - nothing here may strand either.
-                DropVisualGuard(restore: true);
+                DropVisualGuard(v, restore: true);
                 HideStatus();
             }
         }
 
-        private void RetreatFromInlinePdf()
+        private void RetreatFromInlinePdf(WebView2 v)
         {
             try
             {
-                CoreWebView2? core = Browser.CoreWebView2;
+                CoreWebView2? core = v.CoreWebView2;
                 if (core is null) return;
                 if (core.CanGoBack) core.GoBack();
-                else NavigateTo(HomePage);
+                else core.Navigate(HomePage);
             }
             catch { /* the retreat is a courtesy, never a requirement */ }
         }
@@ -523,19 +589,28 @@ namespace Avalanche.Controls
         /// paints. The guard belongs to one navigation; every exit path - the early
         /// hand-off, the completed-navigation probe, a failed navigation - restores
         /// the engine.</summary>
-        private void ArmVisualGuard()
+        private void ArmVisualGuard(WebView2 v)
         {
             ShowStatus(TryLoc("Str_Web_PdfOpening"));
             if (_browserGuarded) return;
             _browserGuarded = true;
-            Browser.Visibility = Visibility.Hidden;
+            try { v.Visibility = Visibility.Hidden; } catch { /* a view gone already */ }
         }
 
-        private void DropVisualGuard(bool restore)
+        private void DropVisualGuard(WebView2 v, bool restore)
         {
             if (!_browserGuarded) return;
             _browserGuarded = false;
-            if (restore) Browser.Visibility = Visibility.Visible;
+            if (restore)
+            {
+                try
+                {
+                    // Only the view on screen gets its paint back; a tab the reader
+                    // already left stays collapsed where the tab logic put it.
+                    if (ReferenceEquals(v, _activeView)) v.Visibility = Visibility.Visible;
+                }
+                catch { /* a view gone already */ }
+            }
         }
 
         /// <summary>The response headers just said the MAIN document is a PDF: the
@@ -545,7 +620,7 @@ namespace Avalanche.Controls
         /// page that offered the link once the navigation has somewhere to go back
         /// to. A failure stands the guard down and leaves the NavigationCompleted
         /// fallback its three sources.</summary>
-        private async void StartEarlyPdfHandoff(string url)
+        private async void StartEarlyPdfHandoff(string url, WebView2 v)
         {
             if (_earlyHandoff || url.Length == 0) return;
             _earlyHandoff = true;
@@ -553,14 +628,14 @@ namespace Avalanche.Controls
             try
             {
                 if (!_pdfInFlight.Add(url)) return;
-                ArmVisualGuard();   // blanks the engine even when the address never looked like a PDF
+                ArmVisualGuard(v);   // blanks the engine even when the address never looked like a PDF
                 byte[]? bytes = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
                 if (bytes != null && HasPdfHeader(bytes))
                 {
                     // v1.19.8: no delayed retreat across the pane's suspension -
                     // the hand-off itself settles the browser while the engine is
                     // still awake: guard down, view back, no pdf tab left behind.
-                    handed = await HandPdfToReaderAsync(url, bytes);   // the pane steps aside; the reader tab opens
+                    handed = await HandPdfToReaderAsync(url, bytes, v);   // the pane steps aside; the reader tab opens
                 }
                 else
                 {
@@ -569,9 +644,9 @@ namespace Avalanche.Controls
                     // landed, otherwise the moment it does (OnNavigationCompleted
                     // runs it for a navigation still in flight).
                     _pdfInFlight.Remove(url);
-                    DropVisualGuard(restore: true);
+                    DropVisualGuard(v, restore: true);
                     HideStatus();
-                    if (_navCompleted) _ = CatchInlinePdfAsync();
+                    if (_navCompleted) _ = CatchInlinePdfAsync(v);
                 }
             }
             finally
@@ -588,35 +663,36 @@ namespace Avalanche.Controls
 
         /// <summary>The tab's title: the page's own when it has one, otherwise the
         /// address host. Empty stays silent - the tab keeps whatever it wore.</summary>
-        private void RaiseTitleChanged()
+        /// <summary>The tab's title: the page's own when it has one, otherwise the
+        /// address host. v1.19.13: the title names the card the VIEW belongs to -
+        /// every view names its own tab, and only the view on screen raises the
+        /// window's event.</summary>
+        private void HandleTitleChanged(WebView2 v)
         {
-            CoreWebView2? core = Browser.CoreWebView2;
+            CoreWebView2? core = v.CoreWebView2;
             if (core is null) return;
             string title = core.DocumentTitle;
-            if (string.IsNullOrWhiteSpace(title)) title = Browser.Source?.Host ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(title)) title = v.Source?.Host ?? string.Empty;
             if (title.Length == 0) return;
-            // v1.19.7: the strip tab wears its title the moment it arrives - the
-            // card for the view the browser is on, not whatever rang before it.
             try
             {
-                string url = Browser.Source?.ToString() ?? string.Empty;
-                WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
+                WebTabCardVm? card = CardFor(v);
                 if (card is not null) card.Title = title;
             }
             catch { /* a gallery hiccup never disturbs the title event */ }
-            TitleChanged?.Invoke(title);
+            if (ReferenceEquals(v, _activeView)) TitleChanged?.Invoke(title);
         }
 
         private void SyncOmniFromBrowser()
         {
             if (OmniBox.IsKeyboardFocused) return;   // never fight the reader's typing
-            OmniBox.Text = Browser.Source?.ToString() ?? string.Empty;
+            OmniBox.Text = Browser?.Source?.ToString() ?? string.Empty;
             OmniBox.CaretIndex = OmniBox.Text.Length;
         }
 
         private void RefreshHistoryButtons()
         {
-            CoreWebView2? core = Browser.CoreWebView2;
+            CoreWebView2? core = Browser?.CoreWebView2;
             WebBackBtn.IsEnabled = core is { CanGoBack: true };
             WebForwardBtn.IsEnabled = core is { CanGoForward: true };
         }
@@ -644,6 +720,10 @@ namespace Avalanche.Controls
 
         private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
         {
+            // v1.19.13: the watchtowers belong to the view on screen. A background
+            // tab navigating itself (a redirect, a refresh) touches none of the
+            // capture state - the reader's own navigation owns it.
+            if (sender is not WebView2 v || !ReferenceEquals(v, _activeView)) return;
             // Nothing is cancelled any more: a pdf-shaped address rides the engine's own
             // request to its download or its viewer, and the hand-off catches it there -
             // cancelling here is exactly what invalidated one-time download tokens and
@@ -657,7 +737,7 @@ namespace Avalanche.Controls
             // v1.19.5: a pdf-shaped address blanks the engine before its first pixel -
             // the response headers either confirm it (the early hand-off takes over)
             // or stand the guard back down when the real page arrives.
-            if (LooksLikePdf(e.Uri)) ArmVisualGuard();
+            if (LooksLikePdf(e.Uri)) ArmVisualGuard(v);
         }
 
         /// <summary>The document's bytes, from the sources closest to Chromium inward:
@@ -673,15 +753,15 @@ namespace Avalanche.Controls
         /// viewer's extension DOM refuses, the re-request the anti-bot wall
         /// answers with 403 - all of them lose a document Chromium already has
         /// on screen, and the print takes the screen's bytes.</summary>
-        private async Task<byte[]?> CapturePdfFromBrowserAsync(string url)
+        private async Task<byte[]?> CapturePdfFromBrowserAsync(string url, WebView2 v)
         {
             byte[]? captured = await WaitPdfCaptureAsync(TimeSpan.FromSeconds(20));
             if (captured != null && HasPdfHeader(captured)) return captured;
-            byte[]? scripted = await FetchViaPageScriptAsync();
+            byte[]? scripted = await FetchViaPageScriptAsync(v);
             if (scripted != null && HasPdfHeader(scripted)) return scripted;
-            byte[]? fetched = await FetchBrowserBytesAsync(url);
+            byte[]? fetched = await FetchBrowserBytesAsync(url, v);
             if (fetched != null && HasPdfHeader(fetched)) return fetched;
-            byte[]? printed = await PrintRenderedPdfAsync();
+            byte[]? printed = await PrintRenderedPdfAsync(v);
             if (printed != null && HasPdfHeader(printed)) return printed;
             return null;
         }
@@ -702,13 +782,13 @@ namespace Avalanche.Controls
         /// down before the print for the reason the open-in-Avalanche button
         /// already knows: the printed page, not a blanked engine, is the
         /// product.</summary>
-        private async Task<byte[]?> PrintRenderedPdfAsync()
+        private async Task<byte[]?> PrintRenderedPdfAsync(WebView2 v)
         {
             try
             {
-                CoreWebView2? core = Browser.CoreWebView2;
+                CoreWebView2? core = v.CoreWebView2;
                 if (core is null) return null;
-                string url = Browser.Source?.ToString() ?? string.Empty;
+                string url = v.Source?.ToString() ?? string.Empty;
                 // The viewer's outer frame lies about its contentType; the
                 // address and the capture do not. A capture slot exists only
                 // when an application/pdf answer arrived this navigation, so a
@@ -718,7 +798,7 @@ namespace Avalanche.Controls
                     || LooksLikePdf(url)
                     || _pdfCapture is not null;
                 if (!onViewer) return null;
-                DropVisualGuard(restore: true);   // the print needs the engine alive, not blanked
+                DropVisualGuard(v, restore: true);   // the print needs the engine alive, not blanked
                 string target = TempPdfPath(
                     "print-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".pdf");
                 if (!await core.PrintToPdfAsync(target, null)) return null;
@@ -754,11 +834,11 @@ namespace Avalanche.Controls
             "let s='';const c=0x8000;for(let i=0;i<u.length;i+=c)" +
             "s+=String.fromCharCode.apply(null,u.subarray(i,i+c));return btoa(s)}catch(e){return ''}})()";
 
-        private async Task<byte[]?> FetchViaPageScriptAsync()
+        private async Task<byte[]?> FetchViaPageScriptAsync(WebView2 v)
         {
             try
             {
-                CoreWebView2? core = Browser.CoreWebView2;
+                CoreWebView2? core = v.CoreWebView2;
                 if (core is null) return null;
                 string json = await core.ExecuteScriptAsync(PageFetchScript);
                 string? b64 = null;
@@ -774,7 +854,7 @@ namespace Avalanche.Controls
         /// last time, written into the reader's temp area, and handed over. The verdict
         /// comes back as the return value - the caller owns the status strip now, so a
         /// failure word outlives the caller's cleanup instead of being wiped by it.</summary>
-        private async Task<bool> HandPdfToReaderAsync(string url, byte[]? bytes)
+        private async Task<bool> HandPdfToReaderAsync(string url, byte[]? bytes, WebView2 v)
         {
             if (bytes is null || !HasPdfHeader(bytes)) return false;
             try
@@ -788,7 +868,7 @@ namespace Avalanche.Controls
                 // document - guard down, view back on the page that offered it,
                 // no pdf tab left behind - all while the engine is still awake,
                 // never across the suspension the pane's hide asks for.
-                SettleAfterHandoff(url);
+                SettleAfterHandoff(url, v);
                 PdfRequested?.Invoke(target);
                 return true;
             }
@@ -801,51 +881,21 @@ namespace Avalanche.Controls
         /// <summary>v1.19.8: the browser's debt, paid the moment a document reaches the
         /// reader - synchronously, while the engine is still awake and BEFORE
         /// PdfRequested sends the pane off to hide and suspend. The guard comes
-        /// down; the view that carried the document steps back to the page that
-        /// offered it; and its gallery card goes with it - closed when other views
-        /// are open, reset to a live page when it held the tab alone - so a
-        /// reopened browser lands on a working page, never on the frozen viewer a
-        /// pdf tab used to keep.</summary>
-        private void SettleAfterHandoff(string url)
+        /// down and the view that carried the document steps back to the page
+        /// that offered the link (home when nothing stands behind). v1.19.13: the
+        /// tab itself STAYS - a tab is a live view now, and nothing the reader had
+        /// open is ever thrown away by a hand-off; its card follows the retreat on
+        /// the navigation that lands, so no about:blank shell is left dressed as a
+        /// tab and a reopened browser lands on a working page.</summary>
+        private void SettleAfterHandoff(string url, WebView2 v)
         {
-            try { DropVisualGuard(restore: true); } catch { /* a paint flag only */ }
+            try { DropVisualGuard(v, restore: true); } catch { /* a paint flag only */ }
             try
             {
-                CoreWebView2? core = Browser.CoreWebView2;
+                CoreWebView2? core = v.CoreWebView2;
                 if (core is null) return;
-                if (Tabs.Count > 1)
-                {
-                    // Other views are open: the document's tab closes and the
-                    // browser lands on the next newest view - the search results
-                    // or journal index the reader came from.
-                    WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
-                    if (card is not null) { CloseTab(url); return; }
-                    foreach (WebTabCardVm t in Tabs) t.IsActive = false;
-                    Tabs[0].IsActive = true;
-                    try
-                    {
-                        if (!UriEquals(Browser.Source?.ToString(), Tabs[0].Url))
-                            NavigateTo(Tabs[0].Url);
-                    }
-                    catch { NavigateTo(Tabs[0].Url); }
-                    return;
-                }
-                // The document held the tab alone: step back at once - history
-                // first, home when nothing stands behind - and the card that wore
-                // the document leaves with it, so nothing lingers as a pdf. The
-                // home card is seeded when the retreat lands there and none waits.
-                WebTabCardVm? solo = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
-                if (solo is not null) Tabs.Remove(solo);
-                RetreatFromInlinePdf();
-                if (!core.CanGoBack && !Tabs.Any(t => UriEquals(t.Url, HomePage)))
-                {
-                    Tabs.Insert(0, new WebTabCardVm(HomePage)
-                    {
-                        Title = TryLoc("Str_Web_NewTab") ?? "duckduckgo.com",
-                        Host = "duckduckgo.com",
-                        IsActive = true,
-                    });
-                }
+                if (core.CanGoBack) core.GoBack();
+                else core.Navigate(HomePage);
             }
             catch { /* a settle that stumbles never blocks the hand-off */ }
         }
@@ -857,13 +907,13 @@ namespace Avalanche.Controls
         /// and the refused and interrupted attempts settle here now - the reader is
         /// left on the page that offered the document, never on an about:blank shell
         /// dressed as a tab.</summary>
-        private void SettleAfterDownloadAttempt(string dlUrl)
+        private void SettleAfterDownloadAttempt(string dlUrl, WebView2 v)
         {
             try
             {
-                string view = Browser.Source?.ToString() ?? string.Empty;
+                string view = v.Source?.ToString() ?? string.Empty;
                 if (view.Length > 0 && (UriEquals(view, dlUrl) || LooksLikePdf(view)))
-                    SettleAfterHandoff(view);
+                    SettleAfterHandoff(view, v);
             }
             catch { /* a settle that stumbles never blocks the hand-off */ }
         }
@@ -873,7 +923,7 @@ namespace Avalanche.Controls
         /// agent, the page that offered the link as referrer, and honest compression.
         /// Sites that answered the old anonymous fetch with an error page answer this one
         /// the way they answer the user's own browser.</summary>
-        private async Task<byte[]> FetchBrowserBytesAsync(string url)
+        private async Task<byte[]> FetchBrowserBytesAsync(string url, WebView2 v)
         {
             using var handler = new HttpClientHandler
             {
@@ -883,7 +933,7 @@ namespace Avalanche.Controls
                 UseCookies = true,
                 CookieContainer = new CookieContainer(),
             };
-            CoreWebView2? core = Browser.CoreWebView2;
+            CoreWebView2? core = v.CoreWebView2;
             Uri target = new Uri(url);
             if (core is not null)
             {
@@ -962,6 +1012,10 @@ namespace Avalanche.Controls
 
         private void OnDownloadStarting(object? sender, CoreWebView2DownloadStartingEventArgs e)
         {
+            // v1.19.13: a download belongs to the view that started it, wherever
+            // the reader happens to be looking now - its settle finds that view.
+            WebView2? view = ViewOfCore(sender as CoreWebView2);
+            if (view is null) return;
             string mime = e.DownloadOperation.MimeType ?? string.Empty;
             string suggested = e.ResultFilePath ?? string.Empty;
             string dlUrl = e.DownloadOperation.Uri ?? string.Empty;   // v1.19.8: the address the document came from
@@ -988,7 +1042,7 @@ namespace Avalanche.Controls
                         // settles the view too when the browser stands on its
                         // address - a download navigation leaves a blank view
                         // otherwise, dressed as a frozen tab on reopen.
-                        SettleAfterDownloadAttempt(dlUrl);
+                        SettleAfterDownloadAttempt(dlUrl, view);
                         PdfRequested?.Invoke(target);
                     }
                     else if (op.State == CoreWebView2DownloadState.Completed)
@@ -998,7 +1052,7 @@ namespace Avalanche.Controls
                         // navigation that became this download still left the engine
                         // standing on a blank provisional page, and a red cross over
                         // an about:blank shell is not much of an answer.
-                        SettleAfterDownloadAttempt(dlUrl);
+                        SettleAfterDownloadAttempt(dlUrl, view);
                         ShowTransientStatus(TryLoc("Str_Web_PdfNotPdf"));   // v1.19.7: the word takes itself down
                     }
                     else
@@ -1007,7 +1061,7 @@ namespace Avalanche.Controls
                         // v1.19.12: the interrupted attempt settles as well; the
                         // view that carried the download goes home instead of
                         // freezing on the blank it was left holding.
-                        SettleAfterDownloadAttempt(dlUrl);
+                        SettleAfterDownloadAttempt(dlUrl, view);
                     }
                 });
             };
@@ -1029,6 +1083,12 @@ namespace Avalanche.Controls
         {
             try
             {
+                // v1.19.13: the capture serves the view on screen. A background tab
+                // that navigates itself into a document still owns its downloads -
+                // but the watchtowers, the guard and the early hand-off belong to
+                // the reader's own navigation.
+                WebView2? view = ViewOfCore(sender as CoreWebView2);
+                if (view is null || !ReferenceEquals(view, _activeView)) return;
                 CoreWebView2HttpResponseHeaders? headers = e.Response.Headers;
                 if (headers is null || !headers.Contains("Content-Type")) return;
                 string mime = headers.GetHeader("Content-Type") ?? string.Empty;
@@ -1062,7 +1122,7 @@ namespace Avalanche.Controls
                     if (_browserGuarded && (interstitial
                         || (e.Response.StatusCode is >= 200 and < 300
                             && (mainDocument || UriEquals(uri, _mainNavUri)) && LooksLikePdf(uri))))
-                        DropVisualGuard(restore: true);
+                        DropVisualGuard(view, restore: true);
                     return;
                 }
                 // v1.19.6: the capture slot is built and assigned BEFORE the hand-off
@@ -1087,7 +1147,7 @@ namespace Avalanche.Controls
                 {
                     capture = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     _pdfCapture = capture;
-                    StartEarlyPdfHandoff(uri);
+                    StartEarlyPdfHandoff(uri, view);
                 }
                 Stream? content = await e.Response.GetContentAsync();
                 if (content is null) { capture.TrySetResult(null); return; }
@@ -1110,9 +1170,12 @@ namespace Avalanche.Controls
             // the page the reader was on, and nothing ever arrived in it. The shell
             // is swallowed; the view stays where it was.
             e.Handled = true;
+            WebView2? v = ViewOfCore(sender as CoreWebView2);
+            if (v is null) return;
             string popup = e.Uri ?? string.Empty;
             if (popup.Length == 0 || popup.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return;
-            NavigateTo(popup);
+            try { v.CoreWebView2?.Navigate(popup); }
+            catch { /* a navigation that throws is the next one's problem */ }
         }
 
         /// <summary>v1.19.10: the riding helper's word. When even the fixed print
@@ -1138,8 +1201,10 @@ namespace Avalanche.Controls
                 if (string.IsNullOrEmpty(url)) return;
                 string? alt = doc.RootElement.TryGetProperty("alt", out System.Text.Json.JsonElement altEl)
                     ? altEl.GetString() : null;
+                WebView2? v = ViewOfCore(sender as CoreWebView2);
+                if (v is null) return;
                 ShowStatus(TryLoc("Str_Web_PdfOpening"));
-                _ = FetchAndHandOffAsync(url, alt);
+                _ = FetchAndHandOffAsync(url, alt, v);
             }
             catch { /* a message that stumbles is never worth a crash */ }
         }
@@ -1153,7 +1218,7 @@ namespace Avalanche.Controls
         /// address second - each gets one fetch, and the first real PDF bytes
         /// win. A failure lands the honest blocked word, and success is the one
         /// place the green check lives (v1.19.12): the click's own receipt.</summary>
-        private async Task FetchAndHandOffAsync(string url, string? alt)
+        private async Task FetchAndHandOffAsync(string url, string? alt, WebView2 v)
         {
             try
             {
@@ -1161,18 +1226,18 @@ namespace Avalanche.Controls
                 try
                 {
                     string handed = url;
-                    byte[]? bytes = await TryFetchPdfBytesAsync(url);
+                    byte[]? bytes = await TryFetchPdfBytesAsync(url, v);
                     if ((bytes is null || !HasPdfHeader(bytes))
                         && !string.IsNullOrEmpty(alt) && !UriEquals(alt, url))
                     {
-                        byte[]? second = await TryFetchPdfBytesAsync(alt);   // the wrapper's own address takes its turn
+                        byte[]? second = await TryFetchPdfBytesAsync(alt, v);   // the wrapper's own address takes its turn
                         if (second != null && HasPdfHeader(second)) { bytes = second; handed = alt; }
                     }
                     if (bytes != null && HasPdfHeader(bytes))
                     {
                         string target = TempPdfPath(SafePdfName("extension-download.pdf"));
                         await File.WriteAllBytesAsync(target, bytes);
-                        SettleAfterHandoff(handed);
+                        SettleAfterHandoff(handed, v);
                         CelebrateHandoff();
                         PdfRequested?.Invoke(target);
                         return;
@@ -1188,40 +1253,45 @@ namespace Avalanche.Controls
         /// that answers with a wall, a reset or an unsupported scheme returns
         /// null - a verdict the caller can speak - instead of an exception that
         /// would cut the second candidate off from its turn.</summary>
-        private async Task<byte[]?> TryFetchPdfBytesAsync(string url)
+        private async Task<byte[]?> TryFetchPdfBytesAsync(string url, WebView2 v)
         {
-            try { return await FetchBrowserBytesAsync(url); }
+            try { return await FetchBrowserBytesAsync(url, v); }
             catch { return null; }
         }
 
-        // ── The sidebar's web-tabs gallery (v1.19.5) ─────────────────────────────────────
+        // ── The sidebar's web-tabs gallery (v1.19.5; live views since v1.19.13) ────────
         // The window's left rail shows these cards while the pane is up: one per open
-        // view, newest first since v1.19.7 and holding its place since v1.19.11 - the
-        // captured preview, the page's title and its host - with the view on screen
-        // wearing the accent ring. Clicking a card is clicking that tab: the browser
-        // navigates there, and the card never jumps because of it.
+        // tab, newest first and holding its place - the captured preview, the page's
+        // title and its host - with the view on screen wearing the accent ring.
+        // v1.19.13: a card IS a tab now, and a tab is a live WebView2 of its own.
+        // Clicking a card shows that view exactly as it was left - nothing navigates,
+        // nothing reloads - and closing it disposes its view. The rail and the strip
+        // are one list wearing two faces, and a drag on either (MainWindow's drag
+        // dialect) reorders both.
 
         /// <summary>The gallery's cards, newest first: a brand-new tab lands on top
-        /// (v1.19.7), and since v1.19.11 it STAYS where creation put it - revisiting
-        /// a tab refreshes its face, never its position. Capped at a dozen; the
-        /// oldest view falls off the end.</summary>
+        /// and STAYS where the reader drags it or creation put it. Capped at a
+        /// dozen; the oldest view falls off the end.</summary>
         public ObservableCollection<WebTabCardVm> Tabs { get; } = new();
 
         private const int MaxWebTabCards = 12;
 
         /// <summary>The window clicked a gallery card or a strip tab: the browser
-        /// switches to that view. The ring moves at once - the click IS the switch,
-        /// the navigation only fills the view in - and a click on the view already
-        /// on screen does not reload it.</summary>
-        public void ActivateTab(string url)
+        /// switches views. v1.19.13: switching is a SHOW, not a navigation - the
+        /// view comes to the screen exactly as it was left, scroll and typing
+        /// included, and a click on the view already on screen changes nothing.</summary>
+        public void ActivateTab(WebTabCardVm card)
         {
-            foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
             try
             {
-                if (UriEquals(Browser.Source?.ToString(), url)) return;   // already there
+                if (card.View is { } v && ReferenceEquals(v, _activeView))
+                {
+                    foreach (WebTabCardVm t in Tabs) t.IsActive = ReferenceEquals(t, card);
+                    return;   // already there
+                }
             }
-            catch { /* a source that refuses probing navigates as usual */ }
-            NavigateTo(url);
+            catch { /* a view that refuses probing swaps as usual */ }
+            _ = ShowViewAsync(card);
         }
 
         /// <summary>The window asked the pane to step aside because its last tab
@@ -1232,27 +1302,27 @@ namespace Avalanche.Controls
         /// the view on screen the browser lands on the next newest view - or the
         /// window is asked to put the browser away when that was the last one,
         /// exactly what closing the old single tab did.</summary>
-        public void CloseTab(string url)
+        public void CloseTab(WebTabCardVm card)
         {
-            WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
-            if (card is null) return;
+            if (!Tabs.Contains(card)) return;
             bool wasActive = card.IsActive;
             Tabs.Remove(card);
-            if (!wasActive) return;
+            // v1.19.13: the tab's view dies with it - the engine behind it is
+            // disposed and its memory goes back to Windows.
+            if (card.View is { } v)
+            {
+                if (ReferenceEquals(v, _activeView)) _activeView = null;
+                _views.Remove(v);
+                try { BrowserHost.Children.Remove(v); } catch { /* a view gone already */ }
+                try { v.Dispose(); } catch { /* a view gone already is a fine answer */ }
+            }
+            if (!wasActive || _activeView is not null) return;
             if (Tabs.Count == 0)
             {
                 CloseRequested?.Invoke();
                 return;
             }
-            foreach (WebTabCardVm t in Tabs) t.IsActive = false;
-            Tabs[0].IsActive = true;
-            string next = Tabs[0].Url;
-            try
-            {
-                if (UriEquals(Browser.Source?.ToString(), next)) return;   // already there
-            }
-            catch { /* a source that refuses probing navigates as usual */ }
-            NavigateTo(next);
+            _ = ShowViewAsync(Tabs[0]);
         }
 
         /// <summary>The + button and Ctrl+T: a fresh view on the home page, its gallery
@@ -1261,23 +1331,14 @@ namespace Avalanche.Controls
         /// UpdateTabCardAsync upgrades the seeded card with the page's own face.</summary>
         public void OpenNewTab()
         {
-            string url = HomePage;
-            WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
-            if (card is null)
+            if (_activeView is null || _env is null)
             {
-                card = new WebTabCardVm(url)
-                {
-                    Title = TryLoc("Str_Web_NewTab") ?? "duckduckgo.com",
-                    Host = "duckduckgo.com",
-                };
-                Tabs.Insert(0, card);   // a brand-new tab still lands on top (v1.19.7)
-                while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(Tabs.Count - 1);
+                _ = EnsureReadyAsync();   // the first open owns the first tab
             }
-            // v1.19.11: a revisit activates the card where it lives - the rail keeps
-            // creation order, so switching tabs never reshuffles it. Only the ring
-            // moves.
-            foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
-            NavigateTo(url);
+            else
+            {
+                _ = CreateTabAsync(HomePage);
+            }
             // The caret goes to the omnibox, deferred once so the click's own focus
             // changes cannot undo it - the same defer OnPaneShown uses.
             Dispatcher.BeginInvoke(
@@ -1285,20 +1346,34 @@ namespace Avalanche.Controls
                 System.Windows.Threading.DispatcherPriority.Input);
         }
 
-        /// <summary>Refresh this view's card after a navigation: preview from
-        /// CapturePreviewAsync, title from the document, host from the address.
-        /// A guarded (about-to-hand-off) document captures nothing, and neither
-        /// does a hidden pane - the engine may be suspended.</summary>
-        private async Task UpdateTabCardAsync()
+        /// <summary>Refresh a view's card after a navigation. The card IS the tab
+        /// now (v1.19.13): it follows its own view's address, title, host and
+        /// preview, and a navigation never spawns another card. A background view
+        /// updates its face only - no preview (the swap may be mid-flight) and no
+        /// ring. A guarded (about-to-hand-off) document captures nothing, and
+        /// neither does a hidden pane - the engine may be suspended.</summary>
+        private async Task UpdateTabCardAsync(WebView2 v, bool background = false)
         {
             try
             {
-                CoreWebView2? core = Browser.CoreWebView2;
-                if (core is null || _browserGuarded || !IsVisible) return;
-                string url = Browser.Source?.ToString() ?? string.Empty;
+                CoreWebView2? core = v.CoreWebView2;
+                if (core is null || !IsVisible) return;
+                if (!background && _browserGuarded) return;
+                string url = v.Source?.ToString() ?? string.Empty;
                 if (url.Length == 0 || !Uri.TryCreate(url, UriKind.Absolute, out Uri? u)) return;
                 string title = core.DocumentTitle;
                 if (string.IsNullOrWhiteSpace(title)) title = u.Host;
+                WebTabCardVm? card = CardFor(v);
+                if (card is null)
+                {
+                    card = new WebTabCardVm(url);
+                    Tabs.Insert(0, card);   // a view without a card earns one at the top
+                    TrimWebTabCards(card);
+                }
+                card.Url = url;
+                card.Title = title;
+                card.Host = u.Host;
+                if (background) return;
                 byte[] png;
                 using (MemoryStream ms = new())
                 {
@@ -1317,21 +1392,140 @@ namespace Avalanche.Controls
                     thumb = img;
                 }
                 catch { /* a capture that will not decode leaves the old preview up */ }
-                WebTabCardVm? card = Tabs.FirstOrDefault(t => UriEquals(t.Url, url));
-                if (card is null)
-                {
-                    card = new WebTabCardVm(url);
-                    Tabs.Insert(0, card);   // a brand-new tab still lands on top (v1.19.7)
-                    while (Tabs.Count > MaxWebTabCards) Tabs.RemoveAt(Tabs.Count - 1);
-                }
-                // v1.19.11: a known card stays where creation put it - only its
-                // Title, Host, Thumb and IsActive flags refresh below.
-                card.Title = title;
-                card.Host = u.Host;
                 if (thumb is not null) card.Thumb = thumb;
-                foreach (WebTabCardVm t in Tabs) t.IsActive = UriEquals(t.Url, url);
+                foreach (WebTabCardVm t in Tabs) t.IsActive = ReferenceEquals(t.View, v);
             }
             catch { /* a gallery that stumbles never disturbs the browsing */ }
+        }
+
+        // ── The view per tab (v1.19.13) ────────────────────────────────────────────────────
+        // A tab is a live WebView2: one view per card, every view sharing the one
+        // environment and profile. Switching tabs shows one view and collapses the
+        // rest - nothing navigates, nothing reloads - and closing a tab disposes
+        // its view. The capture pipeline stays the active view's own, exactly as
+        // v1.19.8-12 built it; background views simply live.
+
+        /// <summary>The card a view belongs to - the tab's identity is its view.</summary>
+        private WebTabCardVm? CardFor(WebView2 v)
+        {
+            foreach (WebTabCardVm t in Tabs)
+                if (ReferenceEquals(t.View, v)) return t;
+            return null;
+        }
+
+        /// <summary>The view a core event came from - the watchtowers ride each
+        /// view's core, and every answer must find its way home.</summary>
+        private WebView2? ViewOfCore(CoreWebView2? core)
+        {
+            if (core is null) return null;
+            foreach (WebView2 v in _views)
+            {
+                try { if (ReferenceEquals(v.CoreWebView2, core)) return v; }
+                catch { /* a view gone already */ }
+            }
+            return null;
+        }
+
+        private static string HostOf(string url)
+            => Uri.TryCreate(url, UriKind.Absolute, out Uri? u) ? u.Host : string.Empty;
+
+        /// <summary>The dozen cap: the oldest card that is not the view on screen
+        /// falls off the end, its view disposed with it.</summary>
+        private void TrimWebTabCards(WebTabCardVm keep)
+        {
+            while (Tabs.Count > MaxWebTabCards)
+            {
+                WebTabCardVm? oldest = Tabs.LastOrDefault(t => !t.IsActive && !ReferenceEquals(t, keep));
+                if (oldest is null) break;
+                CloseTab(oldest);
+            }
+        }
+
+        /// <summary>A new tab: its card seeded at once (top of the rail), its view
+        /// built and walked to its first address. The engine must exist - callers
+        /// without one go through EnsureReadyAsync, which lands here after.</summary>
+        private async Task CreateTabAsync(string url)
+        {
+            if (_env is null)
+            {
+                _pendingUrl = url;
+                _ = EnsureReadyAsync();
+                return;
+            }
+            WebTabCardVm card = new(url)
+            {
+                Title = TryLoc("Str_Web_NewTab") ?? "google.com",
+                Host = HostOf(url),
+                IsActive = true,
+            };
+            foreach (WebTabCardVm t in Tabs) t.IsActive = false;
+            Tabs.Insert(0, card);   // a brand-new tab lands on top
+            TrimWebTabCards(card);
+            WebView2 view = await BuildViewAsync(card);
+            await ShowViewAsync(card, view, url);
+        }
+
+        /// <summary>One view for one tab: built transparent over the themed card,
+        /// collapsed until shown, wired once, and kept in the host for its whole
+        /// life - a tab's page survives every switch, which is the point.</summary>
+        private async Task<WebView2> BuildViewAsync(WebTabCardVm card)
+        {
+            WebView2 view = new()
+            {
+                // A transparent engine over the themed card: no white flash while
+                // the page loads, and the blank state belongs to the theme.
+                DefaultBackgroundColor = System.Drawing.Color.Transparent,
+                Visibility = Visibility.Collapsed,
+            };
+            card.View = view;
+            _views.Add(view);
+            BrowserHost.Children.Add(view);
+            if (_env is not null)
+            {
+                await view.EnsureCoreWebView2Async(_env);
+                WireView(view);
+            }
+            return view;
+        }
+
+        /// <summary>Puts one view on screen and collapses the rest - the whole act
+        /// of switching tabs now. Nothing navigates: the view is exactly the page
+        /// it was, scroll, typing and all, until the reader closes it.</summary>
+        private async Task ShowViewAsync(WebTabCardVm card, WebView2? view = null, string? navigate = null)
+        {
+            int gen = ++_viewGen;
+            view ??= card.View;
+            if (view is null)
+            {
+                if (_env is null)
+                {
+                    _pendingUrl = card.Url;
+                    _ = EnsureReadyAsync();
+                    return;
+                }
+                view = await BuildViewAsync(card);
+                if (gen != _viewGen) return;   // a newer switch owns the screen now
+            }
+            foreach (WebView2 v in _views.ToArray())
+            {
+                try { v.Visibility = ReferenceEquals(v, view) ? Visibility.Visible : Visibility.Collapsed; }
+                catch { /* a view gone already */ }
+            }
+            _activeView = view;
+            foreach (WebTabCardVm t in Tabs) t.IsActive = ReferenceEquals(t.View, view);
+            try
+            {
+                view.CoreWebView2?.Resume();   // a view hidden since the pane's last show wakes here
+                if (navigate is not null && view.CoreWebView2 is not null
+                    && !UriEquals(view.Source?.ToString(), navigate))
+                    view.CoreWebView2.Navigate(navigate);
+                view.Focus();
+            }
+            catch { /* a first paint that stumbles is the page's own problem */ }
+            SyncOmniFromBrowser();
+            RefreshHistoryButtons();
+            RefreshBookmarkButton();
+            HandleTitleChanged(view);
         }
 
         // ── Bookmarks (v1.19.11) - the storage and its surface ────────────────────────
@@ -1391,9 +1585,9 @@ namespace Avalanche.Controls
             }
             else
             {
-                string title = Browser.CoreWebView2?.DocumentTitle ?? string.Empty;
+                string title = Browser?.CoreWebView2?.DocumentTitle ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(title))
-                    title = Browser.Source?.Host ?? string.Empty;
+                    title = Browser?.Source?.Host ?? string.Empty;
                 WebBookmarkNameBox.Text = title;
             }
             WebBookmarkPopup.IsOpen = true;
@@ -1413,11 +1607,11 @@ namespace Avalanche.Controls
                 PersistBookmarks();
                 return;
             }
-            string url = Browser.Source?.ToString() ?? string.Empty;
+            string url = Browser?.Source?.ToString() ?? string.Empty;
             if (url.Length == 0 || FindBookmark(url) is not null) return;
             Bookmarks.Insert(0, new BookmarkVm
             {
-                Name = name.Length > 0 ? name : (Browser.Source?.Host ?? url),
+                Name = name.Length > 0 ? name : (Browser?.Source?.Host ?? url),
                 Url = url,
                 Favicon = string.Empty,   // the globe stands in until a favicon earns its keep
             });
@@ -1431,7 +1625,7 @@ namespace Avalanche.Controls
         /// every bookmarks change.</summary>
         private void RefreshBookmarkButton()
         {
-            string url = Browser.Source?.ToString() ?? string.Empty;
+            string url = Browser?.Source?.ToString() ?? string.Empty;
             WebBookmarkBtn.Content = FindBookmark(url) is not null ? "\uE735" : "\uE728";
         }
 
@@ -1601,6 +1795,65 @@ namespace Avalanche.Controls
             _spinTimer = null;
         }
 
+        // ── Paste forwarding (v1.19.13) ──────────────────────────────────────────────
+        // A real Ctrl+V, replayed at the win32 layer: key down/up for V while Ctrl
+        // is held (and one Ctrl pair of its own, harmless when the reader's finger
+        // is already holding it down). Chromium reads it exactly like the
+        // keyboard's own - paste events, editors and custom handlers all take it
+        // as the real thing. The original never leaves WPF (handled in the
+        // tunnel), so the paste happens exactly once.
+
+        private const uint WB_INPUT_KEYBOARD = 1u;
+        private const ushort WB_VK_CONTROL = 0x11;
+        private const ushort WB_VK_V = 0x56;
+        private const uint WB_KEYEVENTF_KEYUP = 0x0002;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+        private static extern uint SendInput(uint nInputs, WbInput[] pInputs, int cbSize);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct WbInput
+        {
+            public uint type;
+            public WbKeybd u;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct WbKeybd
+        {
+            public ushort wVk;
+            public ushort wScan;
+            public uint dwFlags;
+            public uint time;
+            public System.IntPtr dwExtraInfo;
+        }
+
+        /// <summary>Ctrl+V pressed over the page goes to the page: the swallowed
+        /// shortcut is replayed as synthetic key events the engine receives like
+        /// any keyboard's. The right-click menu keeps doing what it always did.</summary>
+        private void ForwardPasteToView()
+        {
+            try
+            {
+                WbInput[] inputs = new[]
+                {
+                    WbKey(WB_VK_CONTROL, 0),
+                    WbKey(WB_VK_V, 0),
+                    WbKey(WB_VK_V, WB_KEYEVENTF_KEYUP),
+                    WbKey(WB_VK_CONTROL, WB_KEYEVENTF_KEYUP),
+                };
+                SendInput((uint)inputs.Length, inputs,
+                    System.Runtime.InteropServices.Marshal.SizeOf<WbInput>());
+            }
+            catch { /* a paste that cannot be replayed is the context menu's turn */ }
+        }
+
+        private static WbInput WbKey(ushort vk, uint flags) => new()
+        {
+            type = WB_INPUT_KEYBOARD,
+            u = new WbKeybd { wVk = vk, dwFlags = flags },
+        };
+
         private string? TryLoc(string key) => TryFindResource(key) as string;
     }
 
@@ -1610,10 +1863,13 @@ namespace Avalanche.Controls
     /// v1.19.11); the active one wears the accent ring.</summary>
     public sealed class WebTabCardVm : INotifyPropertyChanged
     {
-        public WebTabCardVm(string url) { Url = url; }
+        public WebTabCardVm(string url) { _url = url; }
 
-        /// <summary>The page's address - the card's identity and its click target.</summary>
-        public string Url { get; }
+        private string _url;
+        /// <summary>The view's current address. v1.19.13: the card's identity is its
+        /// view, not this string - the address follows the page as the reader
+        /// browses, and the card stays the same tab.</summary>
+        public string Url { get => _url; set { _url = value; OnPropertyChanged(); } }
 
         private string _title = "";
         /// <summary>The page's own title, or its host until one arrives.</summary>
@@ -1630,6 +1886,11 @@ namespace Avalanche.Controls
         private bool _isActive;
         /// <summary>The view currently on screen - the accent ring's paint flag.</summary>
         public bool IsActive { get => _isActive; set { _isActive = value; OnPropertyChanged(); } }
+
+        /// <summary>The live view this tab owns (v1.19.13). One per card, for the
+        /// tab's whole life: switching tabs shows it, closing the tab disposes it,
+        /// and nothing in between asks it to navigate anywhere.</summary>
+        public WebView2? View { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
