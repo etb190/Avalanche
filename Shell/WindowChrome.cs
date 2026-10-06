@@ -51,6 +51,24 @@ namespace Avalanche
             if (TryHandleSystemMenu(msg, wParam, lParam)) { handled = true; return IntPtr.Zero; }
             if (TryHandlePowerBroadcast(msg, wParam, lParam)) { handled = true; return new IntPtr(1); }
 
+            // v1.19.36: a minimize command aimed at an app whose extension popup
+            // holds the foreground is the shell toggling the taskbar button - the
+            // reader was dismissing the bubble, not sending the whole app to the
+            // taskbar. The popup is an owned window, so the toggle minimized
+            // EVERYTHING and the bubble rode along, unclosed. While an ext action
+            // window is up, a minimize command closes it and keeps this window
+            // where it was; the next click minimizes as usual. A deliberate
+            // minimize (the caption button) sets WindowState directly and never
+            // passes through here.
+            if (msg == WM_SYSCOMMAND && (wParam.ToInt64() & 0xFFF0) == SC_MINIMIZE
+                && WebPane?.HasExtActionWindow == true)
+            {
+                WebPane.CloseExtActionWindowExt();
+                Activate();
+                handled = true;
+                return IntPtr.Zero;
+            }
+
             if (msg == WM_NCCALCSIZE)
             {
                 handled = WmNcCalcSize(hwnd, wParam, lParam);

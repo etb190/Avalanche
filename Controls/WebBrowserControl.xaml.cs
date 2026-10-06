@@ -3355,6 +3355,14 @@ namespace Avalanche.Controls
             _extActionWindow = null;
         }
 
+        // v1.19.36: the main window's WndProc asks these before honoring a
+        // minimize command - see Shell/WindowChrome.cs. A taskbar toggle with
+        // the popup in the foreground closes the popup instead of taking the
+        // whole app down with it.
+        internal bool HasExtActionWindow => _extActionWindow is not null;
+
+        internal void CloseExtActionWindowExt() => CloseExtActionWindow();
+
         private async Task ShowExtensionActionViewAsync(CoreWebView2BrowserExtension ext, string subPath, bool optionsPage)
         {
             if (_env is null) return;

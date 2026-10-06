@@ -328,6 +328,14 @@ namespace Avalanche
             // canvas still holding mouse capture. End any in-progress gesture on deactivate so control is
             // restored the moment the user comes back.
             Deactivated += (_, _) => { if (_isDraggingAnnot || _isResizingSig) FinishStuckGesture(); };
+            // v1.19.36: an extension popup is an owned window, so a minimized app
+            // merely HIDES it - the reader would come back to a bubble that should
+            // have died with its click-away. Whatever actually minimizes the
+            // window (the caption button, Win+D, a shell that skips WM_SYSCOMMAND),
+            // the popup's life ends here. The taskbar-toggle route is vetoed in
+            // WndProc while the popup is up, so this fires only for a minimize the
+            // reader really asked for.
+            StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) WebPane.CloseExtActionWindowExt(); };
             // These three live inside the PdfViewer control, and a UserControl is its own
             // namescope - FindName would return NULL SILENTLY rather than throw, so the failure
             // would surface much later as an unrelated NullReference. Take them off the control

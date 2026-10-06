@@ -42,6 +42,16 @@ namespace Avalanche.Controls
             // user first switches to it, so startup doesn't render every reopened PDF.
             public string? DeferredPath;
 
+            // v1.19.36: the engine's parsed view of the file travels with the TAB, not with the
+            // live working set. Switching tabs used to close it unconditionally (ApplySessionState),
+            // so the incoming tab's first render, search or link pass re-read the whole file and
+            // re-parsed it on the UI thread - a large PDF paid its full open cost on EVERY switch,
+            // which read as "acts like it was opened for the first time". The view is immutable and
+            // belongs to the session's own file; every path that rewrites that file calls
+            // CloseEngineDocumentSession(), and the next capture writes that null (or the fresh
+            // view opened after it) back here, so a stale view never reaches a reader.
+            public PdfEngineDocumentSession? EngineView;
+
             public double ZoomLevel = 1.0;
             public double LastRenderZoom = 1.0;
             public FitMode Fit = FitMode.None;
@@ -188,6 +198,7 @@ namespace Avalanche.Controls
             s.Doc            = _doc;
             s.CurrentFile    = _currentFile;
             s.OriginalFile   = _originalFile;
+            s.EngineView     = _engineDocumentSession;   // v1.19.36: the engine view rides its tab
             s.ZoomLevel      = _zoomLevel;
             s.LastRenderZoom = _lastRenderZoom;
             s.Fit            = _fitMode;
@@ -304,9 +315,12 @@ namespace Avalanche.Controls
             _doc            = s.Doc;
             _currentFile    = s.CurrentFile;
             _originalFile   = s.OriginalFile;
-            // The immutable engine view belongs to the file we are switching away from. This is the
-            // chokepoint for every active-document swap, so it cannot outlive its serialized source.
-            CloseEngineDocumentSession();
+            // v1.19.36: the engine view is captured and applied per tab (above / here), so the
+            // incoming tab keeps the view it already paid for and a switch back re-parses nothing.
+            // The old law still holds - the live view never outlives its serialized source: the
+            // view applied here belongs to THIS session's file, and every path that rewrites the
+            // file calls CloseEngineDocumentSession() before the next capture can spread it.
+            _engineDocumentSession = s.EngineView;
             _zoomLevel      = s.ZoomLevel;
             _lastRenderZoom = s.LastRenderZoom;
             _fitMode        = s.Fit;
@@ -886,6 +900,7 @@ namespace Avalanche.Controls
             _renderLru.Remove(s);    // don't pin a closed tab's render cache in the LRU list
             s.RenderCache.Clear();
             s.RenderCacheSize.Clear();
+            s.EngineView = null;     // the closed tab's engine view (file bytes included) goes with it
             CompactLohSoon();        // #122: give the freed bitmap memory back to the OS
 
             if (_sessions.Count == 0)
@@ -930,7 +945,7 @@ namespace Avalanche.Controls
             }
 
             CancelRenderWork();
-            foreach (var s in docTabs) { try { s.Doc?.Close(); } catch { } }
+            foreach (var s in docTabs) { try { s.Doc?.Close(); } catch { } s.EngineView = null; }
             try { _doc?.Close(); } catch { }
             _doc = null;
 
