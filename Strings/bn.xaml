@@ -1189,6 +1189,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryTook">সময় লেগেছে {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">বাফার: তৈরি হচ্ছে…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">বাফার: প্রস্তুত</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">বাফার: অনুপলব্ধ</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} পৃষ্ঠা বাকি</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">আপনার ডকুমেন্টের সাথে কথা বলুন</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">এই ডকুমেন্ট সম্পর্কে যা খুশি জিজ্ঞাসা করুন - সারসংক্ষেপ, ব্যাখ্যা, অনুবাদ। AI প্রতিটি পৃষ্ঠা পড়েছে।</sys:String>

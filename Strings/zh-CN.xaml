@@ -1193,6 +1193,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryTook">用时 {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">缓冲：生成中…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">缓冲：就绪</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">缓冲: 不可用</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">剩余 {0} 页</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">与你的文档对话</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">关于这份文档，想到什么就问 - 摘要、解释、翻译，AI 已读过每一页。</sys:String>

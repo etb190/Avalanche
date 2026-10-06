@@ -1196,6 +1196,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryTook">idő: {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Puffer: előállítás…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Puffer: kész</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Puffer: nem érhető el</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} oldal van hátra</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Beszélgess a dokumentumoddal</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Kérdezz bármit a dokumentumról - összefoglalók, magyarázatok, fordítások. Az AI minden oldalt elolvasott.</sys:String>

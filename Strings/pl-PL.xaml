@@ -1197,6 +1197,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryTook">zajęło {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Bufor: generowanie…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Bufor: gotowy</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Bufor: niedostępny</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">pozostało {0} str.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Porozmawiaj ze swoim dokumentem</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Zapytaj o cokolwiek w tym dokumencie - streszczenia, wyjaśnienia, tłumaczenia. AI przeczytała każdą stronę.</sys:String>

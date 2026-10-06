@@ -1189,6 +1189,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_SummaryTook">süre {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Tampon: oluşturuluyor…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Tampon: hazır</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Arabellek: kullanılamıyor</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} sayfa kaldı</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Belgenle sohbet et</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Bu belge hakkında her şeyi sor - özetler, açıklamalar, çeviriler. YZ her sayfayı okudu.</sys:String>

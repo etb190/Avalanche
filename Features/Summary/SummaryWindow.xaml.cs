@@ -118,6 +118,7 @@ namespace Avalanche.Features.Summary
         private int _prefetchFirst, _prefetchLast;  // the stretch the buffer covers
         private DateTime _prefetchStartedUtc = DateTime.UtcNow;  // the flight's clock
         private bool _schedulePrefetchOnIdle;   // v1.19.26: the finally arms the next buffer - SchedulePrefetch refuses a live run
+        private bool _digestRestored;           // v1.19.27: a restored digest arms the buffer like a finished run
 
         // The live run's clock: StartGeneration winds it, the digest spends
         // it into the status line ("took 42s" / "took 1m 12s", v1.19.25).
@@ -361,6 +362,16 @@ namespace Avalanche.Features.Summary
                 _prefetchTimer.Stop();
                 StartPrefetch();
             };
+
+            // A digest restored on open reads like a finished run: the card is
+            // full and pages still lie ahead, so the buffer arms for it exactly
+            // as it would after a live digest. Without this the reopened window
+            // never spoke - the reader watched pages left and nothing else, on
+            // every open, forever.
+            if (_digestRestored)
+            {
+                SchedulePrefetch();
+            }
 
             Closed += (_, _) =>
             {
@@ -1107,10 +1118,14 @@ namespace Avalanche.Features.Summary
                 t =>
                 {
                     _prefetchText = t.IsCompletedSuccessfully ? t.Result : null;
-                    // v1.19.25: "ready" when the digest landed; silence when
-                    // the fetch died (the next navigation explains why).
+                    // v1.19.25: "ready" when the digest landed. v1.19.27: a
+                    // dead flight says so instead of going silent - a word
+                    // that simply vanished read as a feature that never ran.
+                    // Cancellation stays silent: the invalidation that killed
+                    // the flight (navigation, a new run) owns the word.
                     BufferStatusText.Text = t.IsCompletedSuccessfully
                         ? _loc("Str_SummaryBufferReady")
+                        : t.IsFaulted ? _loc("Str_SummaryBufferFailed")
                         : string.Empty;
                 },
                 CancellationToken.None,
@@ -1519,6 +1534,7 @@ namespace Avalanche.Features.Summary
                 DocBox.SetValue(AiMarkdown.TextProperty, text);
                 StatusText.Text = string.Format(
                     _loc("Str_SummaryCounts"), PageSummarizer.CountWords(text), text.Length);
+                _digestRestored = true;   // the constructor arms the buffer once the clock exists
             }
             catch
             {

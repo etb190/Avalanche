@@ -1195,6 +1195,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryTook">Dauer: {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Puffer: wird erstellt…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Puffer: bereit</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Puffer: nicht verfügbar</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">noch {0} Seiten</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Sprich mit deinem Dokument</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Frag alles zu diesem Dokument - Zusammenfassungen, Erklärungen, Übersetzungen. Die KI hat jede Seite gelesen.</sys:String>

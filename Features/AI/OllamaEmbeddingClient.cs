@@ -69,16 +69,35 @@ namespace Avalanche.Features.AI
                 : new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
         }
 
-        private static string GetEmbedUrl(string baseUrl)
+        // The presets' contract is "embeddings stay on the local Ollama
+        // bridge" (the NVIDIA NIM preset's own words) - but the embed URL
+        // used to ride the CHAT endpoint's host, so a cloud chat config
+        // asked integrate.api.nvidia.com (or ollama.com) for /api/embed,
+        // took that host's bare 404 for "model missing" and sent readers
+        // off to pull embeddinggemma their own Ollama had installed all
+        // along. The root is resolved now: a cloud chat host (not loopback,
+        // not an Ollama on its native port) never serves the embeddings -
+        // the local bridge does. An Ollama on the LAN keeps its own.
+        internal const string LocalBridgeRoot = "http://localhost:11434";
+
+        internal static string ResolveEmbedRoot(string? baseUrl)
         {
-            // Chat config points at the OpenAI-compatible surface
-            // (http://localhost:11434/v1); embeddings live on the native
-            // surface. Strip a trailing "/v1" and append /api/embed.
-            var root = baseUrl?.TrimEnd('/') ?? "http://localhost:11434";
+            var root = baseUrl?.TrimEnd('/') ?? string.Empty;
             if (root.EndsWith("/v1", StringComparison.OrdinalIgnoreCase))
                 root = root[..^3];
-            return root + "/api/embed";
+            if (root.Length == 0)
+                return LocalBridgeRoot;
+            if (AiEndpoints.IsLocal(root)
+                || root.EndsWith(":11434", StringComparison.OrdinalIgnoreCase))
+            {
+                return root;
+            }
+
+            return LocalBridgeRoot;
         }
+
+        private static string GetEmbedUrl(string baseUrl)
+            => ResolveEmbedRoot(baseUrl) + "/api/embed";
 
         /// <summary>Embeds one text (query or single chunk).</summary>
         public async Task<float[]> GenerateEmbeddingAsync(string text, CancellationToken cancellationToken = default)
@@ -147,17 +166,18 @@ namespace Avalanche.Features.AI
         private async Task<List<float[]>> GenerateBatchAsync(List<string> batch, CancellationToken ct)
         {
             var config = _configProvider();
+            var embedRoot = ResolveEmbedRoot(config.BaseUrl);
             var body = new Dictionary<string, object>
             {
                 ["model"] = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel,
                 ["input"] = batch
             };
             var json = JsonSerializer.Serialize(body);
-            using var request = new HttpRequestMessage(HttpMethod.Post, GetEmbedUrl(config.BaseUrl))
+            using var request = new HttpRequestMessage(HttpMethod.Post, embedRoot + "/api/embed")
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
-            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(config.BaseUrl)
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(embedRoot)
                 ? "ollama"
                 : config.ApiKey;
             if (!string.IsNullOrWhiteSpace(apiKey))
@@ -358,8 +378,10 @@ namespace Avalanche.Features.AI
             }
         }
 
+        // Keyed on the resolved embed root - the probe verdict belongs to
+        // the server actually asked, not to the chat host that pointed there.
         private static string CapabilityKey(AiProviderConfig config) =>
-            $"{config.BaseUrl}|{config.EmbeddingModel}";
+            $"{ResolveEmbedRoot(config.BaseUrl)}|{config.EmbeddingModel}";
 
         private static HttpRequestException EmbeddingsUnavailable(AiProviderConfig config, Exception? inner = null)
         {

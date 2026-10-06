@@ -1209,6 +1209,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryTook">所要 {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">バッファ: 生成中…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">バッファ: 完了</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">バッファ: 利用不可</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">残り {0} ページ</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">この文書とチャット</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">この文書について何でも聞いてください - 要約、解説、翻訳。AI はすべてのページを読みました。</sys:String>

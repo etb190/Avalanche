@@ -1209,6 +1209,7 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryTook">заняло {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Буфер: генерация…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Буфер: готов</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Буфер: недоступен</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">осталось {0} стр.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Спросите свой документ</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Спрашивайте о чём угодно в этом документе - резюме, объяснения, перевод. ИИ прочитал каждую страницу.</sys:String>

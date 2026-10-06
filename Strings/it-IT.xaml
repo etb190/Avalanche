@@ -1209,6 +1209,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_SummaryTook">impiegato {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Buffer: generazione…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Buffer: pronto</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Buffer: non disponibile</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pagine rimanenti</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Parla con il tuo documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Chiedi qualsiasi cosa su questo documento: riassunti, spiegazioni, traduzioni. L'IA ha letto ogni pagina.</sys:String>

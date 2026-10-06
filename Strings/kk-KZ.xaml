@@ -1208,6 +1208,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryTook">уақыты {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Буфер: жасалуда…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Буфер: дайын</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Буфер: қолжетімсіз</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} бет қалды</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Құжатыңызбен сөйлесіңіз</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Осы құжат туралы кез келген нәрсені сұраңыз - түйіндеме, түсіндірме, аударма. ЖИ әр бетті оқыды.</sys:String>

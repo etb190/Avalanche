@@ -1189,6 +1189,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryTook">tardó {0}</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Búfer: generando…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Búfer: listo</sys:String>
+	<sys:String x:Key="Str_SummaryBufferFailed">Búfer: no disponible</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">quedan {0} páginas</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Conversa con tu documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Pregunta lo que quieras sobre este documento: resúmenes, explicaciones, traducciones. La IA ha leído cada página.</sys:String>
