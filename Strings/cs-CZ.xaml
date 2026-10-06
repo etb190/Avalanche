@@ -1169,7 +1169,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiSettingsTestConnection">Test Connection</sys:String>
     <sys:String x:Key="Str_AiSettingsOllamaPreset">Use Ollama Preset</sys:String>
     <sys:String x:Key="Str_AiSettingsOpenAIPreset">Use OpenAI Preset</sys:String>
-    <sys:String x:Key="Str_AiSettingsCloudWarning"></sys:String>
 
     <!-- ── AI Test Strings ─────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiTestChatPrompt">Reply with just 'OK'</sys:String>
