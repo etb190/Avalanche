@@ -1135,7 +1135,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelWebSidechat">Chat laterale del browser</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Richiamo</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
+    <sys:String x:Key="Str_AiModelTester">Tester IA</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Modello: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1334,6 +1336,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_ExtEmpty">Ancora nessuna estensione — trascina un .crx nella cartella inbox o installa da un file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Estensione del browser (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">Questa estensione non ha popup - funziona senza.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Sposta nella cartella…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Sposta nella barra dei segnalibri</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Il suo popup non si è aperto qui.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Opzioni</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Rimuovi</sys:String>

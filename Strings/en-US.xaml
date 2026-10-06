@@ -1139,7 +1139,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiModelWebSidechat">Browser sidechat</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Recaller</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
+    <sys:String x:Key="Str_AiModelTester">AI tester</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1334,6 +1336,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_ExtEmpty">No extensions yet — drop a .crx into the inbox folder, or install from a file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Browser extension (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">This extension has no popup - it runs without one.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Move to folder…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Move to bookmarks strip</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Its popup would not open here.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Options</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Remove</sys:String>

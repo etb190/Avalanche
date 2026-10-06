@@ -1135,7 +1135,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_AiModelWebSidechat">Chat latéral du navigateur</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Rappel</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Récapitulatif</sys:String>
+    <sys:String x:Key="Str_AiModelTester">Testeur IA</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Modèle : {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1334,6 +1336,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_ExtEmpty">Aucune extension pour l'instant — déposez un .crx dans le dossier inbox ou installez depuis un fichier.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Extension de navigateur (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">Cette extension n'a pas de popup - elle fonctionne sans.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Déplacer vers un dossier…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Remettre dans la barre de favoris</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Son popup n'a pas pu s'ouvrir ici.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Options</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Supprimer</sys:String>

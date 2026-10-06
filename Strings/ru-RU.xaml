@@ -1135,7 +1135,9 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelWebSidechat">Боковой чат браузера</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Напоминание</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Рекап</sys:String>
+    <sys:String x:Key="Str_AiModelTester">ИИ-тестер</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1334,6 +1336,8 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_ExtEmpty">Расширений пока нет — положите .crx в папку inbox или установите из файла.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Расширение браузера (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">У этого расширения нет всплывающего окна - оно работает без него.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Переместить в папку…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Вернуть на панель закладок</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Его всплывающее окно не открылось здесь.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Настройки</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Удалить</sys:String>

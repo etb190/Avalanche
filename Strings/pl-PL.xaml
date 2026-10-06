@@ -1123,7 +1123,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelWebSidechat">Czat boczny przeglądarki</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Przypominajka</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Rekapitulacja</sys:String>
+    <sys:String x:Key="Str_AiModelTester">Tester AI</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1322,6 +1324,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_ExtEmpty">Nie ma jeszcze rozszerzeń — upuść plik .crx do folderu inbox albo zainstaluj z pliku.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozszerzenie przeglądarki (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">To rozszerzenie nie ma okienka - działa bez niego.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Przenieś do folderu…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Przenieś na pasek zakładek</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Jego okienko nie mogło się tu otworzyć.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Opcje</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Usuń</sys:String>

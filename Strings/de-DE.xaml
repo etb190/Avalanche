@@ -1121,7 +1121,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiModelWebSidechat">Browser-Seitenchat</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Erinnerer</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
+    <sys:String x:Key="Str_AiModelTester">KI-Tester</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1320,6 +1322,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_ExtEmpty">Noch keine Erweiterungen — eine .crx in den Inbox-Ordner legen oder aus einer Datei installieren.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Browsererweiterung (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">Diese Erweiterung hat kein Popup - es läuft ohne.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">In Ordner verschieben…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">In die Lesezeichenleiste verschieben</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Sein Popup ließ sich hier nicht öffnen.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Optionen</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Entfernen</sys:String>

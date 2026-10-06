@@ -906,6 +906,11 @@ namespace Avalanche
         // back - and only the search ever writes it.
         private string? _summaryHiddenForSearchPath;
 
+        // v1.19.32: a recap companion was showing when the browser took the
+        // floor. One-shot the same way: HideWebPane consumes the flag and
+        // summons the companion back over the stretch on screen.
+        private bool _recapHiddenForBrowser;
+
         private void AiChatBtn_Click(object sender, RoutedEventArgs e)
         {
             ToggleAiChat();
@@ -1058,7 +1063,9 @@ namespace Avalanche
                 this,
                 _currentFile,
                 _doc.PageCount,
-                () => _aiSettingsViewModel!.ToGenConfig(),
+                // v1.19.32: the tester has its own model dial - it no longer
+                // borrows whatever the summary's config happens to say.
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.AiTester),
                 Loc);
             test.Closed += (_, _) =>
             {
@@ -1486,6 +1493,10 @@ namespace Avalanche
                 pageCount,
                 () => _currentPage,
                 () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.Summary),
+                // v1.19.32: the recap's own dial answers the post-digest recap
+                // too - one recap choice for the window AND the quiet pass,
+                // exactly the dial the settings panel names "Recap".
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.Recaller),
                 Loc);
             // A window closed from its own title bar must not leave a stale reference
             // behind - the next toolbar click would poke a corpse (Activate on a
@@ -2363,6 +2374,23 @@ namespace Avalanche
 
         private void ShowWebPane()
         {
+            // v1.19.32: the browser takes the floor - the navigator and the
+            // recap companion step out with it. The navigator's close wears
+            // the switch-away face (the book keeps its wish, the reader's
+            // hand never touched it), and a showing recap parks one flag that
+            // HideWebPane spends to bring it back.
+            if (_summaryWindow is { } navigator && _currentFile is not null
+                && navigator.DocumentPathEquals(_currentFile))
+            {
+                _summarySwitchAway = navigator;     // a switch, never the reader's hand
+                navigator.Close();
+                _summarySwitchAway = null;
+            }
+            if (Features.Summary.RecapController.HasOpenWindow)
+            {
+                _recapHiddenForBrowser = true;
+                Features.Summary.RecapController.Dismiss();
+            }
             WebPaneHost.Visibility = Visibility.Visible;
             WebPane.OnPaneShown();
             EnterWebSidebarMode();
@@ -2405,6 +2433,25 @@ namespace Avalanche
                 {
                     OpenSummaryWindow();
                 }
+            }
+
+            // v1.19.32: the browser stepped aside and the book's windows come
+            // back - the recap companion the browser dismissed, then the
+            // navigator the browser parked (its per-book wish survived the
+            // switch-away close, so only the wish check is needed here).
+            if (_recapHiddenForBrowser)
+            {
+                _recapHiddenForBrowser = false;
+                if (_doc is not null && !string.IsNullOrEmpty(_currentFile))
+                {
+                    ToggleRecapCompanion();
+                }
+            }
+            if (_summaryWindow is null && _doc is not null
+                && !string.IsNullOrEmpty(_currentFile)
+                && _summaryOpenByDoc.TryGetValue(_currentFile, out bool browserWanted) && browserWanted)
+            {
+                OpenSummaryWindow();
             }
         }
 

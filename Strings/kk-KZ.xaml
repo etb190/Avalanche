@@ -1134,7 +1134,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiModelWebSidechat">Браузер бүйір чаты</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Еске салу</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Қайта шолу</sys:String>
+    <sys:String x:Key="Str_AiModelTester">AI тестері</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1333,6 +1335,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_ExtEmpty">Кеңейтімдер әзірге жоқ — .crx файлын inbox қалтасына салыңыз немесе файлдан орнатыңыз.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Браузер кеңейтімі (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">Бұл кеңейтімде қалқымалы терезе жоқ - онымен жұмыс істейді.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Қалтаға жылжыту…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Бетбелгілер жолағына қайту</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Оның қалқымалы терезесі мұнда ашылмады.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Параметрлер</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Жою</sys:String>

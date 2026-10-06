@@ -34,6 +34,7 @@ namespace Avalanche.Features.AI
         private string _sidechatModelChoice = AiSurfaceModels.NemotronChoice;
         private string _webSidechatModelChoice = AiSurfaceModels.NemotronChoice;
         private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
+        private string _aiTesterModelChoice = AiSurfaceModels.NemotronChoice;
 
         private bool _isEnabled = false;
         private string _connectionStatus = "";
@@ -134,6 +135,13 @@ namespace Avalanche.Features.AI
         {
             get => _webSidechatModelChoice;
             set { _webSidechatModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.WebSidechat, _webSidechatModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>Which model answers the AI tester.</summary>
+        public string AiTesterModelChoice
+        {
+            get => _aiTesterModelChoice;
+            set { _aiTesterModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.AiTester, _aiTesterModelChoice); OnPropertyChanged(); }
         }
 
         /// <summary>Which model answers the recaller.</summary>
@@ -408,6 +416,7 @@ namespace Avalanche.Features.AI
                 _sidechatModelChoice = AiSurfaceModels.Get(AiSurface.Sidechat);
                 _webSidechatModelChoice = AiSurfaceModels.Get(AiSurface.WebSidechat);
                 _recallerModelChoice = AiSurfaceModels.Get(AiSurface.Recaller);
+                _aiTesterModelChoice = AiSurfaceModels.Get(AiSurface.AiTester);
                 if (config is not null)
                 {
                     LoadFromGenConfig(config);

@@ -460,8 +460,66 @@ namespace Avalanche.Controls
             if (menu.Style is null && host.TryFindResource(typeof(ContextMenu)) is Style menuFace)
                 menu.Style = menuFace;
             foreach (MenuItem item in menu.Items.OfType<MenuItem>())
-                if (item.Style is null && host.TryFindResource(typeof(MenuItem)) is Style itemFace)
-                    item.Style = itemFace;
+                DressMenuItem(host, item);
+
+            // v1.19.32: a page chip's Move-to-folder submenu refills at every
+            // open - every folder in the list, the folder the page already
+            // lives in disabled, and (for a filed page) the bare strip that
+            // frees it. The drag's job, done by the hand the engine cannot
+            // swallow.
+            if (chip.DataContext is not BookmarkVm vm) return;
+            MenuItem? move = menu.Items.OfType<MenuItem>()
+                .FirstOrDefault(i => i.Tag as string == "move-to-folder");
+            if (move is null) return;
+            move.Items.Clear();
+            foreach (string folder in Folders)
+            {
+                MenuItem entry = new()
+                {
+                    Header = folder,
+                    CommandParameter = folder,
+                    IsEnabled = vm.Folder != folder,
+                };
+                entry.Click += MoveToFolderContext_Click;
+                move.Items.Add(entry);
+            }
+            if (vm.Folder.Length > 0)
+            {
+                MenuItem loose = new()
+                {
+                    Header = TryLoc("Str_Web_MoveToStrip") ?? "Move to bookmarks strip",
+                    CommandParameter = string.Empty,
+                };
+                loose.Click += MoveToFolderContext_Click;
+                move.Items.Add(loose);
+            }
+            DressMenuItem(host, move);   // the fresh entries wear the house face
+        }
+
+        // v1.19.32: the dressing walk went recursive - submenus built in code
+        // (the Move-to-folder entries) must wear the house face too, not the
+        // framework's white default.
+        private static void DressMenuItem(Window host, MenuItem item)
+        {
+            if (item.Style is null && host.TryFindResource(typeof(MenuItem)) is Style itemFace)
+                item.Style = itemFace;
+            foreach (MenuItem child in item.Items.OfType<MenuItem>())
+                DressMenuItem(host, child);
+        }
+
+        // v1.19.32: the Move-to-folder entry fired - CommandParameter carries
+        // the destination folder ("" = the loose strip), the DataContext the
+        // page. MoveBookmarkToFolder already refuses a no-op move.
+        private void MoveToFolderContext_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.MenuItem
+                {
+                    DataContext: BookmarkVm vm,
+                    CommandParameter: string folder,
+                })
+            {
+                MoveBookmarkToFolder(vm, folder);
+            }
         }
 
         private void BookmarkEdit_Click(object sender, RoutedEventArgs e)
@@ -2805,13 +2863,7 @@ namespace Avalanche.Controls
             // the folder, dressed in the house face like every other menu.
             if (sender is not Button puzzle) return;
             Window? host = Window.GetWindow(puzzle);
-            ContextMenu menu = new();
-            MenuItem install = new() { Header = TryLoc("Str_Web_ExtInstall") ?? "Install from file…" };
-            install.Click += WebExtInstall_Click;
-            MenuItem folder = new() { Header = TryLoc("Str_Web_ExtOpenFolder") ?? "Open extensions folder" };
-            folder.Click += WebExtOpenFolder_Click;
-            menu.Items.Add(install);
-            menu.Items.Add(folder);
+            ContextMenu menu = BuildExtInstallMenu();
             if (host is not null)
             {
                 if (host.TryFindResource(typeof(ContextMenu)) is Style face) menu.Style = face;
@@ -2823,11 +2875,62 @@ namespace Avalanche.Controls
             menu.IsOpen = true;
         }
 
+        // v1.19.32: the extensions area answers right-clicks wherever they
+        // land - the icon row's empty stretch, the puzzle, icons and all -
+        // with the same two doors the puzzle's click offers: the picker and
+        // the folder. (The icons' own menus keep their Options/Remove rows;
+        // this is the AREA's menu.)
+        private void WebExtArea_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            if (sender is not FrameworkElement area) return;
+            // A right-click that landed on an extension icon is that icon's
+            // own menu's business: its ContextMenuOpening bubbles up to the
+            // row, and without this walk-up both menus would open at once.
+            // (The puzzle is the area's own button - the walk stops there.)
+            for (DependencyObject? d = e.OriginalSource as DependencyObject;
+                 d is not null && !ReferenceEquals(d, area);
+                 d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+                if (d is System.Windows.Controls.Button) return;
+            e.Handled = true;
+            Window? host = Window.GetWindow(area);
+            ContextMenu menu = BuildExtInstallMenu();
+            if (host is not null)
+            {
+                if (host.TryFindResource(typeof(ContextMenu)) is Style face) menu.Style = face;
+                foreach (MenuItem item in menu.Items.OfType<MenuItem>())
+                    if (host.TryFindResource(typeof(MenuItem)) is Style itemFace) item.Style = itemFace;
+            }
+            menu.PlacementTarget = area;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+            menu.IsOpen = true;
+        }
+
+        private ContextMenu BuildExtInstallMenu()
+        {
+            ContextMenu menu = new();
+            MenuItem install = new() { Header = TryLoc("Str_Web_ExtInstall") ?? "Install from file…" };
+            install.Click += WebExtInstall_Click;
+            MenuItem folder = new() { Header = TryLoc("Str_Web_ExtOpenFolder") ?? "Open extensions folder" };
+            folder.Click += WebExtOpenFolder_Click;
+            menu.Items.Add(install);
+            menu.Items.Add(folder);
+            return menu;
+        }
+
+        // v1.19.32: a toolbar slot is a button, and a button must DO something.
+        // Extensions with neither a popup nor an options page - the bundled
+        // pdf helper, the runtime's own silent passengers - ride the profile
+        // exactly as before but stop posing as dead buttons that answer a
+        // click with an apology. The puzzle (the install door) returns the
+        // moment no clickable extension remains.
+        private static bool IsActionableRow(ExtVm row)
+            => row.PopupPath.Length > 0 || row.OptionsPath.Length > 0;
+
         private void RefreshExtensionSurfaces()
         {
-            List<ExtVm> installed = CollectInstalledExtensions();
-            WebExtIconRow.ItemsSource = installed;
-            WebExtPuzzleBtn.Visibility = installed.Count == 0
+            List<ExtVm> visible = CollectInstalledExtensions().Where(IsActionableRow).ToList();
+            WebExtIconRow.ItemsSource = visible;
+            WebExtPuzzleBtn.Visibility = visible.Count == 0
                 ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -2851,7 +2954,9 @@ namespace Avalanche.Controls
                     foreach (CoreWebView2BrowserExtension ext in live)
                     {
                         ExtVm? row = rows.FirstOrDefault(r =>
-                            string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase));
+                            string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase))
+                            ?? rows.FirstOrDefault(r =>
+                            string.Equals(ExtNameKey(r.Name), ExtNameKey(ext.Name), StringComparison.Ordinal));
                         if (row is null)
                         {
                             row = new ExtVm { Name = ext.Name };
@@ -2861,8 +2966,9 @@ namespace Avalanche.Controls
                         row.LiveEnabled = ext.IsEnabled;
                     }
                 }
-                WebExtIconRow.ItemsSource = rows;
-                WebExtPuzzleBtn.Visibility = rows.Count == 0
+                List<ExtVm> visible = rows.Where(IsActionableRow).ToList();
+                WebExtIconRow.ItemsSource = visible;
+                WebExtPuzzleBtn.Visibility = visible.Count == 0
                     ? Visibility.Visible : Visibility.Collapsed;
             }
             catch
@@ -2874,6 +2980,22 @@ namespace Avalanche.Controls
             {
                 _extMerging = false;
             }
+        }
+
+        /// <summary>A name's matching key: letters and digits only, case
+        /// flattened - "AdGuard Ad-Blocker" and "AdGuard — Adblocker and
+        /// Privacy" land close enough to share a row.</summary>
+        private static string ExtNameKey(string name)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in name)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    sb.Append(char.ToLowerInvariant(c));
+                }
+            }
+            return sb.ToString();
         }
 
         private static List<ExtVm> CollectInstalledExtensions()

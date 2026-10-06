@@ -1115,7 +1115,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiModelWebSidechat">ব্রাউজার সাইডচ্যাট</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">রিকলার</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">রিক্যাপ</sys:String>
+    <sys:String x:Key="Str_AiModelTester">AI টেস্টার</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">মডেল: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1314,6 +1316,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_ExtEmpty">এখনো কোনো এক্সটেনশন নেই — .crx ফাইলটি inbox ফোল্ডারে রাখুন বা ফাইল থেকে ইনস্টল করুন।</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">ব্রাউজার এক্সটেনশন (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">এই এক্সটেনশনের কোনো পপ-আপ নেই - এটি ছাড়াই চলে।</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">ফোল্ডারে সরান…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">বুকমার্ক স্ট্রিপে ফেরান</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">এর পপ-আপ এখানে খোলা যায়নি।</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">বিকল্প</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">সরান</sys:String>

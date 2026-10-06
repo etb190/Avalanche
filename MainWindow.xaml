@@ -3439,9 +3439,20 @@
                          until the next question goes out. -->
                     <Border Grid.Row="4" Padding="12,3"
                             Visibility="{Binding LastDurationText, Converter={StaticResource StringToVisibilityConverter}}">
-                        <TextBlock Text="{Binding LastDurationText}" TextTrimming="CharacterEllipsis"
-                                   FontFamily="{DynamicResource UiFont}" FontSize="11"
-                                   Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding LastDurationText}" TextTrimming="CharacterEllipsis"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                       Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                            <!-- v1.19.32: which model answered - the bottom-right word. -->
+                            <TextBlock Grid.Column="1" Text="{Binding LastAnswerModel}" TextTrimming="CharacterEllipsis"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="11" Margin="12,0,0,0"
+                                       Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"
+                                       Visibility="{Binding LastAnswerModel, Converter={StaticResource StringToVisibilityConverter}}"/>
+                        </Grid>
                     </Border>
 
                     <!-- Input Area -->
@@ -3555,10 +3566,13 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
                                 </ComboBox>
-                                <TextBlock Text="{DynamicResource Str_AiSettingsCloudWarning}" TextWrapping="Wrap"
-                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
-                                           Foreground="{DynamicResource DangerRed}" Margin="0,0,0,8"
-                                           Visibility="{Binding ShowCloudWarning, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                <TextBlock Text="{DynamicResource Str_AiModelTester}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding AiTesterModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatBaseUrl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatModel}" Style="{StaticResource AiSettingsLabel}"/>

@@ -1136,6 +1136,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Nhắc lại</sys:String>
+    <sys:String x:Key="Str_AiModelTester">Trình kiểm thử AI</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Mô hình: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1334,6 +1336,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_ExtEmpty">Chưa có tiện ích nào — thả tệp .crx vào thư mục inbox hoặc cài đặt từ tệp.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Tiện ích mở rộng trình duyệt (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">Tiện ích này không có cửa sổ bật lên - nó chạy mà không cần.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Chuyển vào thư mục…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Trả về dải đánh dấu</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Cửa sổ bật lên của nó không mở được ở đây.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Tùy chọn</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Gỡ bỏ</sys:String>

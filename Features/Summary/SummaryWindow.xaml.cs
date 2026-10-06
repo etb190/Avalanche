@@ -81,6 +81,10 @@ namespace Avalanche.Features.Summary
 
         private readonly Func<int> _currentPageProvider;   // 0-based, -1 when closed
         private readonly Func<AiProviderConfig> _configProvider;
+        // v1.19.32: the recap dial's own config - the quiet recap behind the
+        // navigator answers to the same "Recap" choice the settings panel
+        // shows, never to the summary's dial.
+        private readonly Func<AiProviderConfig> _recapConfigProvider;
         private readonly Func<string, string> _loc;
 
         private CancellationTokenSource? _cts;
@@ -132,6 +136,7 @@ namespace Avalanche.Features.Summary
             int pageCount,
             Func<int> currentPageProvider,
             Func<AiProviderConfig> configProvider,
+            Func<AiProviderConfig>? recapConfigProvider,
             Func<string, string> loc)
         {
             InitializeComponent();
@@ -140,6 +145,7 @@ namespace Avalanche.Features.Summary
             _pageCount = Math.Max(1, pageCount);
             _currentPageProvider = currentPageProvider;
             _configProvider = configProvider;
+            _recapConfigProvider = recapConfigProvider ?? configProvider;
             _loc = loc;
 
             // fade:false - the navigator owns its own two-sided choreography (the
@@ -746,7 +752,10 @@ namespace Avalanche.Features.Summary
             int last = RangeEnd();
             int gen = ++_generation;
             _generating = true;
-            _runStartedUtc = DateTime.UtcNow;   // the status line's "took ..." starts here
+            _runStartedUtc = DateTime.UtcNow;
+            // v1.19.32: the run's own model takes the bottom-right word before
+            // its first word lands - the config the run asks is the config named.
+            SetModelLabel(_configProvider().Model);   // the status line's "took ..." starts here
             _schedulePrefetchOnIdle = false;
             _fullText = string.Empty;
             // The superseded source is deliberately NOT disposed: the detached loop is
@@ -951,6 +960,15 @@ namespace Avalanche.Features.Summary
         private string DurationSuffix(TimeSpan elapsed)
             => "  |  " + string.Format(_loc("Str_SummaryTook"), Features.AI.AiChatText.FormatDuration(elapsed));
 
+        // v1.19.32: the bottom-right word - "Model: {0}" in the reader's
+        // language, or silence when there is nothing on screen to name.
+        private void SetModelLabel(string? model)
+        {
+            ModelText.Text = string.IsNullOrWhiteSpace(model)
+                ? string.Empty
+                : string.Format(_loc("Str_AiModelUsed"), model);
+        }
+
         // Reset: the fourth generation owner. It stops any live run, clears the
         // card and returns the navigator to idle/ready - and NOTHING else: the
         // selected range stays exactly where the reader left it, waiting for
@@ -968,6 +986,7 @@ namespace Avalanche.Features.Summary
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             StatusText.Text = string.Empty;
+            SetModelLabel(null);    // no digest on screen, no model to name
             InvalidatePrefetch();   // the reset was manual: the buffer goes too
             SaveDigest();       // the reset was the reader's action: forget the digest
             // The wipe is real, not cosmetic: the range's cached digests die with
@@ -1069,7 +1088,7 @@ namespace Avalanche.Features.Summary
                 int recapLast = _runLastPage >= recapFirst ? _runLastPage : RangeEnd();
                 BufferStatusText.Text = _loc("Str_SummaryRecapBusy");
                 bool recapOk = await Features.Summary.RecapController.TryCondenseQuietlyAsync(
-                    _filePath, _pageCount, recapFirst, recapLast, _configProvider, _loc);
+                    _filePath, _pageCount, recapFirst, recapLast, _recapConfigProvider, _loc);
                 if (_closed || _generating || queueGen != _postQueueGeneration)
                 {
                     return;   // the reader moved on while the recap condensed
@@ -1579,6 +1598,10 @@ namespace Avalanche.Features.Summary
                 DocBox.SetValue(AiMarkdown.TextProperty, text);
                 StatusText.Text = string.Format(
                     _loc("Str_SummaryCounts"), PageSummarizer.CountWords(text), text.Length);
+                // v1.19.32: the restored card names its model as well - the
+                // summary cache is model-keyed, so the served digest answers
+                // under the dial's current model.
+                SetModelLabel(_configProvider().Model);
                 _digestRestored = true;   // the constructor arms the buffer once the clock exists
             }
             catch

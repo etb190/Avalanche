@@ -136,6 +136,23 @@ namespace Avalanche.Features.AI
             private set { _lastDurationText = value; OnPropertyChanged(); }
         }
 
+        private string _lastAnswerModel = "";
+
+        /// <summary>The model that produced the last completed answer
+        /// (v1.19.32) - the bottom-right word beside the reply's timing
+        /// line. Cleared with it: a new question, a context switch, a fresh
+        /// conversation all leave no model behind.</summary>
+        public string LastAnswerModel
+        {
+            get => _lastAnswerModel;
+            private set { _lastAnswerModel = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>The attribution line's text: "Model: {0}" in the reader's
+        /// language, or empty when there is nothing to name.</summary>
+        private string FormatModelUsed(string? model)
+            => string.IsNullOrWhiteSpace(model) ? "" : string.Format(_loc("Str_AiModelUsed"), model);
+
         /// <summary>The window's page reader: extracts the named tab's readable
         /// page text fresh on every call (null when there is no page). The view
         /// model knows nothing about WebView2 - the window owns the browser.</summary>
@@ -783,6 +800,7 @@ namespace Avalanche.Features.AI
             // line - above the input there is either the answer just
             // delivered or nothing at all.
             LastDurationText = "";
+            LastAnswerModel = "";
 
             // Always echo the user's message into the conversation right away.
             // Previously the message was queued or dropped silently while the
@@ -993,6 +1011,8 @@ namespace Avalanche.Features.AI
                     // v1.19.25: this answer's wall clock, above the input.
                     LastDurationText = string.Format(
                         _loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed));
+                    // v1.19.32: which model answered, at the line's right end.
+                    LastAnswerModel = FormatModelUsed(webConfig.Model);
                     return;
                 }
 
@@ -1061,6 +1081,8 @@ namespace Avalanche.Features.AI
                 // v1.19.25: this answer's wall clock, above the input.
                 LastDurationText = string.Format(
                     _loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed));
+                // v1.19.32: which model answered, at the line's right end.
+                LastAnswerModel = FormatModelUsed(config.Model);
 
                 // Scroll to bottom - fire-and-forget UI update
                 _ = Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
@@ -1347,6 +1369,7 @@ namespace Avalanche.Features.AI
                 ContextTitle = "";
                 SemanticStatus = "";
                 LastDurationText = "";   // no answer of this context is on screen
+                LastAnswerModel = "";
                 // v1.19.5: the research button returns to idle with the book.
                 _semanticResearchEnabled = false;
                 _semanticBuilding = false;
@@ -1374,6 +1397,7 @@ namespace Avalanche.Features.AI
                 Messages.Clear();
                 ClearInput();
                 LastDurationText = "";   // a fresh conversation has no last answer
+                LastAnswerModel = "";
             });
         }
 

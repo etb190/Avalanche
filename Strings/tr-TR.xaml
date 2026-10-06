@@ -1115,7 +1115,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiModelWebSidechat">Tarayıcı yan sohbeti</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">Anımsatıcı</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Kısa Tekrar</sys:String>
+    <sys:String x:Key="Str_AiModelTester">AI test aracı</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1314,6 +1316,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_ExtEmpty">Henüz uzantı yok — bir .crx dosyasını inbox klasörüne bırakın veya dosyadan yükleyin.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Tarayıcı uzantısı (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">Bu uzantının açılır penceresi yok - onsuz çalışır.</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">Klasöre taşı…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">Yer imleri şeridine taşı</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Açılır penceresi burada açılamadı.</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">Seçenekler</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">Kaldır</sys:String>

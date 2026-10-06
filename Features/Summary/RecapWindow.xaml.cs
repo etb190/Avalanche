@@ -64,12 +64,29 @@ namespace Avalanche.Features.Summary
             (Owner as MainWindow)?.ToggleRecapCompanion();
         }
 
+        // v1.19.32: which model produced (or is producing) the paragraph on
+        // screen - the title bar's quiet word, seated before the plus chip in
+        // the top-right cluster. The BeforeClose squaring gives it the bar's
+        // height like every chip; the text rides centered inside its slot.
+        private readonly System.Windows.Controls.TextBlock _modelText = new()
+        {
+            FontSize = 10.5,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0),
+            MaxWidth = 180,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            IsHitTestVisible = false,
+            Visibility = Visibility.Collapsed,
+        };
+
         public RecapWindow(MainWindow owner, string filePath, int pageCount, Func<string, string> loc)
         {
             InitializeComponent();
             _filePath = filePath;
             _pageCount = Math.Max(1, pageCount);
             _loc = loc;
+            _modelText.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "MutedTextBrush");
+            _modelText.SetResourceReference(System.Windows.Controls.TextBlock.FontFamilyProperty, "UiFont");
 
             // fade:false - the window owns its own two-sided choreography (the
             // pop-in entrance plus the pop-flavored fade close), exactly like
@@ -109,6 +126,7 @@ namespace Avalanche.Features.Summary
                     // air between the pair the navigator keeps.
                     BeforeClose = new UIElement[]
                     {
+                        _modelText,
                         TitleChip(plus: false, "Str_SummaryFontDown", () => AdjustRecapFont(-1), new Thickness(0, 0, 6, 0)),
                         TitleChip(plus: true, "Str_SummaryFontUp", () => AdjustRecapFont(+1), new Thickness(0, 0, 8, 0))
                     },
@@ -316,6 +334,17 @@ namespace Avalanche.Features.Summary
         // ------------------------------------------------------------------
         // Reading-font chips (the navigator's pair)
         // ------------------------------------------------------------------
+
+        // v1.19.32: the title bar's model word. Null (or blank) hides it -
+        // a verdict nobody spent a request on names nobody.
+        internal void ShowModel(string? model)
+        {
+            _modelText.Text = string.IsNullOrWhiteSpace(model)
+                ? string.Empty
+                : string.Format(_loc("Str_AiModelUsed"), model);
+            _modelText.Visibility = _modelText.Text.Length == 0
+                ? Visibility.Collapsed : Visibility.Visible;
+        }
 
         // One 24px title-bar square: the drawn minus or plus - rectangles
         // center exactly, no font metrics to guess - the tooltip localized,

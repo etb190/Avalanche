@@ -134,7 +134,8 @@
                      touch); a right-click offers Options, Remove, the picker
                      and the folder. The puzzle stays only while nothing is
                      installed: the door a first extension arrives through. -->
-                <ItemsControl x:Name="WebExtIconRow">
+                <ItemsControl x:Name="WebExtIconRow" Background="Transparent"
+                              ContextMenuOpening="WebExtArea_ContextMenuOpening">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"/>
@@ -185,6 +186,7 @@
                 </ItemsControl>
                 <Button x:Name="WebExtPuzzleBtn" Content="&#xE90F;" Style="{StaticResource WebNavBtn}"
                         Click="WebExtPuzzleBtn_Click" ToolTip="{DynamicResource Str_TT_WebExtensions}"
+                        ContextMenuOpening="WebExtArea_ContextMenuOpening"
                         Visibility="Collapsed"/>
             </StackPanel>
         </Border>
@@ -271,6 +273,16 @@
                                     <ContextMenu>
                                         <MenuItem Header="{DynamicResource Str_Web_OpenInNewTab}" Click="BookmarkOpenInTab_Click">
                                             <MenuItem.Icon><TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                        </MenuItem>
+                                        <!-- v1.19.32: the drag the engine kept swallowing,
+                                             answered with a menu: the chip's right-click
+                                             carries the page to any folder (the submenu
+                                             refills from the folder list at every open;
+                                             the bare-strip entry frees the page again). -->
+                                        <MenuItem Header="{DynamicResource Str_Web_MoveToFolder}"
+                                                  Tag="move-to-folder" CommandParameter=""
+                                                  Click="MoveToFolderContext_Click">
+                                            <MenuItem.Icon><TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
                                         </MenuItem>
                                         <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click">
                                             <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
@@ -379,6 +391,11 @@
                                         <ContextMenu>
                                             <MenuItem Header="{DynamicResource Str_Web_OpenInNewTab}" Click="BookmarkOpenInTab_Click">
                                                 <MenuItem.Icon><TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Header="{DynamicResource Str_Web_MoveToFolder}"
+                                                      Tag="move-to-folder" CommandParameter=""
+                                                      Click="MoveToFolderContext_Click">
+                                                <MenuItem.Icon><TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
                                             </MenuItem>
                                             <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click">
                                                 <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>

@@ -52,7 +52,7 @@ namespace Avalanche.Features.Summary
         // readable text, and re-asking (the extractor, let alone the model)
         // would answer the same. The cache belongs to ONE document -
         // NotifyDocumentChanged empties it.
-        private static readonly Dictionary<(int First, int Last), string> Cache = new();
+        private static readonly Dictionary<(int First, int Last), (string? Model, string Text)> Cache = new();
 
         private static RecapWindow? _window;
         private static bool? _enabled;
@@ -212,14 +212,16 @@ namespace Avalanche.Features.Summary
                 _window.Show();
             }
 
-            if (Cache.TryGetValue((first, last), out string? ready))
+            if (Cache.TryGetValue((first, last), out (string? Model, string Text) ready))
             {
                 // 0 ms: the page was condensed before. Non-empty paints the
                 // paragraph; the cached empty verdict repaints itself - either
-                // way the model is never asked twice for the same page.
-                if (ready.Length > 0)
+                // way the model is never asked twice for the same page. The
+                // title bar names the model that actually earned the verdict.
+                _window.ShowModel(ready.Model);
+                if (ready.Text.Length > 0)
                 {
-                    _window.ShowRecapText(first, last, ready);
+                    _window.ShowRecapText(first, last, ready.Text);
                 }
                 else
                 {
@@ -271,12 +273,13 @@ namespace Avalanche.Features.Summary
                     .ConfigureAwait(true);
                 if (!HasReadableText(rangeText))
                 {
-                    Cache[(first, last)] = string.Empty;    // the verdict is cached too
+                    Cache[(first, last)] = (null, string.Empty);    // no request, no model
                     return true;
                 }
 
+                AiProviderConfig quietConfig = configProvider();
                 string condensed = (await PageSummarizer.CondenseAsync(
-                        configProvider(),
+                        quietConfig,
                         CondenseSystemPrompt(ReadLanguage()),
                         "Text to condense:\n" + rangeText,
                         CancellationToken.None)
@@ -286,7 +289,7 @@ namespace Avalanche.Features.Summary
                     return false;
                 }
 
-                Cache[(first, last)] = condensed;
+                Cache[(first, last)] = (quietConfig.Model, condensed);
                 return true;
             }
             catch
@@ -321,8 +324,10 @@ namespace Avalanche.Features.Summary
             _cts = new CancellationTokenSource();
             _flightFirst = first;
             _flightLast = last;
+            AiProviderConfig flightConfig = configProvider();
+            _window?.ShowModel(flightConfig.Model);
             _flight = RunCondensationAsync(
-                filePath, first, last, configProvider(), loc, _cts.Token, _generation);
+                filePath, first, last, flightConfig, loc, _cts.Token, _generation);
         }
 
         private static async Task RunCondensationAsync(
@@ -343,7 +348,7 @@ namespace Avalanche.Features.Summary
                 ct.ThrowIfCancellationRequested();
                 if (!HasReadableText(rangeText))
                 {
-                    Cache[(first, last)] = string.Empty;    // the verdict is cached too
+                    Cache[(first, last)] = (null, string.Empty);    // no request, no model
                     if (generation == _generation)
                     {
                         _window?.ShowRecapEmpty(first, last);
@@ -369,7 +374,7 @@ namespace Avalanche.Features.Summary
                     return;
                 }
 
-                Cache[(first, last)] = condensed;
+                Cache[(first, last)] = (config.Model, condensed);
                 if (generation == _generation)
                 {
                     _window?.ShowRecapText(first, last, condensed);

@@ -1135,7 +1135,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">ブラウザーサイドチャット</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
-    <sys:String x:Key="Str_AiModelRecaller">リコーラー</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">リキャップ</sys:String>
+    <sys:String x:Key="Str_AiModelTester">AIテスター</sys:String>
+    <sys:String x:Key="Str_AiModelUsed">モデル: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
@@ -1334,6 +1336,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">拡張機能はまだありません — .crx を inbox フォルダーに入れるか、ファイルからインストールしてください。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">ブラウザー拡張機能 (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_ExtNoPopup">この拡張機能にはポップアップがありません。</sys:String>
+    <sys:String x:Key="Str_Web_MoveToFolder">フォルダーへ移動…</sys:String>
+    <sys:String x:Key="Str_Web_MoveToStrip">ブックマークバーへ戻す</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">このポップアップはここでは開けませんでした。</sys:String>
     <sys:String x:Key="Str_Web_ExtOptions">設定</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">削除</sys:String>
