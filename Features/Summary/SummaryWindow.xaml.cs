@@ -104,6 +104,9 @@ namespace Avalanche.Features.Summary
         private double _digestFont = 13;    // the digest's face; the title-bar + and - move it
         private int _runFirstPage = 1;  // the range the current/last digest covered; the
         private int _runLastPage = 1;   // verification badge maps its audit onto these pages
+        private string _runModel = "";  // v1.19.33: the brain the current/last digest came
+                                        // from - saved beside the digest so a restored card
+                                        // names its own writer, not the dial's today-word
 
         // The active pass's raw extraction, keyed by the stretch it covers: the
         // floating action popup's Explain serves the author's pages from here
@@ -755,7 +758,11 @@ namespace Avalanche.Features.Summary
             _runStartedUtc = DateTime.UtcNow;
             // v1.19.32: the run's own model takes the bottom-right word before
             // its first word lands - the config the run asks is the config named.
-            SetModelLabel(_configProvider().Model);   // the status line's "took ..." starts here
+            // v1.19.33: the word is remembered with the run, so the saved
+            // digest can name the brain that actually wrote it when it comes
+            // back (the dial may say something else by then).
+            _runModel = _configProvider().Model;
+            SetModelLabel(_runModel);   // the status line's "took ..." starts here
             _schedulePrefetchOnIdle = false;
             _fullText = string.Empty;
             // The superseded source is deliberately NOT disposed: the detached loop is
@@ -987,6 +994,7 @@ namespace Avalanche.Features.Summary
             Overlay(null);
             StatusText.Text = string.Empty;
             SetModelLabel(null);    // no digest on screen, no model to name
+            _runModel = string.Empty;
             InvalidatePrefetch();   // the reset was manual: the buffer goes too
             SaveDigest();       // the reset was the reader's action: forget the digest
             // The wipe is real, not cosmetic: the range's cached digests die with
@@ -1546,6 +1554,12 @@ namespace Avalanche.Features.Summary
                 AppDataPaths.SetSetting(
                     "summary.digest." + _documentId + ".last",
                     _runLastPage.ToString(CultureInfo.InvariantCulture));
+                // v1.19.33: and the brain that wrote it. A digest without a
+                // run behind it (the reset's empty wipe) clears the word -
+                // a restored card must never inherit a stale writer.
+                AppDataPaths.SetSetting(
+                    "summary.digest." + _documentId + ".model",
+                    _fullText.Length > 0 ? _runModel : string.Empty);
             }
             catch
             {
@@ -1598,10 +1612,13 @@ namespace Avalanche.Features.Summary
                 DocBox.SetValue(AiMarkdown.TextProperty, text);
                 StatusText.Text = string.Format(
                     _loc("Str_SummaryCounts"), PageSummarizer.CountWords(text), text.Length);
-                // v1.19.32: the restored card names its model as well - the
-                // summary cache is model-keyed, so the served digest answers
-                // under the dial's current model.
-                SetModelLabel(_configProvider().Model);
+                // v1.19.32: the restored card names its model as well.
+                // v1.19.33: it names the model that actually WROTE it - the
+                // one saved beside the digest - not whatever the dial says
+                // today; only digests saved before this rode the dial's word.
+                string savedModel = AppDataPaths.GetSetting("summary.digest." + _documentId + ".model")
+                    ?? string.Empty;
+                SetModelLabel(savedModel.Length > 0 ? savedModel : _configProvider().Model);
                 _digestRestored = true;   // the constructor arms the buffer once the clock exists
             }
             catch

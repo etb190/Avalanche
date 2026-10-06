@@ -11,7 +11,16 @@ namespace Avalanche.Features.AI
     /// retrieval - every other dial stays exactly where the reader set it,
     /// whatever the choice. The choices persist in their own file beside the
     /// AI settings so a surface never needs the panel to be opened first.
-    /// (v1.19.31: "two sets of AIs".)</summary>
+    /// (v1.19.31: "two sets of AIs".) v1.19.33: both choices own their name.
+    /// The Nemotron choice used to pass the settings' own config through
+    /// untouched - honest only while that config still carried a nemotron
+    /// model; on the Ollama preset it carried gpt-oss:120b-cloud, and a dial
+    /// saying "nemotron" answered with gpt-oss. A dial that lies is worse
+    /// than a dial that overrides: a base config that already speaks a
+    /// nemotron model rides untouched (the reader's key, host and variant
+    /// survive); anything else gets the canonical nemotron - NVIDIA's NIM
+    /// API, the app's first brain - the same way the gpt choice always
+    /// summoned its own gpt-oss.
     internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester }
 
     internal static class AiSurfaceModels
@@ -113,33 +122,65 @@ namespace Avalanche.Features.AI
             Save();
         }
 
-        /// <summary>The surface's request config: the settings' own config
-        /// untouched while the dial says Nemotron; the SAME config wearing the
-        /// gpt-oss model and the local Ollama bridge when it says gpt-oss.
-        /// Only the model and its host are rewritten - everything else copies
-        /// over verbatim, exactly as the reader tuned it.</summary>
+        /// <summary>The surface's request config: the named model answering
+        /// on its own host. Nemotron: the settings' own config while it
+        /// already speaks a nemotron model (the reader's key, host and model
+        /// variant survive); the canonical nemotron when it does not.
+        /// gpt-oss: the SAME config wearing the gpt-oss model and the local
+        /// Ollama bridge. Only the model and its host are rewritten -
+        /// everything else copies over verbatim, exactly as the reader tuned
+        /// it. (v1.19.33: the Nemotron choice stopped passing a foreign model
+        /// through under nemotron's name.)</summary>
         public static AiProviderConfig Configure(AiProviderConfig baseConfig, AiSurface surface)
         {
             if (baseConfig is null) return new AiProviderConfig();
-            if (Get(surface) != GptChoice) return baseConfig;
-            return new AiProviderConfig
-            {
-                ProviderType = "Ollama",
-                BaseUrl = "http://localhost:11434/v1",
-                ApiKey = "ollama",
-                Model = "gpt-oss:120b-cloud",
-                EmbeddingModel = baseConfig.EmbeddingModel,
-                TopK = baseConfig.TopK,
-                EvidenceCharBudget = baseConfig.EvidenceCharBudget,
-                MaxHistoryMessages = baseConfig.MaxHistoryMessages,
-                EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
-                EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
-                Temperature = baseConfig.Temperature,
-                MaxTokens = baseConfig.MaxTokens,
-                TopP = baseConfig.TopP,
-                ReasoningEffort = baseConfig.ReasoningEffort,
-                RequestJsonOutput = baseConfig.RequestJsonOutput,
-            };
+            if (Get(surface) == GptChoice) return GptIdentity(baseConfig);
+            if (baseConfig.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
+                return baseConfig;
+            return NemotronIdentity(baseConfig);
         }
+
+        /// <summary>The canonical gpt-oss: the local Ollama bridge wearing
+        /// gpt-oss:120b-cloud - the dial's second name, made flesh. The
+        /// reader's tuning copies over verbatim; the model and its host are
+        /// the dial's to name.</summary>
+        private static AiProviderConfig GptIdentity(AiProviderConfig baseConfig) => new AiProviderConfig
+        {
+            ProviderType = "Ollama",
+            BaseUrl = "http://localhost:11434/v1",
+            ApiKey = "ollama",
+            Model = "gpt-oss:120b-cloud",
+            EmbeddingModel = baseConfig.EmbeddingModel,
+            TopK = baseConfig.TopK,
+            EvidenceCharBudget = baseConfig.EvidenceCharBudget,
+            MaxHistoryMessages = baseConfig.MaxHistoryMessages,
+            EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
+            EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
+            Temperature = baseConfig.Temperature,
+            MaxTokens = baseConfig.MaxTokens,
+            TopP = baseConfig.TopP,
+            ReasoningEffort = baseConfig.ReasoningEffort,
+            RequestJsonOutput = baseConfig.RequestJsonOutput,
+        };
+
+        /// <summary>The canonical nemotron: AiProviderConfig's own defaults
+        /// ARE the app's first brain - NVIDIA's NIM cloud API and
+        /// nvidia/nemotron-3-ultra-550b-a55b - so a fresh config wears them.
+        /// The reader's tuning (temperature, tokens, retrieval, prefixes)
+        /// copies over verbatim, the same ride the gpt-oss identity gives.</summary>
+        private static AiProviderConfig NemotronIdentity(AiProviderConfig baseConfig) => new AiProviderConfig
+        {
+            EmbeddingModel = baseConfig.EmbeddingModel,
+            TopK = baseConfig.TopK,
+            EvidenceCharBudget = baseConfig.EvidenceCharBudget,
+            MaxHistoryMessages = baseConfig.MaxHistoryMessages,
+            EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
+            EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
+            Temperature = baseConfig.Temperature,
+            MaxTokens = baseConfig.MaxTokens,
+            TopP = baseConfig.TopP,
+            ReasoningEffort = baseConfig.ReasoningEffort,
+            RequestJsonOutput = baseConfig.RequestJsonOutput,
+        };
     }
 }

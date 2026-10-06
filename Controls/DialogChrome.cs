@@ -20,6 +20,16 @@ namespace Avalanche
             public bool BottomSeparator { get; init; }
             public IReadOnlyList<UIElement> BeforeClose { get; init; } = Array.Empty<UIElement>();
 
+            // v1.19.33: BeforeClose seats that are NOT square chips. The
+            // CloseButtonSize sync squares every BeforeClose element to the
+            // wordmark's height - right for the font chips, fatal for a text
+            // label (the recap's model word spent v1.19.32 clipped to "M...",
+            // pressed into the close mark's square). A free extra keeps its
+            // natural size and its own alignments, and leads the same cluster
+            // left of the close mark - the same exemption the Centered slot
+            // won for the toggle row in v1.13.0.
+            public IReadOnlyList<UIElement> BeforeCloseFree { get; init; } = Array.Empty<UIElement>();
+
             // 0 leaves the theme's DialogCloseWidth/Height in charge.
             public double CloseButtonSize { get; init; }
 
@@ -236,17 +246,30 @@ namespace Avalanche
             System.Windows.Shell.WindowChrome.SetIsHitTestVisibleInChrome(close, true);
             // Get the click before the caption's DragMove handler starts its modal mouse loop.
             close.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClose(); };
-            // Extras dock left of the close mark: one auto column each, close shifts right.
+            // The free seats lead the cluster (the recap's model word sits
+            // before the font chips, where v1.19.32 first seated it): one
+            // auto column each, but the squaring sync below never touches
+            // them - a label is not a chip.
+            int freeCount = extras?.BeforeCloseFree.Count ?? 0;
+            for (int i = 0; i < freeCount; i++)
+            {
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                UIElement free = extras!.BeforeCloseFree[i];
+                Grid.SetColumn(free, i + 1);
+                grid.Children.Add(free);
+            }
+
+            // The chips follow: one auto column each, close shifts right.
             int extraCount = extras?.BeforeClose.Count ?? 0;
             for (int i = 0; i < extraCount; i++)
             {
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 UIElement extra = extras!.BeforeClose[i];
-                Grid.SetColumn(extra, i + 1);
+                Grid.SetColumn(extra, freeCount + i + 1);
                 grid.Children.Add(extra);
             }
 
-            Grid.SetColumn(close, extraCount + 1);
+            Grid.SetColumn(close, extraCount + freeCount + 1);
             grid.Children.Add(close);
 
             if (extras is { CloseButtonSize: > 0 } sized)

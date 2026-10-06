@@ -2862,7 +2862,17 @@ namespace Avalanche.Controls
             // nothing installed yet: the puzzle is the door - the picker and
             // the folder, dressed in the house face like every other menu.
             if (sender is not Button puzzle) return;
-            Window? host = Window.GetWindow(puzzle);
+            OpenExtInstallMenu(puzzle, System.Windows.Controls.Primitives.PlacementMode.Bottom);
+        }
+
+        // The extensions area's one menu - the picker and the folder - built,
+        // dressed in the host's house face and dropped beside the strip. Every
+        // door leads here: the puzzle's click, a right-click on the strip,
+        // and (v1.19.33) a left-click on the strip's own padding.
+        private void OpenExtInstallMenu(FrameworkElement target,
+            System.Windows.Controls.Primitives.PlacementMode placement)
+        {
+            Window? host = Window.GetWindow(target);
             ContextMenu menu = BuildExtInstallMenu();
             if (host is not null)
             {
@@ -2870,9 +2880,36 @@ namespace Avalanche.Controls
                 foreach (MenuItem item in menu.Items.OfType<MenuItem>())
                     if (host.TryFindResource(typeof(MenuItem)) is Style itemFace) item.Style = itemFace;
             }
-            menu.PlacementTarget = puzzle;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.PlacementTarget = target;
+            menu.Placement = placement;
             menu.IsOpen = true;
+        }
+
+        // v1.19.33: the strip itself answers a left-click wherever it lands
+        // that is not one of the extension buttons - the padding around the
+        // icons, the stretch they leave. The buttons keep their own clicks:
+        // ButtonBase marks the release handled, and the walk-up below makes
+        // sure of the rest.
+        private void WebExtArea_LeftClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement area
+                || ExtLandedOnOwnButton(e.OriginalSource as DependencyObject, area)) return;
+            OpenExtInstallMenu(area, System.Windows.Controls.Primitives.PlacementMode.MousePoint);
+        }
+
+        // A press that landed on an extension icon belongs to that icon - its
+        // click, its own menu. The walk-up stops the area's response at the
+        // first button, EXCEPT the puzzle: the puzzle is the area's own door,
+        // and its click and menu are this area's business.
+        private bool ExtLandedOnOwnButton(DependencyObject? start, DependencyObject area)
+        {
+            for (DependencyObject? d = start;
+                 d is not null && !ReferenceEquals(d, area);
+                 d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+            {
+                if (d is Button b && !ReferenceEquals(b, WebExtPuzzleBtn)) return true;
+            }
+            return false;
         }
 
         // v1.19.32: the extensions area answers right-clicks wherever they
@@ -2880,29 +2917,21 @@ namespace Avalanche.Controls
         // with the same two doors the puzzle's click offers: the picker and
         // the folder. (The icons' own menus keep their Options/Remove rows;
         // this is the AREA's menu.)
+        // v1.19.32: the extensions area answers right-clicks wherever they
+        // land - the strip's padding, the puzzle, the icons and all - with
+        // the same two doors the puzzle's click offers: the picker and the
+        // folder. (The icons' own menus keep their Options/Remove rows; this
+        // is the AREA's menu. v1.19.33: the wiring rides the wrapping Border,
+        // and a left-click on the strip answers the same way.)
         private void WebExtArea_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
             if (sender is not FrameworkElement area) return;
             // A right-click that landed on an extension icon is that icon's
             // own menu's business: its ContextMenuOpening bubbles up to the
-            // row, and without this walk-up both menus would open at once.
-            // (The puzzle is the area's own button - the walk stops there.)
-            for (DependencyObject? d = e.OriginalSource as DependencyObject;
-                 d is not null && !ReferenceEquals(d, area);
-                 d = System.Windows.Media.VisualTreeHelper.GetParent(d))
-                if (d is System.Windows.Controls.Button) return;
+            // strip, and without this walk-up both menus would open at once.
+            if (ExtLandedOnOwnButton(e.OriginalSource as DependencyObject, area)) return;
             e.Handled = true;
-            Window? host = Window.GetWindow(area);
-            ContextMenu menu = BuildExtInstallMenu();
-            if (host is not null)
-            {
-                if (host.TryFindResource(typeof(ContextMenu)) is Style face) menu.Style = face;
-                foreach (MenuItem item in menu.Items.OfType<MenuItem>())
-                    if (host.TryFindResource(typeof(MenuItem)) is Style itemFace) item.Style = itemFace;
-            }
-            menu.PlacementTarget = area;
-            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
-            menu.IsOpen = true;
+            OpenExtInstallMenu(area, System.Windows.Controls.Primitives.PlacementMode.MousePoint);
         }
 
         private ContextMenu BuildExtInstallMenu()

@@ -65,15 +65,19 @@ namespace Avalanche.Features.Summary
         }
 
         // v1.19.32: which model produced (or is producing) the paragraph on
-        // screen - the title bar's quiet word, seated before the plus chip in
-        // the top-right cluster. The BeforeClose squaring gives it the bar's
-        // height like every chip; the text rides centered inside its slot.
+        // screen - the title bar's quiet word, seated before the font chips
+        // in the top-right cluster. v1.19.33: it rides BeforeCloseFree now -
+        // the chip squaring forced this TextBlock into the close mark's
+        // square and clipped the sentence to "M...", so the reader never saw
+        // the name it came to read. A free seat keeps the word's natural
+        // width (up to 200, then an ellipsis) and its own vertical center:
+        // one line, as tall as the line, flush with the chips beside it.
         private readonly System.Windows.Controls.TextBlock _modelText = new()
         {
             FontSize = 10.5,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(0, 0, 8, 0),
-            MaxWidth = 180,
+            MaxWidth = 200,
             TextTrimming = TextTrimming.CharacterEllipsis,
             IsHitTestVisible = false,
             Visibility = Visibility.Collapsed,
@@ -124,9 +128,9 @@ namespace Avalanche.Features.Summary
                     // The reading font lives in the bar, the navigator's way:
                     // minus on the left, plus nearer the close mark, the same
                     // air between the pair the navigator keeps.
+                    BeforeCloseFree = new UIElement[] { _modelText },
                     BeforeClose = new UIElement[]
                     {
-                        _modelText,
                         TitleChip(plus: false, "Str_SummaryFontDown", () => AdjustRecapFont(-1), new Thickness(0, 0, 6, 0)),
                         TitleChip(plus: true, "Str_SummaryFontUp", () => AdjustRecapFont(+1), new Thickness(0, 0, 8, 0))
                     },

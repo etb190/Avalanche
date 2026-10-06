@@ -133,9 +133,17 @@
                      own popup (a real window - one the reader can actually
                      touch); a right-click offers Options, Remove, the picker
                      and the folder. The puzzle stays only while nothing is
-                     installed: the door a first extension arrives through. -->
-                <ItemsControl x:Name="WebExtIconRow" Background="Transparent"
-                              ContextMenuOpening="WebExtArea_ContextMenuOpening">
+                     installed: the door a first extension arrives through.
+                     v1.19.33: the strip around the buttons answers too - a
+                     left- or right-click that lands on the strip's own
+                     padding, not on a button, opens the same picker-and-
+                     folder menu at the pointer. -->
+                <Border x:Name="WebExtArea" Background="Transparent" MinWidth="54"
+                        Padding="4,0" VerticalAlignment="Stretch"
+                        ContextMenuOpening="WebExtArea_ContextMenuOpening"
+                        MouseLeftButtonUp="WebExtArea_LeftClick">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ItemsControl x:Name="WebExtIconRow" Background="Transparent">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Horizontal"/>
@@ -184,10 +192,11 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button x:Name="WebExtPuzzleBtn" Content="&#xE90F;" Style="{StaticResource WebNavBtn}"
-                        Click="WebExtPuzzleBtn_Click" ToolTip="{DynamicResource Str_TT_WebExtensions}"
-                        ContextMenuOpening="WebExtArea_ContextMenuOpening"
-                        Visibility="Collapsed"/>
+                        <Button x:Name="WebExtPuzzleBtn" Content="&#xE90F;" Style="{StaticResource WebNavBtn}"
+                                Click="WebExtPuzzleBtn_Click" ToolTip="{DynamicResource Str_TT_WebExtensions}"
+                                Visibility="Collapsed"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </Border>
 
