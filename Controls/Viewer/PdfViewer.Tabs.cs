@@ -98,6 +98,39 @@ namespace Avalanche.Controls
             public System.Threading.CancellationTokenSource? ThumbCts;
             public volatile bool ThumbCacheComplete;
 
+            // v1.19.38: the tab's built continuous view, kept alive across switches. A tab
+            // switch stashes the live tree here (slots with their bitmaps, tops, overlay
+            // canvases, links, sharpen ledger) and the next arrival at this tab re-attaches it
+            // instead of rebuilding and re-rendering every page. The slots are zoom-independent
+            // (bitmaps render at the document's natural width), so the tree is exactly what the
+            // reader last saw. RetainedEngineView is the identity gate: the stash is adoptable
+            // only while the session's engine view is the SAME instance it was captured with,
+            // and every path that rewrites the file reopens that view.
+            public System.Collections.Generic.List<System.Windows.UIElement>? RetainedContinuousSlots;
+            public System.Collections.Generic.List<double>? RetainedContinuousTops;
+            public System.Collections.Generic.Dictionary<int, System.Windows.Controls.Canvas>? RetainedContinuousCanvases;
+            public System.Collections.Generic.Dictionary<int, System.Windows.Controls.Canvas>? RetainedPages;
+            public System.Collections.Generic.Dictionary<int, List<LinkInfo>>? RetainedContinuousLinks;
+            public HashSet<int>? RetainedSharpPages;
+            public int RetainedSharpW;
+            public double RetainedContinuousPageW;
+            public PdfEngineDocumentSession? RetainedEngineView;
+
+            /// <summary>Release a retained view. The slots are detached visuals; dropping the
+            /// references lets the bitmaps and the frames be collected.</summary>
+            internal void DropRetainedContinuousView()
+            {
+                RetainedContinuousSlots = null;
+                RetainedContinuousTops = null;
+                RetainedContinuousCanvases = null;
+                RetainedPages = null;
+                RetainedContinuousLinks = null;
+                RetainedSharpPages = null;
+                RetainedSharpW = 0;
+                RetainedContinuousPageW = 0;
+                RetainedEngineView = null;
+            }
+
             public string Title =>
                 string.IsNullOrEmpty(OriginalFile)
                     ? "Untitled"
@@ -414,7 +447,7 @@ namespace Avalanche.Controls
         // cache (the carve-out that keeps pictures uninverted) goes with it; it re-fills lazily.
         private void FlushAllRenderCaches()
         {
-            foreach (var s in _renderLru) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }
+            foreach (var s in _renderLru) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); s.DropRetainedContinuousView(); }
             // THIS pane's rect cache - the bare call, NOT `Viewer.FlushImageRectCache()`, which
             // hardcodes pane A and leaves pane B's night-mode carve-out cache serving rects from
             // the previous state after an invert toggle.
@@ -458,6 +491,7 @@ namespace Avalanche.Controls
         {
             s?.RenderCache.Clear();
             s?.RenderCacheSize.Clear();
+            s?.DropRetainedContinuousView();   // v1.19.38: the pixels the tree shows are gone
         }
 
         // Make sure there is always at least one session, adopting whatever is currently live.
@@ -535,7 +569,7 @@ namespace Avalanche.Controls
         // re-render on the other pane's toggle (2026-08-15).
         internal void FlushOwnRenderCaches()
         {
-            foreach (var s in _sessions) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }
+            foreach (var s in _sessions) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); s.DropRetainedContinuousView(); }
             FlushImageRectCache();
         }
 
@@ -649,6 +683,8 @@ namespace Avalanche.Controls
             CancelRenderWork();
             prev = _active;
             if (_active != null) CaptureSessionState(_active);
+            StashContinuousViewForSession(_active);   // v1.19.38: switching away to load - keep the view
+                                                      // (no-op for the reuse-empty-tab case: no document)
 
             DocumentSession target;
             if (_active != null && _active.Doc == null && _active.DeferredPath == null)
@@ -766,6 +802,7 @@ namespace Avalanche.Controls
             CancelTransientForSwitch();
             CancelRenderWork();
             if (_active != null) CaptureSessionState(_active);
+            StashContinuousViewForSession(_active);   // v1.19.38: the outgoing tab keeps its view
             SetActiveSession(target);
             ApplySessionState(target);
             // v1.19.37: a tab switch is the one arrival that knows NOTHING about the incoming
@@ -877,6 +914,7 @@ namespace Avalanche.Controls
                 CommitActiveTextBox();
                 CancelTransientForSwitch();
                 if (_active != null) CaptureSessionState(_active);
+                StashContinuousViewForSession(_active);   // v1.19.38: the previously-active tab keeps its view
                 SetActiveSession(s);
                 ApplySessionState(s);
                 RenderActiveSession();
@@ -911,6 +949,7 @@ namespace Avalanche.Controls
             s.RenderCache.Clear();
             s.RenderCacheSize.Clear();
             s.EngineView = null;     // the closed tab's engine view (file bytes included) goes with it
+            s.DropRetainedContinuousView();   // v1.19.38: and its kept view with both
             CompactLohSoon();        // #122: give the freed bitmap memory back to the OS
 
             if (_sessions.Count == 0)
@@ -958,7 +997,7 @@ namespace Avalanche.Controls
             }
 
             CancelRenderWork();
-            foreach (var s in docTabs) { try { s.Doc?.Close(); } catch { } s.EngineView = null; }
+            foreach (var s in docTabs) { try { s.Doc?.Close(); } catch { } s.EngineView = null; s.DropRetainedContinuousView(); }
             try { _doc?.Close(); } catch { }
             _doc = null;
 

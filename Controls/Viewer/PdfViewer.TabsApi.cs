@@ -262,7 +262,9 @@ namespace Avalanche.Controls
         internal void SetSessionsExt(IEnumerable<DocumentSession> sessions, DocumentSession? active)
         {
             _sessions.Clear();
-            foreach (var s in sessions) _sessions.Add(s);   // ObservableCollection has no AddRange
+            // v1.19.38: a session dragged in from the other pane must not carry its kept view -
+            // the stashed overlays are wired to THAT pane's gesture handlers.
+            foreach (var s in sessions) { s.DropRetainedContinuousView(); _sessions.Add(s); }   // ObservableCollection has no AddRange
             SetActiveSession(active);
         }
 

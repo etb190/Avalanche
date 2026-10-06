@@ -264,7 +264,15 @@ namespace Avalanche.Controls
             return _engineDocumentSession = PdfEngineDocumentSession.Open(_currentFile);
         }
 
-        private void CloseEngineDocumentSession() => _engineDocumentSession = null;
+        private void CloseEngineDocumentSession()
+        {
+            _engineDocumentSession = null;
+            // v1.19.38: the kept continuous view rode this engine view - the file's bytes are
+            // going away (save, reload, rotate, undo, close), so the stash dies with them. The
+            // active session's stash is normally already consumed (adopt) or absent (live tree);
+            // this catches a stash left behind while the tab sat active across a rewrite.
+            _active?.DropRetainedContinuousView();
+        }
 
         /// <summary>
         /// Renders link overlays for the primary page onto the annotation canvas.

@@ -462,6 +462,11 @@ namespace Avalanche.Controls
             // ArgumentOutOfRangeException. Bail out instead of crashing; the view just stays empty.
             if (engineSession.PageCount == 0) return;
             initialPage = Math.Clamp(initialPage, 0, engineSession.PageCount - 1);
+            // v1.19.38: a tab returning to the screen with its own built view re-attaches it
+            // here - no teardown, no rebuild, no re-render, no re-sharpen. The rebuild below
+            // stays for every genuinely-new layout: fresh opens, file rewrites, mode returns
+            // without a stash.
+            if (TryAdoptRetainedContinuousView(engineSession, initialPage, restoreVerticalOffset)) return;
             _continuousScrollTarget = restoreVerticalOffset.HasValue ? -1 : initialPage;
             SyncPageListSelection(initialPage);
             // Coming from Grid, the shared ScrollViewer still carries the grid's overrides
@@ -575,6 +580,106 @@ namespace Avalanche.Controls
             });
 
             _ = RenderContinuousPages(initialPage);
+        }
+
+        // ── v1.19.38: the tab keeps the view it built ──────────────────────────────────────────
+        // SetupContinuousView tears down and rebuilds the whole continuous tree on EVERY tab
+        // arrival: N placeholder frames, fresh empty overlay canvases, a blank sharpen ledger -
+        // so the incoming tab repainted its pages (base pass + hi-res re-sharpen) on every flip
+        // even though v1.19.36 kept the engine view and v1.19.37 kept the sidebar. The tree
+        // itself is zoom-independent (bitmaps render at the document's natural width; the zoom
+        // is the shared LayoutTransform), so it travels with the tab: every switch funnel
+        // stashes the outgoing tree into ITS session, and the next arrival at a tab holding a
+        // stash re-attaches it here - every bitmap already on its slot, nothing re-rendered.
+        //
+        // Correctness: annotations, search rects and form widgets painted on the canvases
+        // belong to the session and cannot change while the tab sits behind, so the adopted
+        // tree is exactly what the reader last saw. The identity gate (RetainedEngineView)
+        // plus the flush hooks in the render cache make a stale tree unreachable: every path
+        // that rewrites the file reopens the engine view (different instance, stash dropped),
+        // the night-mode and undo flushes drop stashes outright, and a cross-pane drag drops
+        // them (the overlays are wired to the old pane's handlers).
+        private void StashContinuousViewForSession(DocumentSession? s)
+        {
+            if (s is null || s.Doc is null || _engineDocumentSession is null) return;
+            if (_viewMode != ViewMode.Continuous) return;
+            if (_continuousPanel.Children.Count == 0) return;
+
+            var slots = new List<System.Windows.UIElement>();
+            foreach (System.Windows.UIElement child in _continuousPanel.Children) slots.Add(child);
+            _continuousPanel.Children.Clear();   // detach: the shared panel belongs to the next view now
+            s.RetainedContinuousSlots = slots;
+            s.RetainedContinuousTops = new List<double>(_continuousTops);
+            s.RetainedContinuousCanvases = new Dictionary<int, System.Windows.Controls.Canvas>(_continuousCanvases);
+            s.RetainedPages = new Dictionary<int, System.Windows.Controls.Canvas>(_pages);
+            s.RetainedContinuousLinks = new Dictionary<int, List<LinkInfo>>(_continuousLinks);
+            s.RetainedSharpPages = new HashSet<int>(_continuousSharpPages);
+            s.RetainedSharpW = _continuousSharpW;
+            s.RetainedContinuousPageW = _continuousPageW;
+            s.RetainedEngineView = _engineDocumentSession;
+        }
+
+        // Re-attach a session's stashed continuous tree. False = no usable stash (the caller
+        // rebuilds as always); a stale or unusable stash is dropped on the way out.
+        private bool TryAdoptRetainedContinuousView(PdfEngineDocumentSession engineSession,
+            int initialPage, double? restoreVerticalOffset)
+        {
+            var s = _active;
+            if (s?.RetainedContinuousSlots is not { } slots) return false;
+
+            var tops = s.RetainedContinuousTops;
+            bool stale = !ReferenceEquals(s.RetainedEngineView, engineSession)
+                       || slots.Count == 0
+                       || slots.Count != engineSession.PageCount
+                       || tops is null || tops.Count != slots.Count;
+            if (stale || tops is not { } topList) { s.DropRetainedContinuousView(); return false; }
+
+            // The outgoing view's in-flight render and sharpen work belongs to the tree that
+            // just left; the adopted tree needs neither.
+            CancelAndRelease(_continuousRenderCts);
+            _continuousRenderCts = null;
+            CancelAndRelease(_continuousSharpenCts);
+            _continuousSharpenCts = null;
+
+            _continuousPanel.Children.Clear();   // the outgoing tree was already stashed by the switch
+            foreach (var el in slots) _continuousPanel.Children.Add(el);
+
+            _continuousTops.Clear();
+            foreach (var t in topList) _continuousTops.Add(t);
+            _continuousCanvases.Clear();
+            if (s.RetainedContinuousCanvases is { } canvases)
+                foreach (var kv in canvases) _continuousCanvases[kv.Key] = kv.Value;
+            _pages.Clear();
+            if (s.RetainedPages is { } pages)
+                foreach (var kv in pages) _pages[kv.Key] = kv.Value;
+            _continuousLinks.Clear();
+            if (s.RetainedContinuousLinks is { } links)
+                foreach (var kv in links) _continuousLinks[kv.Key] = kv.Value;
+            _continuousSharpPages.Clear();
+            if (s.RetainedSharpPages is { } sharp)
+                foreach (var p in sharp) _continuousSharpPages.Add(p);
+            _continuousSharpW = s.RetainedSharpW;
+            _continuousPageW = s.RetainedContinuousPageW;
+            _continuousScrollTarget = restoreVerticalOffset.HasValue ? -1 : initialPage;
+            SyncPageListSelection(initialPage);
+
+            s.DropRetainedContinuousView();      // the stash now IS the live tree
+
+            // The same scroll restore the rebuild path queues: the saved offset, or the page
+            // the tab reports. RenderActiveSession's ContextIdle restore still runs after this.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+            {
+                if (restoreVerticalOffset.HasValue)
+                    PagePreviewPanel.ScrollToVerticalOffset(restoreVerticalOffset.Value);
+                else
+                    ScrollContinuousToPage(initialPage);
+            });
+
+            // Fill any slot the stash left empty the way every render arrives: adopted window
+            // slots hold their bitmaps, so the todo list is usually empty; cache hits re-attach
+            // without pdfium, misses render as always.
+            _ = RenderContinuousPages(initialPage);
+            return true;
         }
 
         // ── Continuous view virtualization (#122) ──────────────────────────────────────────────
