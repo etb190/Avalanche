@@ -13,8 +13,11 @@
 //   * a summary-language dropdown; Arabic flips the digest right-to-left.
 // The arrows never overlap: forward lands on the first page after the stretch
 // just covered, backward re-opens the stretch before this one. A superseded run
-// (another arrow press, Start, Reset, close) is detached by a generation counter
+// (another arrow press, Start, Reset) is detached by a generation counter
 // and its request cancelled - stale continuations cannot repaint the card.
+// Closing the window cancels nothing: a generating digest finishes underground
+// and saves itself, and a reopened navigator adopts the run it finds there,
+// elapsed clock still counting (v1.19.35).
 // The reading position survives restarts per document; so do range, word
 // ceiling, language and the window's size and place.
 
@@ -164,6 +167,21 @@ namespace Avalanche.Features.Summary
         // The live run's clock: StartGeneration winds it, the digest spends
         // it into the status line ("took 42s" / "took 1m 12s", v1.19.25).
         private DateTime _runStartedUtc = DateTime.UtcNow;
+
+        // v1.19.35: the live elapsed clock - a DispatcherTimer re-serving the
+        // status line with the ticking wall clock while a run generates, and
+        // the progress word the clock keeps company.
+        private DispatcherTimer? _elapsedTimer;
+        private string _progressBase = string.Empty;
+
+        // v1.19.35: the run the reader left behind. Closing the navigator no
+        // longer kills a generating digest - the run finishes underground and
+        // saves its work. The static slot holds the window whose generation is
+        // still running; a reopened navigator adopts it and watches until the
+        // digest lands.
+        private static SummaryWindow? _orphanRun;
+        private SummaryWindow? _orphanOwner;    // the underground run this window watches
+        private DispatcherTimer? _orphanPoll;   // the 400ms mirror of that run
 
         public SummaryWindow(
             MainWindow owner,
@@ -396,6 +414,7 @@ namespace Avalanche.Features.Summary
             DocBox.FontSize = _digestFont;
             WireActionPopup();                  // the floating action popup over the digest
             RestoreDigest();                    // the last digest of this book, if any
+            AdoptOrphanRun();                   // v1.19.35: adopt a run left generating when the window last closed
 
             // v1.19.30: there is no thirty-second clock anymore. When a digest
             // lands - live or restored - the post-digest queue runs at once:
@@ -416,11 +435,37 @@ namespace Avalanche.Features.Summary
             Closed += (_, _) =>
             {
                 _closed = true;
-                _generation++;      // a run cancelled by the close can't repaint either
-                _cts?.Cancel();
+                SummaryWindow? watching = _orphanOwner;
+                StopOrphanWatch(cancel: false);     // the poll dies with the window; the run it watched does not
+                StopElapsedClock();
+                if (watching is { } live && live._generating)
+                {
+                    // An adopted underground run is still going: hand it back
+                    // to the slot so the next navigator can adopt it in turn.
+                    _orphanRun = live;
+                }
+                else if (watching is null && _generating)
+                {
+                    // This window's own generation goes underground: it keeps
+                    // running - no bump, no cancel - and lands in its own save.
+                    _orphanRun = this;
+                }
+                else
+                {
+                    _generation++;      // nothing live: a stale continuation can't repaint either
+                    try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
+                }
+
                 InvalidatePrefetch();   // the clock and the flight die with the window
                 DismissActionPopup();   // the popup dies with the window
-                SaveDigest();       // the digest stays with the book across sessions
+                if (!_generating)
+                {
+                    // A still-generating card must not save: its text is empty,
+                    // and saving it would wipe the book's last digest. The
+                    // underground run saves its own digest when it lands.
+                    SaveDigest();       // the digest stays with the book across sessions
+                }
+
                 PersistPlacement();
             };
 
@@ -767,6 +812,8 @@ namespace Avalanche.Features.Summary
                 return;
             }
 
+            StopOrphanWatch(cancel: true);   // a fresh Start retires the underground run this window was watching
+            RetireStaleOrphan();    // an invisible run for another book ends when the reader asks elsewhere
             DismissActionPopup();   // a new run resets the card: the popup's anchor is gone
             InvalidatePrefetch();   // a manual run retires the buffer and its flight
 
@@ -790,6 +837,7 @@ namespace Avalanche.Features.Summary
             int gen = ++_generation;
             _generating = true;
             _runStartedUtc = DateTime.UtcNow;
+            _progressBase = string.Empty;
             // v1.19.32: the run's own model takes the bottom-right word before
             // its first word lands - the config the run asks is the config named.
             // v1.19.33: the word is remembered with the run, so the saved
@@ -807,6 +855,7 @@ namespace Avalanche.Features.Summary
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
+            StartElapsedClock();    // v1.19.35: the elapsed seconds tick in the status line from the first moment
 
             // Reset armed the fresh-run flag: this run skips the cache lookup so
             // the wiped digest cannot replay. The arm survives failed runs (every
@@ -826,7 +875,12 @@ namespace Avalanche.Features.Summary
                         case "progress":
                             if (gen == _generation)
                             {
-                                StatusText.Text = update.Text;
+                                // v1.19.35: the progress word carries the live
+                                // clock - the elapsed seconds tick beside it
+                                // until the digest lands and the line becomes
+                                // the counts + "took" verdict.
+                                _progressBase = update.Text;
+                                StatusText.Text = _progressBase + ElapsedSuffix();
                             }
 
                             break;
@@ -914,6 +968,13 @@ namespace Avalanche.Features.Summary
                 {
                     _generating = false;
                     SetBusy(false);
+                    StopElapsedClock();
+                    // v1.19.35: the voice follows the card's final state here
+                    // too. Without this the dots kept pulsing over the finished
+                    // digest: UpdateEmptyState ran at "done" while _generating
+                    // still held, took the generating branch, and nothing after
+                    // the flip ever told the dots to stop.
+                    UpdateEmptyState();
                     // v1.19.26: the 30s prefetch clock arms HERE - it never
                     // fired before, because FinishSuccess asked while this
                     // run was still "generating" and SchedulePrefetch rightly
@@ -965,6 +1026,166 @@ namespace Avalanche.Features.Summary
             _cts?.Dispose();
             _cts = null;
             _schedulePrefetchOnIdle = true;   // v1.19.26: the finally arms it - _generating still holds here
+        }
+
+        // ------------------------------------------------------------------
+        // The live clock + the underground run (v1.19.35)
+        // ------------------------------------------------------------------
+
+        // While a run generates, the status line's progress word gains a
+        // ticking elapsed clock - "  |  42s", the same wall clock the finished
+        // line reports as "took 42s". The reader asked to SEE the wait, not
+        // just be told about it afterwards.
+        private string ElapsedSuffix()
+            => "  |  " + Features.AI.AiChatText.FormatDuration(DateTime.UtcNow - _runStartedUtc);
+
+        private void StartElapsedClock()
+        {
+            StopElapsedClock();
+            _elapsedTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+            _elapsedTimer.Tick += (_, _) =>
+            {
+                if (!_generating)
+                {
+                    StopElapsedClock();
+                    return;
+                }
+
+                StatusText.Text = _progressBase + ElapsedSuffix();
+            };
+            _elapsedTimer.Start();
+            StatusText.Text = _progressBase + ElapsedSuffix();
+        }
+
+        private void StopElapsedClock()
+        {
+            _elapsedTimer?.Stop();
+            _elapsedTimer = null;
+        }
+
+        // A reopened navigator adopts the generation its closed predecessor
+        // left running: the card returns to the busy state, the progress word
+        // and the elapsed clock pick up where the closed window left them, and
+        // a 400ms poll mirrors the underground run until it lands - then the
+        // digest, its verification line and the buffer queue arrive exactly as
+        // if the window had never been away.
+        private void AdoptOrphanRun()
+        {
+            SummaryWindow? orphan = _orphanRun;
+            if (orphan is null || !orphan._generating || !orphan.DocumentPathEquals(_filePath))
+            {
+                if (orphan is not null && !orphan._generating)
+                {
+                    _orphanRun = null;   // the run ended while nobody watched; its digest is already saved
+                }
+
+                return;
+            }
+
+            _orphanOwner = orphan;
+            _generating = true;
+            _runStartedUtc = orphan._runStartedUtc;
+            _runModel = orphan._runModel;
+            _runFirstPage = orphan._runFirstPage;
+            _runLastPage = orphan._runLastPage;
+            _runFromCache = false;
+            _fullText = orphan._fullText;
+            _flushPending = false;
+            _progressBase = orphan._progressBase;
+            DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+            Overlay(null);                  // the busy voice: dots over the card
+            SetBusy(true);
+            SetModelLabel(_runModel);
+            StartElapsedClock();
+            _orphanPoll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+            _orphanPoll.Tick += (_, _) => PollOrphanRun();
+            _orphanPoll.Start();
+        }
+
+        private void PollOrphanRun()
+        {
+            SummaryWindow? orphan = _orphanOwner;
+            if (orphan is null)
+            {
+                StopOrphanWatch(cancel: false);
+                return;
+            }
+
+            if (!orphan._generating)
+            {
+                // The underground run is over: take what it produced.
+                if (ReferenceEquals(_orphanRun, orphan))
+                {
+                    _orphanRun = null;
+                }
+
+                StopOrphanWatch(cancel: false);
+                _generating = false;
+                SetBusy(false);
+                StopElapsedClock();
+                if (orphan._fullText.Length > 0)
+                {
+                    _fullText = orphan._fullText;
+                    _runFromCache = orphan._runFromCache;
+                    DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                    StatusText.Text = VerificationStatusLine()
+                        + (_runFromCache ? string.Empty : DurationSuffix(DateTime.UtcNow - _runStartedUtc));
+                    UpdateEmptyState();
+                    SchedulePrefetch();     // the landing arms the queue, as a live landing would
+                }
+                else
+                {
+                    // It ended in notext or error: the verdict the closed
+                    // window painted on itself is the verdict this card shows.
+                    string verdict = orphan.OverlayText.Visibility == Visibility.Visible
+                        ? orphan.OverlayText.Text
+                        : string.Empty;
+                    Overlay(verdict);       // an empty verdict restores the invite
+                }
+
+                return;
+            }
+
+            // Still running: mirror the progress word and keep the clock honest.
+            _progressBase = orphan._progressBase;
+            StatusText.Text = _progressBase + ElapsedSuffix();
+        }
+
+        // The slot's leftover: a run for a book nobody is watching. A fresh
+        // Start retires it - the reader's newest ask owns the one generation
+        // lane (PageSummarizer's gate), and an invisible digest has no right
+        // to make the visible one wait behind it.
+        private static void RetireStaleOrphan()
+        {
+            if (_orphanRun is { } orphan && orphan._generating)
+            {
+                orphan._generating = false;
+                orphan._generation++;           // its continuations lose the right to repaint
+                try { orphan._cts?.Cancel(); } catch (ObjectDisposedException) { }
+            }
+
+            _orphanRun = null;
+        }
+
+        // Stop watching the underground run. cancel: true also puts the run
+        // down (a fresh Start or Reset owns the card now); cancel: false lets
+        // it finish into its own save.
+        private void StopOrphanWatch(bool cancel)
+        {
+            _orphanPoll?.Stop();
+            _orphanPoll = null;
+            SummaryWindow? orphan = _orphanOwner;
+            _orphanOwner = null;
+            if (cancel && orphan is not null && orphan._generating)
+            {
+                orphan._generating = false;     // the card it was painting belongs to this window now
+                orphan._generation++;           // its continuations lose the right to repaint
+                try { orphan._cts?.Cancel(); } catch (ObjectDisposedException) { }
+                if (ReferenceEquals(_orphanRun, orphan))
+                {
+                    _orphanRun = null;
+                }
+            }
         }
 
         // The post-run status line. With provider usage: the verification badge -
@@ -1022,6 +1243,7 @@ namespace Avalanche.Features.Summary
         // punish a reader who only wanted a clean slate of TEXT, not of place.
         private void ResetAll()
         {
+            StopOrphanWatch(cancel: true);   // a reset ends the underground run too, if one was watched
             _generation++;
             try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
             _generating = false;
@@ -1452,6 +1674,8 @@ namespace Avalanche.Features.Summary
                         : DurationSuffix(bufferedTook));   // v1.19.28: a real generation says
                                                            // how long it took; v1.19.34: a
                                                            // cache serve claims nothing
+                StopElapsedClock();
+                UpdateEmptyState();   // the dots stand down: a digest fills the card
                 SaveDigest();
                 InvalidatePrefetch();
                 SchedulePrefetch();   // v1.19.26: the served stretch arms the next buffer
@@ -1480,8 +1704,13 @@ namespace Avalanche.Features.Summary
             Overlay(null);
             SetBusy(true);
             DismissActionPopup();   // the digest area is about to repaint
-            StatusText.Text = string.Format(
+            // v1.19.35: the attached flight gets the live clock too, wound to
+            // the flight's own start - the elapsed counts the real wait.
+            _runStartedUtc = _prefetchStartedUtc;
+            _progressBase = string.Format(
                 _loc("Str_SummaryPreparing"), _prefetchFirst, _prefetchLast);
+            StartElapsedClock();
+            StatusText.Text = _progressBase + ElapsedSuffix();
             try
             {
                 await flight.ConfigureAwait(true);
@@ -1492,6 +1721,8 @@ namespace Avalanche.Features.Summary
                 {
                     _generating = false;
                     SetBusy(false);
+                    StopElapsedClock();
+                    UpdateEmptyState();     // the dots stand down with the flight
                     InvalidatePrefetch();
                     if (ex.Message == "notext")
                     {
@@ -1512,6 +1743,7 @@ namespace Avalanche.Features.Summary
 
             _generating = false;
             SetBusy(false);
+            StopElapsedClock();
             string? text = flight is Task<string> typed && typed.IsCompletedSuccessfully
                 ? typed.Result
                 : _prefetchText;

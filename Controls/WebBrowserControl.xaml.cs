@@ -3339,6 +3339,11 @@ namespace Avalanche.Controls
                 root.Children.Add(note);
             }
             win.PreviewKeyDown += (_, e2) => { if (e2.Key == System.Windows.Input.Key.Escape) win.Close(); };
+            // v1.19.35: a popup's manners - clicking anywhere outside the
+            // bubble (the book, the browser, another app) closes it, exactly
+            // as a Chrome popup leaves when it loses the click. Escape, the
+            // caption's X, the owner's death and this are the four exits.
+            win.Deactivated += (_, _) => { try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ } };
             win.Content = root;
             shell.Window = win;
             return shell;
