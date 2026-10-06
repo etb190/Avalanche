@@ -1489,6 +1489,9 @@ namespace Avalanche
             // The beaker chip in the navigator's title bar: probe the exact
             // stretch on screen with the AI test.
             summary.TestRangeRequested += OpenAiTestForRange;
+            // v1.19.25: the popup's Search opens the query in the app's own
+            // browser - the pane comes forward, the tab lands on top.
+            summary.WebSearchRequested += OpenSummarySearchInBrowser;
             // The navigator's range MOVED (steppers, keyboard Left/Right or
             // A/D, a retyped start, a span chip): the recap answers to this
             // and to F - a showing window follows the new stretch, a closed
@@ -1834,6 +1837,38 @@ namespace Avalanche
             // Wait for the page to render, then highlight using exact coordinates
             // Use a retry loop for continuous view and far-away pages
             _ = WaitForCanvasAndHighlightAsync(viewer, chunk, source, pageIndex, navGeneration);
+        }
+
+        /// <summary>
+        /// A web citation click (v1.19.25): the quoted passage is searched on
+        /// the live page of the tab the answer came from - found means
+        /// selected plus custom-highlighted and scrolled into view; anything
+        /// else surfaces the same "could not locate" status a PDF citation
+        /// miss shows. The browser tab answers its own citations.
+        /// </summary>
+        internal async void NavigateToWebPageCitation(string tabId, string quote)
+        {
+            if (string.IsNullOrWhiteSpace(quote)) return;
+            try
+            {
+                var result = await WebPane.HighlightTextInTabAsync(tabId, quote);
+                if (result is { Ok: true })
+                {
+                    Avalanche.Services.AiHighlightLog.Log(
+                        $"web navigate: tab {tabId} ok painted={result.Painted}");
+                    return;
+                }
+
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"web navigate BAIL: tab {tabId} reason={result?.Reason ?? "no engine"}");
+                SetStatus(Loc("Str_AiChatWebNavigateFailed"));
+            }
+            catch (Exception ex)
+            {
+                // A failed jump must never take the chat down with it.
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"web navigate EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         private int _aiNavGeneration;
@@ -2288,6 +2323,16 @@ namespace Avalanche
         /// <summary>The band's + asks the browser for a fresh view: home page, seeded
         /// gallery card, and the caret waiting in the omnibox.</summary>
         private void WebNewTabBtn_Click(object sender, RoutedEventArgs e) => WebPane.OpenNewTab();
+
+        /// <summary>The navigator's word-search hands off to the app's own
+        /// browser (v1.19.25): the pane comes forward and the query opens as
+        /// a tab of its own. The system browser is out of the loop - the
+        /// reader never leaves the app to chase a word.</summary>
+        private void OpenSummarySearchInBrowser(string url)
+        {
+            ShowWebPane();
+            WebPane.OpenLinkInNewTab(url);
+        }
 
         private void ToggleWebPane()
         {

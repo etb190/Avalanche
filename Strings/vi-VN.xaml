@@ -1104,6 +1104,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">Quá trình tạo mất {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">Không tìm thấy đoạn đó trên trang.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
 
@@ -1204,6 +1206,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_ToolbarToolsCaption">Công cụ</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Hiện hoặc ẩn bộ công cụ mở rộng</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} từ / {1} ký tự</sys:String>
+	<sys:String x:Key="Str_SummaryTook">mất {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">Bộ đệm: đang tạo…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">Bộ đệm: sẵn sàng</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">còn lại {0} trang</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Trò chuyện cùng tài liệu của bạn</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Hỏi bất cứ điều gì về tài liệu này - tóm tắt, giải thích, dịch. AI đã đọc mọi trang.</sys:String>

@@ -1049,6 +1049,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiChatError">AI সেবার সাথে যোগাযোগে ত্রুটি।</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">আপনার প্রশ্নের জন্য নথিতে কোনো প্রাসঙ্গিক অংশ পাওয়া যায়নি।</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">এই পৃষ্ঠায় উদ্ধৃত অংশটি খুঁজে পাওয়া যায়নি।</sys:String>
+    <sys:String x:Key="Str_AiChatTook">তৈরি করতে সময় লেগেছে {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">পৃষ্ঠায় সেই অংশটি খুঁজে পাওয়া যায়নি।</sys:String>
 <sys:String x:Key="Str_AiChatSourceTip">পৃষ্ঠা {0} — উদ্ধৃত অংশ দেখান</sys:String>
     <sys:String x:Key="Str_Lbl_AiChat">AI চ্যাট</sys:String>
         <sys:String x:Key="Str_TT_AiTest">AI প্রসঙ্গ পরীক্ষা — মডেল প্রকৃতপক্ষে কী দেখেছে তা অনুসন্ধান করুন</sys:String>
@@ -1184,6 +1186,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_ToolbarToolsCaption">টুলস</sys:String>
 	<sys:String x:Key="Str_TT_Tools">অতিরিক্ত টুল দেখান বা লুকান</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} শব্দ / {1} অক্ষর</sys:String>
+	<sys:String x:Key="Str_SummaryTook">সময় লেগেছে {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">বাফার: তৈরি হচ্ছে…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">বাফার: প্রস্তুত</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} পৃষ্ঠা বাকি</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">আপনার ডকুমেন্টের সাথে কথা বলুন</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">এই ডকুমেন্ট সম্পর্কে যা খুশি জিজ্ঞাসা করুন - সারসংক্ষেপ, ব্যাখ্যা, অনুবাদ। AI প্রতিটি পৃষ্ঠা পড়েছে।</sys:String>

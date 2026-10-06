@@ -3124,6 +3124,7 @@
                         <RowDefinition Height="*"/>      <!-- Conversation -->
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Semantic status -->
+                        <RowDefinition Height="Auto"/>   <!-- Last reply duration -->
                         <RowDefinition Height="Auto"/>   <!-- Input -->
                     </Grid.RowDefinitions>
                     <!-- Edge bevels, the pages/outline sidebar's SidebarBorder
@@ -3269,9 +3270,17 @@
                                                      status text - showing the same Content twice looked broken (F4). -->
                                                 <RichTextBox.Style>
                                                     <Style TargetType="RichTextBox">
+                                                        <!-- v1.19.25: assistant answers read justified -
+                                                             the summarizer's typeset-page alignment,
+                                                             carried into the sidechat; the reader's own
+                                                             words stay naturally left-aligned. -->
+                                                        <Setter Property="ai:AiMarkdown.ParagraphAlignment" Value="Justify"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding MessageRole}" Value="{x:Static ai:ChatMessage+Role.User}">
+                                                                <Setter Property="ai:AiMarkdown.ParagraphAlignment" Value="Left"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -3398,8 +3407,18 @@
                                    Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
                     </Border>
 
+                    <!-- v1.19.25: how long the last reply took - a quiet line
+                         above the input, living from the first completed answer
+                         until the next question goes out. -->
+                    <Border Grid.Row="4" Padding="12,3"
+                            Visibility="{Binding LastDurationText, Converter={StaticResource StringToVisibilityConverter}}">
+                        <TextBlock Text="{Binding LastDurationText}" TextTrimming="CharacterEllipsis"
+                                   FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                   Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                    </Border>
+
                     <!-- Input Area -->
-                    <Border Grid.Row="4" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                    <Border Grid.Row="5" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Background="Transparent" CornerRadius="0"
                             Padding="8">
                         <Grid>

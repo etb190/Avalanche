@@ -1084,6 +1084,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">La generación tardó {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">No se pudo encontrar ese pasaje en la página.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
 
@@ -1184,6 +1186,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">Herramientas</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Mostrar u ocultar las herramientas ampliadas</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} palabras / {1} caracteres</sys:String>
+	<sys:String x:Key="Str_SummaryTook">tardó {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">Búfer: generando…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">Búfer: listo</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">quedan {0} páginas</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Conversa con tu documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Pregunta lo que quieras sobre este documento: resúmenes, explicaciones, traducciones. La IA ha leído cada página.</sys:String>

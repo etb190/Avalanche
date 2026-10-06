@@ -1088,6 +1088,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">生成用时 {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">无法在页面上找到该段落。</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
 
@@ -1188,6 +1190,9 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_ToolbarToolsCaption">工具</sys:String>
 	<sys:String x:Key="Str_TT_Tools">显示或隐藏扩展工具集</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} 词 / {1} 字符</sys:String>
+	<sys:String x:Key="Str_SummaryTook">用时 {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">缓冲：生成中…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">缓冲：就绪</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">剩余 {0} 页</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">与你的文档对话</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">关于这份文档，想到什么就问 - 摘要、解释、翻译，AI 已读过每一页。</sys:String>

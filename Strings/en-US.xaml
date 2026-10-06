@@ -1104,6 +1104,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiChatNoProvider">No AI provider configured. Open Settings to add an API key.</sys:String>
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">Generation took {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">Could not find that passage on the page.</sys:String>
 <sys:String x:Key="Str_AiChatSourceTip">Page {0} — Show cited passage</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
 
@@ -1204,6 +1206,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_ToolbarToolsCaption">Tools</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Show or hide the extended tool set</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} words / {1} characters</sys:String>
+	<sys:String x:Key="Str_SummaryTook">took {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">Buffer: generating…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">Buffer: ready</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pages left</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Chat with your document</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Ask anything about this document - summaries, explanations, translations. The AI has read every page.</sys:String>

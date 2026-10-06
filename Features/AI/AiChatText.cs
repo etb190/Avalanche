@@ -79,6 +79,25 @@ namespace Avalanche.Features.AI
         };
 
         /// <summary>
+        /// How long a generation took, in the reader's shorthand: plain
+        /// seconds under a full minute ("42s"), otherwise minutes and the
+        /// leftover seconds ("1m 12s") - a whole minute is just "2m". Shared
+        /// by the summarizer's status line and the sidechat's timing line
+        /// (v1.19.25).
+        /// </summary>
+        public static string FormatDuration(TimeSpan elapsed)
+        {
+            long totalSeconds = (long)Math.Round(elapsed.TotalSeconds, MidpointRounding.AwayFromZero);
+            if (totalSeconds < 0)
+                totalSeconds = 0;
+            if (totalSeconds < 60)
+                return totalSeconds + "s";
+            long minutes = totalSeconds / 60;
+            long seconds = totalSeconds % 60;
+            return seconds == 0 ? minutes + "m" : minutes + "m " + seconds + "s";
+        }
+
+        /// <summary>
         /// Assistant history keeps inline [SOURCE_n] markers from the turn
         /// that produced them; the next turn renumbers SOURCE_1..N, so stale
         /// markers can bait wrong citations. Strip them before sending.

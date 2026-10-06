@@ -1092,6 +1092,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">Generowanie zajęło {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">Nie można znaleźć tego fragmentu na stronie.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
 
@@ -1192,6 +1194,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_ToolbarToolsCaption">Narzędzia</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Pokaż lub ukryj rozszerzony zestaw narzędzi</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} słów / {1} znaków</sys:String>
+	<sys:String x:Key="Str_SummaryTook">zajęło {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">Bufor: generowanie…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">Bufor: gotowy</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">pozostało {0} str.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Porozmawiaj ze swoim dokumentem</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Zapytaj o cokolwiek w tym dokumencie - streszczenia, wyjaśnienia, tłumaczenia. AI przeczytała każdą stronę.</sys:String>

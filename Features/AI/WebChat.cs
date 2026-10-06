@@ -26,6 +26,16 @@ namespace Avalanche.Features.AI
         public bool Truncated { get; init; }
     }
 
+    /// <summary>The citation jump's verdict, parsed from the finder
+    /// script's JSON: whether the passage was found (and selected), and
+    /// whether the custom highlight painted on top of the selection.</summary>
+    public sealed class WebHighlightResult
+    {
+        public bool Ok { get; init; }
+        public string Reason { get; init; } = "";
+        public bool Painted { get; init; }
+    }
+
     /// <summary>
     /// The browser sidechat's pure logic (v1.19.22): the web session key
     /// prefix, the extraction result parse, the page text budget and the
@@ -162,17 +172,21 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
-        /// The web sidechat's system prompt: the page itself is the evidence.
-        /// Deliberately unlike the PDF prompt there are no SOURCE_n ids and no
-        /// citation machinery - a page has no pages to navigate to. The answer
-        /// contract stays JSON ("answer") so the provider's tolerant parser
-        /// handles both a structured and a plain-prose reply.
+        /// The web sidechat's system prompt: the page itself is the evidence,
+        /// split into numbered segments the model can cite. The citation
+        /// dialect is the PDF prompt's own - inline [SOURCE_n] markers plus a
+        /// JSON 'sources' list carrying exact quotes - so an answer's
+        /// footnotes route their clicks back onto the live page (v1.19.25):
+        /// the quote is what the browser searches for, selects, highlights
+        /// and scrolls to. The contract stays JSON so the provider's tolerant
+        /// parser handles both a structured and a plain-prose reply.
         /// </summary>
         public static string BuildSystemPrompt(WebPageSnapshot page)
         {
+            var segments = SplitPageSegments(page.Text);
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("You are an AI assistant helping a user understand the web page they are reading in the app's browser.");
-            sb.AppendLine("The page's text is provided below, extracted from the live tab the user has open.");
+            sb.AppendLine("The page's text is provided below as numbered evidence segments, extracted from the live tab the user has open.");
             sb.AppendLine("Answer ONLY using that page text and the conversation so far.");
             sb.AppendLine("If the page text doesn't contain the answer, clearly say so.");
             sb.AppendLine("Distinguish the page's own claims from your own explanation.");
@@ -183,8 +197,12 @@ namespace Avalanche.Features.AI
             sb.AppendLine("When the page presents several distinct points, answer with short paragraphs or a bulleted list ('- ').");
             sb.AppendLine("Briefly explain terms or context the page assumes when that aids understanding, staying grounded in the page's own text.");
             sb.AppendLine();
-            sb.AppendLine("Return ONLY a JSON object in this exact shape (no sources field, no citation markers):");
-            sb.AppendLine("{\"answer\": \"<your full answer>\"}");
+            sb.AppendLine("CITATIONS:");
+            sb.AppendLine("Inline citations: right after each claim, append the supporting segment's marker in the exact form [SOURCE_n] using plain ASCII square brackets.");
+            sb.AppendLine("Example: 'The trial lasted twelve weeks. [SOURCE_2]'.");
+            sb.AppendLine("Use [SOURCE_n] only - never full-width brackets like \u3010SOURCE_n\u3011, never (SOURCE_n).");
+            sb.AppendLine("Cite only the given SOURCE_n ids; never invent ids or quotes. Quotes must be copied exactly from the cited segment's text.");
+            sb.AppendLine("Every source listed in 'sources' must also appear as an inline [SOURCE_n] marker in the answer.");
             sb.AppendLine();
             sb.AppendLine("PAGE:");
             sb.Append("TITLE: ").AppendLine(string.IsNullOrEmpty(page.Title) ? "(untitled)" : page.Title);
@@ -198,11 +216,242 @@ namespace Avalanche.Features.AI
             if (page.Truncated)
                 sb.AppendLine("NOTE: the page is long; only its beginning and end are shown.");
             sb.AppendLine();
-            sb.AppendLine("PAGE TEXT:");
-            sb.AppendLine("---------- page text begins ----------");
-            sb.AppendLine(page.Text);
-            sb.AppendLine("---------- page text ends ----------");
+            sb.AppendLine("PAGE EVIDENCE:");
+            sb.AppendLine();
+            for (int i = 0; i < segments.Count; i++)
+            {
+                sb.AppendLine($"[SOURCE_{i + 1}]");
+                sb.AppendLine(segments[i]);
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("Return ONLY a JSON object in this exact shape:");
+            sb.AppendLine("{\"answer\": \"<your full answer with inline [SOURCE_n] markers>\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text copied from that segment>\", \"reason\": \"<why it supports the answer>\"}]}");
+            sb.AppendLine("The 'quote' must be a short exact excerpt (up to ~300 characters) copied verbatim from the cited segment - it is used to find the passage on the live page.");
             return sb.ToString();
+        }
+
+        // ---- page segmentation for citations (v1.19.25) ----
+
+        // Paragraphs longer than SegmentSplitMaxChars are cut on sentence
+        // boundaries near the target size; pieces shorter than the floor
+        // merge with a neighbor, so every segment carries enough text to be
+        // worth citing. The cap keeps even a pathological page inside a
+        // numbered evidence list a model can actually use.
+        public const int SegmentTargetChars = 1200;
+        public const int SegmentSplitMaxChars = 2400;
+        public const int SegmentMinChars = 80;
+        public const int MaxSegments = 160;
+
+        /// <summary>Collapse every whitespace run to one space and trim -
+        /// the shape quotes and page text are compared in (the model sees
+        /// the snapshot's newlines; the live DOM wraps the same words).</summary>
+        public static string NormalizeForMatch(string? text)
+            => string.IsNullOrEmpty(text) ? ""
+               : System.Text.RegularExpressions.Regex.Replace(text, "\\s+", " ").Trim();
+
+        /// <summary>
+        /// Splits the page text into the numbered evidence segments the
+        /// prompt offers as [SOURCE_n]. Blank-line paragraphs stay intact,
+        /// oversized ones are cut on sentence boundaries, tiny ones merge
+        /// into a neighbor, and the truncation marker never becomes
+        /// evidence (the prompt carries the cut note itself). Deterministic:
+        /// the same snapshot always produces the same numbering.
+        /// </summary>
+        public static IReadOnlyList<string> SplitPageSegments(string? pageText)
+        {
+            var segments = new List<string>();
+            if (string.IsNullOrWhiteSpace(pageText))
+                return segments;
+
+            string marker = TruncationMarker.Trim();
+            var paragraphs = pageText.Replace("\r\n", "\n")
+                                     .Split(new[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+            var pieces = new List<string>();
+            foreach (var raw in paragraphs)
+            {
+                var p = raw.Trim();
+                if (p.Length == 0 || string.Equals(p, marker, StringComparison.Ordinal))
+                    continue;   // blank furniture, or the cut marker itself
+                if (p.Length <= SegmentSplitMaxChars)
+                {
+                    pieces.Add(p);
+                    continue;
+                }
+
+                int start = 0;
+                while (start < p.Length)
+                {
+                    int remain = p.Length - start;
+                    if (remain <= SegmentSplitMaxChars)
+                    {
+                        pieces.Add(p[start..].Trim());
+                        break;
+                    }
+
+                    int cut = FindSentenceCut(p, start, start + SegmentTargetChars, start + SegmentSplitMaxChars);
+                    string piece = p[start..cut].Trim();
+                    if (piece.Length > 0)
+                        pieces.Add(piece);
+                    start = cut;
+                    while (start < p.Length && char.IsWhiteSpace(p[start]))
+                        start++;
+                }
+            }
+
+            // Tiny pieces ride with a neighbor: a two-word line is not a
+            // citation a reader can use. A trailing morsel joins the one
+            // before it instead of vanishing forward.
+            foreach (var piece in pieces)
+            {
+                if (segments.Count > 0 && segments[^1].Length < SegmentMinChars)
+                    segments[^1] = segments[^1] + "\n\n" + piece;
+                else
+                    segments.Add(piece);
+            }
+            if (segments.Count > 1 && segments[^1].Length < SegmentMinChars)
+            {
+                segments[^2] = segments[^2] + "\n\n" + segments[^1];
+                segments.RemoveAt(segments.Count - 1);
+            }
+
+            // Safety cap: pairwise-merge rounds until the count fits.
+            while (segments.Count > MaxSegments)
+            {
+                var merged = new List<string>((segments.Count + 1) / 2);
+                for (int i = 0; i < segments.Count; i += 2)
+                    merged.Add(i + 1 < segments.Count
+                        ? segments[i] + "\n\n" + segments[i + 1]
+                        : segments[i]);
+                segments = merged;
+            }
+
+            return segments;
+        }
+
+        /// <summary>The cut for an oversized paragraph: the last sentence
+        /// ender at or before <paramref name="preferred"/>, else a hard cut
+        /// there. Never returns <paramref name="start"/>.</summary>
+        private static int FindSentenceCut(string text, int start, int preferred, int limit)
+        {
+            int hard = Math.Min(preferred, text.Length - 1);
+            if (hard <= start)
+                return Math.Min(start + 1, text.Length);
+            for (int i = hard; i > start; i--)
+            {
+                char c = text[i - 1];
+                if (c is '.' or '!' or '?' or '\u2026' or '\u3002' or '\uFF01' or '\uFF1F')
+                    return i;
+            }
+
+            return hard;
+        }
+
+        /// <summary>
+        /// Maps each SOURCE_n id a WEB reply returned back to the n-th
+        /// segment of the page snapshot (the same numbering the prompt
+        /// offered), and drops everything that cannot navigate: invented or
+        /// out-of-range ids, duplicates, and quotes the page's own text does
+        /// not carry - a quote the snapshot cannot confirm would only send
+        /// the browser hunting for words that are not there. The 0-based
+        /// numbering some models drift into is detected and shifted exactly
+        /// like the PDF path does.
+        /// </summary>
+        public static void ResolveWebSources(List<AiSource>? sources, IReadOnlyList<string> segments, string? pageText)
+        {
+            if (sources is null)
+                return;
+            if (segments.Count == 0)
+            {
+                sources.Clear();    // nothing to resolve against: no citations
+                return;
+            }
+            if (sources.Count == 0)
+                return;
+
+            string pageNorm = NormalizeForMatch(pageText);
+
+            int offset = 0;
+            var parsedIds = sources.Select(s => AiCitations.ParseSourceId(s.SourceId)).ToList();
+            if (parsedIds.Count > 0
+                && parsedIds.All(v => v >= 0 && v < segments.Count)
+                && parsedIds.Any(v => v == 0))
+            {
+                offset = 1;
+            }
+
+            var kept = new List<AiSource>(sources.Count);
+            var seenIds = new HashSet<int>();
+            foreach (var src in sources)
+            {
+                int n = AiCitations.ParseSourceId(src.SourceId) + offset;
+                if (n < 1 || n > segments.Count)
+                    continue;   // invented/unknown id: drop it rather than guess
+                if (!seenIds.Add(n))
+                    continue;   // repeated id: keep only the first occurrence
+
+                string quote = NormalizeForMatch(src.Quote);
+                if (quote.Length < 3 || !pageNorm.Contains(quote))
+                    continue;   // nothing the browser could find: not a citation
+
+                src.SourceId = offset == 1
+                    ? AiCitations.FormatId(n - offset)
+                    : AiCitations.FormatId(n);
+                src.QuoteVerified = true;
+                src.Location = AiQuoteLocation.Exact;
+                src.PageIndex = -1;
+                src.PageNumber = 0;
+                kept.Add(src);
+            }
+
+            sources.Clear();
+            sources.AddRange(kept);
+        }
+
+        /// <summary>
+        /// Parses one ExecuteScriptAsync result from the citation finder.
+        /// The engine returns the script's string as a JSON string literal,
+        /// so the result may be double-encoded - both shapes are accepted.
+        /// Null whenever nothing usable came back: a gone tab, a timeout, or
+        /// a payload that will not read.
+        /// </summary>
+        public static WebHighlightResult? ParseHighlightResult(string? executeScriptResult)
+        {
+            if (string.IsNullOrWhiteSpace(executeScriptResult))
+                return null;
+
+            string? inner = null;
+            try
+            {
+                using var probe = System.Text.Json.JsonDocument.Parse(executeScriptResult);
+                if (probe.RootElement.ValueKind == System.Text.Json.JsonValueKind.String)
+                    inner = probe.RootElement.GetString();
+            }
+            catch
+            {
+                // Not valid JSON in any shape: the payload below fails the
+                // same way and the caller gets its null.
+            }
+
+            string payload = inner ?? executeScriptResult;
+            if (string.IsNullOrWhiteSpace(payload) || payload == "null")
+                return null;
+
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(payload);
+                var root = doc.RootElement;
+                if (root.ValueKind != System.Text.Json.JsonValueKind.Object)
+                    return null;
+                bool ok = TryGetBool(root, "ok", out var o) && o;
+                string reason = TryGetString(root, "reason", out var r) ? r ?? "" : "";
+                bool painted = TryGetBool(root, "painted", out var p) && p;
+                return new WebHighlightResult { Ok = ok, Reason = reason, Painted = painted };
+            }
+            catch
+            {
+                return null;   // anything unreadable is simply no verdict
+            }
         }
     }
 }

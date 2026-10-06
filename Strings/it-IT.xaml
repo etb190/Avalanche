@@ -1104,6 +1104,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">La generazione ha impiegato {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">Impossibile trovare quel passaggio nella pagina.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
 
@@ -1204,6 +1206,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_ToolbarToolsCaption">Strumenti</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Mostra o nascondi gli strumenti estesi</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} parole / {1} caratteri</sys:String>
+	<sys:String x:Key="Str_SummaryTook">impiegato {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">Buffer: generazione…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">Buffer: pronto</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pagine rimanenti</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Parla con il tuo documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Chiedi qualsiasi cosa su questo documento: riassunti, spiegazioni, traduzioni. L'IA ha letto ogni pagina.</sys:String>

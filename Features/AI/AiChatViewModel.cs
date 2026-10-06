@@ -125,6 +125,17 @@ namespace Avalanche.Features.AI
             private set { _contextTitle = value; OnPropertyChanged(); }
         }
 
+        private string _lastDurationText = "";
+
+        /// <summary>How long the last completed reply took (v1.19.25) - the
+        /// quiet line above the input. Cleared when the next question is
+        /// sent, and with every context switch.</summary>
+        public string LastDurationText
+        {
+            get => _lastDurationText;
+            private set { _lastDurationText = value; OnPropertyChanged(); }
+        }
+
         /// <summary>The window's page reader: extracts the named tab's readable
         /// page text fresh on every call (null when there is no page). The view
         /// model knows nothing about WebView2 - the window owns the browser.</summary>
@@ -211,6 +222,23 @@ namespace Avalanche.Features.AI
                 $"citation click: {source.SourceId} " +
                 $"resolved={(source.ResolvedChunk is not null ? "yes" : "NO")} " +
                 $"quote={source.Quote?.Length ?? 0}ch");
+
+            // v1.19.25: a web conversation's footnote jumps ON THE PAGE - the
+            // browser finds the quote, selects it, paints the custom
+            // highlight and scrolls it into view. Nothing touches the viewer.
+            bool webContext;
+            string webTabId;
+            lock (_processingLock) { webContext = _isWebContext; webTabId = _currentWebTabId; }
+            if (webContext)
+            {
+                Avalanche.Services.AiHighlightLog.Log(
+                    $"navigate: web tab {webTabId} quote={source.Quote?.Length ?? 0}ch");
+                _mainWindow.Dispatcher.BeginInvoke(
+                    DispatcherPriority.Normal,
+                    () => _mainWindow.NavigateToWebPageCitation(webTabId, source.Quote ?? ""));
+                return;
+            }
+
             NavigateToSource(source);
         }
 
@@ -751,6 +779,11 @@ namespace Avalanche.Features.AI
 
             var input = userInput.Trim();
 
+            // v1.19.25: a new question retires the previous answer's timing
+            // line - above the input there is either the answer just
+            // delivered or nothing at all.
+            LastDurationText = "";
+
             // Always echo the user's message into the conversation right away.
             // Previously the message was queued or dropped silently while the
             // index was building, which looked like the sent text disappeared.
@@ -879,6 +912,10 @@ namespace Avalanche.Features.AI
             };
             Application.Current.Dispatcher.Invoke(() => Messages.Add(assistantMsg));
 
+            // v1.19.25: the reply's wall clock - extraction/retrieval plus
+            // the provider's turn, everything the reader waits through.
+            var replyClock = System.Diagnostics.Stopwatch.StartNew();
+
             try
             {
                 // Greetings and other small talk need no document retrieval;
@@ -895,7 +932,10 @@ namespace Avalanche.Features.AI
                 // context. Readability lifts the active tab's article text
                 // fresh for this turn (nothing cached, nothing shared), and
                 // the page becomes the prompt's only evidence. No retrieval,
-                // no vectors, no citations: a page has no pages to navigate to.
+                // no vectors. v1.19.25: the answer cites the page - the
+                // prompt's numbered segments are the evidence list, and each
+                // footnote's quote is what the browser hunts down, selects
+                // and highlights on the live page.
                 bool webContext;
                 lock (_processingLock) webContext = _isWebContext;
                 if (webContext)
@@ -941,8 +981,18 @@ namespace Avalanche.Features.AI
                         }
                     }
 
+                    // v1.19.25: the segments the prompt numbered are this
+                    // reply's evidence list; the model's sources resolve
+                    // against them and against the page's own text before a
+                    // single footnote circle is allowed to render.
+                    var segments = WebChat.SplitPageSegments(page.Text);
+                    WebChat.ResolveWebSources(webResponse.Sources, segments, page.Text);
+                    assistantMsg.Sources = webResponse.Sources;
                     assistantMsg.Content = webResponse.Answer;
                     assistantMsg.IsLoading = false;
+                    // v1.19.25: this answer's wall clock, above the input.
+                    LastDurationText = string.Format(
+                        _loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed));
                     return;
                 }
 
@@ -1008,6 +1058,9 @@ namespace Avalanche.Features.AI
                 assistantMsg.Sources = response.Sources; // chip row binds on this change
                 assistantMsg.Content = response.Answer;  // markdown rebuild sees the sources
                 assistantMsg.IsLoading = false;
+                // v1.19.25: this answer's wall clock, above the input.
+                LastDurationText = string.Format(
+                    _loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed));
 
                 // Scroll to bottom - fire-and-forget UI update
                 _ = Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
@@ -1293,6 +1346,7 @@ namespace Avalanche.Features.AI
                 Messages.Clear();
                 ContextTitle = "";
                 SemanticStatus = "";
+                LastDurationText = "";   // no answer of this context is on screen
                 // v1.19.5: the research button returns to idle with the book.
                 _semanticResearchEnabled = false;
                 _semanticBuilding = false;
@@ -1319,6 +1373,7 @@ namespace Avalanche.Features.AI
             {
                 Messages.Clear();
                 ClearInput();
+                LastDurationText = "";   // a fresh conversation has no last answer
             });
         }
 

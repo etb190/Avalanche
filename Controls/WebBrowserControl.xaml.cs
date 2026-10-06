@@ -2362,6 +2362,103 @@ namespace Avalanche.Controls
             }
         }
 
+        // ── Citation jump (v1.19.25) ─────────────────────────────────────────────────
+
+        /// <summary>The quote-finder script a citation click injects. The
+        /// model's quote arrives as a JSON string literal in place of
+        /// __Q__ (JSON is a valid JS string literal on every engine this
+        /// runs on). The walk covers the light DOM's visible text nodes -
+        /// the same surface Readability lifted the page text from - and the
+        /// mapping back onto the original node values survives every
+        /// whitespace collapse the normalization made.</summary>
+        private const string PageHighlightScript =
+            "(function(){try{var q=__Q__;"
+            + "if(typeof q!=='string'||!q.trim())return JSON.stringify({ok:false,reason:'empty'});"
+            + "try{if(window.CSS&&CSS.highlights){CSS.highlights.delete('avalanche-cite');}}catch(e){}"
+            + "var norm=function(s){return (s||'').replace(/\\s+/g,' ').trim();};"
+            + "var target=norm(q);"
+            + "if(!target)return JSON.stringify({ok:false,reason:'empty'});"
+            + "var root=document.body;"
+            + "if(!root)return JSON.stringify({ok:false,reason:'nobody'});"
+            + "var walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){"
+            + "if(!n.nodeValue||!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;"
+            + "var p=n.parentElement;if(!p)return NodeFilter.FILTER_REJECT;var t=p.tagName;"
+            + "if(t==='SCRIPT'||t==='STYLE'||t==='NOSCRIPT'||t==='TEXTAREA'||t==='TEMPLATE'||t==='IFRAME')return NodeFilter.FILTER_REJECT;"
+            + "return NodeFilter.FILTER_ACCEPT;}});"
+            + "var nodes=[],parts=[],starts=[],total=0,node;"
+            + "while((node=walker.nextNode())){var nt=norm(node.nodeValue);if(!nt)continue;"
+            + "starts.push(total);nodes.push(node);parts.push(nt);total+=nt.length+1;}"
+            + "if(!nodes.length)return JSON.stringify({ok:false,reason:'notext'});"
+            + "var full=parts.join(' ');"
+            + "var matched=target;var idx=full.indexOf(matched);"
+            + "if(idx<0){var tryLens=[120,80,40,20];"
+            + "for(var i=0;i<tryLens.length;i++){if(matched.length<=tryLens[i])continue;"
+            + "var cand=matched.slice(0,tryLens[i]);var at=full.indexOf(cand);"
+            + "if(at>=0){idx=at;matched=cand;break;}}}"
+            + "if(idx<0)return JSON.stringify({ok:false,reason:'notfound'});"
+            + "var endIdx=idx+matched.length;"
+            + "var mapBack=function(orig,rel){var m=[],lastWasSpace=true;"
+            + "for(var i=0;i<orig.length;i++){var ch=orig.charAt(i);"
+            + "if(/\\s/.test(ch)){if(!lastWasSpace){m.push(i);lastWasSpace=true;}}"
+            + "else{m.push(i);lastWasSpace=false;}}"
+            + "if(rel<0)return 0;if(rel>=m.length)return orig.length;return m[rel];};"
+            + "var startNode=null,startOff=0,endNode=null,endOff=0;"
+            + "for(var i=0;i<nodes.length;i++){var b=starts[i],len=parts[i].length;"
+            + "if(startNode===null&&idx>=b&&idx<b+len){startNode=nodes[i];startOff=mapBack(nodes[i].nodeValue,idx-b);}"
+            + "if(endIdx>b&&endIdx<=b+len){endNode=nodes[i];endOff=mapBack(nodes[i].nodeValue,endIdx-b);}}"
+            + "if(!startNode||!endNode)return JSON.stringify({ok:false,reason:'notfound'});"
+            + "var range=document.createRange();range.setStart(startNode,startOff);range.setEnd(endNode,endOff);"
+            + "try{var sel=window.getSelection();if(sel){sel.removeAllRanges();sel.addRange(range);}}catch(e){}"
+            + "var painted=false;"
+            + "try{if(window.CSS&&CSS.highlights&&typeof window.Highlight==='function'){"
+            + "var sheets=document.adoptedStyleSheets||[];var has=false;"
+            + "for(var i=0;i<sheets.length;i++){if(sheets[i]&&sheets[i].__avalancheCite){has=true;break;}}"
+            + "if(!has){var sheet=new CSSStyleSheet();sheet.__avalancheCite=true;"
+            + "sheet.insertRule('::highlight(avalanche-cite){background-color:rgba(100,180,255,0.4);}');"
+            + "document.adoptedStyleSheets=sheets.concat([sheet]);}"
+            + "CSS.highlights.set('avalanche-cite',new Highlight(range));painted=true;}}catch(e){}"
+            + "try{var anchor=startNode.parentElement||endNode.parentElement||root;"
+            + "try{anchor.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){try{anchor.scrollIntoView(true);}catch(e2){}}}catch(e){}"
+            + "return JSON.stringify({ok:true,painted:painted});}"
+            + "catch(e){return JSON.stringify({ok:false,reason:'exception',error:String(e)})}})()";
+
+        private static string BuildHighlightScript(string quote)
+        {
+            string literal;
+            try { literal = System.Text.Json.JsonSerializer.Serialize(quote ?? string.Empty); }
+            catch { literal = "\""; }
+            return PageHighlightScript.Replace("__Q__", literal);
+        }
+
+        /// <summary>Finds <paramref name="quote"/> on the tab's live page,
+        /// selects and highlights it. Null when the tab is gone, its engine
+        /// is not up, or the script timed out; otherwise the parsed verdict.</summary>
+        public async Task<Features.AI.WebHighlightResult?> HighlightTextInTabAsync(
+            string tabId, string quote, System.Threading.CancellationToken ct = default)
+        {
+            try
+            {
+                WebView2? view = null;
+                foreach (WebTabCardVm t in Tabs)
+                    if (t.TabId == tabId) { view = t.View; break; }
+                CoreWebView2? core = view?.CoreWebView2;
+                if (core is null) return null;
+
+                var execution = core.ExecuteScriptAsync(BuildHighlightScript(quote));
+                var finished = await Task.WhenAny(execution, Task.Delay(10000, ct));
+                if (finished != execution)
+                {
+                    try { execution.Dispose(); } catch { /* a page answering into the void */ }
+                    return null;   // timeout or abandoned context
+                }
+                return Features.AI.WebChat.ParseHighlightResult(execution.Result);
+            }
+            catch
+            {
+                return null;   // a page that refuses the script is simply not findable
+            }
+        }
+
         private string? TryLoc(string key) => TryFindResource(key) as string;
     }
 

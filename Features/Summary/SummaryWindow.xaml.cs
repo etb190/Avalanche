@@ -116,6 +116,11 @@ namespace Avalanche.Features.Summary
         private Task<string>? _prefetchFlight;      // the in-flight fetch
         private string? _prefetchText;              // the completed buffer (null = none)
         private int _prefetchFirst, _prefetchLast;  // the stretch the buffer covers
+        private DateTime _prefetchStartedUtc = DateTime.UtcNow;  // the flight's clock
+
+        // The live run's clock: StartGeneration winds it, the digest spends
+        // it into the status line ("took 42s" / "took 1m 12s", v1.19.25).
+        private DateTime _runStartedUtc = DateTime.UtcNow;
 
         public SummaryWindow(
             MainWindow owner,
@@ -425,6 +430,14 @@ namespace Avalanche.Features.Summary
         // tester and starts it on this range - first page through last.
         public event Action<int, int>? TestRangeRequested;
 
+        /// <summary>
+        /// Raised when the floating popup's Search fires (v1.19.25) with the
+        /// ready-to-open query URL. The window spawns nothing itself: the
+        /// app's browser is MainWindow's pane, and the query opens there as
+        /// a new tab instead of in the system browser.
+        /// </summary>
+        public event Action<string>? WebSearchRequested;
+
         /// <summary>True when this window already summarizes the given document
         /// (MainWindow reuses the instance instead of opening a second one).</summary>
         public bool DocumentPathEquals(string path)
@@ -724,6 +737,7 @@ namespace Avalanche.Features.Summary
             int last = RangeEnd();
             int gen = ++_generation;
             _generating = true;
+            _runStartedUtc = DateTime.UtcNow;   // the status line's "took ..." starts here
             _fullText = string.Empty;
             // The superseded source is deliberately NOT disposed: the detached loop is
             // still polling its token, and a disposed source can throw from those
@@ -871,7 +885,8 @@ namespace Avalanche.Features.Summary
             // estimate. A provider that silently truncated the input can no longer
             // hide behind a fluent digest; without usage the plain word/character
             // count remains.
-            StatusText.Text = VerificationStatusLine();
+            StatusText.Text = VerificationStatusLine()
+                + DurationSuffix(DateTime.UtcNow - _runStartedUtc);
             SaveDigest();       // the digest survives the window, the app, the session
             _cts?.Dispose();
             _cts = null;
@@ -910,6 +925,12 @@ namespace Avalanche.Features.Summary
             return string.Format(
                 _loc("Str_SummaryBadgeVerified"), pages, tokens, words);
         }
+
+        // v1.19.25: the generation's wall clock, appended right after the
+        // word count the status line ends with - "  |  took 42s", minutes
+        // and seconds past the full minute.
+        private string DurationSuffix(TimeSpan elapsed)
+            => "  |  " + string.Format(_loc("Str_SummaryTook"), Features.AI.AiChatText.FormatDuration(elapsed));
 
         // Reset: the fourth generation owner. It stops any live run, clears the
         // card and returns the navigator to idle/ready - and NOTHING else: the
@@ -1036,6 +1057,7 @@ namespace Avalanche.Features.Summary
             int last = Math.Min(first + _rangePages - 1, _pageCount);
             _prefetchFirst = first;
             _prefetchLast = last;
+            _prefetchStartedUtc = DateTime.UtcNow;
             _prefetchText = null;
             _prefetchCts = new CancellationTokenSource();
             CancellationToken ct = _prefetchCts.Token;
@@ -1043,6 +1065,8 @@ namespace Avalanche.Features.Summary
                 _filePath, _documentId, first, last, _targetWords, _language, _genre, BypassCache: false);
             AiProviderConfig config = _configProvider();
             Func<string, string> loc = _loc;
+            // v1.19.25: the bottom-right word - the buffer is generating.
+            BufferStatusText.Text = _loc("Str_SummaryBufferBusy");
             _prefetchFlight = Task.Run(
                 async () =>
                 {
@@ -1069,7 +1093,15 @@ namespace Avalanche.Features.Summary
                 },
                 ct);
             _ = _prefetchFlight.ContinueWith(
-                t => _prefetchText = t.IsCompletedSuccessfully ? t.Result : null,
+                t =>
+                {
+                    _prefetchText = t.IsCompletedSuccessfully ? t.Result : null;
+                    // v1.19.25: "ready" when the digest landed; silence when
+                    // the fetch died (the next navigation explains why).
+                    BufferStatusText.Text = t.IsCompletedSuccessfully
+                        ? _loc("Str_SummaryBufferReady")
+                        : string.Empty;
+                },
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.FromCurrentSynchronizationContext());
@@ -1165,7 +1197,8 @@ namespace Avalanche.Features.Summary
                 _runFirstPage = _prefetchFirst;
                 _runLastPage = _prefetchLast;
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                StatusText.Text = VerificationStatusLine();
+                StatusText.Text = VerificationStatusLine()
+                    + DurationSuffix(DateTime.UtcNow - _prefetchStartedUtc);
                 SaveDigest();
             }
             else
@@ -1189,6 +1222,7 @@ namespace Avalanche.Features.Summary
             _prefetchText = null;
             _prefetchFirst = 0;
             _prefetchLast = 0;
+            BufferStatusText.Text = string.Empty;
         }
 
         // ------------------------------------------------------------------
@@ -2037,22 +2071,14 @@ namespace Avalanche.Features.Summary
 
             if (action == "search")
             {
-                // The system browser carries the selection, exactly the
-                // pdf-summarizer-extension's handoff: encoded query, shell open.
+                // The app's own browser carries the selection (v1.19.25): the
+                // encoded query opens as a new tab of the built-in browser -
+                // the pane comes forward, the reader never leaves the app.
+                // The popup goes with the attention that left it.
                 string query = Uri.EscapeDataString(TruncateForQuery(_actionTarget));
-                try
-                {
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                    {
-                        FileName = $"https://www.google.com/search?q={query}",
-                        UseShellExecute = true
-                    });
-                }
-                catch
-                {
-                    // No default browser or a shell refusal: nothing breaks.
-                }
-
+                string url = $"https://www.google.com/search?q={query}";
+                DismissActionPopup();
+                WebSearchRequested?.Invoke(url);
                 return;
             }
 

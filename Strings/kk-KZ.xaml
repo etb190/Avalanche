@@ -1103,6 +1103,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiChatError">Error communicating with AI service.</sys:String>
     <sys:String x:Key="Str_AiChatNoMatches">I couldn't find any relevant passages in the document for your question.</sys:String>
     <sys:String x:Key="Str_AiChatSourceNavigateFailed">Could not locate the cited passage on this page.</sys:String>
+    <sys:String x:Key="Str_AiChatTook">Жасау уақыты {0}</sys:String>
+    <sys:String x:Key="Str_AiChatWebNavigateFailed">Бұл үзінді бетте табылмады.</sys:String>
     <sys:String x:Key="Str_AiChatSourceTip">Page {0} -- Show cited passage</sys:String>
 
 
@@ -1203,6 +1205,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_ToolbarToolsCaption">Құралдар</sys:String>
 	<sys:String x:Key="Str_TT_Tools">Кеңейтілген құралдар жиынын көрсету немесе жасыру</sys:String>
 	<sys:String x:Key="Str_SummaryCounts">{0} сөз / {1} таңба</sys:String>
+	<sys:String x:Key="Str_SummaryTook">уақыты {0}</sys:String>
+	<sys:String x:Key="Str_SummaryBufferBusy">Буфер: жасалуда…</sys:String>
+	<sys:String x:Key="Str_SummaryBufferReady">Буфер: дайын</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} бет қалды</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Құжатыңызбен сөйлесіңіз</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Осы құжат туралы кез келген нәрсені сұраңыз - түйіндеме, түсіндірме, аударма. ЖИ әр бетті оқыды.</sys:String>
