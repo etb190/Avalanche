@@ -108,6 +108,10 @@ namespace Avalanche
             => ((IViewerHost)this).RunWithViewerContext(viewer, () => PopulateContextMenu(point, pageIndex));
         void IViewerHost.RefreshPageList(PdfViewer viewer)
             => ((IViewerHost)this).RunWithViewerContext(viewer, RefreshPageList);
+        // v1.19.37: the tab-switch re-seat, run with the arriving tab as the active viewer so
+        // the window-side core reads THAT session's cache (the same rails RefreshPageList rides).
+        void IViewerHost.RestorePageListForTabSwitch(PdfViewer viewer)
+            => ((IViewerHost)this).RunWithViewerContext(viewer, RestorePageListForTabSwitch);
 
         Cursor IViewerHost.CursorForTool(EditTool tool) => CursorForTool(tool);
 

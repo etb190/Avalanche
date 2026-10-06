@@ -133,6 +133,11 @@ namespace Avalanche.Features
         void RepositionAnnotationBars();
         void PopulateContextMenu(PdfViewer viewer, Point point, int pageIndex);
         void RefreshPageList(PdfViewer viewer);
+
+        // v1.19.37: a TAB switch re-seats the arriving tab's own sidebar list (its session
+        // cache, complete and file-current) instead of rebuilding and re-decoding it. Falls
+        // back to a full refresh whenever the cache cannot be proven to match.
+        void RestorePageListForTabSwitch(PdfViewer viewer);
         Cursor CursorForTool(EditTool tool);
 
         // ── Notifications, so the window can update chrome for the FOCUSED viewer only ───────

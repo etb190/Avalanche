@@ -602,6 +602,7 @@ namespace Avalanche.Controls
         private void ShowEmptyState()
         {
             CancelRenderWork();
+            _sidebarReseatPending = false;   // a failed open/switch never reaches RefreshPageList
             _activeTextBox = null;
             RemoveTextEditHandles();
             Host?.ClearSidebarPages(this);
@@ -767,6 +768,15 @@ namespace Avalanche.Controls
             if (_active != null) CaptureSessionState(_active);
             SetActiveSession(target);
             ApplySessionState(target);
+            // v1.19.37: a tab switch is the one arrival that knows NOTHING about the incoming
+            // document changed - its page list, thumbnails included, is still sitting complete
+            // on the session. BootstrapDocumentView's unconditional RefreshPageList used to
+            // rebuild that array and re-decode every page thumbnail from the file on each flip
+            // (a second full pdfium parse of the book per switch), which read - and cost -
+            // exactly like opening it for the first time. The flag diverts that one call into
+            // a re-seat of the tab's own array; every unusable case (never built, still
+            // decoding, file rewritten, page count moved) falls back to the full refresh.
+            _sidebarReseatPending = true;
             // Hide the document content while the new tab renders and restores its scroll position, then fade
             // it in. This masks the rebuild and the "loads at the top then snaps to my place" jump - the user
             // only sees the final, correctly-scrolled view fade in. PageContentGrid is the parent of BOTH the
@@ -918,6 +928,9 @@ namespace Avalanche.Controls
                 var next = _sessions[Math.Min(idx, _sessions.Count - 1)];
                 SetActiveSession(next);
                 ApplySessionState(next);
+                // v1.19.37: closing one tab and landing on its neighbor is a switch too - the
+                // neighbor's own page list never changed. Same re-seat, same fallbacks.
+                _sidebarReseatPending = true;
                 if (next.Doc == null && next.DeferredPath != null) MaterializeDeferred(next);
                 else RenderActiveSession();
                 if (next.CurrentFile != null)

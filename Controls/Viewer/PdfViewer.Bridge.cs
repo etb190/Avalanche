@@ -131,7 +131,25 @@ namespace Avalanche.Controls
         // ClearTextSelection, AccentBrush, RenderPageLinks, AddSecondaryPageLinks and the
         // PageList_SelectionChanged delegate are real members of this class now.
         private void PopulateContextMenu(Point pt, int page) => Host!.PopulateContextMenu(this, pt, page);
-        private void RefreshPageList() => Host!.RefreshPageList(this);
+
+        // v1.19.37: set by a tab arrival (SwitchToTab / CloseTabCore's neighbor landing),
+        // consumed by the FIRST RefreshPageList of the incoming render - the one inside
+        // BootstrapDocumentView. That call re-seats the arriving tab's own page list instead
+        // of rebuilding it. ShowEmptyState clears the flag so a failed open can never spend
+        // it on an unrelated later refresh; a re-seat that cannot prove the cache current
+        // falls back to the full refresh inside the host.
+        private bool _sidebarReseatPending;
+
+        private void RefreshPageList()
+        {
+            if (_sidebarReseatPending)
+            {
+                _sidebarReseatPending = false;
+                Host!.RestorePageListForTabSwitch(this);
+                return;
+            }
+            Host!.RefreshPageList(this);
+        }
         private Cursor CursorForTool(EditTool t) => Host!.CursorForTool(t);
 
         // The render cache is not forwarded either - TryGetCachedRender / CacheRender are real

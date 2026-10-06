@@ -242,19 +242,30 @@ namespace Avalanche
         ///
         /// Not folded into RefreshPageList as a general cache: every other caller is calling it
         /// BECAUSE the pages changed, and a cache keyed on the file path would make those no-op and
-        /// leave stale thumbnails on screen. Only a focus switch knows nothing changed.
-        ///
-        /// Falls back to a full refresh whenever the cache cannot be proven to match.</summary>
-        internal void RestorePageListForActivePane()
+        /// leave stale thumbnails on screen. Only a focus switch knows nothing changed.</summary>
+        internal void RestorePageListForActivePane() => RestorePageListCore(ActiveViewer);
+
+        /// <summary>v1.19.37: the TAB-switch route into the same re-seat. A tab flip reaches the
+        /// sidebar through BootstrapDocumentView's RefreshPageList, and rebuilding there
+        /// re-decoded every page thumbnail from the file on every flip - a second full pdfium
+        /// parse of the book per switch, which read exactly like a first open. The bridge
+        /// diverts that one call here (inside the arriving viewer's context), the session's own
+        /// array is shown as-is, and any unusable case falls back to the full refresh.</summary>
+        internal void RestorePageListForTabSwitch() => RestorePageListCore(ActiveViewer);
+
+        /// <summary>The shared re-seat body. `viewer` owns the cache being offered: within
+        /// RunWithViewerContext the ActiveViewer IS the arriving tab, so both routes read the
+        /// session whose list belongs on screen.</summary>
+        private void RestorePageListCore(Controls.PdfViewer viewer)
         {
-            var cached = ActiveViewer.ThumbCache;
-            int preservedPage = ActiveViewer.CurrentPageIndex;
+            var cached = viewer.ThumbCache;
+            int preservedPage = viewer.CurrentPageIndex;
 
             // v1.19.28: a cache is only usable while the file it decoded is the
             // file on disk - a tab edited while it sat behind (a save, an OCR
             // pass, a temp reload) must fall back to a fresh decode, not paint
             // the look it wore when it left the screen.
-            bool fileCurrent = ActiveViewer.ThumbCacheStamp is { } stamp
+            bool fileCurrent = viewer.ThumbCacheStamp is { } stamp
                        && _currentFile != null
                        && System.IO.File.Exists(_currentFile)
                        && System.Math.Abs(
@@ -264,19 +275,29 @@ namespace Avalanche
                        && _doc != null
                        && _currentFile != null
                        && fileCurrent
-                       && ActiveViewer.ThumbCacheComplete
+                       && viewer.ThumbCacheComplete
                        && cached.Length == _doc.PageCount
-                       && string.Equals(ActiveViewer.ThumbCacheFile, _currentFile,
+                       && string.Equals(viewer.ThumbCacheFile, _currentFile,
                                         System.StringComparison.OrdinalIgnoreCase);
 
             if (!usable) { RefreshPageList(); return; }
+
+            // The reading-range paint rides the item VMs, so a cached array can carry the range
+            // a navigator brushed onto it before the tab was switched away. The range belongs to
+            // the navigator, not to the list: with no live navigator on screen the re-seat strips
+            // the flags - a returning navigator repaints its own range on arrival anyway.
+            if (_summaryWindow is not { IsVisible: true }
+                && cached is { } liveList && liveList.Any(vm => vm.IsInRange))
+            {
+                foreach (var vm in liveList) vm.IsInRange = false;
+            }
 
             // No cancel here. The panes own their thumbnail lists and their loader tokens
             // separately, so the other pane's decode is writing into ITS array and should be left
             // to finish - canceling it was what left a pane showing page labels with no pictures
             // after any focus change.
             _sidebarPages.Show(cached);
-            ActiveViewer.SyncPageListSelection(preservedPage);
+            viewer.SyncPageListSelection(preservedPage);
         }
 
         internal void RefreshPageList()
