@@ -1319,5 +1319,10 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Aggiungi questa pagina ai segnalibri</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Salva le pagine con ☆</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">Aggiungi alla cartella</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">Nuova cartella…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">Nessuna cartella</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">Nome cartella</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">Ancora nulla in questa cartella</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nome</sys:String>
 </ResourceDictionary>

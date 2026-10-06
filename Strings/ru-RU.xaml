@@ -1319,5 +1319,10 @@ Avalanche не будет создавать две установленные �
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Добавить страницу в закладки</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Добавляйте страницы кнопкой ☆</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">Добавить в папку</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">Новая папка…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">Без папки</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">Имя папки</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">В этой папке пока ничего нет</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Название</sys:String>
 </ResourceDictionary>

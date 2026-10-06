@@ -250,9 +250,20 @@ namespace Avalanche
             var cached = ActiveViewer.ThumbCache;
             int preservedPage = ActiveViewer.CurrentPageIndex;
 
+            // v1.19.28: a cache is only usable while the file it decoded is the
+            // file on disk - a tab edited while it sat behind (a save, an OCR
+            // pass, a temp reload) must fall back to a fresh decode, not paint
+            // the look it wore when it left the screen.
+            bool fileCurrent = ActiveViewer.ThumbCacheStamp is { } stamp
+                       && _currentFile != null
+                       && System.IO.File.Exists(_currentFile)
+                       && System.Math.Abs(
+                           (System.IO.File.GetLastWriteTimeUtc(_currentFile) - stamp).TotalSeconds) < 2.0;
+
             bool usable = cached != null
                        && _doc != null
                        && _currentFile != null
+                       && fileCurrent
                        && ActiveViewer.ThumbCacheComplete
                        && cached.Length == _doc.PageCount
                        && string.Equals(ActiveViewer.ThumbCacheFile, _currentFile,
@@ -319,6 +330,7 @@ namespace Avalanche
             // rather than decode the document again. RestorePageListForActivePane is the only reader.
             ActiveViewer.ThumbCache     = items;
             ActiveViewer.ThumbCacheFile = filePath;
+            ActiveViewer.ThumbCacheStamp = System.IO.File.GetLastWriteTimeUtc(filePath);   // v1.19.28
             ActiveViewer.ThumbCacheComplete = false;
 
             // Load thumbnails sequentially on a background thread via a single doc reader.
@@ -353,6 +365,66 @@ namespace Avalanche
                             thumbnailOwner.MarkThumbnailCacheComplete(items));
                 }
                 catch { /* docReader open failed; all items remain label-only */ }
+            }, ct);
+        }
+
+        // ── v1.19.28: the visited page's thumbnail follows the file ─────────────
+        // The list decodes once per build; a page the reader revisits showed
+        // the look the file had when the list was built. Routing to a page now
+        // re-renders that one thumbnail from the current working file, so a
+        // rotation, a save or an edit surfaces the moment the reader arrives.
+        // A debounce keeps a fast scroll or a page-run from rendering every
+        // page it crosses: only the page the reader lands on is decoded.
+
+        private System.Windows.Threading.DispatcherTimer? _pageThumbTimer;
+        private int _pageThumbPendingPage = -1;
+        private System.Threading.CancellationTokenSource? _pageThumbCts;
+
+        internal void RefreshPageThumbnailSoon(int pageIndex)
+        {
+            if (_doc is null || _currentFile is null || pageIndex < 0) return;
+            _pageThumbPendingPage = pageIndex;
+            if (_pageThumbTimer is null)
+            {
+                _pageThumbTimer = new System.Windows.Threading.DispatcherTimer(
+                    System.Windows.Threading.DispatcherPriority.Background)
+                {
+                    Interval = System.TimeSpan.FromMilliseconds(160)
+                };
+                _pageThumbTimer.Tick += (_, _) =>
+                {
+                    _pageThumbTimer!.Stop();
+                    int page = _pageThumbPendingPage;
+                    _pageThumbPendingPage = -1;
+                    if (page >= 0) RefreshPageThumbnail(page);
+                };
+            }
+            _pageThumbTimer.Stop();
+            _pageThumbTimer.Start();
+        }
+
+        private void RefreshPageThumbnail(int pageIndex)
+        {
+            if (_doc is null || _currentFile is null) return;
+            if (PageList.ItemsSource is not PageThumbnailVm[] items) return;
+            if (pageIndex < 0 || pageIndex >= items.Length) return;
+            PageThumbnailVm vm = items[pageIndex];
+            string filePath = _currentFile;
+            int rot = _pageRotations.TryGetValue(pageIndex, out int r) ? r : 0;
+
+            _pageThumbCts?.Cancel();
+            _pageThumbCts?.Dispose();
+            _pageThumbCts = new System.Threading.CancellationTokenSource();
+            System.Threading.CancellationToken ct = _pageThumbCts.Token;
+
+            _ = System.Threading.Tasks.Task.Run(() =>
+            {
+                try
+                {
+                    var src = PageThumbnailVm.BuildThumb(filePath, pageIndex, rot);
+                    if (src != null && !ct.IsCancellationRequested) vm.SetThumbnail(src);
+                }
+                catch { /* a thumbnail that will not render keeps the old one */ }
             }, ct);
         }
     }

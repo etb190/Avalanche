@@ -133,46 +133,87 @@
         <!-- v1.19.11: the reader's own bookmarks, where the curated dial chips used
              to sit. One chip per saved page - a globe and the name the reader gave
              it; a click opens the page, a right-click offers Edit and Delete, and
-             until the first page is saved a quiet hint points at the star. -->
-        <Grid Grid.Row="1" Margin="10,7,10,2">
-            <TextBlock x:Name="WebBookmarksHint" Text="{DynamicResource Str_Web_BookmarkHint}"
-                       Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5"
-                       VerticalAlignment="Center" HorizontalAlignment="Left" Visibility="Collapsed"/>
-            <ItemsControl x:Name="WebBookmarksList"
-                          ItemsSource="{Binding Bookmarks, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding Url}"
-                                Click="BookmarkChip_Click" ToolTip="{Binding Url}"
-                                ContextMenuOpening="BookmarkChip_ContextMenuOpening">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                           Margin="0,1,5,0" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource MutedTextBrush}"/>
-                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <Button.ContextMenu>
-                                <ContextMenu>
-                                    <MenuItem Header="{DynamicResource Str_Web_OpenInNewTab}" Click="BookmarkOpenInTab_Click">
-                                        <MenuItem.Icon><TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click">
-                                        <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
-                                    </MenuItem>
-                                    <MenuItem Header="{DynamicResource Str_Ctx_BmDelete}" Click="BookmarkDelete_Click">
-                                        <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
-                                    </MenuItem>
-                                </ContextMenu>
-                            </Button.ContextMenu>
-                        </Button>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+             until the first page is saved a quiet hint points at the star.
+             v1.19.28: the strip wears folders too - folder chips first, then the
+             loose pages, then the folder-plus chip. A left-click on the strip
+             itself (or that chip) names a new folder; a folder chip opens the
+             pages it holds. -->
+        <Grid Grid.Row="1" Margin="10,7,10,2" Background="Transparent"
+              PreviewMouseLeftButtonDown="BookmarksArea_PreviewMouseDown">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                <TextBlock x:Name="WebBookmarksHint" Text="{DynamicResource Str_Web_BookmarkHint}"
+                           Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5"
+                           VerticalAlignment="Center" Margin="0,0,6,0" Visibility="Collapsed"/>
+                <ItemsControl x:Name="WebFoldersList" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding}"
+                                    Click="FolderChip_Click" ToolTip="{Binding}"
+                                    ContextMenuOpening="BookmarkChip_ContextMenuOpening">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Margin="0,1,5,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="FolderRename_Click">
+                                            <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="{DynamicResource Str_Ctx_BmDelete}" Click="FolderDelete_Click">
+                                            <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl x:Name="WebBookmarksList" Margin="6,0,0,0" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding Url}"
+                                    Click="BookmarkChip_Click" ToolTip="{Binding Url}"
+                                    ContextMenuOpening="BookmarkChip_ContextMenuOpening">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Margin="0,1,5,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Button.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="{DynamicResource Str_Web_OpenInNewTab}" Click="BookmarkOpenInTab_Click">
+                                            <MenuItem.Icon><TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click">
+                                            <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="{DynamicResource Str_Ctx_BmDelete}" Click="BookmarkDelete_Click">
+                                            <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                        </MenuItem>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button x:Name="WebNewFolderChip" Style="{StaticResource WebBookmarkChip}"
+                        Click="NewFolderChip_Click" ToolTip="{DynamicResource Str_Web_FolderNew}"
+                        Content="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                        Padding="7,4"/>
+            </StackPanel>
         </Grid>
 
         <!-- v1.19.11: this strip speaks only when there is no engine to dress the
@@ -212,8 +253,95 @@
                              Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
                              BorderThickness="1" Padding="6,4" FontSize="12" CaretBrush="{DynamicResource PrimaryBrush}"
                              KeyDown="WebBookmarkNameBox_KeyDown"/>
+                    <!-- v1.19.28: "add to folder" - the save flow's list of folders.
+                         "New folder…" reveals a name box; the new folder is selected
+                         by the very act of naming it, and Save files the bookmark
+                         there. Editing a saved bookmark offers the same picker. -->
+                    <TextBlock Text="{DynamicResource Str_Web_AddToFolder}" FontSize="11"
+                               Foreground="{DynamicResource MutedTextBrush}" Margin="0,8,0,4"/>
+                    <ComboBox x:Name="WebBookmarkFolderBox" Style="{DynamicResource DarkComboBox}"
+                              Height="28" FontSize="12" HorizontalAlignment="Stretch"
+                              SelectionChanged="WebBookmarkFolderBox_SelectionChanged"/>
+                    <TextBlock x:Name="WebNewFolderLabel" Text="{DynamicResource Str_Web_NewFolderName}" FontSize="11"
+                               Foreground="{DynamicResource MutedTextBrush}" Margin="0,8,0,4" Visibility="Collapsed"/>
+                    <TextBox x:Name="WebBookmarkNewFolderBox" Background="{DynamicResource PaneBrush}"
+                             Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                             BorderThickness="1" Padding="6,4" FontSize="12" CaretBrush="{DynamicResource PrimaryBrush}"
+                             KeyDown="WebBookmarkNameBox_KeyDown" Visibility="Collapsed"/>
                     <Button Content="{DynamicResource Str_Btn_Save}" Style="{StaticResource WebBookmarkChip}"
                             HorizontalAlignment="Right" Margin="0,8,0,0" Click="WebBookmarkSave_Click"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- v1.19.28: what a folder chip opens - the pages it holds. Every row
+             is a bookmark chip in its own right: a click opens the page, a
+             right-click offers the tab, Edit (with the folder picker) and
+             Delete. -->
+        <Popup x:Name="WebFolderPopup" Placement="Bottom" StaysOpen="False"
+               AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Background="{DynamicResource WebFlyoutBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                    CornerRadius="{DynamicResource ControlCornerRadius}" Padding="8" Margin="0,0,10,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.35"/>
+                </Border.Effect>
+                <StackPanel MinWidth="200">
+                    <ItemsControl x:Name="WebFolderPopupList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding Url}"
+                                        Click="BookmarkChip_Click" ToolTip="{Binding Url}"
+                                        ContextMenuOpening="BookmarkChip_ContextMenuOpening"
+                                        HorizontalAlignment="Stretch">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                   Margin="0,1,5,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource MutedTextBrush}"/>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <Button.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="{DynamicResource Str_Web_OpenInNewTab}" Click="BookmarkOpenInTab_Click">
+                                                <MenuItem.Icon><TextBlock Text="&#xE8A7;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Header="{DynamicResource Str_Ctx_Edit}" Click="BookmarkEdit_Click">
+                                                <MenuItem.Icon><TextBlock Text="&#xE70F;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Header="{DynamicResource Str_Ctx_BmDelete}" Click="BookmarkDelete_Click">
+                                                <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </Button.ContextMenu>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="WebFolderEmptyNote" Text="{DynamicResource Str_Web_FolderEmpty}"
+                               Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5" Visibility="Collapsed"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- v1.19.28: the folder editor - a left-click on the strip names a new
+             folder, a folder chip's Edit renames it. Enter saves, Escape closes. -->
+        <Popup x:Name="WebFolderEditPopup" PlacementTarget="{Binding ElementName=WebNewFolderChip}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Background="{DynamicResource WebFlyoutBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                    CornerRadius="{DynamicResource ControlCornerRadius}" Padding="10" Margin="0,0,10,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.35"/>
+                </Border.Effect>
+                <StackPanel MinWidth="220">
+                    <TextBlock x:Name="WebFolderEditTitle" FontSize="11"
+                               Foreground="{DynamicResource MutedTextBrush}" Margin="0,0,0,4"/>
+                    <TextBox x:Name="WebFolderEditBox" Background="{DynamicResource PaneBrush}"
+                             Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                             BorderThickness="1" Padding="6,4" FontSize="12" CaretBrush="{DynamicResource PrimaryBrush}"
+                             KeyDown="WebFolderEditBox_KeyDown"/>
+                    <Button Content="{DynamicResource Str_Btn_Save}" Style="{StaticResource WebBookmarkChip}"
+                            HorizontalAlignment="Right" Margin="0,8,0,0" Click="WebFolderEditSave_Click"/>
                 </StackPanel>
             </Border>
         </Popup>

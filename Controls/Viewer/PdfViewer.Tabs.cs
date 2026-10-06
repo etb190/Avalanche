@@ -84,6 +84,7 @@ namespace Avalanche.Controls
             // cancel the thumbnails that an existing tab still owned.
             public PageThumbnailVm[]? ThumbCache;
             public string? ThumbCacheFile;
+            public System.DateTime? ThumbCacheStamp;   // v1.19.28: the file's mtime when the cache was built
             public System.Threading.CancellationTokenSource? ThumbCts;
             public volatile bool ThumbCacheComplete;
 

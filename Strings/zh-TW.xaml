@@ -1301,5 +1301,10 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">收藏此頁面</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">使用 ☆ 收藏頁面</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">新增至資料夾</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">新增資料夾…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">無資料夾</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">資料夾名稱</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">此資料夾中還沒有內容</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">名稱</sys:String>
 </ResourceDictionary>

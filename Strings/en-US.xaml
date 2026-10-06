@@ -1319,5 +1319,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Bookmark this page</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Bookmark pages with ☆</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">Add to folder</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">New folder…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">No folder</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">Folder name</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">Nothing in this folder yet</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Name</sys:String>
 </ResourceDictionary>

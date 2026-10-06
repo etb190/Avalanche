@@ -1299,5 +1299,10 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">এই পৃষ্ঠাটি বুকমার্ক করুন</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">☆ দিয়ে পৃষ্ঠা বুকমার্ক করুন</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">ফোল্ডারে যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">নতুন ফোল্ডার…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">কোনো ফোল্ডার নেই</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">ফোল্ডারের নাম</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">এই ফোল্ডারে এখনো কিছু নেই</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">নাম</sys:String>
 </ResourceDictionary>

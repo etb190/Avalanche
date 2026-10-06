@@ -168,6 +168,15 @@ namespace Avalanche.Controls
             set => _active?.ThumbCacheFile = value;
         }
 
+        /// <summary>The file's mtime when the active tab's thumbnail cache was
+        /// built (v1.19.28). A restore whose file has since changed falls back
+        /// to a fresh decode instead of painting the stale look.</summary>
+        internal System.DateTime? ThumbCacheStamp
+        {
+            get => _active?.ThumbCacheStamp;
+            set => _active?.ThumbCacheStamp = value;
+        }
+
         /// <summary>The active tab's thumbnail loader cancellation. Keeping it per tab prevents a
         /// second document in the same pane from stealing the first document's loader and cache.</summary>
         internal System.Threading.CancellationTokenSource? ThumbCts

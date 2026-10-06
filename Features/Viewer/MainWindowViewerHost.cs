@@ -145,6 +145,11 @@ namespace Avalanche
             }
 
             if (PageList.SelectedIndex != pageIndex) PageList.SelectedIndex = pageIndex;
+            // v1.19.28: the visited page's thumbnail follows the file - every
+            // route to a page re-renders its sidebar picture from the current
+            // working file, so edits made since the list was built surface on
+            // arrival. (Debounced; superseded by the next arrival.)
+            RefreshPageThumbnailSoon(pageIndex);
         }
 
         private static string FooterPageSizeUnit => App.GetSetting("FooterPageSizeUnit") switch

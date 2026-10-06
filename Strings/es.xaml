@@ -1299,5 +1299,10 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Añadir esta página a marcadores</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Guarda páginas con ☆</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">Añadir a carpeta</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">Nueva carpeta…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">Sin carpeta</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">Nombre de la carpeta</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">Aún no hay nada en esta carpeta</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nombre</sys:String>
 </ResourceDictionary>

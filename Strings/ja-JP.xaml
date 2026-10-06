@@ -1319,5 +1319,10 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">このページをブックマーク</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">☆ でページをブックマーク</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">フォルダーに追加</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">新しいフォルダー…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">フォルダーなし</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">フォルダー名</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">このフォルダーにはまだ何もありません</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">名前</sys:String>
 </ResourceDictionary>

@@ -459,7 +459,139 @@ namespace Avalanche.Controls
                 PersistBookmarks();
                 RefreshBookmarksSurface();
                 RefreshBookmarkButton();
+                WebFolderPopup.IsOpen = false;   // v1.19.28: the folder list may be the surface that acted
             }
+        }
+
+        // ── Folders (v1.19.28) - create, open, rename, dissolve ──────────────────────
+        // A left-click on the bookmarks strip (or the folder-plus chip) names a
+        // folder; a folder chip opens a small popup of the pages inside it; a
+        // folder's Edit renames it (its pages follow), its Delete dissolves it
+        // (its pages fall back to the loose strip - nothing is deleted twice).
+
+        private void BookmarksArea_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // A press that landed on any chip is that chip's business; every
+            // other left-click on the strip names a new folder.
+            for (DependencyObject? d = e.OriginalSource as DependencyObject;
+                 d is not null; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+                if (d is System.Windows.Controls.Button) return;
+            OpenFolderEditor(null);
+        }
+
+        private void NewFolderChip_Click(object sender, RoutedEventArgs e) => OpenFolderEditor(null);
+
+        private void FolderChip_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { Tag: string name } chip) return;
+            WebFolderPopupList.ItemsSource = Bookmarks.Where(b => b.Folder == name).ToList();
+            WebFolderEmptyNote.Visibility = WebFolderPopupList.Items.Count == 0
+                ? Visibility.Visible : Visibility.Collapsed;
+            WebFolderPopup.PlacementTarget = chip;
+            WebFolderPopup.IsOpen = true;
+        }
+
+        private void FolderRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: string name }) OpenFolderEditor(name);
+        }
+
+        private void FolderDelete_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { DataContext: string name }) return;
+            Folders.Remove(name);
+            foreach (BookmarkVm b in Bookmarks)
+                if (b.Folder == name) b.Folder = string.Empty;   // the pages survive, loose
+            PersistBookmarks();
+            RefreshBookmarksSurface();
+            WebFolderPopup.IsOpen = false;
+        }
+
+        private string? _renamingFolder;   // non-null while the editor renames instead of creates
+
+        private void OpenFolderEditor(string? existing)
+        {
+            _renamingFolder = existing;
+            WebFolderEditTitle.Text = existing is null
+                ? (TryLoc("Str_Web_FolderNew") ?? "New folder…")
+                : (TryLoc("Str_Ctx_Edit") ?? "Edit");
+            WebFolderEditBox.Text = existing ?? string.Empty;
+            WebFolderPopup.IsOpen = false;
+            WebFolderEditPopup.IsOpen = true;
+            Dispatcher.BeginInvoke(
+                () => { WebFolderEditBox.Focus(); WebFolderEditBox.SelectAll(); },
+                System.Windows.Threading.DispatcherPriority.Input);
+        }
+
+        private void WebFolderEditSave_Click(object sender, RoutedEventArgs e) => CommitFolderEditor();
+
+        private void WebFolderEditBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter) { e.Handled = true; CommitFolderEditor(); }
+            else if (e.Key == System.Windows.Input.Key.Escape) { e.Handled = true; WebFolderEditPopup.IsOpen = false; }
+        }
+
+        private void CommitFolderEditor()
+        {
+            string name = WebFolderEditBox.Text.Trim();
+            string? renaming = _renamingFolder;
+            _renamingFolder = null;
+            WebFolderEditPopup.IsOpen = false;
+            if (name.Length == 0) return;
+            if (renaming is { } old && old != name)
+            {
+                int at = Folders.IndexOf(old);
+                if (at >= 0) Folders[at] = name; else Folders.Add(name);
+                foreach (BookmarkVm b in Bookmarks)
+                    if (b.Folder == old) b.Folder = name;
+            }
+            else if (renaming is null && !Folders.Contains(name))
+            {
+                Folders.Add(name);
+            }
+            PersistBookmarks();
+            RefreshBookmarksSurface();
+        }
+
+        // v1.19.28: the flyout's "add to folder" picker - "(no folder)", every
+        // folder, then "New folder…". Choosing the last reveals a name box; the
+        // folder it names is the one Save uses.
+        private void PopulateFolderPicker(string? selected)
+        {
+            WebBookmarkFolderBox.Items.Clear();
+            WebBookmarkFolderBox.Items.Add(new System.Windows.Controls.ComboBoxItem
+            {
+                Content = TryLoc("Str_Web_FolderNone") ?? "No folder",
+                Tag = "",
+            });
+            foreach (string f in Folders)
+                WebBookmarkFolderBox.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = f, Tag = f });
+            WebBookmarkFolderBox.Items.Add(new System.Windows.Controls.ComboBoxItem
+            {
+                Content = TryLoc("Str_Web_FolderNew") ?? "New folder…",
+                Tag = FolderNewMarker,
+            });
+            System.Windows.Controls.ComboBoxItem? pick = null;
+            if (selected is { } want)
+                pick = WebBookmarkFolderBox.Items.OfType<System.Windows.Controls.ComboBoxItem>()
+                    .FirstOrDefault(i => i.Tag as string == want);
+            WebBookmarkFolderBox.SelectedItem = pick ?? WebBookmarkFolderBox.Items[0];
+            WebBookmarkNewFolderBox.Text = string.Empty;
+            WebBookmarkNewFolderBox.Visibility = Visibility.Collapsed;
+            WebNewFolderLabel.Visibility = Visibility.Collapsed;
+        }
+
+        private void WebBookmarkFolderBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            bool isNew = WebBookmarkFolderBox.SelectedItem is System.Windows.Controls.ComboBoxItem { Tag: string tag }
+                && tag == FolderNewMarker;
+            Visibility show = isNew ? Visibility.Visible : Visibility.Collapsed;
+            WebBookmarkNewFolderBox.Visibility = show;
+            WebNewFolderLabel.Visibility = show;
+            if (isNew)
+                Dispatcher.BeginInvoke(
+                    () => WebBookmarkNewFolderBox.Focus(),
+                    System.Windows.Threading.DispatcherPriority.Input);
         }
 
         /// <summary>The star: a filled one forgets the page on screen; an outlined
@@ -1794,6 +1926,14 @@ namespace Avalanche.Controls
         /// <summary>The bookmarks, newest first. The chips' ItemsControl binds here.</summary>
         public ObservableCollection<BookmarkVm> Bookmarks { get; } = new();
 
+        /// <summary>The folders (v1.19.28), names only. A folder may exist with
+        /// nothing in it yet; the folder chips' ItemsControl binds here.</summary>
+        public ObservableCollection<string> Folders { get; } = new();
+
+        // The flyout picker's "New folder…" row rides this tag - a value no
+        // real folder name can carry.
+        private const string FolderNewMarker = "\u0001new";
+
         private static string BookmarksFile => Path.Combine(AppDataPaths.UserRoot, "bookmarks.json");
 
         private void LoadBookmarks()
@@ -1801,8 +1941,27 @@ namespace Avalanche.Controls
             try
             {
                 if (!File.Exists(BookmarksFile)) return;
-                List<BookmarkVm>? saved = System.Text.Json.JsonSerializer.Deserialize<List<BookmarkVm>>(
-                    File.ReadAllText(BookmarksFile));
+                string text = File.ReadAllText(BookmarksFile);
+                List<BookmarkVm>? saved = null;
+                // v1.19.28: the file grew folders - a wrapper object now. A file
+                // from before is a bare list; one read failing into the other
+                // keeps every older install's bookmarks intact.
+                try
+                {
+                    BookmarkStore? store = System.Text.Json.JsonSerializer.Deserialize<BookmarkStore>(text);
+                    if (store is not null)
+                    {
+                        foreach (string f in store.Folders ?? new List<string>())
+                            if (f.Length > 0 && !Folders.Contains(f)) Folders.Add(f);
+                        saved = store.Bookmarks;
+                    }
+                }
+                catch (System.Text.Json.JsonException) { /* a bare list, then */ }
+                if (saved is null)
+                {
+                    try { saved = System.Text.Json.JsonSerializer.Deserialize<List<BookmarkVm>>(text); }
+                    catch (System.Text.Json.JsonException) { /* not a bookmarks file at all */ }
+                }
                 if (saved is null) return;
                 foreach (BookmarkVm b in saved)
                 {
@@ -1820,7 +1979,7 @@ namespace Avalanche.Controls
             {
                 Directory.CreateDirectory(AppDataPaths.UserRoot);
                 string json = System.Text.Json.JsonSerializer.Serialize(
-                    Bookmarks.ToList(),
+                    new BookmarkStore { Folders = Folders.ToList(), Bookmarks = Bookmarks.ToList() },
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 string temporary = BookmarksFile + ".tmp";
                 File.WriteAllText(temporary, json);
@@ -1849,6 +2008,7 @@ namespace Avalanche.Controls
                     title = Browser?.Source?.Host ?? string.Empty;
                 WebBookmarkNameBox.Text = title;
             }
+            PopulateFolderPicker(editing?.Folder);   // v1.19.28: "add to folder"
             WebBookmarkPopup.IsOpen = true;
             Dispatcher.BeginInvoke(
                 () => { WebBookmarkNameBox.Focus(); WebBookmarkNameBox.SelectAll(); },
@@ -1858,12 +2018,15 @@ namespace Avalanche.Controls
         private void CommitBookmarkFlyout()
         {
             string name = WebBookmarkNameBox.Text.Trim();
+            string folder = ResolveChosenFolder();   // v1.19.28: may create the folder it names
             WebBookmarkPopup.IsOpen = false;
             if (_bookmarkEditing is not null)
             {
                 if (name.Length > 0) _bookmarkEditing.Name = name;   // an empty box keeps the old name
+                _bookmarkEditing.Folder = folder;
                 _bookmarkEditing = null;
                 PersistBookmarks();
+                RefreshBookmarksSurface();
                 return;
             }
             string url = Browser?.Source?.ToString() ?? string.Empty;
@@ -1873,10 +2036,24 @@ namespace Avalanche.Controls
                 Name = name.Length > 0 ? name : (Browser?.Source?.Host ?? url),
                 Url = url,
                 Favicon = string.Empty,   // the globe stands in until a favicon earns its keep
+                Folder = folder,
             });
             PersistBookmarks();
             RefreshBookmarksSurface();
             RefreshBookmarkButton();
+        }
+
+        // v1.19.28: the flyout's folder verdict - the selected folder's name,
+        // the freshly named folder (created here), or empty for the loose strip.
+        private string ResolveChosenFolder()
+        {
+            if (WebBookmarkFolderBox.SelectedItem is not System.Windows.Controls.ComboBoxItem { Tag: string tag })
+                return string.Empty;
+            if (tag != FolderNewMarker) return tag;
+            string name = WebBookmarkNewFolderBox.Text.Trim();
+            if (name.Length == 0) return string.Empty;
+            if (!Folders.Contains(name)) Folders.Add(name);
+            return name;
         }
 
         /// <summary>The star's fill follows the page on screen: filled when the page
@@ -1890,9 +2067,23 @@ namespace Avalanche.Controls
 
         private void RefreshBookmarksSurface()
         {
-            bool any = Bookmarks.Count > 0;
+            // v1.19.28: the strip shows folder chips first, then the loose
+            // bookmarks; the hint only speaks while the strip is entirely bare.
+            WebFoldersList.ItemsSource = Folders;
+            WebBookmarksList.ItemsSource = Bookmarks.Where(b => b.Folder.Length == 0).ToList();
+            bool any = Bookmarks.Count > 0 || Folders.Count > 0;
             WebBookmarksHint.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
-            WebBookmarksList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+            WebBookmarksList.Visibility = Bookmarks.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            WebFoldersList.Visibility = Folders.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>The bookmarks.json shape (v1.19.28): the folders' names and
+        /// the bookmarks together. An older file is a bare list of bookmarks;
+        /// the loader reads both.</summary>
+        private sealed class BookmarkStore
+        {
+            public List<string>? Folders { get; set; }
+            public List<BookmarkVm>? Bookmarks { get; set; }
         }
 
         // ── The session behind the tabs (v1.19.24) ──────────────────────────────────
@@ -2623,6 +2814,10 @@ namespace Avalanche.Controls
 
         /// <summary>Reserved for the site's icon; empty keeps the globe glyph.</summary>
         public string Favicon { get; set; } = "";
+
+        /// <summary>The folder this bookmark lives in (v1.19.28); empty means
+        /// the loose strip. Folders are names, persisted beside the bookmarks.</summary>
+        public string Folder { get; set; } = "";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)

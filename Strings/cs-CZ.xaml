@@ -1304,5 +1304,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Přidat tuto stránku do záložek</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Stránky si uložíte pomocí ☆</sys:String>
+    <sys:String x:Key="Str_Web_AddToFolder">Přidat do složky</sys:String>
+    <sys:String x:Key="Str_Web_FolderNew">Nová složka…</sys:String>
+    <sys:String x:Key="Str_Web_FolderNone">Bez složky</sys:String>
+    <sys:String x:Key="Str_Web_NewFolderName">Název složky</sys:String>
+    <sys:String x:Key="Str_Web_FolderEmpty">V této složce ještě nic není</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Název</sys:String>
 </ResourceDictionary>

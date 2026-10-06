@@ -3252,6 +3252,19 @@
                                                 Background="{Binding MessageRole, Converter={StaticResource AiRoleToBgConverter}}"
                                                 CornerRadius="8" Padding="10,8" Margin="0,0,0,4"
                                                 BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                                            <!-- v1.19.28: while the model thinks, the thinking box is the
+                                                 only word - the answer bubble stays silent until there is
+                                                 an answer to put in it, instead of showing an empty box
+                                                 beside the spinner. -->
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <!-- Selectable and copyable message text. Assistant and system
                                                  messages render markdown (bold/italic/code/headings/
                                                  lists/links) via AiMarkdown; user messages are verbatim.
@@ -3273,9 +3286,11 @@
                                                         <!-- v1.19.25: assistant answers read justified -
                                                              the summarizer's typeset-page alignment,
                                                              carried into the sidechat; the reader's own
-                                                             words stay naturally left-aligned. -->
+                                                             words stay naturally left-aligned. v1.19.28:
+                                                             plain greedy justify, no hyphenation, no
+                                                             optimal paragraph - the digest's exact
+                                                             typesetting, not a variant of it. -->
                                                         <Setter Property="ai:AiMarkdown.ParagraphAlignment" Value="Justify"/>
-                                                        <Setter Property="ai:AiMarkdown.JustifyAid" Value="True"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>

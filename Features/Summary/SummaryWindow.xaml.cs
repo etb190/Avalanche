@@ -117,6 +117,7 @@ namespace Avalanche.Features.Summary
         private string? _prefetchText;              // the completed buffer (null = none)
         private int _prefetchFirst, _prefetchLast;  // the stretch the buffer covers
         private DateTime _prefetchStartedUtc = DateTime.UtcNow;  // the flight's clock
+        private TimeSpan? _prefetchDuration;    // v1.19.28: how long the buffer took to generate
         private bool _schedulePrefetchOnIdle;   // v1.19.26: the finally arms the next buffer - SchedulePrefetch refuses a live run
         private bool _digestRestored;           // v1.19.27: a restored digest arms the buffer like a finished run
 
@@ -1080,6 +1081,7 @@ namespace Avalanche.Features.Summary
             _prefetchFirst = first;
             _prefetchLast = last;
             _prefetchStartedUtc = DateTime.UtcNow;
+            _prefetchDuration = null;
             _prefetchText = null;
             _prefetchCts = new CancellationTokenSource();
             CancellationToken ct = _prefetchCts.Token;
@@ -1118,6 +1120,12 @@ namespace Avalanche.Features.Summary
                 t =>
                 {
                     _prefetchText = t.IsCompletedSuccessfully ? t.Result : null;
+                    // v1.19.28: the buffered stretch's own wall clock - the
+                    // word count the reader sees when they move to it carries
+                    // "took Ns" beside it, exactly where a fresh run puts it.
+                    _prefetchDuration = t.IsCompletedSuccessfully
+                        ? DateTime.UtcNow - _prefetchStartedUtc
+                        : null;
                     // v1.19.25: "ready" when the digest landed. v1.19.27: a
                     // dead flight says so instead of going silent - a word
                     // that simply vanished read as a feature that never ran.
@@ -1154,7 +1162,10 @@ namespace Avalanche.Features.Summary
                 DismissActionPopup();   // the stretch changed: the anchor is stale
                 Overlay(null);
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                StatusText.Text = VerificationStatusLine();
+                StatusText.Text = VerificationStatusLine()
+                    + (_prefetchDuration is TimeSpan bufferedTook
+                        ? DurationSuffix(bufferedTook)
+                        : string.Empty);   // v1.19.28: the served stretch says how long it took
                 SaveDigest();
                 InvalidatePrefetch();
                 SchedulePrefetch();   // v1.19.26: the served stretch arms the next buffer
@@ -1248,6 +1259,7 @@ namespace Avalanche.Features.Summary
             _prefetchCts = null;
             _prefetchFlight = null;
             _prefetchText = null;
+            _prefetchDuration = null;
             _prefetchFirst = 0;
             _prefetchLast = 0;
             BufferStatusText.Text = string.Empty;
