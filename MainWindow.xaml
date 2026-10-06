@@ -3566,6 +3566,15 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
                                 </ComboBox>
+                                <!-- v1.19.34: the notes dial - the left sidebar's own
+                                     voice, back under its own name. -->
+                                <TextBlock Text="{DynamicResource Str_AiModelNotes}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding NotesModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelTester}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           SelectedValuePath="Tag"

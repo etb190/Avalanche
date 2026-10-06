@@ -1122,6 +1122,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Rekapitulace</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI testér</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Poznámky</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1272,6 +1273,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Zapnout nebo vypnout automatické shrnutí při listování stránkami</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Vyrovnávací paměť</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Načítá souhrn další části na pozadí, zatímco čtete</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Zatím žádné shrnutí</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Vyberte rozsah a stiskněte Start - AI přečte tyto strany a napíše sem shrnutí.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Vysílat aktivitu čtení do Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Strana {0}</sys:String>

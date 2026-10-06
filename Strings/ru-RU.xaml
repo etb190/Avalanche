@@ -1137,6 +1137,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Рекап</sys:String>
     <sys:String x:Key="Str_AiModelTester">ИИ-тестер</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Заметки</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1287,6 +1288,10 @@ Avalanche не будет создавать две установленные �
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Включить или выключить автоматический краткий пересказ при перелистывании страниц</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Буфер</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Фоновая генерация краткого содержания следующего отрезка, пока вы читаете</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Пока ничего не суммировано</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Выберите диапазон и нажмите «Начать» - ИИ прочитает эти страницы и напишет краткое содержание здесь.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Передавать активность чтения в Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Страница {0}</sys:String>

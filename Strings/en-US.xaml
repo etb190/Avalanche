@@ -1141,6 +1141,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI tester</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1287,6 +1288,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Toggle automatic recap companion when turning pages</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Buffer</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Generate the next stretch's digest in the background while you read</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Nothing summarized yet</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Pick a range and press Start - the AI reads those pages and writes the digest here.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Broadcast reading activity to Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Page {0}</sys:String>

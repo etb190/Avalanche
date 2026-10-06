@@ -1137,6 +1137,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Nhắc lại</sys:String>
     <sys:String x:Key="Str_AiModelTester">Trình kiểm thử AI</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Ghi chú</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Mô hình: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1287,6 +1288,10 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Bật hoặc tắt phần tóm tắt tự động khi lật trang</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Bộ đệm</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Tạo trước bản tóm tắt của đoạn tiếp theo trong nền trong khi bạn đọc</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Chưa có bản tóm tắt</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Chọn phạm vi và nhấn Bắt đầu - AI sẽ đọc các trang đó và viết bản tóm tắt tại đây.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Phát hoạt động đọc sách lên Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Trang {0}</sys:String>

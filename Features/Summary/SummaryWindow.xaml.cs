@@ -108,6 +108,36 @@ namespace Avalanche.Features.Summary
                                         // from - saved beside the digest so a restored card
                                         // names its own writer, not the dial's today-word
 
+        // v1.19.34: where the reader had scrolled the digest - read by the
+        // owner when the browser parks the navigator, replayed when the book
+        // welcomes it back.
+        public double DigestScrollOffset => DocBox.VerticalOffset;
+
+        public void RestoreDigestScroll(double offset)
+        {
+            if (offset <= 0)
+            {
+                return;
+            }
+
+            // The digest paints in the constructor; the scroll needs a layout
+            // pass to exist before it can climb back. One deferred hop at
+            // Loaded priority - the same queue the first frame renders on.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                () =>
+                {
+                    try
+                    {
+                        DocBox.UpdateLayout();
+                        DocBox.ScrollToVerticalOffset(offset);
+                    }
+                    catch
+                    {
+                        // a scroll that cannot climb is nobody's emergency
+                    }
+                });
+        }
+
         // The active pass's raw extraction, keyed by the stretch it covers: the
         // floating action popup's Explain serves the author's pages from here
         // and only re-extracts when the range moved or no pass ever ran.
@@ -123,6 +153,9 @@ namespace Avalanche.Features.Summary
         private Task<string>? _prefetchFlight;      // the in-flight fetch
         private string? _prefetchText;              // the completed buffer (null = none)
         private int _prefetchFirst, _prefetchLast;  // the stretch the buffer covers
+        private bool _prefetchFromCache;            // v1.19.34: the buffer served the cache,
+                                                    // not a generation - no time to claim
+        private bool _runFromCache;                 // v1.19.34: the live run served the cache
         private DateTime _prefetchStartedUtc = DateTime.UtcNow;  // the flight's clock
         private TimeSpan? _prefetchDuration;    // v1.19.28: how long the buffer took to generate
         private bool _schedulePrefetchOnIdle;   // v1.19.26: the finally arms the next buffer - SchedulePrefetch refuses a live run
@@ -191,6 +224,7 @@ namespace Avalanche.Features.Summary
             // shorter than the rail-above-the-stepper layout it replaces.
             RecapSlot.Content = BuildRecapToggle();
             DiscordSlot.Content = BuildDiscordToggle();
+            BufferSlot.Content = BuildBufferToggle();
             // The title bar: the wordmark, two digest-font chips before the close mark,
             // a close mark squared to the wordmark's height, and a hairline under the
             // whole bar separating it from the navigator's body.
@@ -769,6 +803,7 @@ namespace Avalanche.Features.Summary
             // still polling its token, and a disposed source can throw from those
             // polls. Garbage collection reclaims it.
             _cts = new CancellationTokenSource();
+            _runFromCache = false;   // the new run earns its own verdict
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
@@ -804,6 +839,7 @@ namespace Avalanche.Features.Summary
                                 // A digest landed: Reset's fresh-run arm is spent. A run
                                 // that errored keeps the arm - its retries stay cache-free.
                                 _freshNextRun = false;
+                                _runFromCache = update.FromCache;
                                 if (update.RawRange.Length > 0)
                                 {
                                     // The pass's own unabridged extraction: the floating
@@ -919,9 +955,12 @@ namespace Avalanche.Features.Summary
             // the model actually read against how many the extracted pages
             // estimate. A provider that silently truncated the input can no longer
             // hide behind a fluent digest; without usage the plain word/character
-            // count remains.
+            // count remains. v1.19.34: "factual" now also means a cache serve
+            // names no generation time - a digest that came out of the range
+            // cache in two seconds never took two seconds to GENERATE, and
+            // printing its lookup wall clock read as a lie (v1.19.34 report).
             StatusText.Text = VerificationStatusLine()
-                + DurationSuffix(DateTime.UtcNow - _runStartedUtc);
+                + (_runFromCache ? string.Empty : DurationSuffix(DateTime.UtcNow - _runStartedUtc));
             SaveDigest();       // the digest survives the window, the app, the session
             _cts?.Dispose();
             _cts = null;
@@ -1018,6 +1057,104 @@ namespace Avalanche.Features.Summary
             SetBusy(false);
         }
 
+        // ------------------------------------------------------------------
+        // The digest area's voice (v1.19.34): the sidechat's empty state,
+        // mirrored - the robot, a title and a nudge while the card holds
+        // nothing, three pulsing dots while a run generates. The panel is a
+        // centered child of the digest grid, so every resize recenters it
+        // through the layout system itself - no size is measured by hand.
+        // ------------------------------------------------------------------
+
+        private System.Windows.Media.Animation.Storyboard? _dotsStory;
+
+        private void UpdateEmptyState()
+        {
+            try
+            {
+                bool overlaySpeaking = OverlayText.Visibility == Visibility.Visible;
+                bool generating = _generating;
+                bool hasDigest = _fullText.Length > 0;
+
+                if (overlaySpeaking || (hasDigest && !generating))
+                {
+                    // A message owns the card, or a digest fills it: the voice
+                    // yields. (A generating card with text already painted -
+                    // the streaming path - keeps quiet too.)
+                    EmptyState.Visibility = Visibility.Collapsed;
+                    SetDotsRunning(false);
+                    return;
+                }
+
+                EmptyState.Visibility = Visibility.Visible;
+                if (generating)
+                {
+                    // The wait: dots under the dimmed robot, the title and the
+                    // nudge stepped aside.
+                    EmptyTitle.Visibility = Visibility.Collapsed;
+                    EmptySubtitle.Visibility = Visibility.Collapsed;
+                    BusyDots.Visibility = Visibility.Visible;
+                    SetDotsRunning(true);
+                }
+                else
+                {
+                    // The invite: the full greeting over an empty card.
+                    EmptyTitle.Visibility = Visibility.Visible;
+                    EmptySubtitle.Visibility = Visibility.Visible;
+                    BusyDots.Visibility = Visibility.Collapsed;
+                    SetDotsRunning(false);
+                }
+            }
+            catch
+            {
+                // a voice that cannot speak must never break the window
+            }
+        }
+
+        // Three dots, each fading in and out in turn: opacity 0.25 -> 1 ->
+        // 0.25 over 1.2s, the second dot 0.2s behind, the third 0.4s. One
+        // storyboard, RepeatForever, restarted only when the dots wake.
+        private void SetDotsRunning(bool run)
+        {
+            if (run && _dotsStory is null)
+            {
+                var story = new System.Windows.Media.Animation.Storyboard();
+                Ellipse[] dots = { BusyDot1, BusyDot2, BusyDot3 };
+                for (int i = 0; i < dots.Length; i++)
+                {
+                    var anim = new System.Windows.Media.Animation.DoubleAnimation(0.25, 1.0,
+                        new System.Windows.Duration(TimeSpan.FromSeconds(0.6)))
+                    {
+                        AutoReverse = true,
+                        RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever,
+                        BeginTime = TimeSpan.FromSeconds(i * 0.2)
+                    };
+                    System.Windows.Media.Animation.Storyboard.SetTarget(anim, dots[i]);
+                    System.Windows.Media.Animation.Storyboard.SetTargetProperty(anim,
+                        new PropertyPath(OpacityProperty));
+                    story.Children.Add(anim);
+                }
+                _dotsStory = story;
+            }
+
+            if (_dotsStory is null)
+            {
+                return;
+            }
+
+            if (run)
+            {
+                _dotsStory.Begin(this, true);
+            }
+            else
+            {
+                _dotsStory.Stop(this);
+                foreach (Ellipse dot in new[] { BusyDot1, BusyDot2, BusyDot3 })
+                {
+                    dot.Opacity = 1.0;
+                }
+            }
+        }
+
         // While a run is in flight the parameter controls quiet down (they cannot
         // start or stop a run, so they have nothing to do here). The four generation
         // owners stay live: arrows and Start supersede the run, Reset ends it.
@@ -1061,6 +1198,8 @@ namespace Avalanche.Features.Summary
                 OverlayText.Visibility = Visibility.Visible;
                 DocBox.Visibility = Visibility.Collapsed;
             }
+            // v1.19.34: whatever the card just became, the voice follows.
+            UpdateEmptyState();
         }
 
         // ------------------------------------------------------------------
@@ -1120,7 +1259,88 @@ namespace Avalanche.Features.Summary
             {
                 return;
             }
+            // v1.19.34: the buffer's own switch. Off, the prefetch never
+            // starts - the recap above keeps its own toggle's mind, and the
+            // reader who silenced the buffer hears nothing more from it.
+            if (!BufferEnabled)
+            {
+                return;
+            }
             StartPrefetch();
+        }
+
+        // The buffer's persisted choice ("summary.buffer.enabled"): ON unless
+        // the reader turned it off, remembered across app closing and opening
+        // the same way the Discord switch remembers - its own setting, read
+        // wherever the buffer would arm, no window needed to answer.
+        internal static bool BufferEnabled
+        {
+            get
+            {
+                try
+                {
+                    return AppDataPaths.GetSetting("summary.buffer.enabled") != "0";
+                }
+                catch
+                {
+                    return true;
+                }
+            }
+        }
+
+        private static void SetBufferEnabled(bool on)
+        {
+            try
+            {
+                AppDataPaths.SetSetting("summary.buffer.enabled", on ? "1" : "0");
+            }
+            catch
+            {
+                // best-effort persistence; a read-only disk must not flip a switch
+            }
+        }
+
+        // The buffer switch: the Recap and Discord switches' exact twin - the
+        // same iOS style, the same press-not-click flip taken in the tunnel -
+        // with a bold "Buffer" label on its left, the pair riding the
+        // navigator row right of the Discord pair (v1.19.34). Checked is the
+        // persisted state; unchecked silences the prefetch until it is
+        // turned back on.
+        private FrameworkElement BuildBufferToggle()
+        {
+            var toggle = new ToggleButton
+            {
+                Style = (Style)FindResource("TestModeToggle"),
+                IsChecked = BufferEnabled,
+                ToolTip = _loc("Str_TT_BufferToggle")
+            };
+            toggle.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                toggle.IsChecked = toggle.IsChecked != true;
+            };
+            toggle.Checked += (_, _) => SetBufferEnabled(true);
+            toggle.Unchecked += (_, _) => SetBufferEnabled(false);
+
+            var label = new TextBlock
+            {
+                Text = _loc("Str_Lbl_BufferToggle"),
+                FontSize = 11.5,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 7, 0),
+                ToolTip = _loc("Str_TT_BufferToggle")
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            row.Children.Add(label);
+            row.Children.Add(toggle);
+            return row;
         }
 
         private void StartPrefetch()
@@ -1149,6 +1369,7 @@ namespace Avalanche.Features.Summary
                 _filePath, _documentId, first, last, _targetWords, _language, _genre, BypassCache: false);
             AiProviderConfig config = _configProvider();
             Func<string, string> loc = _loc;
+            _prefetchFromCache = false;
             // v1.19.25: the bottom-right word - the buffer is generating.
             BufferStatusText.Text = _loc("Str_SummaryBufferBusy");
             _prefetchFlight = Task.Run(
@@ -1164,6 +1385,9 @@ namespace Avalanche.Features.Summary
                         }
                         else if (update.Kind == "done")
                         {
+                            // v1.19.34: remember whether this digest was a
+                            // cache serve - the "took" word stays honest.
+                            _prefetchFromCache = update.FromCache;
                             return update.Text.Length > 0 ? update.Text : buffer.ToString();
                         }
                         else if (update.Kind is "notext" or "error")
@@ -1223,9 +1447,11 @@ namespace Avalanche.Features.Summary
                 Overlay(null);
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
                 StatusText.Text = VerificationStatusLine()
-                    + (_prefetchDuration is TimeSpan bufferedTook
-                        ? DurationSuffix(bufferedTook)
-                        : string.Empty);   // v1.19.28: the served stretch says how long it took
+                    + (_prefetchFromCache || _prefetchDuration is not TimeSpan bufferedTook
+                        ? string.Empty
+                        : DurationSuffix(bufferedTook));   // v1.19.28: a real generation says
+                                                           // how long it took; v1.19.34: a
+                                                           // cache serve claims nothing
                 SaveDigest();
                 InvalidatePrefetch();
                 SchedulePrefetch();   // v1.19.26: the served stretch arms the next buffer
@@ -1296,8 +1522,11 @@ namespace Avalanche.Features.Summary
                 _runLastPage = _prefetchLast;
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
                 StatusText.Text = VerificationStatusLine()
-                    + DurationSuffix(DateTime.UtcNow - _prefetchStartedUtc);
+                    + (_prefetchFromCache
+                        ? string.Empty
+                        : DurationSuffix(DateTime.UtcNow - _prefetchStartedUtc));
                 SaveDigest();
+                UpdateEmptyState();
             }
             else
             {

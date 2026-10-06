@@ -1136,6 +1136,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Қайта шолу</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI тестері</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Жазбалар</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1286,6 +1287,10 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Беттерді айналдырғандағы автоматты қорытындыны қосу немесе өшіру</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Буфер</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Оқу барысында келесі бөліктің түйіндемесін фондық режимде жасайды</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Әзірге түйіндеме жоқ</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Ауқымды таңдап, «Бастау» түймесін басыңыз - AI сол беттерді оқып, түйіндемені осында жазады.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Оқу белсенділігін Discord Rich Presence арқылы көрсету</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — {0}-бет</sys:String>

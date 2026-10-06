@@ -1137,6 +1137,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">リキャップ</sys:String>
     <sys:String x:Key="Str_AiModelTester">AIテスター</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">ノート</sys:String>
     <sys:String x:Key="Str_AiModelUsed">モデル: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1287,6 +1288,10 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">リキャップ</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">ページをめくったときの自動サマリーを切り替えます</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">バッファ</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">読んでいる間に次の範囲の要約をバックグラウンドで生成します</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">まだ要約はありません</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">範囲を選んで「開始」を押すと、AIがそのページを読み、ここに要約を書きます。</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">読書の状況を Discord Rich Presence に表示します</sys:String>
     <sys:String x:Key="Str_Recap_Title">リキャップ — {0} ページ</sys:String>

@@ -1121,6 +1121,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">回顾</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI 测试器</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">笔记</sys:String>
     <sys:String x:Key="Str_AiModelUsed">模型：{0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1271,6 +1272,10 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">回顾</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">切换翻页时自动生成的上一页回顾</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">缓冲</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">阅读时在后台生成下一范围的摘要</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">还没有摘要</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">选择范围并点击开始 - AI 会阅读这些页面并在此写出摘要。</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">将阅读动态广播到 Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">回顾 — 第 {0} 页</sys:String>

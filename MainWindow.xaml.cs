@@ -894,6 +894,10 @@ namespace Avalanche
         // always starts closed. The map lives only as long as the app does, and
         // a closed tab drops its book's entry (DiscardSummaryVisibility, the
         // notes history's own rule).
+        // v1.19.34: where the reader had scrolled the digest when the browser
+        // parked the navigator - replayed when the book welcomes it back.
+        private double _summaryParkedScrollOffset;
+
         private readonly System.Collections.Generic.Dictionary<string, bool> _summaryOpenByDoc =
             new(StringComparer.OrdinalIgnoreCase);
 
@@ -2382,6 +2386,9 @@ namespace Avalanche
             if (_summaryWindow is { } navigator && _currentFile is not null
                 && navigator.DocumentPathEquals(_currentFile))
             {
+                // v1.19.34: the digest's scroll is read before the close takes
+                // it away - the welcome-back replays it.
+                _summaryParkedScrollOffset = navigator.DigestScrollOffset;
                 _summarySwitchAway = navigator;     // a switch, never the reader's hand
                 navigator.Close();
                 _summarySwitchAway = null;
@@ -2452,7 +2459,14 @@ namespace Avalanche
                 && _summaryOpenByDoc.TryGetValue(_currentFile, out bool browserWanted) && browserWanted)
             {
                 OpenSummaryWindow();
+                // v1.19.34: the navigator returns where the reader left it -
+                // the digest repaints, then the scroll climbs back.
+                if (_summaryWindow is { } returned)
+                {
+                    returned.RestoreDigestScroll(_summaryParkedScrollOffset);
+                }
             }
+            _summaryParkedScrollOffset = 0.0;
         }
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ────────────────────────────────────

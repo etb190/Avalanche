@@ -3,9 +3,10 @@ using System.IO;
 
 namespace Avalanche.Features.AI
 {
-    /// <summary>Which model answers each surface. Five dials - the summary,
-    /// the sidechat, the browser sidechat, the recaller (the recap) and the
-    /// AI tester - each wearing Nemotron by default, each one dropdown away
+    /// <summary>Which model answers each surface. Six dials - the summary,
+    /// the sidechat, the browser sidechat, the recaller (the recap), the
+    /// AI tester and the notes (the left sidebar) - each wearing Nemotron by
+    /// default, each one dropdown away
     /// from gpt-oss:120b-cloud on the local Ollama bridge. The dial owns ONLY who answers: the model and
     /// its host. Tokens, temperature, top-p, reasoning effort, prompts,
     /// retrieval - every other dial stays exactly where the reader set it,
@@ -21,7 +22,7 @@ namespace Avalanche.Features.AI
     /// survive); anything else gets the canonical nemotron - NVIDIA's NIM
     /// API, the app's first brain - the same way the gpt choice always
     /// summoned its own gpt-oss.
-    internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester }
+    internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester, Notes }
 
     internal static class AiSurfaceModels
     {
@@ -35,6 +36,7 @@ namespace Avalanche.Features.AI
             public string WebSidechat { get; set; } = NemotronChoice;
             public string Recaller { get; set; } = NemotronChoice;
             public string AiTester { get; set; } = NemotronChoice;
+            public string Notes { get; set; } = NemotronChoice;   // v1.19.34: the sidebar's own dial
         }
 
         private static readonly SurfaceChoices _choices = new();
@@ -64,6 +66,7 @@ namespace Avalanche.Features.AI
                 _choices.WebSidechat = Normalize(read.WebSidechat);
                 _choices.Recaller = Normalize(read.Recaller);
                 _choices.AiTester = Normalize(read.AiTester);
+                _choices.Notes = Normalize(read.Notes);
             }
             catch
             {
@@ -103,6 +106,7 @@ namespace Avalanche.Features.AI
                 AiSurface.WebSidechat => _choices.WebSidechat,
                 AiSurface.Recaller => _choices.Recaller,
                 AiSurface.AiTester => _choices.AiTester,
+                AiSurface.Notes => _choices.Notes,
                 _ => _choices.Sidechat,
             };
         }
@@ -117,6 +121,7 @@ namespace Avalanche.Features.AI
                 case AiSurface.WebSidechat: _choices.WebSidechat = clean; break;
                 case AiSurface.Recaller: _choices.Recaller = clean; break;
                 case AiSurface.AiTester: _choices.AiTester = clean; break;
+                case AiSurface.Notes: _choices.Notes = clean; break;
                 default: _choices.Sidechat = clean; break;
             }
             Save();

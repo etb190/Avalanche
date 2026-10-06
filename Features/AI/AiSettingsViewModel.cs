@@ -35,6 +35,7 @@ namespace Avalanche.Features.AI
         private string _webSidechatModelChoice = AiSurfaceModels.NemotronChoice;
         private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
         private string _aiTesterModelChoice = AiSurfaceModels.NemotronChoice;
+        private string _notesModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.34: the sidebar's notes
 
         private bool _isEnabled = false;
         private string _connectionStatus = "";
@@ -148,6 +149,14 @@ namespace Avalanche.Features.AI
         {
             get => _recallerModelChoice;
             set { _recallerModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Recaller, _recallerModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>Which model writes the left sidebar's notes (v1.19.34) -
+        /// the dial the reader thought was removed, now genuinely its own.</summary>
+        public string NotesModelChoice
+        {
+            get => _notesModelChoice;
+            set { _notesModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Notes, _notesModelChoice); OnPropertyChanged(); }
         }
 
         public string EmbeddingDocumentPrefix
@@ -409,6 +418,7 @@ namespace Avalanche.Features.AI
                 _webSidechatModelChoice = AiSurfaceModels.Get(AiSurface.WebSidechat);
                 _recallerModelChoice = AiSurfaceModels.Get(AiSurface.Recaller);
                 _aiTesterModelChoice = AiSurfaceModels.Get(AiSurface.AiTester);
+                _notesModelChoice = AiSurfaceModels.Get(AiSurface.Notes);
                 if (config is not null)
                 {
                     LoadFromGenConfig(config);

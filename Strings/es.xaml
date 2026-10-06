@@ -1117,6 +1117,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Recapitulador</sys:String>
     <sys:String x:Key="Str_AiModelTester">Probador de IA</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Notas</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modelo: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1267,6 +1268,10 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Activar el resumen automático al pasar de página</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Búfer</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Genera en segundo plano el resumen del siguiente tramo mientras lees</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Aún no hay resumen</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Elige un rango y pulsa Iniciar: la IA lee esas páginas y escribe el resumen aquí.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Transmitir la actividad de lectura a Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Página {0}</sys:String>

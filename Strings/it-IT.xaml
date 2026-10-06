@@ -1137,6 +1137,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
     <sys:String x:Key="Str_AiModelTester">Tester IA</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Note</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modello: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1287,6 +1288,10 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Attiva o disattiva il riepilogo automatico quando cambi pagina</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Buffer</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Genera in background il riassunto del prossimo tratto mentre leggi</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Ancora nulla da riassumere</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Scegli un intervallo e premi Avvia: l'IA legge quelle pagine e scrive il riassunto qui.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Trasmetti l'attività di lettura a Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Pagina {0}</sys:String>

@@ -1125,6 +1125,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Rekapitulacja</sys:String>
     <sys:String x:Key="Str_AiModelTester">Tester AI</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Notatki</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1275,6 +1276,10 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Włącz lub wyłącz automatyczne podsumowanie przy przewracaniu stron</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Bufor</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Generuje w tle streszczenie następnego fragmentu podczas czytania</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Nie ma jeszcze streszczenia</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Wybierz zakres i naciśnij Start - AI przeczyta te strony i napisze tu streszczenie.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Nadawaj aktywność czytania do Discord Rich Presence</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Strona {0}</sys:String>

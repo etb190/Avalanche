@@ -1117,6 +1117,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Kısa Tekrar</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI test aracı</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">Notlar</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1267,6 +1268,10 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">Recap</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Sayfa çevirirken otomatik özeti aç veya kapat</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">Arabellek</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">Okurken bir sonraki bölümün özetini arka planda oluşturur</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">Henüz özet yok</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">Bir aralık seçin ve Başlat'a basın - yapay zeka bu sayfaları okur ve özeti buraya yazar.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">Okuma etkinliğini Discord Rich Presence'e yayınla</sys:String>
     <sys:String x:Key="Str_Recap_Title">Recap — Sayfa {0}</sys:String>

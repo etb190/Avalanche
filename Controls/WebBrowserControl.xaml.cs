@@ -3244,6 +3244,8 @@ namespace Avalanche.Controls
         /// The popup mode is a chromeless bubble under the toolbar; the options
         /// page opens in a normal resizable window. A page that refuses to
         /// arrive says so in its window instead of leaving a blank rectangle.
+        /// v1.19.34: and the window is OWNED by the main window - one app in
+        /// Alt+Tab, one app on the desktop, one app to close.
         /// </summary>
         private sealed class ExtActionShell
         {
@@ -3252,6 +3254,10 @@ namespace Avalanche.Controls
             public System.Windows.Controls.TextBlock Note = null!;
             public WebView2 View = null!;
         }
+
+        // v1.19.34: the main window's death closes the popup for sure - the
+        // hook is installed once, the first time any popup opens.
+        private bool _extOwnerClosedHooked;
 
         private ExtActionShell BuildExtActionShell(string name, bool optionsPage)
         {
@@ -3356,6 +3362,23 @@ namespace Avalanche.Controls
                 catch { /* a view already going away is no one's emergency */ }
                 if (ReferenceEquals(_extActionWindow, win)) _extActionWindow = null;
             };
+            // v1.19.34: the popup is a child of THIS app, not a second one.
+            // Ownership groups it under Avalanche in Alt+Tab and Task View -
+            // the reader never picks between "the app" and "the popup" - and
+            // ShowInTaskbar=false keeps it off the taskbar. The reader who
+            // reported it called the unowned float "a whole other instance";
+            // an owned bubble is the popup they meant. The owner's death
+            // closes it explicitly: closing Avalanche must never leave an
+            // orphaned extension window behind.
+            if (Window.GetWindow(this) is { } owner)
+            {
+                win.Owner = owner;
+                if (!_extOwnerClosedHooked)
+                {
+                    _extOwnerClosedHooked = true;
+                    owner.Closed += (_, _) => CloseExtActionWindow();
+                }
+            }
             _extActionWindow = win;
             PlaceExtActionWindow(win, optionsPage);
             win.Show();

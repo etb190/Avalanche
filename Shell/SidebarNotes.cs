@@ -204,7 +204,12 @@ namespace Avalanche
             _notesCts = new CancellationTokenSource();
             try
             {
-                var config = _aiSettingsViewModel.ToGenConfig();
+                // v1.19.34: the notes dial answers - the left sidebar never
+                // had its own voice before this line (it asked the raw
+                // settings config, and the Recap rename read as removal).
+                // Same law as every other surface: only who answers moves.
+                var config = Features.AI.AiSurfaceModels.Configure(
+                    _aiSettingsViewModel.ToGenConfig(), Features.AI.AiSurface.Notes);
                 var cards = await NotesGenerator.GenerateAsync(
                     config, _currentFile, from, to, progress: null, _notesCts.Token);
                 if (run != _notesRun)

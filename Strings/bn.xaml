@@ -1117,6 +1117,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">রিক্যাপ</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI টেস্টার</sys:String>
+    <sys:String x:Key="Str_AiModelNotes">নোট</sys:String>
     <sys:String x:Key="Str_AiModelUsed">মডেল: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1267,6 +1268,10 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <!-- ── Recap companion ─────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_RecapMode">রিক্যাপ</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">পৃষ্ঠা উল্টানোর সময় স্বয়ংক্রিয় সংক্ষিপ্ত সারাংশ চালু বা বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_Lbl_BufferToggle">বাফার</sys:String>
+    <sys:String x:Key="Str_TT_BufferToggle">আপনি পড়ার সময় পরবর্তী অংশের সারাংশ পটভূমিতে তৈরি করে</sys:String>
+    <sys:String x:Key="Str_SummaryEmptyTitle">এখনও কোনো সারাংশ নেই</sys:String>
+    <sys:String x:Key="Str_SummaryEmptySubtitle">একটি পরিসর বেছে নিয়ে শুরু চাপুন - AI সেই পৃষ্ঠাগুলো পড়ে এখানে সারাংশ লেখে।</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
     <sys:String x:Key="Str_TT_DiscordRpc">পড়ার কার্যকলাপ Discord Rich Presence-এ সম্প্রচার করুন</sys:String>
     <sys:String x:Key="Str_Recap_Title">রিক্যাপ — পৃষ্ঠা {0}</sys:String>
