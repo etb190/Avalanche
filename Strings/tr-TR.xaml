@@ -1299,6 +1299,11 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Bu sayfayı yer imlerine ekle</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Sayfaları ☆ ile işaretleyin</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Tarayıcı uzantıları</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Dosyadan yükle…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Uzantılar klasörünü aç</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Henüz uzantı yok — bir .crx dosyasını inbox klasörüne bırakın veya dosyadan yükleyin.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Tarayıcı uzantısı (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Klasöre ekle</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Yeni klasör…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Klasör yok</sys:String>

@@ -1319,6 +1319,11 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Đánh dấu trang này</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Lưu trang bằng ☆</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Tiện ích mở rộng trình duyệt</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Cài đặt từ tệp…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Mở thư mục tiện ích</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Chưa có tiện ích nào — thả tệp .crx vào thư mục inbox hoặc cài đặt từ tệp.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Tiện ích mở rộng trình duyệt (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Thêm vào thư mục</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Thư mục mới…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Không có thư mục</sys:String>

@@ -1319,6 +1319,11 @@ Avalanche не будет создавать две установленные �
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Добавить страницу в закладки</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Добавляйте страницы кнопкой ☆</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Расширения браузера</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Установить из файла…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Открыть папку расширений</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Расширений пока нет — положите .crx в папку inbox или установите из файла.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Расширение браузера (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Добавить в папку</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Новая папка…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Без папки</sys:String>

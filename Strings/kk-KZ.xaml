@@ -1318,6 +1318,11 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Бұл бетті бетбелгілерге қосу</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Беттерді ☆ арқылы сақтаңыз</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Браузер кеңейтімдері</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Файлдан орнату…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Кеңейтімдер қалтасын ашу</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Кеңейтімдер әзірге жоқ — .crx файлын inbox қалтасына салыңыз немесе файлдан орнатыңыз.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Браузер кеңейтімі (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Қалтаға қосу</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Жаңа қалта…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Қалта жоқ</sys:String>

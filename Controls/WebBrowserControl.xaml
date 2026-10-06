@@ -127,6 +127,12 @@
                      not saved, filled once it lives in the reader's bookmarks. -->
                 <Button x:Name="WebBookmarkBtn" Content="&#xE728;" Style="{StaticResource WebNavBtn}"
                         IsEnabled="False" Click="WebBookmarkBtn_Click" ToolTip="{DynamicResource Str_TT_WebBookmark}"/>
+                <!-- v1.19.29: the extensions door - every folder under the
+                     extensions root with a manifest.json rides the profile, any
+                     .crx dropped in the inbox unpacks itself, and this button
+                     opens the list, the picker and the folder. -->
+                <Button x:Name="WebExtensionsBtn" Content="&#xE90F;" Style="{StaticResource WebNavBtn}"
+                        Click="WebExtensionsBtn_Click" ToolTip="{DynamicResource Str_TT_WebExtensions}"/>
             </StackPanel>
         </Border>
 
@@ -342,6 +348,43 @@
                              KeyDown="WebFolderEditBox_KeyDown"/>
                     <Button Content="{DynamicResource Str_Btn_Save}" Style="{StaticResource WebBookmarkChip}"
                             HorizontalAlignment="Right" Margin="0,8,0,0" Click="WebFolderEditSave_Click"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- v1.19.29: what the extensions door opens - the extensions riding
+             the profile, a picker that installs a .crx from a file, and the
+             folder itself where dropped-in extensions wait. -->
+        <Popup x:Name="WebExtPopup" PlacementTarget="{Binding ElementName=WebExtensionsBtn}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Background="{DynamicResource WebFlyoutBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                    CornerRadius="{DynamicResource ControlCornerRadius}" Padding="10" Margin="0,0,10,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.35"/>
+                </Border.Effect>
+                <StackPanel MinWidth="260">
+                    <ItemsControl x:Name="WebExtList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Margin="0,1,6,0" VerticalAlignment="Center"
+                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="12"/>
+                                    <TextBlock Text="{Binding VersionLabel}" VerticalAlignment="Center" FontSize="11"
+                                               Margin="8,0,0,0" Foreground="{DynamicResource MutedTextBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="WebExtEmptyNote" Text="{DynamicResource Str_Web_ExtEmpty}"
+                               Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5"
+                               Margin="0,0,0,4" Visibility="Collapsed"/>
+                    <Button Content="{DynamicResource Str_Web_ExtInstall}" Style="{StaticResource WebBookmarkChip}"
+                            HorizontalAlignment="Left" Margin="0,8,0,0" Click="WebExtInstall_Click"/>
+                    <Button Content="{DynamicResource Str_Web_ExtOpenFolder}" Style="{StaticResource WebBookmarkChip}"
+                            HorizontalAlignment="Left" Margin="0,6,0,0" Click="WebExtOpenFolder_Click"/>
                 </StackPanel>
             </Border>
         </Popup>

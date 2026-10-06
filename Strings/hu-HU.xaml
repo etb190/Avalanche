@@ -1306,6 +1306,11 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Oldal hozzáadása a könyvjelzőkhöz</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Oldalak mentése ☆ gombbal</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Bővítmények</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Telepítés fájlból…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Bővítménymappa megnyitása</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Még nincsenek bővítmények — tegyen egy .crx fájlt a inbox mappába, vagy telepítsen fájlból.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Bővítmény (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Hozzáadás mappához</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Új mappa…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Nincs mappa</sys:String>

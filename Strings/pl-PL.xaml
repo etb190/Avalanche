@@ -1307,6 +1307,11 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Dodaj tę stronę do zakładek</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Dodawaj strony przez ☆</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Rozszerzenia przeglądarki</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Zainstaluj z pliku…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Otwórz folder rozszerzeń</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Nie ma jeszcze rozszerzeń — upuść plik .crx do folderu inbox albo zainstaluj z pliku.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Rozszerzenie przeglądarki (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Dodaj do folderu</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nowy folder…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Brak folderu</sys:String>

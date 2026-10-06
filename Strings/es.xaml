@@ -1299,6 +1299,11 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Añadir esta página a marcadores</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Guarda páginas con ☆</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Extensiones del navegador</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Instalar desde archivo…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Abrir la carpeta de extensiones</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Aún no hay extensiones: suelta un .crx en la carpeta de entrada o instala desde un archivo.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Extensión de navegador (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Añadir a carpeta</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nueva carpeta…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Sin carpeta</sys:String>

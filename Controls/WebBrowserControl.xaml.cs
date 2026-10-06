@@ -66,6 +66,10 @@ namespace Avalanche.Controls
     /// is lazy: no WebView2 process exists
     /// until the pane is first shown, and TrySuspendAsync hands the engine's memory and GPU
     /// surfaces back to Windows whenever the pane hides again.
+    /// v1.19.29: the extension door opened to everybody - every folder under the
+    /// extensions root with a manifest.json rides the profile, a .crx dropped in
+    /// the inbox unpacks itself, and the toolbar's puzzle button lists what rides,
+    /// installs from a file and opens the folder.
     /// </summary>
     public partial class WebBrowserControl : UserControl
     {
@@ -166,14 +170,21 @@ namespace Avalanche.Controls
             "https://update.googleapis.com/service/update2/crx?response=redirect" +
             "&acceptformat=crx2,crx3&x=id%3D" + AdGuardExtId +
             "%26uc&prodversion=131.0.0.0";
-        private static string AdGuardExtDir =>
-            Path.Combine(AppDataPaths.UserRoot, "WebView2Data", "extensions", "adguard");
+        private static string ExtensionsRoot =>
+            Path.Combine(AppDataPaths.UserRoot, "WebView2Data", "extensions");
+        private static string ExtensionsInbox => Path.Combine(ExtensionsRoot, "inbox");
+
+        private static string AdGuardExtDir => Path.Combine(ExtensionsRoot, "adguard");
         private static readonly System.Net.Http.HttpClient WbHttp = new()
         {
             Timeout = TimeSpan.FromSeconds(120),
         };
-        private bool _adGuardLoaded;     // the profile has the extension (or it is on disk)
+        private bool _adGuardLoaded;     // the adguard folder is on disk (or the fetch retired)
         private bool _adGuardFetching;   // one fetch at a time
+
+        // v1.19.29: the shared door's ledger - folders handed to the profile this
+        // run, so a folder that comes back retries instead of double-riding.
+        private readonly HashSet<string> _extensionsLoaded = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>The view the reader is looking at. Every navigation, capture and
         /// chrome refresh speaks about this one view; background views keep living
@@ -376,9 +387,9 @@ namespace Avalanche.Controls
                         _ = core.Profile.AddBrowserExtensionAsync(extPath);
                 }
                 catch { /* extension loading is a courtesy */ }
-                // v1.19.14: AdGuard rides the same door the moment it is on disk -
-                // the first launch fetches it, every launch after finds it waiting.
-                TryLoadAdGuardOnce(core);
+                // v1.19.29: the door is everybody's now - every folder under the
+                // extensions root rides, and the inbox's .crx files unpack first.
+                LoadPendingExtensions(core);
             }
             core.WebMessageReceived += OnWebMessageReceived;
         }
@@ -2384,14 +2395,71 @@ namespace Avalanche.Controls
         // into the data root, and the folder handed to the profile exactly like
         // the helper's. Nothing is remembered about a failure - the next launch
         // fetches again, and a download that never lands changes nothing.
+        // v1.19.29: the door became everybody's - every folder under the
+        // extensions root with a manifest.json rides the profile once per run,
+        // and any .crx dropped into the inbox folder unpacks itself there;
+        // an install is a file in a folder, never a rebuild.
 
-        /// <summary>Load the on-disk AdGuard folder into the profile once per run.</summary>
-        private void TryLoadAdGuardOnce(CoreWebView2 core)
+        /// <summary>Every folder under the extensions root with a manifest.json
+        /// becomes an extension, once per run; the inbox's waiting .crx files
+        /// unpack into the root first. Fire-and-forget on every path; browsing
+        /// never waits.</summary>
+        private void LoadPendingExtensions(CoreWebView2 core)
         {
-            if (_adGuardLoaded || !Directory.Exists(AdGuardExtDir)) return;
-            _adGuardLoaded = true;
-            try { _ = core.Profile.AddBrowserExtensionAsync(AdGuardExtDir); }
+            // the inbox first: a crate waiting there becomes a folder beside it.
+            try
+            {
+                Directory.CreateDirectory(ExtensionsInbox);
+                foreach (string crxPath in Directory.EnumerateFiles(ExtensionsInbox, "*.crx").ToList())
+                {
+                    try
+                    {
+                        string stem = SanitizeFolderName(Path.GetFileNameWithoutExtension(crxPath));
+                        UnpackCrx(File.ReadAllBytes(crxPath), Path.Combine(ExtensionsRoot, stem));
+                        File.Delete(crxPath);   // consumed: the folder replaces the file
+                    }
+                    catch { /* one broken crate must not jam the whole inbox */ }
+                }
+            }
+            catch { /* an inbox that will not exist is no one's emergency */ }
+
+            // then the root: every folder with a manifest rides, once per run.
+            try
+            {
+                if (!Directory.Exists(ExtensionsRoot)) return;
+                foreach (string dir in Directory.EnumerateDirectories(ExtensionsRoot))
+                {
+                    if (string.Equals(Path.GetFileName(dir), "inbox", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!File.Exists(Path.Combine(dir, "manifest.json"))) continue;
+                    if (!_extensionsLoaded.Add(dir)) continue;
+                    try { _ = core.Profile.AddBrowserExtensionAsync(dir); }
+                    catch { _extensionsLoaded.Remove(dir); }   // the next visit retries
+                }
+            }
             catch { /* a courtesy, like every extension load */ }
+        }
+
+        /// <summary>The reader said install: unpack the chosen .crx into the root
+        /// and hand the fresh folder to the profile that is awake right now.</summary>
+        private void InstallCrxFile(string crxPath)
+        {
+            string stem = SanitizeFolderName(Path.GetFileNameWithoutExtension(crxPath));
+            string target = Path.Combine(ExtensionsRoot, stem);
+            UnpackCrx(File.ReadAllBytes(crxPath), target);
+            if (_activeView?.CoreWebView2 is { } core && _extensionsLoaded.Add(target))
+            {
+                try { _ = core.Profile.AddBrowserExtensionAsync(target); }
+                catch { _extensionsLoaded.Remove(target); }
+            }
+        }
+
+        /// <summary>A file stem becomes a folder name: characters the filesystem
+        /// would misunderstand become underscores.</summary>
+        private static string SanitizeFolderName(string stem)
+        {
+            string clean = string.Join("_",
+                stem.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+            return clean.Length == 0 ? "extension" : clean;
         }
 
         /// <summary>The blocker on disk: fetch it once if it is missing, then let
@@ -2401,7 +2469,8 @@ namespace Avalanche.Controls
             if (_adGuardLoaded) return;
             if (Directory.Exists(AdGuardExtDir))
             {
-                if (_activeView?.CoreWebView2 is { } existing) TryLoadAdGuardOnce(existing);
+                _adGuardLoaded = true;   // v1.19.29: on disk means settled - the generic loader owns loading
+                if (_activeView?.CoreWebView2 is { } existing) LoadPendingExtensions(existing);
                 return;
             }
             if (_adGuardFetching) return;
@@ -2409,8 +2478,9 @@ namespace Avalanche.Controls
             try
             {
                 byte[] crx = await WbHttp.GetByteArrayAsync(AdGuardCrxUrl);
-                UnpackAdGuardCrx(crx);
-                if (_activeView?.CoreWebView2 is { } core) TryLoadAdGuardOnce(core);
+                UnpackCrx(crx, AdGuardExtDir);
+                _adGuardLoaded = true;   // v1.19.29: fetched and on disk - the fetch retires
+                if (_activeView?.CoreWebView2 is { } core) LoadPendingExtensions(core);
             }
             catch
             {
@@ -2426,7 +2496,7 @@ namespace Avalanche.Controls
         /// <summary>CRX3 in, extension folder out: the envelope is twelve bytes of
         /// fixed header plus a proto header whose length the third dword carries;
         /// everything after it is the zip the store itself ships.</summary>
-        private static void UnpackAdGuardCrx(byte[] crx)
+        private static void UnpackCrx(byte[] crx, string targetDir)
         {
             if (crx.Length < 16 || crx[0] != (byte)'C' || crx[1] != (byte)'r'
                 || crx[2] != (byte)'2' || crx[3] != (byte)'4')
@@ -2435,10 +2505,9 @@ namespace Avalanche.Controls
             uint headerLen = BitConverter.ToUInt32(crx, 8);
             if (version < 3 || headerLen == 0 || crx.Length <= 12 + (long)headerLen)
                 throw new InvalidDataException("Malformed CRX envelope");
-            string root = Path.Combine(AppDataPaths.UserRoot, "WebView2Data", "extensions");
-            Directory.CreateDirectory(root);
-            string tmp = Path.Combine(root,
-                "adguard.unpack." + Path.GetRandomFileName().Replace(".", ""));
+            Directory.CreateDirectory(ExtensionsRoot);
+            string tmp = Path.Combine(ExtensionsRoot,
+                "unpack." + Path.GetRandomFileName().Replace(".", ""));
             try
             {
                 using MemoryStream zipStream = new(crx, (int)(12 + headerLen),
@@ -2458,15 +2527,175 @@ namespace Avalanche.Controls
                 }
                 if (!File.Exists(Path.Combine(tmp, "manifest.json")))
                     throw new InvalidDataException("Extension archive has no manifest");
-                if (Directory.Exists(AdGuardExtDir))
-                    Directory.Delete(AdGuardExtDir, recursive: true);
-                Directory.Move(tmp, AdGuardExtDir);
+                if (Directory.Exists(targetDir))
+                    Directory.Delete(targetDir, recursive: true);
+                Directory.Move(tmp, targetDir);
             }
             finally
             {
                 try { if (Directory.Exists(tmp)) Directory.Delete(tmp, recursive: true); }
                 catch { /* a stray temp folder outlives us only until the next fetch */ }
             }
+        }
+
+        // ── The extensions flyout (v1.19.29) ────────────────────────────────────────
+        // The puzzle button opens the list of what rides, a picker for a .crx
+        // file, and the folder itself - the whole installation story in one
+        // place, none of it needing a rebuild.
+
+        private sealed class ExtVm
+        {
+            public string Name { get; init; } = "";
+            public string VersionLabel { get; init; } = "";
+        }
+
+        private void WebExtensionsBtn_Click(object sender, RoutedEventArgs e)
+        {
+            RefreshExtensionsList();
+            WebExtPopup.IsOpen = true;
+        }
+
+        private void RefreshExtensionsList()
+        {
+            List<ExtVm> installed = CollectInstalledExtensions();
+            WebExtList.ItemsSource = installed;
+            WebExtEmptyNote.Visibility = installed.Count == 0
+                ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        private static List<ExtVm> CollectInstalledExtensions()
+        {
+            List<ExtVm> list = new();
+            try
+            {
+                if (!Directory.Exists(ExtensionsRoot)) return list;
+                foreach (string dir in Directory.EnumerateDirectories(ExtensionsRoot)
+                             .OrderBy(d => d, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (string.Equals(Path.GetFileName(dir), "inbox", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!File.Exists(Path.Combine(dir, "manifest.json"))) continue;
+                    (string Name, string Version)? manifest = ReadExtManifest(dir);
+                    list.Add(new ExtVm
+                    {
+                        Name = manifest?.Name ?? Path.GetFileName(dir),
+                        VersionLabel = manifest?.Version ?? "",
+                    });
+                }
+            }
+            catch { /* a root that will not read shows an empty list */ }
+            return list;
+        }
+
+        /// <summary>The manifest's name and version. Store manifests often wear
+        /// their names as __MSG_key__ dials into the package's own locales -
+        /// those resolve through the default locale's messages, then any
+        /// locale folder that answers.</summary>
+        private static (string Name, string Version)? ReadExtManifest(string dir)
+        {
+            try
+            {
+                using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(
+                    File.ReadAllText(Path.Combine(dir, "manifest.json")));
+                string name = doc.RootElement.TryGetProperty("name", out System.Text.Json.JsonElement n)
+                    && n.ValueKind == System.Text.Json.JsonValueKind.String ? n.GetString() ?? "" : "";
+                string ver = doc.RootElement.TryGetProperty("version", out System.Text.Json.JsonElement v)
+                    && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() ?? "" : "";
+                if (name.StartsWith("__MSG_", StringComparison.OrdinalIgnoreCase) && name.EndsWith("__"))
+                {
+                    string resolved = ResolveExtensionMessage(dir, name[6..^2]);
+                    if (resolved.Length > 0) name = resolved;
+                }
+                if (name.Length == 0) return null;
+                return (name, ver);
+            }
+            catch { return null; }
+        }
+
+        private static string ResolveExtensionMessage(string dir, string key)
+        {
+            try
+            {
+                string locales = Path.Combine(dir, "_locales");
+                if (!Directory.Exists(locales)) return "";
+                string? defaultLocale = null;
+                try
+                {
+                    using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(
+                        File.ReadAllText(Path.Combine(dir, "manifest.json")));
+                    if (doc.RootElement.TryGetProperty("default_locale", out System.Text.Json.JsonElement d)
+                        && d.ValueKind == System.Text.Json.JsonValueKind.String)
+                        defaultLocale = d.GetString();
+                }
+                catch { /* a manifest that will not reread leaves the dial to the scan */ }
+                foreach (string? cand in new[] { defaultLocale, "en", "en-US", "en_GB" })
+                {
+                    if (string.IsNullOrWhiteSpace(cand)) continue;
+                    string? hit = LookupLocaleMessage(Path.Combine(locales, cand), key);
+                    if (hit is not null) return hit;
+                }
+                foreach (string ldir in Directory.EnumerateDirectories(locales))
+                {
+                    string? hit = LookupLocaleMessage(ldir, key);
+                    if (hit is not null) return hit;
+                }
+            }
+            catch { }
+            return "";
+        }
+
+        private static string? LookupLocaleMessage(string localeDir, string key)
+        {
+            try
+            {
+                string file = Path.Combine(localeDir, "messages.json");
+                if (!File.Exists(file)) return null;
+                using System.Text.Json.JsonDocument doc =
+                    System.Text.Json.JsonDocument.Parse(File.ReadAllText(file));
+                foreach (System.Text.Json.JsonProperty p in doc.RootElement.EnumerateObject())
+                {
+                    if (!string.Equals(p.Name, key, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (p.Value.TryGetProperty("message", out System.Text.Json.JsonElement m)
+                        && m.ValueKind == System.Text.Json.JsonValueKind.String)
+                        return m.GetString();
+                    return null;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private void WebExtInstall_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new FileDialog(FileDialogMode.Open)
+            {
+                Filter = (TryLoc("Str_Web_ExtFilter") ?? "Browser extension (*.crx)") + "|*.crx",
+                Multiselect = true,
+                Title = TryLoc("Str_Web_ExtInstall") ?? "Install from file…",
+            };
+            if (dlg.ShowDialog(Window.GetWindow(this)) != true) return;
+            foreach (string path in dlg.FileNames)
+            {
+                try { InstallCrxFile(path); }
+                catch { /* one crate that will not open changes nothing else */ }
+            }
+            RefreshExtensionsList();
+        }
+
+        private void WebExtOpenFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Directory.CreateDirectory(ExtensionsRoot);
+                Directory.CreateDirectory(ExtensionsInbox);
+                using System.Diagnostics.Process? opener = System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = ExtensionsRoot,
+                        UseShellExecute = true,
+                    });
+                WebExtPopup.IsOpen = false;
+            }
+            catch { /* a folder that will not open is no one's emergency */ }
         }
 
         // ── The page's keyboard (v1.19.14) ──────────────────────────────────────────

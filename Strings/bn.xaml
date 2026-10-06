@@ -1299,6 +1299,11 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">এই পৃষ্ঠাটি বুকমার্ক করুন</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">☆ দিয়ে পৃষ্ঠা বুকমার্ক করুন</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">ব্রাউজার এক্সটেনশন</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">ফাইল থেকে ইনস্টল করুন…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">এক্সটেনশন ফোল্ডার খুলুন</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">এখনো কোনো এক্সটেনশন নেই — .crx ফাইলটি inbox ফোল্ডারে রাখুন বা ফাইল থেকে ইনস্টল করুন।</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">ব্রাউজার এক্সটেনশন (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">ফোল্ডারে যোগ করুন</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">নতুন ফোল্ডার…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">কোনো ফোল্ডার নেই</sys:String>

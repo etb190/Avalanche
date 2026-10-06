@@ -1305,6 +1305,11 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Diese Seite als Lesezeichen hinzufügen</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Seiten mit ☆ als Lesezeichen hinzufügen</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Browsererweiterungen</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Aus Datei installieren…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Erweiterungsordner öffnen</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Noch keine Erweiterungen — eine .crx in den Inbox-Ordner legen oder aus einer Datei installieren.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Browsererweiterung (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">In Ordner legen</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Neuer Ordner…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Kein Ordner</sys:String>

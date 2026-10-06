@@ -1319,6 +1319,11 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">このページをブックマーク</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">☆ でページをブックマーク</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">ブラウザー拡張機能</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">ファイルからインストール…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">拡張機能フォルダーを開く</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">拡張機能はまだありません — .crx を inbox フォルダーに入れるか、ファイルからインストールしてください。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">ブラウザー拡張機能 (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">フォルダーに追加</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新しいフォルダー…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">フォルダーなし</sys:String>

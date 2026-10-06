@@ -1319,6 +1319,11 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">Aggiungi questa pagina ai segnalibri</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">Salva le pagine con ☆</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">Estensioni del browser</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">Installa da file…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">Apri la cartella delle estensioni</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">Ancora nessuna estensione — trascina un .crx nella cartella inbox o installa da un file.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">Estensione del browser (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Aggiungi alla cartella</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nuova cartella…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Nessuna cartella</sys:String>

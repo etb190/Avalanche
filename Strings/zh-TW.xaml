@@ -1301,6 +1301,11 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <!-- v1.19.11: the browser's bookmarks - the curated dial chips retired. -->
     <sys:String x:Key="Str_TT_WebBookmark">收藏此頁面</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">使用 ☆ 收藏頁面</sys:String>
+    <sys:String x:Key="Str_TT_WebExtensions">瀏覽器擴充功能</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstall">從檔案安裝…</sys:String>
+    <sys:String x:Key="Str_Web_ExtOpenFolder">開啟擴充功能資料夾</sys:String>
+    <sys:String x:Key="Str_Web_ExtEmpty">還沒有擴充功能——將 .crx 放入 inbox 資料夾，或從檔案安裝。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFilter">瀏覽器擴充功能 (*.crx)</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">新增至資料夾</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新增資料夾…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">無資料夾</sys:String>
