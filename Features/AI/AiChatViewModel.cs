@@ -65,6 +65,16 @@ namespace Avalanche.Features.AI
         /// loading placeholders or error bubbles.</summary>
         private readonly Dictionary<string, List<ChatMessage>> _historyByDocument = new();
 
+        // v1.19.22: the browser sidechat. When the web pane leads, the chat's
+        // context is the active browser TAB: its transcript lives under its own
+        // "wt_" key in this dictionary (never a document's "doc_" key), no index
+        // is built and no embedding runs - the page itself, read fresh on every
+        // question, is the whole context.
+        private bool _isWebContext;
+        private string _currentWebTabId = "";
+        private string _webTitle = "";
+        private string _webUrl = "";
+
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
         public bool IsIndexing
@@ -99,6 +109,26 @@ namespace Avalanche.Features.AI
         public bool SemanticResearchActive => _semanticBuilding || _semanticIndexReady;
 
         private void OnSemanticStateChanged() => OnPropertyChanged(nameof(SemanticResearchActive));
+
+        /// <summary>True while the chat's context is a browser tab (v1.19.22):
+        /// the window switches the context whenever the browser leads.</summary>
+        public bool IsWebContext => _isWebContext;
+
+        private string _contextTitle = "";
+
+        /// <summary>One muted line under the header naming what this chat is
+        /// about - the page's title in web mode, the book's file name otherwise.
+        /// An empty string shows nothing.</summary>
+        public string ContextTitle
+        {
+            get => _contextTitle;
+            private set { _contextTitle = value; OnPropertyChanged(); }
+        }
+
+        /// <summary>The window's page reader: extracts the named tab's readable
+        /// page text fresh on every call (null when there is no page). The view
+        /// model knows nothing about WebView2 - the window owns the browser.</summary>
+        public Func<string, System.Threading.CancellationToken, Task<WebPageSnapshot?>>? WebPageReader { get; set; }
 
         public bool IsProcessing
         {
@@ -216,6 +246,8 @@ namespace Avalanche.Features.AI
                 _currentFilePath = filePath;
                 _currentIndex = null;
                 _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
+                _isWebContext = false;   // a document took the context back from the browser
+                _currentWebTabId = "";
 
                 // v1.19.5: the research button is per-document. A new book starts
                 // idle - zero embedding compute until the reader asks for it.
@@ -237,6 +269,7 @@ namespace Avalanche.Features.AI
                     foreach (var m in saved)
                         Messages.Add(m);
                 }
+                ContextTitle = Path.GetFileName(filePath);
             });
 
             await IndexDocumentAsync(filePath, _initGeneration);
@@ -729,6 +762,16 @@ namespace Avalanche.Features.AI
             Application.Current.Dispatcher.Invoke(() => Messages.Add(userMsg));
             ClearInput();
 
+            // v1.19.22: the browser sidechat never queues behind an index -
+            // there is no index. The reply path reads the page fresh itself.
+            bool webContext;
+            lock (_processingLock) webContext = _isWebContext;
+            if (webContext)
+            {
+                await GenerateReplyAsync(input);
+                return;
+            }
+
             // If indexing not complete, defer the AI reply until the index is ready
             if (_currentIndex == null)
             {
@@ -844,6 +887,61 @@ namespace Avalanche.Features.AI
                 if (IsSmallTalk(input))
                 {
                     assistantMsg.Content = _loc("Str_AiChatGreeting");
+                    assistantMsg.IsLoading = false;
+                    return;
+                }
+
+                // v1.19.22: the browser sidechat - the page itself is the
+                // context. Readability lifts the active tab's article text
+                // fresh for this turn (nothing cached, nothing shared), and
+                // the page becomes the prompt's only evidence. No retrieval,
+                // no vectors, no citations: a page has no pages to navigate to.
+                bool webContext;
+                lock (_processingLock) webContext = _isWebContext;
+                if (webContext)
+                {
+                    string tabId;
+                    lock (_processingLock) tabId = _currentWebTabId;
+                    var reader = WebPageReader;
+                    WebPageSnapshot? page = null;
+                    if (reader is not null)
+                    {
+                        try { page = await reader(tabId, ct); }
+                        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                        catch { page = null; }
+                    }
+
+                    // A tab with no readable page (blank tab, browser error
+                    // page, extraction timeout) answers honestly instead of
+                    // pretending the model read something.
+                    if (page is null)
+                    {
+                        assistantMsg.Content = _loc("Str_AiWebNoPage");
+                        assistantMsg.IsLoading = false;
+                        return;
+                    }
+
+                    var webConfig = _configProvider();
+                    var webResponse = await GetProvider(webConfig).GetChatCompletionAsync(
+                        WebChat.BuildSystemPrompt(page),
+                        GetRecentMessages(),
+                        new List<DocumentChunk>(),
+                        "",
+                        webConfig,
+                        ct);
+
+                    // A context switch while the request ran must not write the
+                    // old page's answer into the new context's conversation.
+                    lock (_processingLock)
+                    {
+                        if (generation != _initGeneration)
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg));
+                            return;
+                        }
+                    }
+
+                    assistantMsg.Content = webResponse.Answer;
                     assistantMsg.IsLoading = false;
                     return;
                 }
@@ -1183,12 +1281,17 @@ namespace Avalanche.Features.AI
                 _currentIndex = null;
                 _currentFilePath = "";
                 _currentDocumentId = "";
+                _isWebContext = false;
+                _currentWebTabId = "";
+                _webTitle = "";
+                _webUrl = "";
                 _pendingUserInput = null;
                 _pendingPlaceholder = null;
             }
             Application.Current.Dispatcher.Invoke(() =>
             {
                 Messages.Clear();
+                ContextTitle = "";
                 SemanticStatus = "";
                 // v1.19.5: the research button returns to idle with the book.
                 _semanticResearchEnabled = false;
@@ -1248,10 +1351,132 @@ namespace Avalanche.Features.AI
                     _currentFilePath = filePath;
                     _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
                 }
+                string fileName = Path.GetFileName(filePath);
+                Application.Current.Dispatcher.Invoke(() => ContextTitle = fileName);
                 return;
             }
 
             _ = InitializeForDocumentAsync(filePath);
+        }
+
+        /// <summary>
+        /// The browser pane took (or moved within) the chat's context
+        /// (v1.19.22): switch to that tab's own session - transcript restored,
+        /// no indexing, no embeddings. The same tab again only refreshes the
+        /// title and address the context line shows. Web keys live under the
+        /// "wt_" prefix, so a page and a book can never share a conversation.
+        /// </summary>
+        public void HandleWebContextChanged(string tabId, string title, string url)
+        {
+            if (string.IsNullOrWhiteSpace(tabId)) return;
+            string key = WebChat.SessionKey(tabId);
+            bool switchSession;
+            lock (_processingLock)
+                switchSession = !_isWebContext || _currentWebTabId != tabId;
+
+            if (!switchSession)
+            {
+                // Same tab: the conversation continues; only the header follows.
+                lock (_processingLock) { _webTitle = title; _webUrl = url; }
+                Application.Current.Dispatcher.Invoke(() =>
+                    ContextTitle = WebContextLabel(title, url));
+                return;
+            }
+
+            SaveHistory();
+            ClearForDocumentSwitch();   // bump generation, cancel everything, clear bubbles
+            bool restored;
+            lock (_processingLock)
+            {
+                _isWebContext = true;
+                _currentWebTabId = tabId;
+                _currentDocumentId = key;
+                _currentFilePath = "";
+                _currentIndex = null;
+                _webTitle = title;
+                _webUrl = url;
+                restored = _historyByDocument.ContainsKey(key);
+            }
+            var sessionKey = key;
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                if (restored && _historyByDocument.TryGetValue(sessionKey, out var saved))
+                {
+                    foreach (var m in saved)
+                        Messages.Add(m);
+                }
+                ContextTitle = WebContextLabel(title, url);
+                IndexingStatus = "";
+                IndexingProgress = 0.0;
+                // The research button has nothing to build for a page: say so.
+                SemanticStatus = _loc("Str_AiWebSemanticOff");
+            });
+        }
+
+        /// <summary>
+        /// The browser pane went away (v1.19.22): park the page's transcript
+        /// and drop the web context. The window re-binds the active document
+        /// right after, so nothing else needs to happen here.
+        /// </summary>
+        public void HandleWebContextCleared()
+        {
+            bool was;
+            lock (_processingLock) was = _isWebContext;
+            if (!was) return;
+            SaveHistory();
+            ClearForDocumentSwitch();
+            lock (_processingLock)
+            {
+                _isWebContext = false;
+                _currentWebTabId = "";
+            }
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                ContextTitle = "";
+                SemanticStatus = "";
+            });
+        }
+
+        /// <summary>A browser tab died (v1.19.22): its sidechat session dies
+        /// with it. When the dead tab WAS the chat's context, the live
+        /// transcript is dropped too, so a later SaveHistory cannot resurrect
+        /// the session under its key - the window re-binds right after.</summary>
+        public void DiscardWebSession(string tabId)
+        {
+            if (string.IsNullOrWhiteSpace(tabId)) return;
+            string key = WebChat.SessionKey(tabId);
+            bool wasCurrent;
+            lock (_processingLock)
+            {
+                _historyByDocument.Remove(key);
+                wasCurrent = _isWebContext && _currentDocumentId == key;
+                if (wasCurrent)
+                {
+                    _isWebContext = false;
+                    _currentWebTabId = "";
+                    _currentDocumentId = "";
+                }
+            }
+            if (wasCurrent)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Messages.Clear();
+                    ContextTitle = "";
+                    SemanticStatus = "";
+                });
+            }
+        }
+
+        /// <summary>The context line's text for a web page: the title, or the
+        /// host when no title arrived, or the raw address as the last resort.</summary>
+        private static string WebContextLabel(string title, string url)
+        {
+            if (!string.IsNullOrWhiteSpace(title)) return title;
+            if (Uri.TryCreate(url, UriKind.Absolute, out var u) && !string.IsNullOrWhiteSpace(u.Host))
+                return u.Host;
+            return url;
         }
 
         /// <summary>Snapshots the current transcript (without placeholders or

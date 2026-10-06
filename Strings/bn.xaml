@@ -1187,6 +1187,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} পৃষ্ঠা বাকি</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">আপনার ডকুমেন্টের সাথে কথা বলুন</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">এই ডকুমেন্ট সম্পর্কে যা খুশি জিজ্ঞাসা করুন - সারসংক্ষেপ, ব্যাখ্যা, অনুবাদ। AI প্রতিটি পৃষ্ঠা পড়েছে।</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">আমি এখানে কোনো পৃষ্ঠা পড়তে পারছি না। ব্রাউজার ট্যাবে একটি ওয়েব পেজ খুলে আবার জিজ্ঞাসা করুন।</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">সেমান্টিক রিসার্চ ডকুমেন্টের জন্য একটি অনুসন্ধান সূচি তৈরি করে - এটি ওয়েব পেজে প্রযোজ্য নয়।</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} পৃষ্ঠা থেকে {0} টি অক্ষর বের করা হয়েছে</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">পৃষ্ঠা {0}-এ কোনো টেক্সট স্তর নেই। প্রথমে সেগুলিতে OCR চালান, তারপর আবার চেষ্টা করুন।</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

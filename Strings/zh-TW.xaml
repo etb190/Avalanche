@@ -1189,6 +1189,8 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">剩餘 {0} 頁</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">與你的文件對話</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">關於這份文件，想到什麼就問 - 摘要、解釋、翻譯，AI 已讀過每一頁。</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">我在這裡讀不到網頁。請在瀏覽器分頁中開啟一個網頁後再提問。</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">語義研究為文件建構搜尋索引——不適用於網頁。</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">已從第 {1}-{2} 頁提取 {0} 個字元</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">第 {0} 頁沒有文字層。請先對這些頁面執行 OCR，然後重試。</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

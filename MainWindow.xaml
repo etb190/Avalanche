@@ -3136,6 +3136,10 @@
                             Background="Transparent" CornerRadius="0"
                             Padding="12,5">
                         <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -3184,6 +3188,15 @@
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
+                            <!-- v1.19.22: what this chat is about - the web page's
+                                 title when the browser leads, the book's file name
+                                 otherwise. Nothing shown = the book. -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6"
+                                       Text="{Binding ContextTitle}"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextTrimming="CharacterEllipsis" Margin="24,1,0,0"
+                                       Visibility="{Binding ContextTitle, Converter={StaticResource StringToVisibilityConverter}}"/>
                         </Grid>
                     </Border>
 

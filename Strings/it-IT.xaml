@@ -1207,6 +1207,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pagine rimanenti</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Parla con il tuo documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Chiedi qualsiasi cosa su questo documento: riassunti, spiegazioni, traduzioni. L'IA ha letto ogni pagina.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">Non riesco a leggere una pagina qui. Apri una pagina web nella scheda del browser e chiedi di nuovo.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">La ricerca semantica crea un indice di ricerca per i documenti - non si applica alle pagine web.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Estratti {0} caratteri dalle pagine {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Le pagine {0} non hanno livello di testo. Esegui prima l'OCR su di esse e riprova.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

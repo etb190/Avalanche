@@ -1192,6 +1192,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryPagesLeft">zbývá {0} stránek</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Ptejte se svého dokumentu</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Zeptejte se na cokoli v tomto dokumentu - shrnutí, vysvětlení, překlady. AI přečetla každou stránku.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">Tady nedokážu přečíst žádnou stránku. Otevřete v prohlížeči webovou stránku a zeptejte se znovu.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">Sémantický výzkum vytváří vyhledávací index pro dokumenty - na webové stránky se nevztahuje.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Extrahováno {0} znaků ze stránek {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Stránky {0} nemají textovou vrstvu. Nejprve na nich spusťte OCR a zkuste to znovu.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

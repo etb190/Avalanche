@@ -76,6 +76,20 @@ namespace Avalanche.Controls
         /// navigation fell back to the address host. Raised on the UI thread.</summary>
         public event Action<string>? TitleChanged;
 
+        // v1.19.22: the AI sidechat's page access. The sidechat reads the page the
+        // reader is looking at, so the browser speaks when the chat's subject
+        // changes: a different view took the screen, a view died. Both raised on
+        // the UI thread, both carrying the tab's session id.
+        /// <summary>The browser put a different tab on screen (a card or strip
+        /// click, a new tab, the auto-landing after a close). Carries the tab's
+        /// sidechat session id.</summary>
+        public event Action<string>? ActiveTabChanged;
+
+        /// <summary>A tab died - gallery close, strip close or the dozen cap -
+        /// taking its view and its sidechat session with it. Carries the dead
+        /// tab's session id.</summary>
+        public event Action<string>? TabClosed;
+
         private const string HomePage = "https://www.google.com/";
 
         private string? _pendingUrl;
@@ -1463,6 +1477,9 @@ namespace Avalanche.Controls
         public void CloseTab(WebTabCardVm card)
         {
             if (!Tabs.Contains(card)) return;
+            // v1.19.22: the sidechat drops this tab's session with the tab -
+            // before the auto-landing on the next view can save anything under it.
+            TabClosed?.Invoke(card.TabId);
             bool wasActive = card.IsActive;
             Tabs.Remove(card);
             // v1.19.13: the tab's view dies with it - the engine behind it is
@@ -1684,6 +1701,8 @@ namespace Avalanche.Controls
             RefreshHistoryButtons();
             RefreshBookmarkButton();
             HandleTitleChanged(view);
+            // v1.19.22: the chat's subject changed - announce whose page is up.
+            ActiveTabChanged?.Invoke(card.TabId);
         }
 
         // ── Bookmarks (v1.19.11) - the storage and its surface ────────────────────────
@@ -2084,6 +2103,112 @@ namespace Avalanche.Controls
             return false;
         }
 
+        // ── The sidechat's page reader (v1.19.22) ────────────────────────────────────
+        // The AI sidechat asks THIS control for the page the reader is looking at.
+        // The wheel is Mozilla Readability - the extractor Firefox Reader View
+        // itself uses - injected into the tab's own renderer, where it lifts the
+        // article text off a DETACHED copy of the DOM (a DOMParser parse of the
+        // live serialization). The live page never sees Readability's hands:
+        // scripts keep running, listeners keep listening; the JSON comes back from
+        // the copy. When the scorer refuses (webapps, SPAs), the script falls back
+        // to the body's visible text; browser and error pages answer ok:false and
+        // become "no page" for the chat. Fresh on every call - nothing is cached
+        // anywhere, so one page's text can never surface in another page's
+        // conversation, and the wrapper shadows module/define/exports so
+        // Readability's own export guard binds to nothing.
+
+        /// <summary>The view the reader is looking at right now, as its gallery card.</summary>
+        private WebTabCardVm? ActiveCard => _activeView is null ? null : CardFor(_activeView);
+
+        /// <summary>The active tab's sidechat session id, or null when no view is up.</summary>
+        public string? ActiveTabId => ActiveCard?.TabId;
+
+        /// <summary>The active tab's current title (the host until a title arrives).</summary>
+        public string ActiveTabTitle => ActiveCard?.Title ?? "";
+
+        /// <summary>The active tab's current address.</summary>
+        public string ActiveTabUrl => ActiveCard?.Url ?? "";
+
+        private static string? _readabilitySource;
+
+        /// <summary>Readability.js rides as a WPF resource; empty means a build
+        /// that somehow lost it - the extraction script degrades to the visible-
+        /// text fallback and the sidechat keeps working.</summary>
+        private static string ReadabilitySource
+        {
+            get
+            {
+                if (_readabilitySource is not null) return _readabilitySource;
+                try
+                {
+                    var stream = Application.GetResourceStream(
+                        new Uri("pack://application:,,,/Resources/Scripts/Readability.js"))?.Stream;
+                    if (stream is not null)
+                    {
+                        using var reader = new StreamReader(stream);
+                        _readabilitySource = reader.ReadToEnd();
+                    }
+                    else _readabilitySource = "";
+                }
+                catch { _readabilitySource = ""; }
+                return _readabilitySource;
+            }
+        }
+
+        private static string? _extractScript;
+
+        /// <summary>The composite extraction script, assembled once per process.</summary>
+        private static string ExtractScript =>
+            _extractScript ??= PageExtractPrologue + ReadabilitySource + PageExtractEpilogue;
+
+        private const string PageExtractPrologue =
+            "(function(){var module,define,exports;try{" +
+            "var loc=location;" +
+            "if(!(loc.protocol==='http:'||loc.protocol==='https:'||loc.protocol==='file:'))" +
+            "return JSON.stringify({ok:false,reason:'scheme',error:'scheme '+loc.protocol});" +
+            "if(document.contentType==='application/pdf')return JSON.stringify({ok:false,reason:'pdf',error:''});" +
+            "var doc=new DOMParser().parseFromString(document.documentElement.outerHTML,'text/html');";
+
+        private const string PageExtractEpilogue =
+            "var art=null,err='';" +
+            "try{art=new Readability(doc).parse();}catch(e){err=String(e);}" +
+            "var text=(art&&art.textContent)?art.textContent:'';" +
+            "var mode='readability';" +
+            "if(text.trim().length<250){mode='innertext';try{text=document.body?document.body.innerText:'';}catch(e){text='';}}" +
+            "text=text.replace(/\n{3,}/g,'\n\n').trim();" +
+            "return JSON.stringify({ok:text.length>0,mode:mode,url:loc.href," +
+            "title:(art&&art.title)||document.title||''," +
+            "byline:(art&&art.byline)||'',site:(art&&art.siteName)||'',error:err,text:text});" +
+            "}catch(e){return JSON.stringify({ok:false,reason:'exception',error:String(e)})}})()";
+
+        /// <summary>Extracts one tab's readable page text for the sidechat, fresh
+        /// each call. Returns null when the tab is gone, its engine is not up,
+        /// the extraction times out, or the page offers nothing readable.</summary>
+        public async Task<Features.AI.WebPageSnapshot?> ExtractPageTextAsync(string tabId, System.Threading.CancellationToken ct)
+        {
+            try
+            {
+                WebView2? view = null;
+                foreach (WebTabCardVm t in Tabs)
+                    if (t.TabId == tabId) { view = t.View; break; }
+                CoreWebView2? core = view?.CoreWebView2;
+                if (core is null) return null;
+
+                var execution = core.ExecuteScriptAsync(ExtractScript);
+                var finished = await Task.WhenAny(execution, Task.Delay(20000, ct));
+                if (finished != execution)
+                {
+                    try { execution.Dispose(); } catch { /* a page answering into the void */ }
+                    return null;   // timeout or abandoned context: no page this turn
+                }
+                return Features.AI.WebChat.ParseExtractionResult(execution.Result);
+            }
+            catch
+            {
+                return null;   // a page that refuses extraction is simply no page
+            }
+        }
+
         private string? TryLoc(string key) => TryFindResource(key) as string;
     }
 
@@ -2093,7 +2218,17 @@ namespace Avalanche.Controls
     /// v1.19.11); the active one wears the accent ring.</summary>
     public sealed class WebTabCardVm : INotifyPropertyChanged
     {
-        public WebTabCardVm(string url) { _url = url; }
+        public WebTabCardVm(string url)
+        {
+            _url = url;
+            TabId = "wt_" + Guid.NewGuid().ToString("N");
+        }
+
+        /// <summary>The tab's sidechat session id (v1.19.22): stable for the
+        /// tab's whole life, unique across every tab that ever opened, and
+        /// namespaced "wt_" so a page's chat history can never share a key with
+        /// a document's ("doc_..."). The session dies with the tab.</summary>
+        public string TabId { get; }
 
         private string _url;
         /// <summary>The view's current address. v1.19.13: the card's identity is its

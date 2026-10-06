@@ -1193,6 +1193,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryPagesLeft">noch {0} Seiten</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Sprich mit deinem Dokument</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Frag alles zu diesem Dokument - Zusammenfassungen, Erklärungen, Übersetzungen. Die KI hat jede Seite gelesen.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">Hier kann ich keine Seite lesen. Öffnen Sie im Browser eine Webseite und fragen Sie erneut.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">Die semantische Recherche erstellt einen Suchindex für Dokumente - auf Webseiten ist sie nicht anwendbar.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} Zeichen aus Seiten {1}-{2} extrahiert</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Seiten {0} haben keine Textebene. Führen Sie zuerst OCR darauf aus und versuchen Sie es erneut.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

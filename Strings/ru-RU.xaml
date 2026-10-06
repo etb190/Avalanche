@@ -1207,6 +1207,8 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryPagesLeft">осталось {0} стр.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Спросите свой документ</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Спрашивайте о чём угодно в этом документе - резюме, объяснения, перевод. ИИ прочитал каждую страницу.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">Я не могу прочитать здесь страницу. Откройте веб-страницу во вкладке браузера и спросите ещё раз.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">Семантическое исследование создаёт поисковый индекс для документов - к веб-страницам это не относится.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Извлечено {0} символов со страниц {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">На страницах {0} нет текстового слоя. Сначала выполните для них OCR и повторите попытку.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

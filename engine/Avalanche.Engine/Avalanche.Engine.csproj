@@ -7,7 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Avalanche.Engine</RootNamespace>
     <AssemblyName>Avalanche.Engine</AssemblyName>
-    <Version>1.19.21</Version>
+    <Version>1.19.22</Version>
     <PackageId>Avalanche.Engine</PackageId>
     <Title>The Avalanche.Engine</Title>
     <Authors>Avalanche Team</Authors>

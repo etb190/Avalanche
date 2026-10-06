@@ -1191,6 +1191,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">剩余 {0} 页</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">与你的文档对话</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">关于这份文档，想到什么就问 - 摘要、解释、翻译，AI 已读过每一页。</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">我在这里读不到网页。请在浏览器标签页中打开一个网页后再提问。</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">语义研究为文档构建搜索索引——不适用于网页。</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">已从第 {1}-{2} 页提取 {0} 个字符</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">第 {0} 页没有文本层。请先对这些页面运行 OCR，然后重试。</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

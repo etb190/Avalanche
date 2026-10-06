@@ -1195,6 +1195,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryPagesLeft">pozostało {0} str.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Porozmawiaj ze swoim dokumentem</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Zapytaj o cokolwiek w tym dokumencie - streszczenia, wyjaśnienia, tłumaczenia. AI przeczytała każdą stronę.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">Nie mogę tu odczytać żadnej strony. Otwórz stronę internetową w karcie przeglądarki i zapytaj ponownie.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">Badanie semantyczne tworzy indeks wyszukiwania dla dokumentów - nie dotyczy stron internetowych.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Wyodrębniono {0} znaków ze stron {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Strony {0} nie mają warstwy tekstu. Najpierw uruchom na nich OCR, a następnie spróbuj ponownie.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

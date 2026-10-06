@@ -1207,6 +1207,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pages left</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Chat with your document</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Ask anything about this document - summaries, explanations, translations. The AI has read every page.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">I can't read a page here. Open a web page in the browser tab and ask again.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">Semantic research builds a search index for documents - it does not apply to web pages.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Extracted {0} characters from pages {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Pages {0} have no text layer. Run OCR on them first, then try again.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

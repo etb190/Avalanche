@@ -1207,6 +1207,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">残り {0} ページ</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">この文書とチャット</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">この文書について何でも聞いてください - 要約、解説、翻訳。AI はすべてのページを読みました。</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">ここではページを読み取れません。ブラウザタブでウェブページを開いてから、もう一度質問してください。</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">セマンティックリサーチはドキュメント用の検索インデックスを作成します - ウェブページには適用されません。</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{1}-{2} ページから {0} 文字を抽出しました</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">ページ {0} にテキスト層がありません。先にOCRを実行してから、再試行してください。</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

@@ -1194,6 +1194,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} oldal van hátra</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Beszélgess a dokumentumoddal</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Kérdezz bármit a dokumentumról - összefoglalók, magyarázatok, fordítások. Az AI minden oldalt elolvasott.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">Itt nem tudok oldalt olvasni. Nyisson meg egy weboldalt a böngésző fülön, és kérdezzen újra.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">A szemantikus kutatás dokumentumokhoz készít keresési indexet - weboldalakra nem vonatkozik.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">{0} karakter kinyerve a(z) {1}-{2}. oldalakról</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">A(z) {0} oldalakon nincs szövegréteg. Először futtasson rajtuk OCR-t, majd próbálja újra.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

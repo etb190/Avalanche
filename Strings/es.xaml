@@ -1187,6 +1187,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">quedan {0} páginas</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Conversa con tu documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Pregunta lo que quieras sobre este documento: resúmenes, explicaciones, traducciones. La IA ha leído cada página.</sys:String>
+	<sys:String x:Key="Str_AiWebNoPage">No puedo leer ninguna página aquí. Abre una página web en la pestaña del navegador y vuelve a preguntar.</sys:String>
+	<sys:String x:Key="Str_AiWebSemanticOff">La búsqueda semántica crea un índice para documentos - no se aplica a las páginas web.</sys:String>
 	<sys:String x:Key="Str_SummaryExtracted">Se extrajeron {0} caracteres de las páginas {1}-{2}</sys:String>
 	<sys:String x:Key="Str_SummaryNoTextRange">Las páginas {0} no tienen capa de texto. Ejecuta primero OCR sobre ellas y vuelve a intentarlo.</sys:String>
 	<sys:String x:Key="Str_SummaryCached">cached</sys:String>

@@ -13,10 +13,10 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.19.21</Version>
+    <Version>1.19.22</Version>
 
-    <AssemblyVersion>1.19.21.0</AssemblyVersion>
-    <FileVersion>1.19.21.0</FileVersion>
+    <AssemblyVersion>1.19.22.0</AssemblyVersion>
+    <FileVersion>1.19.22.0</FileVersion>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
          CHANGELOG section; release.ps1 enforces that before packaging. -->
@@ -137,6 +137,9 @@
 
   <ItemGroup>
     <Resource Include="Resources\kp-icon.ico" />
+    <!-- v1.19.22: Mozilla Readability rides as a resource - the browser
+         sidechat injects it into the active tab to lift the page's article text. -->
+    <Resource Include="Resources\Scripts\Readability.js" />
     <Resource Include="Resources\kp-icon.png" />
     <Resource Include="Fonts\Typewriter-A602.ttf" />
         <Resource Include="Resources\open_hand.cur" />

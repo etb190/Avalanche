@@ -1531,12 +1531,25 @@ namespace Avalanche
                 _aiChatViewModel = new Features.AI.AiChatViewModel(
                     this,
                     () => _aiSettingsViewModel.ToGenConfig(),
-                    Loc);
+                    Loc)
+                {
+                    // v1.19.22: the browser owns page reading; the chat VM only
+                    // asks. Extraction runs in the tab's own renderer, fresh on
+                    // every question - nothing of one page ever reaches another
+                    // page's conversation.
+                    WebPageReader = (tabId, ct) => WebPane.ExtractPageTextAsync(tabId, ct),
+                };
                 AiChatOverlay.DataContext = _aiChatViewModel;
             }
 
-            // Initialize for current document (no-op when none is open)
-            if (_currentFile is not null)
+            // v1.19.22: the browser leads when it is on screen - the chat binds
+            // to the active tab's own session (its transcript, the page as the
+            // context). Only with the browser away does the chat bind to the book.
+            if (WebPaneHost.Visibility == Visibility.Visible && WebPane.ActiveTabId is { } webTabId)
+            {
+                _aiChatViewModel.HandleWebContextChanged(webTabId, WebPane.ActiveTabTitle, WebPane.ActiveTabUrl);
+            }
+            else if (_currentFile is not null)
             {
                 _ = _aiChatViewModel.InitializeForDocumentAsync(_currentFile); // fire-and-forget, UI stays responsive
             }
@@ -1622,9 +1635,15 @@ namespace Avalanche
             // reseeds the From/To pair and empties the panel.
             ResetNotesForDocument(filePath);
 
-            _aiChatViewModel?.HandleDocumentSwitch(
-                filePath,
-                panelVisible: AiChatOverlay?.Visibility == Visibility.Visible);
+            // v1.19.22: while the browser leads, a book switch must not re-bind
+            // the chat - the page's conversation stays on screen. The book gets
+            // the chat back when the pane hides (HideWebPane re-binds then).
+            if (WebPaneHost.Visibility != Visibility.Visible)
+            {
+                _aiChatViewModel?.HandleDocumentSwitch(
+                    filePath,
+                    panelVisible: AiChatOverlay?.Visibility == Visibility.Visible);
+            }
 
             // The navigator follows the book: a PDF whose window was open when
             // the reader left gets it straight back on return, into the digest
@@ -2214,6 +2233,18 @@ namespace Avalanche
             // LAST tab asks the window to put the browser away - what closing the
             // old single tab always did.
             WebPane.CloseRequested += () => HideWebPane();
+            // v1.19.22: the sidechat follows the browser. A different tab took
+            // the screen: the chat (when open) re-binds to that tab's own
+            // session. A tab died: its session dies with it - never leaked
+            // into whatever tab or book the window lands on next.
+            WebPane.ActiveTabChanged += tabId =>
+            {
+                if (WebPaneHost.Visibility == Visibility.Visible
+                    && AiChatOverlay?.Visibility == Visibility.Visible)
+                    _aiChatViewModel?.HandleWebContextChanged(
+                        tabId, WebPane.ActiveTabTitle, WebPane.ActiveTabUrl);
+            };
+            WebPane.TabClosed += tabId => _aiChatViewModel?.DiscardWebSession(tabId);
         }
 
         private void WebBrowserBtn_Click(object sender, RoutedEventArgs e) => ToggleWebPane();
@@ -2252,6 +2283,13 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Visible;
             WebPane.OnPaneShown();
             EnterWebSidebarMode();
+            // v1.19.22: the browser leads now - an open chat re-binds to the
+            // active tab's own session. (A first pane with no tab yet binds
+            // when the first view lands, via ActiveTabChanged.)
+            if (AiChatOverlay?.Visibility == Visibility.Visible
+                && WebPane.ActiveTabId is { } webTab)
+                _aiChatViewModel?.HandleWebContextChanged(
+                    webTab, WebPane.ActiveTabTitle, WebPane.ActiveTabUrl);
         }
 
         private void HideWebPane()
@@ -2260,6 +2298,14 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Collapsed;
             WebPane.OnPaneHidden();
             ExitWebSidebarMode();
+            // v1.19.22: the browser stepped aside - park the page's transcript
+            // and hand the chat back to the active book.
+            if (_aiChatViewModel is { } chat && chat.IsWebContext)
+            {
+                chat.HandleWebContextCleared();
+                if (AiChatOverlay?.Visibility == Visibility.Visible && _currentFile is not null)
+                    _ = chat.InitializeForDocumentAsync(_currentFile);
+            }
         }
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ────────────────────────────────────
