@@ -377,15 +377,18 @@ namespace Avalanche
         // page it crosses: only the page the reader lands on is decoded.
 
         private System.Windows.Threading.DispatcherTimer? _pageThumbTimer;
-        private int _pageThumbPendingPage = -1;
-        private System.Windows.Rect? _pageThumbPendingCrop;
+        private List<(int Page, System.Windows.Rect? Crop)> _pageThumbPending = new();
         private System.Threading.CancellationTokenSource? _pageThumbCts;
 
-        internal void RefreshPageThumbnailSoon(int pageIndex, System.Windows.Rect? crop = null)
+        // v1.19.31: a pending SET - a TwoPage route covers a whole spread, so
+        // one arrival can refresh two pages at once. The debounce is unchanged:
+        // the batch is whatever the last arrival left behind.
+        internal void RefreshPageThumbnailsSoon(
+            IReadOnlyList<(int Page, System.Windows.Rect? Crop)> targets)
         {
-            if (_doc is null || _currentFile is null || pageIndex < 0) return;
-            _pageThumbPendingPage = pageIndex;
-            _pageThumbPendingCrop = crop;   // v1.19.30: the visible band to wear, or null for the whole page
+            if (_doc is null || _currentFile is null) return;
+            if (targets is null || targets.Count == 0) return;
+            _pageThumbPending = targets.ToList();
             if (_pageThumbTimer is null)
             {
                 _pageThumbTimer = new System.Windows.Threading.DispatcherTimer(
@@ -396,38 +399,52 @@ namespace Avalanche
                 _pageThumbTimer.Tick += (_, _) =>
                 {
                     _pageThumbTimer!.Stop();
-                    int page = _pageThumbPendingPage;
-                    _pageThumbPendingPage = -1;
-                    if (page >= 0) RefreshPageThumbnail(page);
+                    var batch = _pageThumbPending;
+                    _pageThumbPending = new List<(int, System.Windows.Rect?)>();
+                    if (batch.Count == 0) return;
+                    RefreshPageThumbnails(batch);
                 };
             }
             _pageThumbTimer.Stop();
             _pageThumbTimer.Start();
         }
 
-        private void RefreshPageThumbnail(int pageIndex)
+        private void RefreshPageThumbnails(
+            List<(int Page, System.Windows.Rect? Crop)> batch)
         {
             if (_doc is null || _currentFile is null) return;
             if (PageList.ItemsSource is not PageThumbnailVm[] items) return;
-            if (pageIndex < 0 || pageIndex >= items.Length) return;
-            PageThumbnailVm vm = items[pageIndex];
             string filePath = _currentFile;
-            int rot = _pageRotations.TryGetValue(pageIndex, out int r) ? r : 0;
-            System.Windows.Rect? crop = _pageThumbPendingCrop;
 
             _pageThumbCts?.Cancel();
             _pageThumbCts?.Dispose();
             _pageThumbCts = new System.Threading.CancellationTokenSource();
             System.Threading.CancellationToken ct = _pageThumbCts.Token;
 
+            // Capture the VMs and rotations on the UI thread, then render the
+            // batch in one worker: a spread's two pages land one after the
+            // other instead of the second cancelling the first.
+            var jobs = new List<(PageThumbnailVm Vm, int Page, int Rot, System.Windows.Rect? Crop)>();
+            foreach ((int page, System.Windows.Rect? crop) in batch)
+            {
+                if (page < 0 || page >= items.Length) continue;
+                int rot = _pageRotations.TryGetValue(page, out int r) ? r : 0;
+                jobs.Add((items[page], page, rot, crop));
+            }
+            if (jobs.Count == 0) return;
+
             _ = System.Threading.Tasks.Task.Run(() =>
             {
-                try
+                foreach (var job in jobs)
                 {
-                    var src = PageThumbnailVm.BuildThumb(filePath, pageIndex, rot, crop);
-                    if (src != null && !ct.IsCancellationRequested) vm.SetThumbnail(src);
+                    if (ct.IsCancellationRequested) return;
+                    try
+                    {
+                        var src = PageThumbnailVm.BuildThumb(filePath, job.Page, job.Rot, job.Crop);
+                        if (src != null && !ct.IsCancellationRequested) job.Vm.SetThumbnail(src);
+                    }
+                    catch { /* a thumbnail that will not render keeps the old one */ }
                 }
-                catch { /* a thumbnail that will not render keeps the old one */ }
             }, ct);
         }
     }

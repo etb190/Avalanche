@@ -3488,8 +3488,14 @@
                     <!-- AI settings overlay (F1): minimal panel over the conversation.
                          Fields bind to AiSettingsViewModel; persisted to
                          %LocalAppData%\Avalanche\AI\settings.json. -->
+                    <!-- v1.19.31: the overlay wears an OPAQUE face. It used
+                         SidebarPaneBrush - a brush one single theme defines, so
+                         under every other theme the panel rendered with no
+                         background at all and the conversation showed straight
+                         through it: "transparent, overlapping, can't be seen". -->
                     <Border x:Name="AiSettingsOverlay" Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="60"
-                            Background="{DynamicResource SidebarPaneBrush}"
+                            Background="{DynamicResource BackgroundBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Visibility="Collapsed" Padding="12,8">
                         <Border.Resources>
                             <Style x:Key="AiSettingsLabel" TargetType="TextBlock">
@@ -3513,6 +3519,42 @@
                                 <TextBlock Text="{DynamicResource Str_AiSettingsOpen}" FontWeight="SemiBold"
                                            FontFamily="{DynamicResource UiFont}" FontSize="12"
                                            Foreground="{DynamicResource TextBrush}" Margin="0,0,0,6"/>
+                                <!-- v1.19.31: the four model dials - which AI answers
+                                     each surface. Nemotron by default, gpt-oss:120b-cloud
+                                     (the local Ollama bridge) one selection away. Only who
+                                     answers moves: tokens, prompts, temperature, retrieval
+                                     all stay exactly as they are. -->
+                                <TextBlock Text="{DynamicResource Str_AiModelsSection}" FontWeight="SemiBold"
+                                           FontFamily="{DynamicResource UiFont}" FontSize="12"
+                                           Foreground="{DynamicResource TextBrush}" Margin="0,0,0,2"/>
+                                <TextBlock Text="{DynamicResource Str_AiModelSummary}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding SummaryModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                </ComboBox>
+                                <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding SidechatModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                </ComboBox>
+                                <TextBlock Text="{DynamicResource Str_AiModelWebSidechat}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding WebSidechatModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                </ComboBox>
+                                <TextBlock Text="{DynamicResource Str_AiModelRecaller}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding RecallerModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsCloudWarning}" TextWrapping="Wrap"
                                            FontFamily="{DynamicResource UiFont}" FontSize="11"
                                            Foreground="{DynamicResource DangerRed}" Margin="0,0,0,8"

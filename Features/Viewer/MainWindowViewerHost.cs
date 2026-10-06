@@ -151,9 +151,7 @@ namespace Avalanche
             // arrival. v1.19.30: and the picture is the band the screen shows -
             // the position the reader scrolled to is the picture they get, no
             // top-of-page filler. (Debounced; superseded by the next arrival.)
-            RefreshPageThumbnailSoon(pageIndex,
-                viewer.TryGetVisibleCrop(pageIndex, out System.Windows.Rect band)
-                    ? band : (System.Windows.Rect?)null);
+            RefreshPageThumbnailsSoon(viewer.ThumbnailTargets(pageIndex));
         }
 
         private static string FooterPageSizeUnit => App.GetSetting("FooterPageSizeUnit") switch
@@ -257,9 +255,7 @@ namespace Avalanche
             if (!ReferenceEquals(ActiveViewer, viewer)) return;
             int scrolledPage = viewer.CurrentPageIndexForThumbs;
             if (scrolledPage >= 0)
-                RefreshPageThumbnailSoon(scrolledPage,
-                    viewer.TryGetVisibleCrop(scrolledPage, out System.Windows.Rect band)
-                        ? band : (System.Windows.Rect?)null);
+                RefreshPageThumbnailsSoon(viewer.ThumbnailTargets(scrolledPage));
         }
 
         void IViewerHost.ViewerFocused()

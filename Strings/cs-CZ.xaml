@@ -1114,6 +1114,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">Modely - které AI odpovídá na každé ploše</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">Shrnutí</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">Postranní chat</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">Postranní chat prohlížeče</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Připomínač</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>

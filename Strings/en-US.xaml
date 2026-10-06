@@ -1133,6 +1133,13 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">Models - which AI answers each surface</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">Summary</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">Sidechat</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">Browser sidechat</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Recaller</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>

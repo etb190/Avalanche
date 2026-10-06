@@ -760,55 +760,125 @@ namespace Avalanche.Controls
         // the same debounced timer as the re-sharpen pass.
         // ── v1.19.30: the band of the page the screen actually shows ──────────
         // Routing to a page re-renders its sidebar thumbnail; the picture it
-        // renders is the page's VISIBLE BAND, not its top. The viewport maps
-        // onto the continuous slot in zoomed coordinates (the tops and the slot
-        // heights are unzoomed layout values, so they ride the zoom back up -
-        // the same mapping the virtualizer and the re-sharpen pass use), and
-        // the band comes back normalized to the ROTATED page the reader sees,
-        // ready to crop the thumbnail's own render. False means "the whole page
-        // is the picture" - other view modes, a page not under the eye, a
-        // degenerate band - and the caller keeps the full-page render.
+        // renders is the page's VISIBLE BAND, not its top. v1.19.31: EVERY view
+        // mode measures - Continuous through the unzoomed slot tops (the zoom
+        // rides them back up, the same mapping the virtualizer uses), and
+        // Single/TwoPage/Grid through the slot's own edges mapped onto the
+        // scroll content root, where TranslatePoint already carries the zoom
+        // LayoutTransform - the exact mapping the grid's current-page tracking
+        // has used for years. v1.19.30 measured Continuous alone, so a reader
+        // in a book spread got "false" and the page's top over and over.
+        // The band comes back normalized to the ROTATED page the reader sees,
+        // ready to crop the thumbnail's own render. False means "the whole
+        // page is the picture" - a page not under the eye, or a degenerate
+        // band - and the caller keeps the full-page render.
         internal bool TryGetVisibleCrop(int pageIndex, out System.Windows.Rect crop)
         {
             crop = System.Windows.Rect.Empty;
-            if (_viewMode != ViewMode.Continuous || _doc is null) return false;
-            if (pageIndex < 0 || pageIndex >= _continuousTops.Count
-                || pageIndex >= _continuousPanel.Children.Count) return false;
-            if (_continuousPanel.Children[pageIndex] is not FrameworkElement slot
-                || slot.ActualHeight <= 0) return false;
-            double zoom = Math.Max(0.01, _zoomLevel);
-            double pageTop = _continuousTops[pageIndex] * zoom;
-            double pageHeight = slot.ActualHeight * zoom;
-            double viewTop = PagePreviewPanel.VerticalOffset;
-            double viewBottom = viewTop + PagePreviewPanel.ViewportHeight;
-            double top = Math.Clamp((viewTop - pageTop) / pageHeight, 0.0, 1.0);
-            double bottom = Math.Clamp((viewBottom - pageTop) / pageHeight, 0.0, 1.0);
-            double left = 0.0, right = 1.0;
-            // Horizontal: only a page wider than the viewport (deep zoom) shows
-            // a slice - the slot's on-screen edges map the same way, through the
-            // zoomed coordinate space TranslatePoint already speaks.
-            if (PagePreviewPanel.Content is FrameworkElement contentRoot && slot.ActualWidth > 0)
+            if (_doc is null || pageIndex < 0) return false;
+
+            if (_viewMode == ViewMode.Continuous)
             {
-                try
+                if (pageIndex >= _continuousTops.Count
+                    || pageIndex >= _continuousPanel.Children.Count) return false;
+                if (_continuousPanel.Children[pageIndex] is not FrameworkElement slot
+                    || slot.ActualHeight <= 0) return false;
+                double zoom = Math.Max(0.01, _zoomLevel);
+                double pageTop = _continuousTops[pageIndex] * zoom;
+                double pageHeight = slot.ActualHeight * zoom;
+                double viewTop = PagePreviewPanel.VerticalOffset;
+                double viewBottom = viewTop + PagePreviewPanel.ViewportHeight;
+                double top = Math.Clamp((viewTop - pageTop) / pageHeight, 0.0, 1.0);
+                double bottom = Math.Clamp((viewBottom - pageTop) / pageHeight, 0.0, 1.0);
+                double left = 0.0, right = 1.0;
+                // Horizontal: only a page wider than the viewport (deep zoom)
+                // shows a slice - the slot's on-screen edges map the same way,
+                // through the zoomed coordinate space TranslatePoint speaks.
+                if (PagePreviewPanel.Content is FrameworkElement contentRoot && slot.ActualWidth > 0)
                 {
-                    double slotLeft = slot.TranslatePoint(new Point(0, 0), contentRoot).X;
-                    double slotWidth = slot.ActualWidth * zoom;
-                    double viewLeft = PagePreviewPanel.HorizontalOffset;
-                    double viewRight = viewLeft + PagePreviewPanel.ViewportWidth;
-                    left = Math.Clamp((viewLeft - slotLeft) / slotWidth, 0.0, 1.0);
-                    right = Math.Clamp((viewRight - slotLeft) / slotWidth, 0.0, 1.0);
+                    try
+                    {
+                        double slotLeft = slot.TranslatePoint(new Point(0, 0), contentRoot).X;
+                        double slotWidth = slot.ActualWidth * zoom;
+                        double viewLeft = PagePreviewPanel.HorizontalOffset;
+                        double viewRight = viewLeft + PagePreviewPanel.ViewportWidth;
+                        left = Math.Clamp((viewLeft - slotLeft) / slotWidth, 0.0, 1.0);
+                        right = Math.Clamp((viewRight - slotLeft) / slotWidth, 0.0, 1.0);
+                    }
+                    catch
+                    {
+                        left = 0.0;
+                        right = 1.0;
+                    }
                 }
-                catch
-                {
-                    left = 0.0;
-                    right = 1.0;
-                }
+                if (bottom - top <= 0.001 || right - left <= 0.001) return false;
+                if (top <= 0.001 && bottom >= 0.999 && left <= 0.001 && right >= 0.999)
+                    return false;   // the whole page is in view: the full render is the picture
+                crop = new System.Windows.Rect(left, top, right - left, bottom - top);
+                return true;
             }
-            if (bottom - top <= 0.001 || right - left <= 0.001) return false;
-            if (top <= 0.001 && bottom >= 0.999 && left <= 0.001 && right >= 0.999)
-                return false;   // the whole page is in view: the full render is the picture
-            crop = new System.Windows.Rect(left, top, right - left, bottom - top);
-            return true;
+
+            // Single / TwoPage / Grid: the page's slot is the primary tile or a
+            // secondary tile; its edges land in the scrolled (zoomed) space.
+            FrameworkElement? targetSlot = null;
+            if (pageIndex == _renderedPrimaryPage && _pageContentPanel is { } panel
+                && panel.Children.Count > 0 && panel.Children[0] is FrameworkElement primary)
+                targetSlot = primary;
+            else if (_continuousCanvases.TryGetValue(pageIndex, out var overlay)
+                && overlay.Parent is System.Windows.Controls.Grid overlayGrid
+                && overlayGrid.Parent is FrameworkElement tile)
+                targetSlot = tile;
+            if (targetSlot is null || targetSlot.ActualWidth <= 0 || targetSlot.ActualHeight <= 0)
+                return false;
+            if (PagePreviewPanel.Content is not FrameworkElement root) return false;
+            try
+            {
+                System.Windows.Point tl = targetSlot.TranslatePoint(new Point(0, 0), root);
+                System.Windows.Point br = targetSlot.TranslatePoint(
+                    new Point(targetSlot.ActualWidth, targetSlot.ActualHeight), root);
+                double slotW = br.X - tl.X;
+                double slotH = br.Y - tl.Y;
+                if (slotW <= 1 || slotH <= 1) return false;
+                double viewTop = PagePreviewPanel.VerticalOffset;
+                double viewBottom = viewTop + PagePreviewPanel.ViewportHeight;
+                double viewLeft = PagePreviewPanel.HorizontalOffset;
+                double viewRight = viewLeft + PagePreviewPanel.ViewportWidth;
+                double top = Math.Clamp((viewTop - tl.Y) / slotH, 0.0, 1.0);
+                double bottom = Math.Clamp((viewBottom - tl.Y) / slotH, 0.0, 1.0);
+                double left = Math.Clamp((viewLeft - tl.X) / slotW, 0.0, 1.0);
+                double right = Math.Clamp((viewRight - tl.X) / slotW, 0.0, 1.0);
+                if (bottom - top <= 0.001 || right - left <= 0.001) return false;
+                if (top <= 0.001 && bottom >= 0.999 && left <= 0.001 && right >= 0.999)
+                    return false;   // the whole page is in view: the full render is the picture
+                crop = new System.Windows.Rect(left, top, right - left, bottom - top);
+                return true;
+            }
+            catch { return false; }
+        }
+
+        /// <summary>v1.19.31: the pages whose sidebar thumbnails must wear the
+        /// visible band after a route or a scroll - the routed page alone in
+        /// most modes, the WHOLE SPREAD in TwoPage (both pages are what the
+        /// reader is looking at, so both thumbnails follow).</summary>
+        internal (int Page, System.Windows.Rect? Band)[] ThumbnailTargets(int pageIndex)
+        {
+            if (_doc is null || pageIndex < 0) return Array.Empty<(int, System.Windows.Rect?)>();
+            if (_viewMode != ViewMode.TwoPage)
+            {
+                System.Windows.Rect? single = TryGetVisibleCrop(pageIndex, out System.Windows.Rect band)
+                    ? band : (System.Windows.Rect?)null;
+                return new[] { (pageIndex, single) };
+            }
+            int left = SpreadStart(pageIndex);
+            var targets = new List<(int, System.Windows.Rect?)>();
+            for (int p = left; p <= left + 1 && p >= 0 && p < _doc.PageCount; p++)
+            {
+                if (SpreadStart(p) != left) break;   // a cover spread holds one page
+                System.Windows.Rect? band = TryGetVisibleCrop(p, out System.Windows.Rect b)
+                    ? b : (System.Windows.Rect?)null;
+                targets.Add((p, band));
+            }
+            return targets.ToArray();
         }
 
         /// <summary>The page the pane currently calls current - the sidebar's

@@ -1109,6 +1109,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">Modeller - hangi YZ hangi yüzeye yanıt verir</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">Özet</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">Yan sohbet</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">Tarayıcı yan sohbeti</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Anımsatıcı</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>

@@ -523,15 +523,22 @@ namespace Avalanche.Controls
             WebFolderPopup.IsOpen = true;
         }
 
-        // ── v1.19.30: bookmarks travel ───────────────────────────────────────
+        // ── v1.19.30: bookmarks travel; v1.19.31: they actually arrive ──────
         // A page chip drags with the press that would have clicked it: past the
-        // drag threshold the press becomes an OLE drag carrying the BookmarkVm,
-        // and the click never fires. A folder chip is the target (its glow marks
-        // the landing), the bare strip files the page back loose, and an open
-        // folder's popup refills the moment one of its rows moves house.
-        private const string BookmarkDragFormat = "Avalanche.BookmarkVm";
+        // drag threshold the press becomes a CARRIED chip - the mouse is
+        // captured, a ghost follows the cursor, and a folder chip glows when
+        // the cursor crosses its rectangle. No OLE: DoDragDrop from these
+        // chips never landed while the engine's own hwnd sits below, and a
+        // carrier the reader can see beats a protocol the browser swallows.
+        // The bare strip files the page back loose, and an open folder's
+        // popup refills the moment one of its rows moves house.
         private Point _chipPressPoint;
         private bool _chipDragArmed;
+        private bool _dragActive;
+        private BookmarkVm? _dragVm;
+        private System.Windows.Controls.Button? _dragChip;
+        private List<(string Folder, System.Windows.Rect Bounds, System.Windows.Controls.Button Chip)> _dragFolderRects = new();
+        private System.Windows.Controls.Button? _dragGlowChip;
         private string? _openFolderName;
 
         private void BookmarkChip_Press(object sender, MouseButtonEventArgs e)
@@ -546,58 +553,131 @@ namespace Avalanche.Controls
         private void BookmarkChip_MouseMove(object sender, MouseEventArgs e)
         {
             if (sender is not Button { DataContext: BookmarkVm vm } chip) return;
+            if (_dragActive)
+            {
+                Point now = e.GetPosition(WebBookmarksStrip);
+                MoveGhostTo(now);
+                SetGlow(FolderChipAt(now) is null ? null : ChipAt(now));
+                return;
+            }
             if (e.LeftButton != MouseButtonState.Pressed || _chipDragArmed) return;
             Point here = e.GetPosition(chip);
             if (Math.Abs(here.X - _chipPressPoint.X) < SystemParameters.MinimumHorizontalDragDistance
                 && Math.Abs(here.Y - _chipPressPoint.Y) < SystemParameters.MinimumVerticalDragDistance)
                 return;
+            StartChipDrag(vm, chip, e);
+        }
+
+        // The press became a carry: the chip holds the mouse, the ghost appears,
+        // the folder rectangles are measured once for the whole trip.
+        private void StartChipDrag(BookmarkVm vm, Button chip, MouseEventArgs e)
+        {
             _chipDragArmed = true;
-            DataObject data = new();
-            data.SetData(BookmarkDragFormat, vm);
-            data.SetText(vm.Url);
-            try
+            _dragActive = true;
+            _dragVm = vm;
+            _dragChip = chip;
+            _dragFolderRects = CollectFolderRects();
+            WebDragGhostText.Text = string.IsNullOrEmpty(vm.Name) ? vm.Url : vm.Name;
+            chip.CaptureMouse();
+            Point at = e.GetPosition(WebBookmarksStrip);
+            MoveGhostTo(at);
+            SetGlow(FolderChipAt(at) is null ? null : ChipAt(at));
+            WebDragGhost.IsOpen = true;
+        }
+
+        // The release: over a folder chip it files the page there, over the bare
+        // strip it frees the page, anywhere else the carry just ends.
+        private void BookmarkChip_DragRelease(object sender, MouseButtonEventArgs e)
+        {
+            if (!_dragActive) return;
+            BookmarkVm? vm = _dragVm;
+            Point at = e.GetPosition(WebBookmarksStrip);
+            EndChipDrag();
+            e.Handled = true;   // the release must not read as the chip's click
+            if (vm is null) return;
+            if (FolderChipAt(at) is { } target)
             {
-                DragDrop.DoDragDrop(chip, data, DragDropEffects.Move);
+                MoveBookmarkToFolder(vm, target);
+                return;
             }
-            catch
+            System.Windows.Rect stripBounds = new(new Point(0, 0),
+                new Size(Math.Max(0, WebBookmarksStrip.ActualWidth), Math.Max(0, WebBookmarksStrip.ActualHeight)));
+            if (stripBounds.Contains(at) && vm.Folder.Length > 0)
+                MoveBookmarkToFolder(vm, string.Empty);
+        }
+
+        private void BookmarkChip_DragLostCapture(object sender, MouseEventArgs e)
+        {
+            if (_dragActive) EndChipDrag();   // something stole the mouse mid-trip
+        }
+
+        private void EndChipDrag()
+        {
+            _dragActive = false;
+            _dragVm = null;
+            try { _dragChip?.ReleaseMouseCapture(); } catch { /* the capture already left */ }
+            _dragChip = null;
+            WebDragGhost.IsOpen = false;
+            SetGlow(null);
+        }
+
+        private List<(string Folder, System.Windows.Rect Bounds, System.Windows.Controls.Button Chip)> CollectFolderRects()
+        {
+            var rects = new List<(string, System.Windows.Rect, System.Windows.Controls.Button)>();
+            if (WebFoldersList is null) return rects;
+            for (int i = 0; i < WebFoldersList.Items.Count; i++)
             {
-                // a refused drag leaves the chip exactly where it was
+                if (WebFoldersList.ItemContainerGenerator.ContainerFromIndex(i) is not System.Windows.Controls.ContentPresenter presenter) continue;
+                if (FindChipIn(presenter) is not { } chip) continue;
+                System.Windows.Point tl = chip.TranslatePoint(new Point(0, 0), WebBookmarksStrip);
+                System.Windows.Point br = chip.TranslatePoint(new Point(chip.ActualWidth, chip.ActualHeight), WebBookmarksStrip);
+                rects.Add((WebFoldersList.Items[i] as string ?? "", new System.Windows.Rect(tl, br), chip));
             }
+            return rects;
         }
 
-        private void FolderChip_DragOver(object sender, DragEventArgs e)
+        private static System.Windows.Controls.Button? FindChipIn(System.Windows.DependencyObject node)
         {
-            e.Effects = e.Data.GetDataPresent(BookmarkDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
-            e.Handled = true;
-            if (sender is Button chip) chip.Opacity = 0.55;   // the folder glows where the page will land
+            int count = System.Windows.Media.VisualTreeHelper.GetChildrenCount(node);
+            for (int i = 0; i < count; i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(node, i);
+                if (child is System.Windows.Controls.Button hit) return hit;
+                if (FindChipIn(child) is { } deeper) return deeper;
+            }
+            return null;
         }
 
-        private void FolderChip_DragLeave(object sender, DragEventArgs e)
+        private string? FolderChipAt(Point stripPoint)
         {
-            if (sender is Button chip) chip.Opacity = 1.0;
+            foreach (var candidate in _dragFolderRects)
+                if (candidate.Bounds.Contains(stripPoint)) return candidate.Folder;
+            return null;
         }
 
-        private void FolderChip_Drop(object sender, DragEventArgs e)
+        private System.Windows.Controls.Button? ChipAt(Point stripPoint)
         {
-            if (sender is Button chip) chip.Opacity = 1.0;
-            if (e.Data.GetData(BookmarkDragFormat) is not BookmarkVm vm) return;
-            if (sender is not Button { Tag: string folder }) return;
-            MoveBookmarkToFolder(vm, folder);
-            e.Handled = true;
+            foreach (var candidate in _dragFolderRects)
+                if (candidate.Bounds.Contains(stripPoint)) return candidate.Chip;
+            return null;
         }
 
-        private void BookmarksStrip_DragOver(object sender, DragEventArgs e)
+        private void MoveGhostTo(Point stripPoint)
         {
-            e.Effects = e.Data.GetDataPresent(BookmarkDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
-            e.Handled = true;
+            WebDragGhost.HorizontalOffset = stripPoint.X + 12;
+            WebDragGhost.VerticalOffset = stripPoint.Y + 14;
         }
 
-        private void BookmarksStrip_Drop(object sender, DragEventArgs e)
+        private void SetGlow(System.Windows.Controls.Button? chip)
         {
-            if (e.Data.GetData(BookmarkDragFormat) is not BookmarkVm vm) return;
-            MoveBookmarkToFolder(vm, string.Empty);   // the bare strip files the page back loose
-            e.Handled = true;
+            if (ReferenceEquals(_dragGlowChip, chip)) return;
+            if (_dragGlowChip is { } old) old.Opacity = 1.0;
+            _dragGlowChip = chip;
+            if (chip is { } now) now.Opacity = 0.55;   // the folder glows where the page will land
         }
+
+        // (v1.19.31: the OLE drop handlers retired - the carrier above owns the
+        // whole trip, from the press to the rectangle it lands on.)
 
         private void MoveBookmarkToFolder(BookmarkVm vm, string folder)
         {
@@ -645,11 +725,36 @@ namespace Avalanche.Controls
             _openFolderName = null;
             WebFolderEditPopup.IsOpen = true;
             Dispatcher.BeginInvoke(
-                () => { WebFolderEditBox.Focus(); WebFolderEditBox.SelectAll(); },
+                () => { WebFolderEditBox.SelectAll(); GiveBoxTheKeyboard(WebFolderEditBox); },
                 System.Windows.Threading.DispatcherPriority.Input);
         }
 
         private void WebFolderEditSave_Click(object sender, RoutedEventArgs e) => CommitFolderEditor();
+
+        // v1.19.31: the folder editor's field must actually TYPE. The editor
+        // opens over a browser whose engine view holds the keyboard: a WPF
+        // popup never activates, so Win32 focus stayed with the WebView2's
+        // child hwnd and every letter landed in the page. The box takes the
+        // keyboard by force - Win32 SetFocus on the popup's own hwnd - when
+        // the editor opens, and again whenever the field gains focus.
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern System.IntPtr SetFocus(System.IntPtr hWnd);
+
+        private void GiveBoxTheKeyboard(System.Windows.Controls.TextBox box)
+        {
+            box.Focus();
+            System.Windows.Input.Keyboard.Focus(box);
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Input, () =>
+            {
+                if (PresentationSource.FromVisual(box) is System.Windows.Interop.HwndSource src)
+                    SetFocus(src.Handle);
+            });
+        }
+
+        private void WebFolderEditBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox box) GiveBoxTheKeyboard(box);
+        }
 
         private void WebFolderEditBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
@@ -2547,9 +2652,15 @@ namespace Avalanche.Controls
                     if (string.Equals(Path.GetFileName(dir), "inbox", StringComparison.OrdinalIgnoreCase)) continue;
                     if (!File.Exists(Path.Combine(dir, "manifest.json"))) continue;
                     if (!_extensionsLoaded.Add(dir)) continue;
-                    try { _ = core.Profile.AddBrowserExtensionAsync(dir); }
+                    try
+                    {
+                        _ = core.Profile.AddBrowserExtensionAsync(dir).ContinueWith(
+                            _ => Dispatcher.BeginInvoke(() => _ = MergeLiveExtensionsAsync()),
+                            System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+                    }
                     catch { _extensionsLoaded.Remove(dir); }   // the next visit retries
                 }
+                _ = MergeLiveExtensionsAsync();   // the toolbar wears what is already riding
             }
             catch { /* a courtesy, like every extension load */ }
         }
@@ -2563,9 +2674,15 @@ namespace Avalanche.Controls
             UnpackCrx(File.ReadAllBytes(crxPath), target);
             if (_activeView?.CoreWebView2 is { } core && _extensionsLoaded.Add(target))
             {
-                try { _ = core.Profile.AddBrowserExtensionAsync(target); }
+                try
+                {
+                    _ = core.Profile.AddBrowserExtensionAsync(target).ContinueWith(
+                        _ => Dispatcher.BeginInvoke(() => _ = MergeLiveExtensionsAsync()),
+                        System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+                }
                 catch { _extensionsLoaded.Remove(target); }
             }
+            _ = MergeLiveExtensionsAsync();   // the folder scan shows the crate at once
         }
 
         /// <summary>A file stem becomes a folder name: characters the filesystem
@@ -2653,14 +2770,14 @@ namespace Avalanche.Controls
             }
         }
 
-        // ── The extensions flyout (v1.19.29, grown up in v1.19.30) ─────────────────
-        // The puzzle button opens the list of what rides, a picker for a .crx
-        // file, and the folder itself - none of it needing a rebuild. v1.19.30:
-        // the list wakes up to the profile's real extension objects, so every
-        // row carries the package's own icon, the browser's enable toggle and
-        // right-click (Options, Remove), and a click opens the extension's own
-        // popup page in the little panel under the list - the window the
-        // extension's toolbar icon would have dropped.
+        // ── The extensions on the toolbar (v1.19.29, grown through v1.19.31) ─────
+        // v1.19.31: the extensions ARE the toolbar - one icon per installed
+        // extension, the picture from its own package, no text. A click drops
+        // the extension's popup in a real window (the old popup panel was a
+        // WPF Popup, and every click the engine view was owed landed in the
+        // strip of glass beneath it - a picture the reader could see and never
+        // touch); a right-click offers Options, Remove, the picker and the
+        // the door a first extension arrives through.
 
         private sealed class ExtVm
         {
@@ -2682,18 +2799,35 @@ namespace Avalanche.Controls
         private sealed record ExtManifest(
             string Name, string Version, string PopupPath, string OptionsPath, string IconPath);
 
-        private void WebExtensionsBtn_Click(object sender, RoutedEventArgs e)
+        private void WebExtPuzzleBtn_Click(object sender, RoutedEventArgs e)
         {
-            RefreshExtensionsList();
-            WebExtPopup.IsOpen = true;
-            _ = MergeLiveExtensionsAsync();   // the profile's word replaces the folder scan's when it lands
+            // nothing installed yet: the puzzle is the door - the picker and
+            // the folder, dressed in the house face like every other menu.
+            if (sender is not Button puzzle) return;
+            Window? host = Window.GetWindow(puzzle);
+            ContextMenu menu = new();
+            MenuItem install = new() { Header = TryLoc("Str_Web_ExtInstall") ?? "Install from file…" };
+            install.Click += WebExtInstall_Click;
+            MenuItem folder = new() { Header = TryLoc("Str_Web_ExtOpenFolder") ?? "Open extensions folder" };
+            folder.Click += WebExtOpenFolder_Click;
+            menu.Items.Add(install);
+            menu.Items.Add(folder);
+            if (host is not null)
+            {
+                if (host.TryFindResource(typeof(ContextMenu)) is Style face) menu.Style = face;
+                foreach (MenuItem item in menu.Items.OfType<MenuItem>())
+                    if (host.TryFindResource(typeof(MenuItem)) is Style itemFace) item.Style = itemFace;
+            }
+            menu.PlacementTarget = puzzle;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
         }
 
-        private void RefreshExtensionsList()
+        private void RefreshExtensionSurfaces()
         {
             List<ExtVm> installed = CollectInstalledExtensions();
-            WebExtList.ItemsSource = installed;
-            WebExtEmptyNote.Visibility = installed.Count == 0
+            WebExtIconRow.ItemsSource = installed;
+            WebExtPuzzleBtn.Visibility = installed.Count == 0
                 ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -2702,34 +2836,43 @@ namespace Avalanche.Controls
         /// resolve the same localized dial). A live extension with no folder
         /// row - the riding pdf helper, an install the folder scan missed -
         /// joins as its own row; the toggle and the menu come alive with it.</summary>
+        private bool _extMerging;
+
         private async Task MergeLiveExtensionsAsync()
         {
+            if (_extMerging) return;
+            _extMerging = true;
             try
             {
-                if (_activeView?.CoreWebView2 is not { } core) return;
-                var live = await core.Profile.GetBrowserExtensionsAsync();
-                if (!WebExtPopup.IsOpen) return;   // the reader moved on before the answer came
                 List<ExtVm> rows = CollectInstalledExtensions();
-                foreach (CoreWebView2BrowserExtension ext in live)
+                if (_activeView?.CoreWebView2 is { } core)
                 {
-                    ExtVm? row = rows.FirstOrDefault(r =>
-                        string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase));
-                    if (row is null)
+                    var live = await core.Profile.GetBrowserExtensionsAsync();
+                    foreach (CoreWebView2BrowserExtension ext in live)
                     {
-                        row = new ExtVm { Name = ext.Name };
-                        rows.Add(row);
+                        ExtVm? row = rows.FirstOrDefault(r =>
+                            string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase));
+                        if (row is null)
+                        {
+                            row = new ExtVm { Name = ext.Name };
+                            rows.Add(row);
+                        }
+                        row.Extension = ext;
+                        row.LiveEnabled = ext.IsEnabled;
                     }
-                    row.Extension = ext;
-                    row.LiveEnabled = ext.IsEnabled;
                 }
-                WebExtList.ItemsSource = rows;
-                WebExtEmptyNote.Visibility = rows.Count == 0
+                WebExtIconRow.ItemsSource = rows;
+                WebExtPuzzleBtn.Visibility = rows.Count == 0
                     ? Visibility.Visible : Visibility.Collapsed;
             }
             catch
             {
                 // an older runtime without the query API (or no engine awake
                 // yet) keeps the folder-scan list exactly as it was
+            }
+            finally
+            {
+                _extMerging = false;
             }
         }
 
@@ -2859,46 +3002,48 @@ namespace Avalanche.Controls
             catch { return null; }
         }
 
-        // ── v1.19.30: the extension's own popup, options and removal ────────────
+        // ── v1.19.30: the extension's own popup, options and removal; ──────────
+        // v1.19.31: they live in real windows now.
 
-        private void WebExtRow_Click(object sender, MouseButtonEventArgs e)
+        private void WebExtIcon_Click(object sender, RoutedEventArgs e)
         {
-            // the enable toggle lives inside the row: its press belongs to the
-            // toggle, never to the row's popup
-            for (DependencyObject? d = e.OriginalSource as DependencyObject; d is not null;
-                 d = System.Windows.Media.VisualTreeHelper.GetParent(d))
-                if (d is System.Windows.Controls.Primitives.ToggleButton) return;
             if (sender is not FrameworkElement { DataContext: ExtVm vm }) return;
+            OpenExtensionPopup(vm);
+        }
+
+        private void OpenExtensionPopup(ExtVm vm)
+        {
             if (vm.Extension is null)
             {
-                OpenExtActionNote(TryLoc("Str_Web_ExtAsleep")
+                ShowExtActionNote(TryLoc("Str_Web_ExtAsleep")
                     ?? "Open a page first - the extension wakes with the browser.");
                 return;
             }
             if (vm.PopupPath.Length == 0)
             {
-                OpenExtActionNote(TryLoc("Str_Web_ExtNoPopup")
+                ShowExtActionNote(TryLoc("Str_Web_ExtNoPopup")
                     ?? "This extension has no popup - it runs without one.");
                 return;
             }
-            _ = ShowExtensionActionViewAsync(vm.Extension, vm.PopupPath);
-        }
-
-        private void ExtToggle_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not System.Windows.Controls.CheckBox { DataContext: ExtVm vm } box) return;
-            if (vm.Extension is null) return;
-            vm.LiveEnabled = box.IsChecked == true;
-            try { _ = vm.Extension.EnableAsync(vm.LiveEnabled); }
-            catch { /* a toggle the runtime refuses leaves the word as it was */ }
+            _ = ShowExtensionActionViewAsync(vm.Extension, vm.PopupPath, optionsPage: false);
         }
 
         private void WebExtOptions_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not FrameworkElement { DataContext: ExtVm vm }) return;
             if (vm.Extension is null || vm.OptionsPath.Length == 0) return;
-            WebExtPopup.IsOpen = false;
-            _ = ShowExtensionActionViewAsync(vm.Extension, vm.OptionsPath);
+            _ = ShowExtensionActionViewAsync(vm.Extension, vm.OptionsPath, optionsPage: true);
+        }
+
+        // v1.19.31: the enable toggle rides the icon's menu now - checkable,
+        // answered by the profile's own EnableAsync like the old checkbox.
+        private void WebExtToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.MenuItem { DataContext: ExtVm vm } item) return;
+            if (vm.Extension is null) return;
+            vm.LiveEnabled = item.IsChecked;
+            try { _ = vm.Extension.EnableAsync(vm.LiveEnabled); }
+            catch { /* a toggle the runtime refuses leaves the word as it was */ }
         }
 
         private async void WebExtRemove_Click(object sender, RoutedEventArgs e)
@@ -2931,71 +3076,202 @@ namespace Avalanche.Controls
                 }
             }
             _extensionsLoaded.Remove(vm.Folder);
-            RefreshExtensionsList();
+            RefreshExtensionSurfaces();
+            _ = MergeLiveExtensionsAsync();
         }
 
-        /// <summary>The popup panel: a fresh engine view every open, sharing the
+        // One action window at a time; the reader's next click closes the last.
+        private Window? _extActionWindow;
+
+        private System.Windows.Media.Brush ResBrush(string key, System.Windows.Media.Brush fallback)
+            => TryFindResource(key) as System.Windows.Media.Brush ?? fallback;
+
+        /// <summary>The popup window: a fresh engine view every open, sharing the
         /// tabs' environment (and so the profile and its extensions), wearing
-        /// the page the extension declares. A page that refuses to arrive says
-        /// so in the panel instead of leaving a blank rectangle.</summary>
-        private async Task ShowExtensionActionViewAsync(CoreWebView2BrowserExtension ext, string subPath)
+        /// the page the extension declares. A REAL window - the old popup panel
+        /// never passed a single click through to the engine view inside it.
+        /// The popup mode is a chromeless bubble under the toolbar; the options
+        /// page opens in a normal resizable window. A page that refuses to
+        /// arrive says so in its window instead of leaving a blank rectangle.
+        /// </summary>
+        private sealed class ExtActionShell
+        {
+            public Window Window = null!;
+            public Grid Root = null!;
+            public System.Windows.Controls.TextBlock Note = null!;
+            public WebView2 View = null!;
+        }
+
+        private ExtActionShell BuildExtActionShell(string name, bool optionsPage)
+        {
+            var shell = new ExtActionShell();
+            var view = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.White };
+            shell.View = view;
+            var note = new System.Windows.Controls.TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Padding = new Thickness(14, 10, 14, 12),
+                FontSize = 12,
+                Visibility = Visibility.Collapsed,
+            };
+            note.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextBrush");
+            shell.Note = note;
+
+            var win = new Window
+            {
+                ShowInTaskbar = false,
+                ShowActivated = true,
+                WindowStartupLocation = WindowStartupLocation.Manual,
+                Background = ResBrush("BackgroundBrush", System.Windows.Media.Brushes.Black),
+            };
+            var root = new Grid();
+            shell.Root = root;
+            if (optionsPage)
+            {
+                win.Title = name;
+                win.WindowStyle = WindowStyle.SingleBorderWindow;
+                win.ResizeMode = ResizeMode.CanResize;
+                win.Width = 940;
+                win.Height = 720;
+                root.Children.Add(view);
+                root.Children.Add(note);
+            }
+            else
+            {
+                win.WindowStyle = WindowStyle.None;
+                win.ResizeMode = ResizeMode.NoResize;
+                win.Width = 400;
+                win.Height = 560;
+                win.BorderBrush = ResBrush("CardBorderBrush", System.Windows.Media.Brushes.Gray);
+                win.BorderThickness = new Thickness(1);
+                var caption = new Grid { Height = 30, Background = System.Windows.Media.Brushes.Transparent };
+                var title = new System.Windows.Controls.TextBlock
+                {
+                    Text = name,
+                    Margin = new Thickness(10, 0, 32, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FontSize = 12,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                };
+                title.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextBrush");
+                var close = new System.Windows.Controls.Button
+                {
+                    Content = "\uE8BB",
+                    FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+                    FontSize = 11,
+                    Width = 30,
+                    Height = 26,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                };
+                close.SetResourceReference(System.Windows.Controls.Button.ForegroundProperty, "TextBrush");
+                close.Click += (_, _) => win.Close();
+                caption.Children.Add(title);
+                caption.Children.Add(close);
+                caption.MouseLeftButtonDown += (_, _) => { try { win.DragMove(); } catch { /* a caption pressed while maximized is no one's emergency */ } };
+                root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
+                root.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                Grid.SetRow(caption, 0);
+                Grid.SetRow(view, 1);
+                Grid.SetRow(note, 1);
+                root.Children.Add(caption);
+                root.Children.Add(view);
+                root.Children.Add(note);
+            }
+            win.PreviewKeyDown += (_, e2) => { if (e2.Key == System.Windows.Input.Key.Escape) win.Close(); };
+            win.Content = root;
+            shell.Window = win;
+            return shell;
+        }
+
+        private void CloseExtActionWindow()
+        {
+            try { _extActionWindow?.Close(); } catch { /* a window already going away is no one's emergency */ }
+            _extActionWindow = null;
+        }
+
+        private async Task ShowExtensionActionViewAsync(CoreWebView2BrowserExtension ext, string subPath, bool optionsPage)
         {
             if (_env is null) return;
-            WebExtActionPopup.IsOpen = true;
-            DisposeExtActionView();
-            WebExtActionHost.Visibility = Visibility.Visible;
-            WebExtActionNote.Visibility = Visibility.Collapsed;
-            var view = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.White };
-            WebExtActionHost.Children.Add(view);
+            CloseExtActionWindow();
+            ExtActionShell shell = BuildExtActionShell(ext.Name ?? "", optionsPage);
+            Window win = shell.Window;
+            win.Closed += (_, _) =>
+            {
+                try { shell.View.Dispose(); }
+                catch { /* a view already going away is no one's emergency */ }
+                if (ReferenceEquals(_extActionWindow, win)) _extActionWindow = null;
+            };
+            _extActionWindow = win;
+            PlaceExtActionWindow(win, optionsPage);
+            win.Show();
             try
             {
-                await view.EnsureCoreWebView2Async(_env);
-                if (WebExtActionHost.Children.Count == 0 || !ReferenceEquals(WebExtActionHost.Children[0], view))
-                    return;   // the popup closed while the engine warmed: nothing to wear
-                view.CoreWebView2.NavigationCompleted += (_, args) =>
+                await shell.View.EnsureCoreWebView2Async(_env);
+                if (!ReferenceEquals(_extActionWindow, win)) return;   // closed while the engine warmed
+                shell.View.CoreWebView2.NavigationCompleted += (_, args) =>
                 {
-                    if (!args.IsSuccess && ReferenceEquals(WebExtActionHost.Children[0], view))
-                    {
-                        Dispatcher.Invoke(() => OpenExtActionNote(TryLoc("Str_Web_ExtPopupFail")
+                    if (!args.IsSuccess && ReferenceEquals(_extActionWindow, win))
+                        Dispatcher.Invoke(() => ShowShellNote(shell, TryLoc("Str_Web_ExtPopupFail")
                             ?? "Its popup would not open here."));
-                    }
                 };
-                view.CoreWebView2.Navigate(
+                shell.View.CoreWebView2.Navigate(
                     "chrome-extension://" + ext.Id + "/" + subPath.TrimStart('/'));
             }
             catch
             {
-                if (ReferenceEquals(WebExtActionHost.Children[0], view))
-                    OpenExtActionNote(TryLoc("Str_Web_ExtPopupFail")
+                if (ReferenceEquals(_extActionWindow, win))
+                    ShowShellNote(shell, TryLoc("Str_Web_ExtPopupFail")
                         ?? "Its popup would not open here.");
             }
         }
 
-        private void OpenExtActionNote(string text)
+        private void ShowExtActionNote(string text)
         {
-            WebExtActionPopup.IsOpen = true;
-            DisposeExtActionView();
-            WebExtActionHost.Visibility = Visibility.Collapsed;
-            WebExtActionNote.Text = text;
-            WebExtActionNote.Visibility = Visibility.Visible;
-        }
-
-        private void WebExtActionPopup_Closed(object sender, EventArgs e)
-        {
-            DisposeExtActionView();
-            WebExtActionHost.Visibility = Visibility.Visible;
-            WebExtActionNote.Visibility = Visibility.Collapsed;
-            WebExtActionNote.Text = "";
-        }
-
-        private void DisposeExtActionView()
-        {
-            foreach (WebView2 old in WebExtActionHost.Children.OfType<WebView2>().ToList())
+            CloseExtActionWindow();
+            ExtActionShell shell = BuildExtActionShell("", optionsPage: false);
+            Window win = shell.Window;
+            win.Width = 360;
+            win.Height = 150;
+            win.Closed += (_, _) =>
             {
-                WebExtActionHost.Children.Remove(old);
-                try { old.Dispose(); }
-                catch { /* a view already going away is no one's emergency */ }
+                if (ReferenceEquals(_extActionWindow, win)) _extActionWindow = null;
+            };
+            _extActionWindow = win;
+            PlaceExtActionWindow(win, optionsPage: false);
+            win.Show();
+            ShowShellNote(shell, text);
+        }
+
+        private void ShowShellNote(ExtActionShell shell, string text)
+        {
+            shell.Note.Text = text;
+            shell.Note.Visibility = Visibility.Visible;
+            shell.Root.Children.Remove(shell.View);
+        }
+
+        private void PlaceExtActionWindow(Window win, bool optionsPage)
+        {
+            double dpi = 1.0;
+            if (PresentationSource.FromVisual(this) is System.Windows.Interop.HwndSource src
+                && src.CompositionTarget is { } target) dpi = target.TransformToDevice.M22;
+            System.Windows.Point anchorDev;
+            try
+            {
+                anchorDev = WebExtIconRow.ActualWidth > 0
+                    ? WebExtIconRow.PointToScreen(new Point(0, Math.Max(1, WebExtIconRow.ActualHeight)))
+                    : this.PointToScreen(new Point(60, 72));
             }
+            catch { anchorDev = this.PointToScreen(new Point(60, 72)); }
+            var work = SystemParameters.WorkArea;
+            double left = anchorDev.X / Math.Max(0.01, dpi);
+            double top = anchorDev.Y / Math.Max(0.01, dpi) + 2;
+            win.Left = Math.Min(Math.Max(left, work.Left),
+                Math.Max(work.Left, work.Right - win.Width - 8));
+            win.Top = Math.Min(top, Math.Max(work.Top, work.Bottom - win.Height - 8));
         }
 
         private static string ResolveExtensionMessage(string dir, string key)
@@ -3065,7 +3341,8 @@ namespace Avalanche.Controls
                 try { InstallCrxFile(path); }
                 catch { /* one crate that will not open changes nothing else */ }
             }
-            RefreshExtensionsList();
+            RefreshExtensionSurfaces();
+            _ = MergeLiveExtensionsAsync();
         }
 
         private void WebExtOpenFolder_Click(object sender, RoutedEventArgs e)
@@ -3080,7 +3357,6 @@ namespace Avalanche.Controls
                         FileName = ExtensionsRoot,
                         UseShellExecute = true,
                     });
-                WebExtPopup.IsOpen = false;
             }
             catch { /* a folder that will not open is no one's emergency */ }
         }

@@ -200,6 +200,7 @@ namespace Avalanche
             ShowNotesStatus(string.Format(Loc("Str_Notes_Generating"), from, to));
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            _aiSettingsViewModel.Load();
             _notesCts = new CancellationTokenSource();
             try
             {

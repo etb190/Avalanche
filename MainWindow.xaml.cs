@@ -1053,6 +1053,7 @@ namespace Avalanche
             }
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            _aiSettingsViewModel.Load();
             var test = new Features.AI.AiTestWindow(
                 this,
                 _currentFile,
@@ -1218,6 +1219,7 @@ namespace Avalanche
             }
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            _aiSettingsViewModel.Load();
             (int first, int last) = GetRecapRange(_currentPage + 1);
             Features.Summary.RecapController.ToggleWindow(
                 this,
@@ -1225,7 +1227,7 @@ namespace Avalanche
                 _doc.PageCount,
                 first,
                 last,
-                () => _aiSettingsViewModel.ToGenConfig(),
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel.ToGenConfig(), Features.AI.AiSurface.Recaller),
                 Loc);
         }
 
@@ -1243,6 +1245,7 @@ namespace Avalanche
             }
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            _aiSettingsViewModel.Load();
             (int first, int last) = GetRecapRange(_currentPage + 1);
             Features.Summary.RecapController.ShowRecap(
                 this,
@@ -1250,7 +1253,7 @@ namespace Avalanche
                 _doc.PageCount,
                 first,
                 last,
-                () => _aiSettingsViewModel.ToGenConfig(),
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel.ToGenConfig(), Features.AI.AiSurface.Recaller),
                 Loc);
         }
 
@@ -1473,6 +1476,7 @@ namespace Avalanche
             }
 
             _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            _aiSettingsViewModel.Load();
             string path = _currentFile;
             int pageCount = _doc.PageCount;
             var summary = new Features.Summary.SummaryWindow(
@@ -1481,7 +1485,7 @@ namespace Avalanche
                 Features.AI.DocumentIndexer.ComputeDocumentId(path),
                 pageCount,
                 () => _currentPage,
-                () => _aiSettingsViewModel!.ToGenConfig(),
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.Summary),
                 Loc);
             // A window closed from its own title bar must not leave a stale reference
             // behind - the next toolbar click would poke a corpse (Activate on a
@@ -1535,6 +1539,7 @@ namespace Avalanche
             if (_aiChatViewModel is null)
             {
                 _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+                _aiSettingsViewModel.Load();
                 _aiChatViewModel = new Features.AI.AiChatViewModel(
                     this,
                     () => _aiSettingsViewModel.ToGenConfig(),

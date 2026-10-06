@@ -1109,6 +1109,13 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">Modelos - qué IA responde en cada superficie</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">Resumen</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">Chat lateral</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">Chat lateral del navegador</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Recapitulador</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>

@@ -1113,6 +1113,13 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">模型 - 每个界面由哪个 AI 回答</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">摘要</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">边聊</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">浏览器边聊</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">回顾</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>

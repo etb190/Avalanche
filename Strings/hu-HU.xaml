@@ -1116,6 +1116,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">Modellek - melyik AI válaszol az egyes felületeken</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">Összefoglaló</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">Oldalsó csevegés</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">Böngésző oldalsó csevegése</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Emlékeztető</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>

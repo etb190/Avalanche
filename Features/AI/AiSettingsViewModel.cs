@@ -26,6 +26,15 @@ namespace Avalanche.Features.AI
         private string _embeddingDocumentPrefix = "title: none | text: ";
         private string _embeddingQueryPrefix = "task: search results | query: ";
 
+        // v1.19.31: the four model dials - Nemotron by default, gpt-oss one
+        // dropdown away. The dial itself lives in AiSurfaceModels (shared with
+        // every surface); these properties only mirror it for the combos and
+        // write through on every change.
+        private string _summaryModelChoice = AiSurfaceModels.NemotronChoice;
+        private string _sidechatModelChoice = AiSurfaceModels.NemotronChoice;
+        private string _webSidechatModelChoice = AiSurfaceModels.NemotronChoice;
+        private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
+
         private bool _isEnabled = false;
         private string _connectionStatus = "";
         private bool _isTestingConnection;
@@ -104,6 +113,34 @@ namespace Avalanche.Features.AI
         {
             get => _maxHistoryMessages;
             set { _maxHistoryMessages = Math.Max(2, value); OnPropertyChanged(); }
+        }
+
+        /// <summary>Which model answers the summary: nemotron | gpt-oss.</summary>
+        public string SummaryModelChoice
+        {
+            get => _summaryModelChoice;
+            set { _summaryModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Summary, _summaryModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>Which model answers the book sidechat.</summary>
+        public string SidechatModelChoice
+        {
+            get => _sidechatModelChoice;
+            set { _sidechatModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Sidechat, _sidechatModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>Which model answers the browser sidechat.</summary>
+        public string WebSidechatModelChoice
+        {
+            get => _webSidechatModelChoice;
+            set { _webSidechatModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.WebSidechat, _webSidechatModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>Which model answers the recaller.</summary>
+        public string RecallerModelChoice
+        {
+            get => _recallerModelChoice;
+            set { _recallerModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Recaller, _recallerModelChoice); OnPropertyChanged(); }
         }
 
         public string EmbeddingDocumentPrefix
@@ -365,6 +402,12 @@ namespace Avalanche.Features.AI
                 if (!System.IO.File.Exists(path)) return;
                 var json = System.IO.File.ReadAllText(path);
                 var config = System.Text.Json.JsonSerializer.Deserialize<AiProviderConfig>(json);
+                // v1.19.31: the four dials ride their own file; the panel mirrors
+                // whatever they say right now.
+                _summaryModelChoice = AiSurfaceModels.Get(AiSurface.Summary);
+                _sidechatModelChoice = AiSurfaceModels.Get(AiSurface.Sidechat);
+                _webSidechatModelChoice = AiSurfaceModels.Get(AiSurface.WebSidechat);
+                _recallerModelChoice = AiSurfaceModels.Get(AiSurface.Recaller);
                 if (config is not null)
                 {
                     LoadFromGenConfig(config);

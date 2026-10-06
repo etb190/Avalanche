@@ -961,7 +961,7 @@ namespace Avalanche.Features.AI
                         return;
                     }
 
-                    var webConfig = _configProvider();
+                    var webConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.WebSidechat);
                     var webResponse = await GetProvider(webConfig).GetChatCompletionAsync(
                         WebChat.BuildSystemPrompt(page),
                         GetRecentMessages(),
@@ -1030,7 +1030,7 @@ namespace Avalanche.Features.AI
                 string sourceRefs = "";
 
                 // Get AI response with the CURRENT provider settings
-                var config = _configProvider();
+                var config = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.Sidechat);
                 var response = await GetProvider(config).GetChatCompletionAsync(
                     systemPrompt,
                     GetRecentMessages(),

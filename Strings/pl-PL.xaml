@@ -1117,6 +1117,13 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 
     <sys:String x:Key="Str_AiSettingsClose">Close settings</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
+    <sys:String x:Key="Str_AiModelsSection">Modele - które AI odpowiada na każdej powierzchni</sys:String>
+    <sys:String x:Key="Str_AiModelSummary">Podsumowanie</sys:String>
+    <sys:String x:Key="Str_AiModelSidechat">Czat boczny</sys:String>
+    <sys:String x:Key="Str_AiModelWebSidechat">Czat boczny przeglądarki</sys:String>
+    <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
+    <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelRecaller">Przypominajka</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
     <sys:String x:Key="Str_AiTestEmbFail">Embedding model failed</sys:String>
