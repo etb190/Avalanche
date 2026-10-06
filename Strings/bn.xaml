@@ -1164,7 +1164,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiSettingsTestConnection">সংযোগ পরীক্ষা</sys:String>
     <sys:String x:Key="Str_AiSettingsOllamaPreset">Ollama প্রিসেট ব্যবহার করুন</sys:String>
     <sys:String x:Key="Str_AiSettingsOpenAIPreset">OpenAI প্রিসেট ব্যবহার করুন</sys:String>
-    <sys:String x:Key="Str_AiSettingsCloudWarning">⚠ এই মডেল আপনার প্রশ্ন এবং নথির অংশ ক্লাউডে (ollama.com-এ) পাঠায়। নথি কম্পিউটার ছেড়ে যায়।</sys:String>
+    <sys:String x:Key="Str_AiSettingsCloudWarning"></sys:String>
 
     <!-- ── AI Test Strings ─────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiTestChatPrompt">শুধু 'OK' উত্তর দিন</sys:String>

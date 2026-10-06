@@ -1184,7 +1184,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiSettingsTestConnection">Test Connection</sys:String>
     <sys:String x:Key="Str_AiSettingsOllamaPreset">Use Ollama Preset</sys:String>
     <sys:String x:Key="Str_AiSettingsOpenAIPreset">Use OpenAI Preset</sys:String>
-    <sys:String x:Key="Str_AiSettingsCloudWarning">This model sends your questions and document passages to the cloud (ollama.com). Documents leave this computer.</sys:String>
+    <sys:String x:Key="Str_AiSettingsCloudWarning"></sys:String>
 
     <!-- ── AI Test Strings ─────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_AiTestChatPrompt">Reply with just 'OK'</sys:String>

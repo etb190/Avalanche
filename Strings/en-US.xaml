@@ -1188,7 +1188,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiSettingsTestConnection">Test Connection</sys:String>
     <sys:String x:Key="Str_AiSettingsOllamaPreset">Use Ollama Preset</sys:String>
     <sys:String x:Key="Str_AiSettingsOpenAIPreset">Use OpenAI Preset</sys:String>
-    <sys:String x:Key="Str_AiSettingsCloudWarning">⚠ This model sends your questions and document passages to the cloud (ollama.com). Documents leave this computer.</sys:String>
+    <sys:String x:Key="Str_AiSettingsCloudWarning"></sys:String>
 
 	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
 	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>

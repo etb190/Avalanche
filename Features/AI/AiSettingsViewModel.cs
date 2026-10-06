@@ -39,19 +39,18 @@ namespace Avalanche.Features.AI
         private bool _isEnabled = false;
         private string _connectionStatus = "";
         private bool _isTestingConnection;
-        private bool _showCloudWarning;
 
         // Generation
         public string GenProviderType
         {
             get => _genProviderType;
-            set { _genProviderType = value; OnPropertyChanged(); UpdateCloudWarning(); }
+            set { _genProviderType = value; OnPropertyChanged(); }
         }
 
         public string GenBaseUrl
         {
             get => _genBaseUrl;
-            set { _genBaseUrl = value; OnPropertyChanged(); UpdateCloudWarning(); }
+            set { _genBaseUrl = value; OnPropertyChanged(); }
         }
 
         public string GenApiKey
@@ -63,7 +62,7 @@ namespace Avalanche.Features.AI
         public string GenModel
         {
             get => _genModel;
-            set { _genModel = value; OnPropertyChanged(); UpdateCloudWarning(); }
+            set { _genModel = value; OnPropertyChanged(); }
         }
 
         public double GenTemperature
@@ -183,13 +182,6 @@ namespace Avalanche.Features.AI
 
         public bool CanTestConnection => !IsTestingConnection;
 
-        public bool ShowCloudWarning
-        {
-            get => _showCloudWarning;
-            private set { _showCloudWarning = value; OnPropertyChanged(); }
-        }
-
-        public string CloudWarningText => "⚠ This model sends your questions and document passages to the cloud (NVIDIA NIM API). Documents leave this computer.";
 
         public AiProviderConfig ToGenConfig()
         {
@@ -454,11 +446,6 @@ namespace Avalanche.Features.AI
             }
         }
 
-        private void UpdateCloudWarning()
-        {
-            ShowCloudWarning = GenModel?.EndsWith("-cloud", StringComparison.OrdinalIgnoreCase) == true
-                || !AiEndpoints.IsLocal(GenBaseUrl);
-        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null) =>
