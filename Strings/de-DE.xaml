@@ -1196,6 +1196,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
 	<sys:String x:Key="Str_SummaryBufferBusy">Puffer: wird erstellt…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Puffer: bereit</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Puffer: nicht verfügbar</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Rückblick: wird erstellt…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Rückblick fertig</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">noch {0} Seiten</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Sprich mit deinem Dokument</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Frag alles zu diesem Dokument - Zusammenfassungen, Erklärungen, Übersetzungen. Die KI hat jede Seite gelesen.</sys:String>
@@ -1310,6 +1312,12 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_ExtOpenFolder">Erweiterungsordner öffnen</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Noch keine Erweiterungen — eine .crx in den Inbox-Ordner legen oder aus einer Datei installieren.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Browsererweiterung (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">Diese Erweiterung hat kein Popup - es läuft ohne.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Sein Popup ließ sich hier nicht öffnen.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Optionen</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Entfernen</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Aktiviert</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Öffnen Sie zuerst eine Seite - die Erweiterung erwacht mit dem Browser.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">In Ordner legen</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Neuer Ordner…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Kein Ordner</sys:String>

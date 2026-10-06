@@ -1210,6 +1210,8 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryBufferBusy">Буфер: генерация…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Буфер: готов</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Буфер: недоступен</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Пересказ: генерация…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Пересказ готов</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">осталось {0} стр.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Спросите свой документ</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Спрашивайте о чём угодно в этом документе - резюме, объяснения, перевод. ИИ прочитал каждую страницу.</sys:String>
@@ -1324,6 +1326,12 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_ExtOpenFolder">Открыть папку расширений</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Расширений пока нет — положите .crx в папку inbox или установите из файла.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Расширение браузера (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">У этого расширения нет всплывающего окна - оно работает без него.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Его всплывающее окно не открылось здесь.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Настройки</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Удалить</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Включено</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Сначала откройте страницу - расширение просыпается вместе с браузером.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Добавить в папку</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Новая папка…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Без папки</sys:String>

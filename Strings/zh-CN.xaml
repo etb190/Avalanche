@@ -1194,6 +1194,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">缓冲：生成中…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">缓冲：就绪</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">缓冲: 不可用</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">回顾：生成中…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">回顾已完成</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">剩余 {0} 页</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">与你的文档对话</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">关于这份文档，想到什么就问 - 摘要、解释、翻译，AI 已读过每一页。</sys:String>
@@ -1308,6 +1310,12 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">打开扩展文件夹</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">还没有扩展——将 .crx 放入 inbox 文件夹，或从文件安装。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">浏览器扩展 (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">此扩展没有弹窗——它本来就不带弹窗。</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">它的弹窗无法在此打开。</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">选项</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">移除</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">已启用</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">请先打开一个页面——扩展随浏览器一起启动。</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">添加到文件夹</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新建文件夹…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">无文件夹</sys:String>

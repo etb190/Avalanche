@@ -1198,6 +1198,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryBufferBusy">Bufor: generowanie…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Bufor: gotowy</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Bufor: niedostępny</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Streszczenie: generowanie…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Streszczenie gotowe</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">pozostało {0} str.</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Porozmawiaj ze swoim dokumentem</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Zapytaj o cokolwiek w tym dokumencie - streszczenia, wyjaśnienia, tłumaczenia. AI przeczytała każdą stronę.</sys:String>
@@ -1312,6 +1314,12 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_ExtOpenFolder">Otwórz folder rozszerzeń</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Nie ma jeszcze rozszerzeń — upuść plik .crx do folderu inbox albo zainstaluj z pliku.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozszerzenie przeglądarki (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">To rozszerzenie nie ma okienka - działa bez niego.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Jego okienko nie mogło się tu otworzyć.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Opcje</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Usuń</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Włączone</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Najpierw otwórz stronę - rozszerzenie budzi się razem z przeglądarką.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Dodaj do folderu</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nowy folder…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Brak folderu</sys:String>

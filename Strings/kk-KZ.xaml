@@ -1209,6 +1209,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_SummaryBufferBusy">Буфер: жасалуда…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Буфер: дайын</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Буфер: қолжетімсіз</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Қорытынды: жасалуда…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Қорытынды дайын</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} бет қалды</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Құжатыңызбен сөйлесіңіз</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Осы құжат туралы кез келген нәрсені сұраңыз - түйіндеме, түсіндірме, аударма. ЖИ әр бетті оқыды.</sys:String>
@@ -1323,6 +1325,12 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_ExtOpenFolder">Кеңейтімдер қалтасын ашу</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Кеңейтімдер әзірге жоқ — .crx файлын inbox қалтасына салыңыз немесе файлдан орнатыңыз.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Браузер кеңейтімі (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">Бұл кеңейтімде қалқымалы терезе жоқ - онымен жұмыс істейді.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Оның қалқымалы терезесі мұнда ашылмады.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Параметрлер</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Жою</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Қосылған</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Алдымен бет ашыңыз - кеңейтім браузермен бірге оянады.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Қалтаға қосу</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Жаңа қалта…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Қалта жоқ</sys:String>

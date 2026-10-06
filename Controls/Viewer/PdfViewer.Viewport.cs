@@ -758,6 +758,63 @@ namespace Avalanche.Controls
         // bitmaps of slots far outside the viewport (heights are kept, so nothing moves) and
         // kicks a render pass when unrendered slots have come near. Runs on the UI thread from
         // the same debounced timer as the re-sharpen pass.
+        // ── v1.19.30: the band of the page the screen actually shows ──────────
+        // Routing to a page re-renders its sidebar thumbnail; the picture it
+        // renders is the page's VISIBLE BAND, not its top. The viewport maps
+        // onto the continuous slot in zoomed coordinates (the tops and the slot
+        // heights are unzoomed layout values, so they ride the zoom back up -
+        // the same mapping the virtualizer and the re-sharpen pass use), and
+        // the band comes back normalized to the ROTATED page the reader sees,
+        // ready to crop the thumbnail's own render. False means "the whole page
+        // is the picture" - other view modes, a page not under the eye, a
+        // degenerate band - and the caller keeps the full-page render.
+        internal bool TryGetVisibleCrop(int pageIndex, out System.Windows.Rect crop)
+        {
+            crop = System.Windows.Rect.Empty;
+            if (_viewMode != ViewMode.Continuous || _doc is null) return false;
+            if (pageIndex < 0 || pageIndex >= _continuousTops.Count
+                || pageIndex >= _continuousPanel.Children.Count) return false;
+            if (_continuousPanel.Children[pageIndex] is not FrameworkElement slot
+                || slot.ActualHeight <= 0) return false;
+            double zoom = Math.Max(0.01, _zoomLevel);
+            double pageTop = _continuousTops[pageIndex] * zoom;
+            double pageHeight = slot.ActualHeight * zoom;
+            double viewTop = PagePreviewPanel.VerticalOffset;
+            double viewBottom = viewTop + PagePreviewPanel.ViewportHeight;
+            double top = Math.Clamp((viewTop - pageTop) / pageHeight, 0.0, 1.0);
+            double bottom = Math.Clamp((viewBottom - pageTop) / pageHeight, 0.0, 1.0);
+            double left = 0.0, right = 1.0;
+            // Horizontal: only a page wider than the viewport (deep zoom) shows
+            // a slice - the slot's on-screen edges map the same way, through the
+            // zoomed coordinate space TranslatePoint already speaks.
+            if (PagePreviewPanel.Content is FrameworkElement contentRoot && slot.ActualWidth > 0)
+            {
+                try
+                {
+                    double slotLeft = slot.TranslatePoint(new Point(0, 0), contentRoot).X;
+                    double slotWidth = slot.ActualWidth * zoom;
+                    double viewLeft = PagePreviewPanel.HorizontalOffset;
+                    double viewRight = viewLeft + PagePreviewPanel.ViewportWidth;
+                    left = Math.Clamp((viewLeft - slotLeft) / slotWidth, 0.0, 1.0);
+                    right = Math.Clamp((viewRight - slotLeft) / slotWidth, 0.0, 1.0);
+                }
+                catch
+                {
+                    left = 0.0;
+                    right = 1.0;
+                }
+            }
+            if (bottom - top <= 0.001 || right - left <= 0.001) return false;
+            if (top <= 0.001 && bottom >= 0.999 && left <= 0.001 && right >= 0.999)
+                return false;   // the whole page is in view: the full render is the picture
+            crop = new System.Windows.Rect(left, top, right - left, bottom - top);
+            return true;
+        }
+
+        /// <summary>The page the pane currently calls current - the sidebar's
+        /// refresh target while the reader scrolls (v1.19.30).</summary>
+        internal int CurrentPageIndexForThumbs => _currentPage;
+
         private void VirtualizeContinuousSlots()
         {
             if (_viewMode != ViewMode.Continuous || _doc is null) return;

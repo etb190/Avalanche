@@ -3262,6 +3262,14 @@
                                                         <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                         </DataTrigger>
+                                                        <!-- v1.19.30: and nothing empty ever shows - a
+                                                             bubble whose words have not arrived (a
+                                                             failure's Content stays empty; the error
+                                                             box below speaks) collapses like the
+                                                             thinking wait does. -->
+                                                        <DataTrigger Binding="{Binding HasAnswer}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
@@ -3311,10 +3319,13 @@
                                             </RichTextBox>
                                         </Border>
 
-                                        <!-- Loading indicator -->
-                                        <Border Grid.Row="1" Grid.Column="1"
+                                        <!-- Loading indicator. v1.19.30: the thinking box lives in the
+                                             answer's own cell (Row 0) - the reply replaces it in place when
+                                             it lands, instead of appearing one row below the spot the
+                                             bubble used to hold and leaving that spot an empty gap. -->
+                                        <Border Grid.Row="0" Grid.Column="1"
                                                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
-                                                Margin="0,6,0,0" Padding="10,6" Background="{DynamicResource PaneBrush}"
+                                                Margin="0,0,0,4" Padding="10,6" Background="{DynamicResource PaneBrush}"
                                                 CornerRadius="8" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
                                             <StackPanel Orientation="Horizontal">
                                                 <Border Width="14" Height="14" Margin="0,0,6,0"

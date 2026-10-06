@@ -427,6 +427,11 @@ namespace Avalanche.Controls
 
         private void BookmarkChip_Click(object sender, RoutedEventArgs e)
         {
+            if (_chipDragArmed)
+            {
+                _chipDragArmed = false;   // v1.19.30: that press became a drag, not a click
+                return;
+            }
             if (sender is Button { Tag: string url } && url.Length > 0) NavigateTo(url);
         }
 
@@ -447,7 +452,9 @@ namespace Avalanche.Controls
         // from the host window's own resources - a no-op where the ambient won.
         private void BookmarkChip_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            if (sender is not Button { ContextMenu: ContextMenu menu } chip) return;
+            // v1.19.30: any surface with a menu - the chips and the extensions
+            // list's rows alike - dresses itself from the host window's face.
+            if (sender is not FrameworkElement { ContextMenu: ContextMenu menu } chip) return;
             Window? host = Window.GetWindow(chip);
             if (host is null) return;
             if (menu.Style is null && host.TryFindResource(typeof(ContextMenu)) is Style menuFace)
@@ -471,35 +478,141 @@ namespace Avalanche.Controls
                 RefreshBookmarksSurface();
                 RefreshBookmarkButton();
                 WebFolderPopup.IsOpen = false;   // v1.19.28: the folder list may be the surface that acted
+                _openFolderName = null;
             }
         }
 
-        // ── Folders (v1.19.28) - create, open, rename, dissolve ──────────────────────
-        // A left-click on the bookmarks strip (or the folder-plus chip) names a
-        // folder; a folder chip opens a small popup of the pages inside it; a
-        // folder's Edit renames it (its pages follow), its Delete dissolves it
-        // (its pages fall back to the loose strip - nothing is deleted twice).
+        // ── Folders (v1.19.28, retold in v1.19.30) - create, open, rename, dissolve ──
+        // A right-click on the bare strip names a folder; a folder chip opens a
+        // small popup of the pages inside it; a folder's Edit renames it (its
+        // pages follow), its Delete dissolves it (its pages fall back to the
+        // loose strip - nothing is deleted twice). Pages drag between folders.
 
-        private void BookmarksArea_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        // v1.19.30: the folder editor is the strip's own right-click menu now -
+        // the folder-plus chip and the bare-press summon are both gone. The
+        // menu wears the house face exactly like the chips' menus do.
+        private void BookmarksArea_ContextMenuOpening(object sender, ContextMenuEventArgs e)
         {
-            // A press that landed on any chip is that chip's business; every
-            // other left-click on the strip names a new folder.
+            // A right-click that landed on a chip is that chip's menu's business:
+            // its own ContextMenuOpening bubbles up to the strip, and without
+            // this walk-up both menus would open at once.
             for (DependencyObject? d = e.OriginalSource as DependencyObject;
-                 d is not null; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+                 d is not null && !ReferenceEquals(d, WebBookmarksStrip);
+                 d = System.Windows.Media.VisualTreeHelper.GetParent(d))
                 if (d is System.Windows.Controls.Button) return;
-            OpenFolderEditor(null);
+            if (WebBookmarksStrip.ContextMenu is not ContextMenu menu) return;
+            Window? host = Window.GetWindow(WebBookmarksStrip);
+            if (host is null) return;
+            if (menu.Style is null && host.TryFindResource(typeof(ContextMenu)) is Style menuFace)
+                menu.Style = menuFace;
+            foreach (MenuItem item in menu.Items.OfType<MenuItem>())
+                if (item.Style is null && host.TryFindResource(typeof(MenuItem)) is Style itemFace)
+                    item.Style = itemFace;
         }
 
-        private void NewFolderChip_Click(object sender, RoutedEventArgs e) => OpenFolderEditor(null);
+        private void NewFolderContext_Click(object sender, RoutedEventArgs e) => OpenFolderEditor(null);
 
         private void FolderChip_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button { Tag: string name } chip) return;
+            _openFolderName = name;
             WebFolderPopupList.ItemsSource = Bookmarks.Where(b => b.Folder == name).ToList();
             WebFolderEmptyNote.Visibility = WebFolderPopupList.Items.Count == 0
                 ? Visibility.Visible : Visibility.Collapsed;
             WebFolderPopup.PlacementTarget = chip;
             WebFolderPopup.IsOpen = true;
+        }
+
+        // ── v1.19.30: bookmarks travel ───────────────────────────────────────
+        // A page chip drags with the press that would have clicked it: past the
+        // drag threshold the press becomes an OLE drag carrying the BookmarkVm,
+        // and the click never fires. A folder chip is the target (its glow marks
+        // the landing), the bare strip files the page back loose, and an open
+        // folder's popup refills the moment one of its rows moves house.
+        private const string BookmarkDragFormat = "Avalanche.BookmarkVm";
+        private Point _chipPressPoint;
+        private bool _chipDragArmed;
+        private string? _openFolderName;
+
+        private void BookmarkChip_Press(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Button chip && chip.DataContext is BookmarkVm)
+            {
+                _chipPressPoint = e.GetPosition(chip);
+                _chipDragArmed = false;
+            }
+        }
+
+        private void BookmarkChip_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not Button { DataContext: BookmarkVm vm } chip) return;
+            if (e.LeftButton != MouseButtonState.Pressed || _chipDragArmed) return;
+            Point here = e.GetPosition(chip);
+            if (Math.Abs(here.X - _chipPressPoint.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(here.Y - _chipPressPoint.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+            _chipDragArmed = true;
+            DataObject data = new();
+            data.SetData(BookmarkDragFormat, vm);
+            data.SetText(vm.Url);
+            try
+            {
+                DragDrop.DoDragDrop(chip, data, DragDropEffects.Move);
+            }
+            catch
+            {
+                // a refused drag leaves the chip exactly where it was
+            }
+        }
+
+        private void FolderChip_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(BookmarkDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+            if (sender is Button chip) chip.Opacity = 0.55;   // the folder glows where the page will land
+        }
+
+        private void FolderChip_DragLeave(object sender, DragEventArgs e)
+        {
+            if (sender is Button chip) chip.Opacity = 1.0;
+        }
+
+        private void FolderChip_Drop(object sender, DragEventArgs e)
+        {
+            if (sender is Button chip) chip.Opacity = 1.0;
+            if (e.Data.GetData(BookmarkDragFormat) is not BookmarkVm vm) return;
+            if (sender is not Button { Tag: string folder }) return;
+            MoveBookmarkToFolder(vm, folder);
+            e.Handled = true;
+        }
+
+        private void BookmarksStrip_DragOver(object sender, DragEventArgs e)
+        {
+            e.Effects = e.Data.GetDataPresent(BookmarkDragFormat) ? DragDropEffects.Move : DragDropEffects.None;
+            e.Handled = true;
+        }
+
+        private void BookmarksStrip_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetData(BookmarkDragFormat) is not BookmarkVm vm) return;
+            MoveBookmarkToFolder(vm, string.Empty);   // the bare strip files the page back loose
+            e.Handled = true;
+        }
+
+        private void MoveBookmarkToFolder(BookmarkVm vm, string folder)
+        {
+            if (vm.Folder == folder) return;
+            vm.Folder = folder;
+            PersistBookmarks();
+            RefreshBookmarksSurface();
+            // an open folder popup tells the truth at once: the row that moved
+            // is gone from it (or the folder the row just joined refills)
+            if (WebFolderPopup.IsOpen && _openFolderName is { } open)
+            {
+                WebFolderPopupList.ItemsSource = Bookmarks.Where(b => b.Folder == open).ToList();
+                WebFolderEmptyNote.Visibility = WebFolderPopupList.Items.Count == 0
+                    ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void FolderRename_Click(object sender, RoutedEventArgs e)
@@ -516,6 +629,7 @@ namespace Avalanche.Controls
             PersistBookmarks();
             RefreshBookmarksSurface();
             WebFolderPopup.IsOpen = false;
+            _openFolderName = null;
         }
 
         private string? _renamingFolder;   // non-null while the editor renames instead of creates
@@ -528,6 +642,7 @@ namespace Avalanche.Controls
                 : (TryLoc("Str_Ctx_Edit") ?? "Edit");
             WebFolderEditBox.Text = existing ?? string.Empty;
             WebFolderPopup.IsOpen = false;
+            _openFolderName = null;
             WebFolderEditPopup.IsOpen = true;
             Dispatcher.BeginInvoke(
                 () => { WebFolderEditBox.Focus(); WebFolderEditBox.SelectAll(); },
@@ -2538,21 +2653,40 @@ namespace Avalanche.Controls
             }
         }
 
-        // ── The extensions flyout (v1.19.29) ────────────────────────────────────────
+        // ── The extensions flyout (v1.19.29, grown up in v1.19.30) ─────────────────
         // The puzzle button opens the list of what rides, a picker for a .crx
-        // file, and the folder itself - the whole installation story in one
-        // place, none of it needing a rebuild.
+        // file, and the folder itself - none of it needing a rebuild. v1.19.30:
+        // the list wakes up to the profile's real extension objects, so every
+        // row carries the package's own icon, the browser's enable toggle and
+        // right-click (Options, Remove), and a click opens the extension's own
+        // popup page in the little panel under the list - the window the
+        // extension's toolbar icon would have dropped.
 
         private sealed class ExtVm
         {
             public string Name { get; init; } = "";
             public string VersionLabel { get; init; } = "";
+            public string Folder { get; init; } = "";
+            public string PopupPath { get; init; } = "";
+            public string OptionsPath { get; init; } = "";
+            public ImageSource? IconSource { get; init; }
+            public CoreWebView2BrowserExtension? Extension { get; set; }
+            public bool LiveEnabled { get; set; }
+            public Visibility HasIconVisibility => IconSource is null ? Visibility.Collapsed : Visibility.Visible;
+            public Visibility NoIconVisibility => IconSource is null ? Visibility.Visible : Visibility.Collapsed;
+            public Visibility ToggleVisibility => Extension is null ? Visibility.Collapsed : Visibility.Visible;
+            public Visibility HasOptionsVisibility =>
+                Extension is not null && OptionsPath.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        private sealed record ExtManifest(
+            string Name, string Version, string PopupPath, string OptionsPath, string IconPath);
 
         private void WebExtensionsBtn_Click(object sender, RoutedEventArgs e)
         {
             RefreshExtensionsList();
             WebExtPopup.IsOpen = true;
+            _ = MergeLiveExtensionsAsync();   // the profile's word replaces the folder scan's when it lands
         }
 
         private void RefreshExtensionsList()
@@ -2561,6 +2695,42 @@ namespace Avalanche.Controls
             WebExtList.ItemsSource = installed;
             WebExtEmptyNote.Visibility = installed.Count == 0
                 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>The profile's own answer: every extension riding right now,
+        /// matched to its folder's row by name (the manifest and the runtime
+        /// resolve the same localized dial). A live extension with no folder
+        /// row - the riding pdf helper, an install the folder scan missed -
+        /// joins as its own row; the toggle and the menu come alive with it.</summary>
+        private async Task MergeLiveExtensionsAsync()
+        {
+            try
+            {
+                if (_activeView?.CoreWebView2 is not { } core) return;
+                var live = await core.Profile.GetBrowserExtensionsAsync();
+                if (!WebExtPopup.IsOpen) return;   // the reader moved on before the answer came
+                List<ExtVm> rows = CollectInstalledExtensions();
+                foreach (CoreWebView2BrowserExtension ext in live)
+                {
+                    ExtVm? row = rows.FirstOrDefault(r =>
+                        string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase));
+                    if (row is null)
+                    {
+                        row = new ExtVm { Name = ext.Name };
+                        rows.Add(row);
+                    }
+                    row.Extension = ext;
+                    row.LiveEnabled = ext.IsEnabled;
+                }
+                WebExtList.ItemsSource = rows;
+                WebExtEmptyNote.Visibility = rows.Count == 0
+                    ? Visibility.Visible : Visibility.Collapsed;
+            }
+            catch
+            {
+                // an older runtime without the query API (or no engine awake
+                // yet) keeps the folder-scan list exactly as it was
+            }
         }
 
         private static List<ExtVm> CollectInstalledExtensions()
@@ -2574,11 +2744,15 @@ namespace Avalanche.Controls
                 {
                     if (string.Equals(Path.GetFileName(dir), "inbox", StringComparison.OrdinalIgnoreCase)) continue;
                     if (!File.Exists(Path.Combine(dir, "manifest.json"))) continue;
-                    (string Name, string Version)? manifest = ReadExtManifest(dir);
+                    ExtManifest? manifest = ReadExtManifest(dir);
                     list.Add(new ExtVm
                     {
                         Name = manifest?.Name ?? Path.GetFileName(dir),
                         VersionLabel = manifest?.Version ?? "",
+                        Folder = dir,
+                        PopupPath = manifest?.PopupPath ?? "",
+                        OptionsPath = manifest?.OptionsPath ?? "",
+                        IconSource = LoadExtIcon(dir, manifest?.IconPath),
                     });
                 }
             }
@@ -2586,29 +2760,242 @@ namespace Avalanche.Controls
             return list;
         }
 
-        /// <summary>The manifest's name and version. Store manifests often wear
-        /// their names as __MSG_key__ dials into the package's own locales -
-        /// those resolve through the default locale's messages, then any
-        /// locale folder that answers.</summary>
-        private static (string Name, string Version)? ReadExtManifest(string dir)
+        /// <summary>The manifest's words: name, version, the popup and options
+        /// pages the action declares (MV3's "action", MV2's "browser_action"),
+        /// and the action icon path. Store manifests often wear their names as
+        /// __MSG_key__ dials into the package's own locales - those resolve
+        /// through the default locale's messages, then any locale folder that
+        /// answers.</summary>
+        private static ExtManifest? ReadExtManifest(string dir)
         {
             try
             {
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(
                     File.ReadAllText(Path.Combine(dir, "manifest.json")));
-                string name = doc.RootElement.TryGetProperty("name", out System.Text.Json.JsonElement n)
-                    && n.ValueKind == System.Text.Json.JsonValueKind.String ? n.GetString() ?? "" : "";
-                string ver = doc.RootElement.TryGetProperty("version", out System.Text.Json.JsonElement v)
-                    && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() ?? "" : "";
+                System.Text.Json.JsonElement root = doc.RootElement;
+                string name = GetManifestString(root, "name");
+                string ver = GetManifestString(root, "version");
                 if (name.StartsWith("__MSG_", StringComparison.OrdinalIgnoreCase) && name.EndsWith("__"))
                 {
                     string resolved = ResolveExtensionMessage(dir, name[6..^2]);
                     if (resolved.Length > 0) name = resolved;
                 }
                 if (name.Length == 0) return null;
-                return (name, ver);
+
+                System.Text.Json.JsonElement action = default;
+                bool hasAction = false;
+                foreach (string key in new[] { "action", "browser_action", "page_action" })
+                {
+                    if (root.TryGetProperty(key, out System.Text.Json.JsonElement a)
+                        && a.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    {
+                        action = a;
+                        hasAction = true;
+                        break;
+                    }
+                }
+                string popup = hasAction ? GetManifestString(action, "default_popup") : "";
+                string icon = hasAction ? PickIconEntry(action) : "";
+                if (icon.Length == 0 && root.TryGetProperty("icons", out System.Text.Json.JsonElement icons))
+                    icon = PickIconEntry(icons);
+                string options = "";
+                if (root.TryGetProperty("options_ui", out System.Text.Json.JsonElement oui)
+                    && oui.ValueKind == System.Text.Json.JsonValueKind.Object)
+                    options = GetManifestString(oui, "options_page");
+                if (options.Length == 0)
+                    options = GetManifestString(root, "options_page");
+                return new ExtManifest(name, ver, popup, options, icon);
             }
             catch { return null; }
+        }
+
+        private static string GetManifestString(System.Text.Json.JsonElement obj, string key)
+        {
+            if (obj.ValueKind != System.Text.Json.JsonValueKind.Object) return "";
+            if (!obj.TryGetProperty(key, out System.Text.Json.JsonElement v)) return "";
+            return v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() ?? "" : "";
+        }
+
+        /// <summary>An icon dial: a bare path, or a size-keyed map whose largest
+        /// spoke wins - the same resolution any toolbar paints with.</summary>
+        private static string PickIconEntry(System.Text.Json.JsonElement container)
+        {
+            if (container.ValueKind != System.Text.Json.JsonValueKind.Object) return "";
+            if (!container.TryGetProperty("default_icon", out System.Text.Json.JsonElement di)) return "";
+            if (di.ValueKind == System.Text.Json.JsonValueKind.String)
+                return di.GetString() ?? "";
+            if (di.ValueKind != System.Text.Json.JsonValueKind.Object) return "";
+            string? best = null;
+            int bestSize = -1;
+            foreach (System.Text.Json.JsonProperty p in di.EnumerateObject())
+            {
+                if (p.Value.ValueKind != System.Text.Json.JsonValueKind.String) continue;
+                int size = int.TryParse(p.Name, out int s) ? s : 0;
+                if (size >= bestSize)
+                {
+                    best = p.Value.GetString();
+                    bestSize = size;
+                }
+            }
+            return best ?? "";
+        }
+
+        private static ImageSource? LoadExtIcon(string dir, string? rel)
+        {
+            if (string.IsNullOrWhiteSpace(rel)) return null;
+            try
+            {
+                string path = Path.GetFullPath(
+                    Path.Combine(dir, rel.Replace('/', Path.DirectorySeparatorChar)));
+                if (!File.Exists(path)) return null;
+                BitmapImage bmp = new();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.UriSource = new Uri(path);
+                bmp.EndInit();
+                bmp.Freeze();
+                return bmp;
+            }
+            catch { return null; }
+        }
+
+        // ── v1.19.30: the extension's own popup, options and removal ────────────
+
+        private void WebExtRow_Click(object sender, MouseButtonEventArgs e)
+        {
+            // the enable toggle lives inside the row: its press belongs to the
+            // toggle, never to the row's popup
+            for (DependencyObject? d = e.OriginalSource as DependencyObject; d is not null;
+                 d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+                if (d is System.Windows.Controls.Primitives.ToggleButton) return;
+            if (sender is not FrameworkElement { DataContext: ExtVm vm }) return;
+            if (vm.Extension is null)
+            {
+                OpenExtActionNote(TryLoc("Str_Web_ExtAsleep")
+                    ?? "Open a page first - the extension wakes with the browser.");
+                return;
+            }
+            if (vm.PopupPath.Length == 0)
+            {
+                OpenExtActionNote(TryLoc("Str_Web_ExtNoPopup")
+                    ?? "This extension has no popup - it runs without one.");
+                return;
+            }
+            _ = ShowExtensionActionViewAsync(vm.Extension, vm.PopupPath);
+        }
+
+        private void ExtToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.CheckBox { DataContext: ExtVm vm } box) return;
+            if (vm.Extension is null) return;
+            vm.LiveEnabled = box.IsChecked == true;
+            try { _ = vm.Extension.EnableAsync(vm.LiveEnabled); }
+            catch { /* a toggle the runtime refuses leaves the word as it was */ }
+        }
+
+        private void WebExtOptions_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { DataContext: ExtVm vm }) return;
+            if (vm.Extension is null || vm.OptionsPath.Length == 0) return;
+            WebExtPopup.IsOpen = false;
+            _ = ShowExtensionActionViewAsync(vm.Extension, vm.OptionsPath);
+        }
+
+        private async void WebExtRemove_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { DataContext: ExtVm vm }) return;
+            if (vm.Extension is null) return;
+            try
+            {
+                await vm.Extension.RemoveAsync();
+            }
+            catch
+            {
+                return;   // the runtime refused; the row stays as it was
+            }
+            // the folder must not ride again next run: gone if the disk allows
+            // it, its manifest renamed out of the loader's sight if the running
+            // extension still holds a lock on its own files
+            if (vm.Folder.Length > 0 && Directory.Exists(vm.Folder))
+            {
+                try { Directory.Delete(vm.Folder, recursive: true); }
+                catch
+                {
+                    try
+                    {
+                        string manifest = Path.Combine(vm.Folder, "manifest.json");
+                        if (File.Exists(manifest))
+                            File.Move(manifest, Path.Combine(vm.Folder, "manifest.removed"));
+                    }
+                    catch { /* the folder's fate waits for a calmer disk */ }
+                }
+            }
+            _extensionsLoaded.Remove(vm.Folder);
+            RefreshExtensionsList();
+        }
+
+        /// <summary>The popup panel: a fresh engine view every open, sharing the
+        /// tabs' environment (and so the profile and its extensions), wearing
+        /// the page the extension declares. A page that refuses to arrive says
+        /// so in the panel instead of leaving a blank rectangle.</summary>
+        private async Task ShowExtensionActionViewAsync(CoreWebView2BrowserExtension ext, string subPath)
+        {
+            if (_env is null) return;
+            WebExtActionPopup.IsOpen = true;
+            DisposeExtActionView();
+            WebExtActionHost.Visibility = Visibility.Visible;
+            WebExtActionNote.Visibility = Visibility.Collapsed;
+            var view = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.White };
+            WebExtActionHost.Children.Add(view);
+            try
+            {
+                await view.EnsureCoreWebView2Async(_env);
+                if (WebExtActionHost.Children.Count == 0 || !ReferenceEquals(WebExtActionHost.Children[0], view))
+                    return;   // the popup closed while the engine warmed: nothing to wear
+                view.CoreWebView2.NavigationCompleted += (_, args) =>
+                {
+                    if (!args.IsSuccess && ReferenceEquals(WebExtActionHost.Children[0], view))
+                    {
+                        Dispatcher.Invoke(() => OpenExtActionNote(TryLoc("Str_Web_ExtPopupFail")
+                            ?? "Its popup would not open here."));
+                    }
+                };
+                view.CoreWebView2.Navigate(
+                    "chrome-extension://" + ext.Id + "/" + subPath.TrimStart('/'));
+            }
+            catch
+            {
+                if (ReferenceEquals(WebExtActionHost.Children[0], view))
+                    OpenExtActionNote(TryLoc("Str_Web_ExtPopupFail")
+                        ?? "Its popup would not open here.");
+            }
+        }
+
+        private void OpenExtActionNote(string text)
+        {
+            WebExtActionPopup.IsOpen = true;
+            DisposeExtActionView();
+            WebExtActionHost.Visibility = Visibility.Collapsed;
+            WebExtActionNote.Text = text;
+            WebExtActionNote.Visibility = Visibility.Visible;
+        }
+
+        private void WebExtActionPopup_Closed(object sender, EventArgs e)
+        {
+            DisposeExtActionView();
+            WebExtActionHost.Visibility = Visibility.Visible;
+            WebExtActionNote.Visibility = Visibility.Collapsed;
+            WebExtActionNote.Text = "";
+        }
+
+        private void DisposeExtActionView()
+        {
+            foreach (WebView2 old in WebExtActionHost.Children.OfType<WebView2>().ToList())
+            {
+                WebExtActionHost.Children.Remove(old);
+                try { old.Dispose(); }
+                catch { /* a view already going away is no one's emergency */ }
+            }
         }
 
         private static string ResolveExtensionMessage(string dir, string key)

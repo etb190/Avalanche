@@ -378,12 +378,14 @@ namespace Avalanche
 
         private System.Windows.Threading.DispatcherTimer? _pageThumbTimer;
         private int _pageThumbPendingPage = -1;
+        private System.Windows.Rect? _pageThumbPendingCrop;
         private System.Threading.CancellationTokenSource? _pageThumbCts;
 
-        internal void RefreshPageThumbnailSoon(int pageIndex)
+        internal void RefreshPageThumbnailSoon(int pageIndex, System.Windows.Rect? crop = null)
         {
             if (_doc is null || _currentFile is null || pageIndex < 0) return;
             _pageThumbPendingPage = pageIndex;
+            _pageThumbPendingCrop = crop;   // v1.19.30: the visible band to wear, or null for the whole page
             if (_pageThumbTimer is null)
             {
                 _pageThumbTimer = new System.Windows.Threading.DispatcherTimer(
@@ -411,6 +413,7 @@ namespace Avalanche
             PageThumbnailVm vm = items[pageIndex];
             string filePath = _currentFile;
             int rot = _pageRotations.TryGetValue(pageIndex, out int r) ? r : 0;
+            System.Windows.Rect? crop = _pageThumbPendingCrop;
 
             _pageThumbCts?.Cancel();
             _pageThumbCts?.Dispose();
@@ -421,7 +424,7 @@ namespace Avalanche
             {
                 try
                 {
-                    var src = PageThumbnailVm.BuildThumb(filePath, pageIndex, rot);
+                    var src = PageThumbnailVm.BuildThumb(filePath, pageIndex, rot, crop);
                     if (src != null && !ct.IsCancellationRequested) vm.SetThumbnail(src);
                 }
                 catch { /* a thumbnail that will not render keeps the old one */ }

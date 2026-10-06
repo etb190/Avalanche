@@ -111,7 +111,7 @@ namespace Avalanche.Features.Summary
         // the background while the reader digests the current one. A ready
         // buffer -> the next arrow paints with zero lag; an in-flight fetch ->
         // the arrow attaches to it; any manual range move discards both.
-        private DispatcherTimer? _prefetchTimer;    // the 30s read delay, one-shot
+        private int _postQueueGeneration;   // v1.19.30: an invalidated queue can't repaint or start
         private CancellationTokenSource? _prefetchCts;
         private Task<string>? _prefetchFlight;      // the in-flight fetch
         private string? _prefetchText;              // the completed buffer (null = none)
@@ -354,15 +354,11 @@ namespace Avalanche.Features.Summary
             WireActionPopup();                  // the floating action popup over the digest
             RestoreDigest();                    // the last digest of this book, if any
 
-            // The prefetch clock: one-shot. Thirty seconds after a digest lands,
-            // while the reader is reading, the NEXT sequential stretch starts in
-            // the background so the next arrow can land on a ready page.
-            _prefetchTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
-            _prefetchTimer.Tick += (_, _) =>
-            {
-                _prefetchTimer.Stop();
-                StartPrefetch();
-            };
+            // v1.19.30: there is no thirty-second clock anymore. When a digest
+            // lands - live or restored - the post-digest queue runs at once:
+            // the recap (when Recap mode is on) condenses first with its own
+            // words in the status line, then the buffer starts, so the wait the
+            // reader could never explain is gone.
 
             // A digest restored on open reads like a finished run: the card is
             // full and pages still lie ahead, so the buffer arms for it exactly
@@ -1041,15 +1037,17 @@ namespace Avalanche.Features.Summary
         }
 
         // ------------------------------------------------------------------
-        // The 30-second prefetch buffer
+        // The post-digest queue (v1.19.30): recap first, then the buffer
         // ------------------------------------------------------------------
 
-        // While the reader is busy with the digest just delivered, the navigator
-        // quietly fetches the NEXT sequential stretch: 30 seconds after a run
-        // finishes, the following range (same span, clipped at the document)
-        // starts in the background. The next arrow then lands on a ready digest
-        // - shown with zero lag - or attaches to the still-running fetch; any
-        // manual range move discards both.
+        // The moment a digest lands - a fresh run, a served buffer, a restored
+        // card - the navigator works for the pages ahead. With Recap mode on,
+        // the stretch on screen condenses FIRST (its "generating" and "done"
+        // words live in the same status line the buffer speaks through), and
+        // the buffer for the NEXT stretch starts the moment the recap is done;
+        // with Recap off, the buffer starts right away. No clock, no
+        // unexplained wait. Any manual range move or new run invalidates the
+        // queue mid-flight, and a queue that wakes up stale just stands down.
 
         private void SchedulePrefetch()
         {
@@ -1059,8 +1057,43 @@ namespace Avalanche.Features.Summary
                 return;     // the book has no next stretch (or a run is already live)
             }
 
-            _prefetchTimer?.Stop();
-            _prefetchTimer?.Start();
+            int queueGen = _postQueueGeneration;
+            _ = RunPostDigestQueueAsync(queueGen);
+        }
+
+        private async Task RunPostDigestQueueAsync(int queueGen)
+        {
+            if (RecapController.Enabled)
+            {
+                int recapFirst = _runFirstPage > 0 ? _runFirstPage : _startPage;
+                int recapLast = _runLastPage >= recapFirst ? _runLastPage : RangeEnd();
+                BufferStatusText.Text = _loc("Str_SummaryRecapBusy");
+                bool recapOk = await Features.Summary.RecapController.TryCondenseQuietlyAsync(
+                    _filePath, _pageCount, recapFirst, recapLast, _configProvider, _loc);
+                if (_closed || _generating || queueGen != _postQueueGeneration)
+                {
+                    return;   // the reader moved on while the recap condensed
+                }
+                // "is done" is a word the success earns; a failed condensation
+                // says nothing and lets the buffer's own words follow at once.
+                // The word lingers a breath before the buffer's take over - a
+                // status that flashes past is a status never read.
+                if (recapOk)
+                {
+                    BufferStatusText.Text = _loc("Str_SummaryRecapDone");
+                    await Task.Delay(1500);
+                    if (_closed || _generating || queueGen != _postQueueGeneration)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            if (_closed || _generating || queueGen != _postQueueGeneration)
+            {
+                return;
+            }
+            StartPrefetch();
         }
 
         private void StartPrefetch()
@@ -1253,7 +1286,7 @@ namespace Avalanche.Features.Summary
         // stale text can never surface.
         private void InvalidatePrefetch()
         {
-            _prefetchTimer?.Stop();
+            _postQueueGeneration++;   // v1.19.30: a queue caught mid-recap stands down
             try { _prefetchCts?.Cancel(); } catch (ObjectDisposedException) { }
             _prefetchCts?.Dispose();
             _prefetchCts = null;

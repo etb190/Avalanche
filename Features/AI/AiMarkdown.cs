@@ -211,12 +211,42 @@ namespace Avalanche.Features.AI
             bool inFence = false;
             var fence = new List<string>();
 
+            // v1.19.30: justified surfaces set like the digest - and the digest's
+            // paragraphs are LONG. A markdown soft break (a single newline inside
+            // one paragraph) used to end a WPF paragraph, and WPF never stretches
+            // a paragraph's last line, so every hard-wrapped line rendered as its
+            // own short block and almost every visible line was a "last line" the
+            // justify could not touch - the ragged column the reader kept
+            // reporting. Consecutive plain lines now travel as ONE paragraph: the
+            // join is the space the soft break stands for, or a direct abutment
+            // when both boundaries are CJK (a space between Chinese sentences is
+            // a typo). Justify finally has real multi-line paragraphs to stretch.
+            // The left-aligned surfaces - the reader's own words - keep the old
+            // line-per-paragraph respect for typed line breaks.
+            List<string>? pending = paragraphAlignment == TextAlignment.Justify ? new List<string>() : null;
+
+            void FlushPending()
+            {
+                if (pending is not { Count: > 0 } group)
+                    return;
+                pending = new List<string>();
+                var joined = new System.Text.StringBuilder();
+                for (int i = 0; i < group.Count; i++)
+                {
+                    if (i > 0)
+                        joined.Append(JoinSeparator(group[i - 1], group[i]));
+                    joined.Append(group[i]);
+                }
+                AddBody(doc, joined.ToString(), parseMarkdown, sources, numberer, paragraphAlignment);
+            }
+
             foreach (var rawLine in lines)
             {
                 var line = rawLine.TrimEnd();
 
                 if (parseMarkdown && line.TrimStart().StartsWith("```", StringComparison.Ordinal))
                 {
+                    FlushPending();
                     if (inFence)
                     {
                         AddCodeBlock(doc, fence);
@@ -233,6 +263,7 @@ namespace Avalanche.Features.AI
 
                 if (line.Length == 0)
                 {
+                    FlushPending();
                     AddSpacer(doc);
                     continue;
                 }
@@ -242,12 +273,14 @@ namespace Avalanche.Features.AI
                     var h = HeadingRx.Match(line);
                     if (h.Success)
                     {
+                        FlushPending();
                         AddHeading(doc, h.Groups[1].Value.Length, h.Groups[2].Value, paragraphAlignment);
                         continue;
                     }
 
                     if (RuleRx.IsMatch(line))
                     {
+                        FlushPending();
                         AddRule(doc);
                         continue;
                     }
@@ -255,6 +288,7 @@ namespace Avalanche.Features.AI
                     var bullet = BulletRx.Match(line);
                     if (bullet.Success)
                     {
+                        FlushPending();
                         AddListParagraph(doc, "\u2022\u00A0", bullet.Groups[1].Value, parseMarkdown, sources, numberer);
                         continue;
                     }
@@ -262,6 +296,7 @@ namespace Avalanche.Features.AI
                     var numbered = NumberedRx.Match(line);
                     if (numbered.Success)
                     {
+                        FlushPending();
                         AddListParagraph(doc, numbered.Groups[1].Value + ".\u00A0", numbered.Groups[2].Value, parseMarkdown, sources, numberer);
                         continue;
                     }
@@ -269,13 +304,19 @@ namespace Avalanche.Features.AI
                     var quote = QuoteRx.Match(line);
                     if (quote.Success)
                     {
+                        FlushPending();
                         AddQuote(doc, quote.Groups[1].Value);
                         continue;
                     }
                 }
 
-                AddBody(doc, line, parseMarkdown, sources, numberer, paragraphAlignment);
+                if (pending is null)
+                    AddBody(doc, line, parseMarkdown, sources, numberer, paragraphAlignment);
+                else
+                    pending.Add(line);
             }
+
+            FlushPending();
 
             if (inFence && fence.Count > 0)
                 AddCodeBlock(doc, fence); // unterminated fence: keep the content
@@ -285,6 +326,20 @@ namespace Avalanche.Features.AI
 
             return doc;
         }
+
+        // v1.19.30: the soft-break join. Two CJK boundaries abut directly; any
+        // other pair joins with the one space the markdown soft break stands for.
+        private static string JoinSeparator(string prev, string next)
+        {
+            bool prevCjk = prev.Length > 0 && IsCjkIdeo(prev[^1]);
+            bool nextCjk = next.Length > 0 && IsCjkIdeo(next[0]);
+            return prevCjk && nextCjk ? string.Empty : " ";
+        }
+
+        // CJK blocks the join respects: the ideographs and kana (2E80-9FFF),
+        // Hangul (AC00-D7AF), the compatibility ideographs and fullwidth forms.
+        private static bool IsCjkIdeo(char c) =>
+            (c >= '\u2E80' && c <= '\u9FFF') || (c >= '\uAC00' && c <= '\uD7AF') || c >= '\uF900';
 
         private static void AddBody(
             FlowDocument doc, string line, bool parse, IReadOnlyList<AiSource> sources,

@@ -148,8 +148,12 @@ namespace Avalanche
             // v1.19.28: the visited page's thumbnail follows the file - every
             // route to a page re-renders its sidebar picture from the current
             // working file, so edits made since the list was built surface on
-            // arrival. (Debounced; superseded by the next arrival.)
-            RefreshPageThumbnailSoon(pageIndex);
+            // arrival. v1.19.30: and the picture is the band the screen shows -
+            // the position the reader scrolled to is the picture they get, no
+            // top-of-page filler. (Debounced; superseded by the next arrival.)
+            RefreshPageThumbnailSoon(pageIndex,
+                viewer.TryGetVisibleCrop(pageIndex, out System.Windows.Rect band)
+                    ? band : (System.Windows.Rect?)null);
         }
 
         private static string FooterPageSizeUnit => App.GetSetting("FooterPageSizeUnit") switch
@@ -244,7 +248,19 @@ namespace Avalanche
             => ComparisonZoomChanged(viewer);
 
         void IViewerHost.ViewerScrolled(PdfViewer viewer, double horizontalRatio, double verticalRatio)
-            => ComparisonScrolled(viewer, horizontalRatio, verticalRatio);
+        {
+            ComparisonScrolled(viewer, horizontalRatio, verticalRatio);
+            // v1.19.30: the sidebar picture follows the scroll - while the reader
+            // moves inside a page, its thumbnail re-renders to the band now on
+            // screen when the scroll settles (the debounce absorbs the in-flight
+            // ticks, so a fast wheel never queues a render per notch).
+            if (!ReferenceEquals(ActiveViewer, viewer)) return;
+            int scrolledPage = viewer.CurrentPageIndexForThumbs;
+            if (scrolledPage >= 0)
+                RefreshPageThumbnailSoon(scrolledPage,
+                    viewer.TryGetVisibleCrop(scrolledPage, out System.Windows.Rect band)
+                        ? band : (System.Windows.Rect?)null);
+        }
 
         void IViewerHost.ViewerFocused()
         {

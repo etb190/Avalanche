@@ -95,7 +95,7 @@ namespace Avalanche
             finally { _loadSem.Release(); }
         }
 
-        internal static BitmapSource? BuildThumb(string filePath, int pageIndex, int rotation = 0)
+        internal static BitmapSource? BuildThumb(string filePath, int pageIndex, int rotation = 0, System.Windows.Rect? viewportCrop = null)
         {
             try
             {
@@ -114,9 +114,36 @@ namespace Avalanche
                 // Apply in-memory rotation (temp file stores /Rotate=0; _pageRotations holds true angle)
                 if (rotation != 0)
                     (raw, tw, th) = Services.BitmapHelpers.RotateBitmap(raw, tw, th, rotation);
+                // v1.19.30: the reader routed (or scrolled) here mid-page - the thumbnail wears the
+                // band the screen shows, normalized to the ROTATED page the viewer measured, not the
+                // page's top the screen left behind.
+                if (viewportCrop is { } band && band.Width > 0 && band.Height > 0
+                    && (band.X > 0.001 || band.Y > 0.001
+                        || band.X + band.Width < 0.999 || band.Y + band.Height < 0.999))
+                {
+                    int cx = (int)Math.Round(band.X * tw);
+                    int cy = (int)Math.Round(band.Y * th);
+                    int cw = Math.Clamp((int)Math.Round(band.Width * tw), 1, tw - cx);
+                    int ch = Math.Clamp((int)Math.Round(band.Height * th), 1, th - cy);
+                    if (cw > 0 && ch > 0 && (cw < tw || ch < th))
+                        (raw, tw, th) = CropBitmap(raw, tw, th, cx, cy, cw, ch);
+                }
                 return EncodeToBitmapSource(raw, tw, th);
             }
             catch { return null; }
+        }
+
+        /// <summary>v1.19.30: a sub-rectangle of a BGRA buffer, copied out row
+        /// by row - the visible band a visited page's thumbnail wears.</summary>
+        internal static (byte[] Pixels, int Width, int Height) CropBitmap(
+            byte[] src, int srcW, int srcH, int x, int y, int w, int h)
+        {
+            byte[] dst = new byte[w * h * 4];
+            for (int row = 0; row < h; row++)
+            {
+                Buffer.BlockCopy(src, ((y + row) * srcW + x) * 4, dst, row * w * 4, w * 4);
+            }
+            return (dst, w, h);
         }
 
         /// <summary>

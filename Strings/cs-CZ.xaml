@@ -1195,6 +1195,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryBufferBusy">Paměť: generování…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Paměť: připravena</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Vyrovnávací paměť: nedostupná</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Přehled: generuje se…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Přehled hotov</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">zbývá {0} stránek</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Ptejte se svého dokumentu</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Zeptejte se na cokoli v tomto dokumentu - shrnutí, vysvětlení, překlady. AI přečetla každou stránku.</sys:String>
@@ -1309,6 +1311,12 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_ExtOpenFolder">Otevřít složku rozšíření</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Zatím žádná rozšíření — vložte soubor .crx do složky inbox nebo nainstalujte ze souboru.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozšíření prohlížeče (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">Toto rozšíření nemá vyskakovací okno - funguje bez něj.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Jeho vyskakovací okno se zde neotevřelo.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Možnosti</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Odebrat</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Povoleno</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Nejdříve otevřete stránku - rozšíření se probouzí spolu s prohlížečem.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Přidat do složky</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nová složka…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Bez složky</sys:String>

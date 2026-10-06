@@ -1210,6 +1210,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_SummaryBufferBusy">Buffer: generazione…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Buffer: pronto</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Buffer: non disponibile</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Riepilogo: generazione…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Riepilogo pronto</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pagine rimanenti</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Parla con il tuo documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Chiedi qualsiasi cosa su questo documento: riassunti, spiegazioni, traduzioni. L'IA ha letto ogni pagina.</sys:String>
@@ -1324,6 +1326,12 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_ExtOpenFolder">Apri la cartella delle estensioni</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Ancora nessuna estensione — trascina un .crx nella cartella inbox o installa da un file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Estensione del browser (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">Questa estensione non ha popup - funziona senza.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Il suo popup non si è aperto qui.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Opzioni</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Rimuovi</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Attivata</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Apri prima una pagina - l'estensione si sveglia con il browser.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Aggiungi alla cartella</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nuova cartella…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Nessuna cartella</sys:String>

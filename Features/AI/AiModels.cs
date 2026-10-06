@@ -147,8 +147,17 @@ namespace Avalanche.Features.AI
         public string Content 
         { 
             get => _content; 
-            set { _content = value; OnPropertyChanged(); }
+            // v1.19.30: the bubble's own word rides HasAnswer - a Content that
+            // is still empty (a failure's bubble stays empty; the error box
+            // below is the single surface) collapses the shell with it.
+            set { _content = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasAnswer)); }
         }
+
+        /// <summary>True when the bubble has words to wear. v1.19.30: the
+        /// answer bubble shows for an answer and for nothing else - the
+        /// thinking box owns the loading state, the error box owns a failure,
+        /// and an empty Content never renders an empty shell.</summary>
+        public bool HasAnswer => !string.IsNullOrEmpty(_content);
         private List<AiSource> _sources = new();
 
         /// <summary>

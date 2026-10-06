@@ -1210,6 +1210,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">バッファ: 生成中…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">バッファ: 完了</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">バッファ: 利用不可</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">要約: 生成中…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">要約完了</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">残り {0} ページ</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">この文書とチャット</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">この文書について何でも聞いてください - 要約、解説、翻訳。AI はすべてのページを読みました。</sys:String>
@@ -1324,6 +1326,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">拡張機能フォルダーを開く</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">拡張機能はまだありません — .crx を inbox フォルダーに入れるか、ファイルからインストールしてください。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">ブラウザー拡張機能 (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">この拡張機能にはポップアップがありません。</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">このポップアップはここでは開けませんでした。</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">設定</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">削除</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">有効</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">まずページを開いてください - 拡張機能はブラウザーと共に起動します。</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">フォルダーに追加</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新しいフォルダー…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">フォルダーなし</sys:String>

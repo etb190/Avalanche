@@ -1210,6 +1210,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryBufferBusy">Tampon : génération…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Tampon : prêt</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Tampon : indisponible</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Récapitulatif : génération…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Récapitulatif terminé</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">{0} pages restantes</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Discutez avec votre document</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Posez toutes vos questions sur ce document - résumés, explications, traductions. L'IA a lu chaque page.</sys:String>
@@ -1324,6 +1326,12 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_ExtOpenFolder">Ouvrir le dossier des extensions</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Aucune extension pour l'instant — déposez un .crx dans le dossier inbox ou installez depuis un fichier.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Extension de navigateur (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">Cette extension n'a pas de popup - elle fonctionne sans.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Son popup n'a pas pu s'ouvrir ici.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Options</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Supprimer</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Activé</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Ouvrez d'abord une page - l'extension s'éveille avec le navigateur.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Ajouter à un dossier</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nouveau dossier…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Aucun dossier</sys:String>

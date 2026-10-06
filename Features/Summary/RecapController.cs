@@ -232,6 +232,72 @@ namespace Avalanche.Features.Summary
             StartCondensation(filePath, first, last, configProvider, loc);
         }
 
+        // ── v1.19.30: the digest's own recap, before the buffer ────────────
+        // The summary navigator's post-digest queue condenses the stretch the
+        // reader is reading BEFORE the background buffer spends the model, and
+        // narrates the wait in the status line. This is the condensation that
+        // queue awaits: same cache, same prompts, same readability gate - but
+        // the companion's window discipline is untouched (reading itself never
+        // summons the window; a fresh cache just means the next range move or F
+        // paints in 0 ms). True = the stretch has a cached verdict of some kind.
+        internal static async Task<bool> TryCondenseQuietlyAsync(
+            string filePath,
+            int pageCount,
+            int first,
+            int last,
+            Func<AiProviderConfig> configProvider,
+            Func<string, string> loc)
+        {
+            first = Math.Clamp(first, 1, Math.Max(1, pageCount));
+            last = Math.Clamp(last, first, Math.Max(1, pageCount));
+            if (Cache.TryGetValue((first, last), out _))
+            {
+                return true;   // condensed before: 0 ms, no request
+            }
+
+            // The companion's own flight for this exact stretch is already
+            // running: wait for it instead of spending the same request twice.
+            if (_flightFirst == first && _flightLast == last && _flight is { IsCompleted: false })
+            {
+                try { await _flight.ConfigureAwait(true); }
+                catch { /* the flight's own verdict already landed in the cache */ }
+                return Cache.ContainsKey((first, last));
+            }
+
+            try
+            {
+                string rangeText = await PageSummarizer.ExtractRangeAsync(
+                        filePath, first, last, CancellationToken.None)
+                    .ConfigureAwait(true);
+                if (!HasReadableText(rangeText))
+                {
+                    Cache[(first, last)] = string.Empty;    // the verdict is cached too
+                    return true;
+                }
+
+                string condensed = (await PageSummarizer.CondenseAsync(
+                        configProvider(),
+                        CondenseSystemPrompt(ReadLanguage()),
+                        "Text to condense:\n" + rangeText,
+                        CancellationToken.None)
+                    .ConfigureAwait(true)).Trim();
+                if (condensed.Length == 0)
+                {
+                    return false;
+                }
+
+                Cache[(first, last)] = condensed;
+                return true;
+            }
+            catch
+            {
+                // a recap that will not condense is exactly the failure the
+                // recap window's own flight reports when the reader arrives;
+                // the queue just moves on to the buffer.
+                return false;
+            }
+        }
+
         private static void StartCondensation(
             string filePath,
             int first,

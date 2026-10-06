@@ -1190,6 +1190,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 	<sys:String x:Key="Str_SummaryBufferBusy">Búfer: generando…</sys:String>
 	<sys:String x:Key="Str_SummaryBufferReady">Búfer: listo</sys:String>
 	<sys:String x:Key="Str_SummaryBufferFailed">Búfer: no disponible</sys:String>
+	<sys:String x:Key="Str_SummaryRecapBusy">Repaso: generando…</sys:String>
+	<sys:String x:Key="Str_SummaryRecapDone">Repaso listo</sys:String>
 	<sys:String x:Key="Str_SummaryPagesLeft">quedan {0} páginas</sys:String>
 	<sys:String x:Key="Str_ChatEmptyTitle">Conversa con tu documento</sys:String>
 	<sys:String x:Key="Str_ChatEmptySubtitle">Pregunta lo que quieras sobre este documento: resúmenes, explicaciones, traducciones. La IA ha leído cada página.</sys:String>
@@ -1304,6 +1306,12 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Abrir la carpeta de extensiones</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Aún no hay extensiones: suelta un .crx en la carpeta de entrada o instala desde un archivo.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Extensión de navegador (*.crx)</sys:String>
+    <sys:String x:Key="Str_Web_ExtNoPopup">Esta extensión no tiene ventana emergente - funciona sin ella.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupFail">Su ventana emergente no se pudo abrir aquí.</sys:String>
+    <sys:String x:Key="Str_Web_ExtOptions">Opciones</sys:String>
+    <sys:String x:Key="Str_Web_ExtRemove">Quitar</sys:String>
+    <sys:String x:Key="Str_Web_ExtEnabled">Activado</sys:String>
+    <sys:String x:Key="Str_Web_ExtAsleep">Abre primero una página - la extensión despierta con el navegador.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Añadir a carpeta</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nueva carpeta…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Sin carpeta</sys:String>

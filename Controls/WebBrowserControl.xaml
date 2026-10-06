@@ -141,11 +141,24 @@
              it; a click opens the page, a right-click offers Edit and Delete, and
              until the first page is saved a quiet hint points at the star.
              v1.19.28: the strip wears folders too - folder chips first, then the
-             loose pages, then the folder-plus chip. A left-click on the strip
-             itself (or that chip) names a new folder; a folder chip opens the
-             pages it holds. -->
-        <Grid Grid.Row="1" Margin="10,7,10,2" Background="Transparent"
-              PreviewMouseLeftButtonDown="BookmarksArea_PreviewMouseDown">
+             loose pages; a folder chip opens the pages it holds. v1.19.30: a
+             right-click on the bare strip names a new folder (the folder-plus
+             chip is gone), and the chips themselves travel - drag a page onto a
+             folder to file it, onto the bare strip to free it. -->
+        <Grid Grid.Row="1" x:Name="WebBookmarksStrip" Margin="10,7,10,2" Background="Transparent"
+              ContextMenuOpening="BookmarksArea_ContextMenuOpening"
+              AllowDrop="True" DragOver="BookmarksStrip_DragOver" Drop="BookmarksStrip_Drop">
+            <!-- v1.19.30: the folder editor is summoned from the strip's own
+                 right-click - a bare press on the strip does nothing again. The
+                 strip is also a drop target: a chip released over the bare
+                 surface (or a loose chip) falls back out of its folder. -->
+            <Grid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="{DynamicResource Str_Web_FolderNew}" Click="NewFolderContext_Click">
+                        <MenuItem.Icon><TextBlock Text="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                    </MenuItem>
+                </ContextMenu>
+            </Grid.ContextMenu>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
                 <TextBlock x:Name="WebBookmarksHint" Text="{DynamicResource Str_Web_BookmarkHint}"
                            Foreground="{DynamicResource MutedTextBrush}" FontSize="11.5"
@@ -160,7 +173,9 @@
                         <DataTemplate>
                             <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding}"
                                     Click="FolderChip_Click" ToolTip="{Binding}"
-                                    ContextMenuOpening="BookmarkChip_ContextMenuOpening">
+                                    ContextMenuOpening="BookmarkChip_ContextMenuOpening"
+                                    AllowDrop="True" DragOver="FolderChip_DragOver"
+                                    DragLeave="FolderChip_DragLeave" Drop="FolderChip_Drop">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                Margin="0,1,5,0" VerticalAlignment="Center"
@@ -191,7 +206,9 @@
                         <DataTemplate>
                             <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding Url}"
                                     Click="BookmarkChip_Click" ToolTip="{Binding Url}"
-                                    ContextMenuOpening="BookmarkChip_ContextMenuOpening">
+                                    ContextMenuOpening="BookmarkChip_ContextMenuOpening"
+                                    PreviewMouseLeftButtonDown="BookmarkChip_Press"
+                                    MouseMove="BookmarkChip_MouseMove">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                Margin="0,1,5,0" VerticalAlignment="Center"
@@ -215,10 +232,6 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <Button x:Name="WebNewFolderChip" Style="{StaticResource WebBookmarkChip}"
-                        Click="NewFolderChip_Click" ToolTip="{DynamicResource Str_Web_FolderNew}"
-                        Content="&#xE8F4;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                        Padding="7,4"/>
             </StackPanel>
         </Grid>
 
@@ -299,6 +312,8 @@
                                 <Button Style="{StaticResource WebBookmarkChip}" Tag="{Binding Url}"
                                         Click="BookmarkChip_Click" ToolTip="{Binding Url}"
                                         ContextMenuOpening="BookmarkChip_ContextMenuOpening"
+                                        PreviewMouseLeftButtonDown="BookmarkChip_Press"
+                                        MouseMove="BookmarkChip_MouseMove"
                                         HorizontalAlignment="Stretch">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
@@ -329,9 +344,10 @@
             </Border>
         </Popup>
 
-        <!-- v1.19.28: the folder editor - a left-click on the strip names a new
-             folder, a folder chip's Edit renames it. Enter saves, Escape closes. -->
-        <Popup x:Name="WebFolderEditPopup" PlacementTarget="{Binding ElementName=WebNewFolderChip}"
+        <!-- v1.19.28: the folder editor - the strip's right-click names a new
+             folder (v1.19.30), a folder chip's Edit renames it. Enter saves,
+             Escape closes. -->
+        <Popup x:Name="WebFolderEditPopup" PlacementTarget="{Binding ElementName=WebBookmarksStrip}"
                Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
             <Border Background="{DynamicResource WebFlyoutBrush}"
                     BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
@@ -364,17 +380,48 @@
                     <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.35"/>
                 </Border.Effect>
                 <StackPanel MinWidth="260">
+                    <!-- v1.19.30: each row is the extension's own face - the
+                         package's icon, its name and version, the enable toggle
+                         the browser's own list carries, and the browser's
+                         right-click (Options, Remove). Clicking the row opens
+                         the extension's popup in the panel below the list. -->
                     <ItemsControl x:Name="WebExtList">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal" Margin="0,2">
-                                    <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                               Margin="0,1,6,0" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource MutedTextBrush}"/>
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="12"/>
-                                    <TextBlock Text="{Binding VersionLabel}" VerticalAlignment="Center" FontSize="11"
-                                               Margin="8,0,0,0" Foreground="{DynamicResource MutedTextBrush}"/>
-                                </StackPanel>
+                                <Border Background="Transparent" Padding="2,4" Cursor="Hand"
+                                        MouseLeftButtonUp="WebExtRow_Click"
+                                        ContextMenuOpening="BookmarkChip_ContextMenuOpening">
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="{DynamicResource Str_Web_ExtOptions}"
+                                                      Click="WebExtOptions_Click"
+                                                      Visibility="{Binding HasOptionsVisibility}">
+                                                <MenuItem.Icon><TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            </MenuItem>
+                                            <MenuItem Header="{DynamicResource Str_Web_ExtRemove}"
+                                                      Click="WebExtRemove_Click">
+                                                <MenuItem.Icon><TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"/></MenuItem.Icon>
+                                            </MenuItem>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Width="16" Height="16" Source="{Binding IconSource}"
+                                               VerticalAlignment="Center" Margin="0,0,6,0"
+                                               Visibility="{Binding HasIconVisibility}"/>
+                                        <TextBlock Text="&#xE90F;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                   Margin="0,1,6,0" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                   Visibility="{Binding NoIconVisibility}"/>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="12"/>
+                                        <TextBlock Text="{Binding VersionLabel}" VerticalAlignment="Center" FontSize="11"
+                                                   Margin="8,0,0,0" Foreground="{DynamicResource MutedTextBrush}"/>
+                                        <CheckBox Margin="12,0,2,0" VerticalAlignment="Center"
+                                                  IsChecked="{Binding LiveEnabled, Mode=OneWay}"
+                                                  Click="ExtToggle_Click"
+                                                  ToolTip="{DynamicResource Str_Web_ExtEnabled}"
+                                                  Visibility="{Binding ToggleVisibility}"/>
+                                    </StackPanel>
+                                </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -385,6 +432,29 @@
                             HorizontalAlignment="Left" Margin="0,8,0,0" Click="WebExtInstall_Click"/>
                     <Button Content="{DynamicResource Str_Web_ExtOpenFolder}" Style="{StaticResource WebBookmarkChip}"
                             HorizontalAlignment="Left" Margin="0,6,0,0" Click="WebExtOpenFolder_Click"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- v1.19.30: the extension's own popup - the little window the
+             extension's toolbar icon would drop, hosted in the panel its
+             manifest's default_popup names (its Options page opens here too).
+             A fresh engine view every open, the same profile, so the popup
+             speaks to the same account and settings the page does. -->
+        <Popup x:Name="WebExtActionPopup" PlacementTarget="{Binding ElementName=WebExtensionsBtn}"
+               Placement="Bottom" StaysOpen="False" Closed="WebExtActionPopup_Closed">
+            <Border Background="{DynamicResource WebFlyoutBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                    Margin="0,0,10,10">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.35"/>
+                </Border.Effect>
+                <StackPanel>
+                    <Grid x:Name="WebExtActionHost" Width="380" Height="520"
+                          Background="{DynamicResource PaneBrush}"/>
+                    <TextBlock x:Name="WebExtActionNote" Visibility="Collapsed" Padding="12,10"
+                               MaxWidth="380" TextWrapping="Wrap" FontSize="12"
+                               Foreground="{DynamicResource TextBrush}"/>
                 </StackPanel>
             </Border>
         </Popup>
