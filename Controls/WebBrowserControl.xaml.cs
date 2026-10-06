@@ -309,11 +309,16 @@ namespace Avalanche.Controls
 
             // A pane with no view - the very first open, or a + that arrived before
             // the engine - gets one now: the address that was waiting, or home.
+            // v1.19.24: before a fresh home tab is made, the previous session's
+            // tabs come back as cards; an address the reader typed ahead of the
+            // engine still opens as its own new tab on top of them.
             if (_activeView is null)
             {
                 string url = _pendingUrl ?? HomePage;
+                bool typedAhead = _pendingUrl is not null && !UriEquals(url, HomePage);
                 _pendingUrl = null;
-                await CreateTabAsync(url);
+                if (!await RestoreSessionAsync() || typedAhead)
+                    await CreateTabAsync(url);
             }
             SetChromeEnabled(true);
             RefreshBookmarkButton();
@@ -337,6 +342,9 @@ namespace Avalanche.Controls
             core.DownloadStarting += OnDownloadStarting;
             core.WebResourceResponseReceived += OnWebResourceResponseReceived;
             core.NewWindowRequested += OnNewWindowRequested;
+            // v1.19.24: the page's own menu learns the tab - and loses the
+            // window row this single-window browser cannot honor.
+            core.ContextMenuRequested += OnContextMenuRequested;
             core.HistoryChanged += (_, _) => RefreshHistoryButtons();
             view.NavigationStarting += OnNavigationStarting;
             view.NavigationCompleted += OnNavigationCompleted;
@@ -396,6 +404,14 @@ namespace Avalanche.Controls
         private void BookmarkChip_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button { Tag: string url } && url.Length > 0) NavigateTo(url);
+        }
+
+        // v1.19.24: a bookmark's right-click offers the tab, not just this
+        // view - the saved page opens as a brand-new tab in the strip.
+        private void BookmarkOpenInTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: BookmarkVm vm })
+                OpenLinkInNewTab(vm.Url);
         }
 
         // v1.19.15: the Edit/Delete menu wears the house face everywhere. The themed
@@ -849,7 +865,11 @@ namespace Avalanche.Controls
             try
             {
                 WebTabCardVm? card = CardFor(v);
-                if (card is not null) card.Title = title;
+                if (card is not null && card.Title != title)
+                {
+                    card.Title = title;
+                    PersistTabs();   // v1.19.24: the saved session wears the page's name
+                }
             }
             catch { /* a gallery hiccup never disturbs the title event */ }
             if (ReferenceEquals(v, _activeView)) TitleChanged?.Invoke(title);
@@ -1350,6 +1370,43 @@ namespace Avalanche.Controls
             catch { /* a navigation that throws is the next one's problem */ }
         }
 
+        // v1.19.24: the menu request carries the target the pointer is on.
+        // The built-in "Open link in new window" row retires - this browser
+        // has one window, and a window request is answered by THIS view (see
+        // OnNewWindowRequested), which is not what the word promises - and a
+        // custom "Open in new tab" row takes its seat. Handled stays false,
+        // so the engine still draws its own menu with the two changes in it;
+        // the custom row's click rides CustomItemSelected on the item itself,
+        // the address captured in the closure beside it. Built-in rows are
+        // recognized by their stable unlocalized names; a name that never
+        // matches costs nothing - the tab row just opens at the menu's top.
+        private void OnContextMenuRequested(object? sender, CoreWebView2ContextMenuRequestedEventArgs e)
+        {
+            try
+            {
+                if (sender is not CoreWebView2 core) return;
+                CoreWebView2ContextMenuTarget target = e.ContextMenuTarget;
+                if (!target.HasLinkUri || string.IsNullOrEmpty(target.LinkUri)) return;
+                CoreWebView2ContextMenuItem item = core.Environment.CreateContextMenuItem(
+                    TryLoc("Str_Web_OpenInNewTab") ?? "Open in new tab",
+                    null, CoreWebView2ContextMenuItemKind.Command);
+                string linkUri = target.LinkUri;
+                item.CustomItemSelected += (_, _) => OpenLinkInNewTab(linkUri);
+                int at = 0;
+                for (int i = 0; i < e.MenuItems.Count; i++)
+                {
+                    if (e.MenuItems[i].Name == "openLinkInNewWindow")
+                    {
+                        e.MenuItems.RemoveAt(i);   // the window row retires: tabs answer instead
+                        at = i;
+                        break;
+                    }
+                }
+                e.MenuItems.Insert(Math.Min(at, e.MenuItems.Count), item);
+            }
+            catch { /* a menu that stumbles keeps the engine's own */ }
+        }
+
         /// <summary>v1.19.10: the riding helper's word. When even the fixed print
         /// cannot take a document - and the button's anchor download is refused -
         /// the extension falls back to a message to the host, and the host answers
@@ -1482,6 +1539,7 @@ namespace Avalanche.Controls
             TabClosed?.Invoke(card.TabId);
             bool wasActive = card.IsActive;
             Tabs.Remove(card);
+            PersistTabs();   // v1.19.24
             // v1.19.13: the tab's view dies with it - the engine behind it is
             // disposed and its memory goes back to Windows.
             if (card.View is { } v)
@@ -1545,9 +1603,11 @@ namespace Avalanche.Controls
                     Tabs.Insert(0, card);   // a view without a card earns one at the top
                     TrimWebTabCards(card);
                 }
+                bool changed = card.Url != url || card.Title != title || card.Host != u.Host;
                 card.Url = url;
                 card.Title = title;
                 card.Host = u.Host;
+                if (changed) PersistTabs();   // v1.19.24
                 if (background) return;
                 byte[] png;
                 using (MemoryStream ms = new())
@@ -1636,6 +1696,7 @@ namespace Avalanche.Controls
             foreach (WebTabCardVm t in Tabs) t.IsActive = false;
             Tabs.Insert(0, card);   // a brand-new tab lands on top
             TrimWebTabCards(card);
+            PersistTabs();   // v1.19.24
             WebView2 view = await BuildViewAsync(card);
             await ShowViewAsync(card, view, url);
         }
@@ -1670,6 +1731,7 @@ namespace Avalanche.Controls
         {
             int gen = ++_viewGen;
             view ??= card.View;
+            bool revivedView = false;
             if (view is null)
             {
                 if (_env is null)
@@ -1679,6 +1741,7 @@ namespace Avalanche.Controls
                     return;
                 }
                 view = await BuildViewAsync(card);
+                revivedView = true;
                 if (gen != _viewGen) return;   // a newer switch owns the screen now
             }
             foreach (WebView2 v in _views.ToArray())
@@ -1687,13 +1750,18 @@ namespace Avalanche.Controls
                 catch { /* a view gone already */ }
             }
             _activeView = view;
+            WebTabCardVm? previouslyActive = Tabs.FirstOrDefault(t => t.IsActive);
             foreach (WebTabCardVm t in Tabs) t.IsActive = ReferenceEquals(t.View, view);
+            if (!ReferenceEquals(previouslyActive, card)) PersistTabs();   // v1.19.24
             try
             {
                 view.CoreWebView2?.Resume();   // a view hidden since the pane's last show wakes here
-                if (navigate is not null && view.CoreWebView2 is not null
-                    && !UriEquals(view.Source?.ToString(), navigate))
-                    view.CoreWebView2.Navigate(navigate);
+                // v1.19.24: a viewless (restored) card's view is born blank -
+                // its first errand is the address the card kept all along.
+                string? target = navigate ?? (revivedView ? card.Url : null);
+                if (target is not null && view.CoreWebView2 is not null
+                    && !UriEquals(view.Source?.ToString(), target))
+                    view.CoreWebView2.Navigate(target);
                 view.Focus();
             }
             catch { /* a first paint that stumbles is the page's own problem */ }
@@ -1811,6 +1879,91 @@ namespace Avalanche.Controls
             bool any = Bookmarks.Count > 0;
             WebBookmarksHint.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
             WebBookmarksList.Visibility = any ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // ── The session behind the tabs (v1.19.24) ──────────────────────────────────
+        // The reader's open tabs outlive the window now, the way bookmarks do:
+        // every change - a tab opened, closed, renamed by its page, brought to
+        // the screen or sent behind - rewrites one small JSON file in the app's
+        // data root, and a fresh browser reads it back before its first tab is
+        // made. Restored tabs are CARDS first: each revives as a live view only
+        // when it takes the screen, so opening the browser costs one page, not
+        // twelve. Each revival earns a fresh session id - a page's sidechat
+        // history from a previous run is not part of the deal, and nothing of
+        // one tab's conversation can ever sit under another's key.
+
+        /// <summary>The tab session's storage: webtabs.json in the app's data
+        /// root, beside bookmarks.json.</summary>
+        private static string TabsFile => Path.Combine(AppDataPaths.UserRoot, "webtabs.json");
+
+        private List<WebTabSnapshot> LoadTabsSnapshot()
+        {
+            try
+            {
+                return WebTabSnapshotStore.ParseTabsSnapshot(
+                    File.Exists(TabsFile) ? File.ReadAllText(TabsFile) : null);
+            }
+            catch { return new List<WebTabSnapshot>(); }
+        }
+
+        private void PersistTabs()
+        {
+            try
+            {
+                Directory.CreateDirectory(AppDataPaths.UserRoot);
+                List<WebTabSnapshot> snapshot = new();
+                foreach (WebTabCardVm t in Tabs)
+                    snapshot.Add(new WebTabSnapshot(t.Url, t.Title, t.Host, t.IsActive));
+                string json = WebTabSnapshotStore.SerializeTabsSnapshot(snapshot);
+                string temporary = TabsFile + ".tmp";
+                File.WriteAllText(temporary, json);
+                File.Move(temporary, TabsFile, overwrite: true);
+            }
+            catch { /* a session file that will not write is not worth a crash */ }
+        }
+
+        /// <summary>Rebuilds the saved tabs as viewless cards in the strip and
+        /// puts the saved active one on screen - its view revives and walks
+        /// back to its address. False when there is nothing to restore or the
+        /// pane already carries tabs.</summary>
+        private async Task<bool> RestoreSessionAsync()
+        {
+            if (_activeView is not null || Tabs.Count > 0) return false;
+            List<WebTabSnapshot> saved = LoadTabsSnapshot();
+            if (saved.Count == 0) return false;
+            saved = saved.Take(MaxWebTabCards).ToList();
+            string seed = TryLoc("Str_Web_NewTab") ?? "New tab";
+            foreach (WebTabSnapshot s in saved)
+            {
+                string title = s.Title.Length > 0 ? s.Title
+                    : (HostOf(s.Url).Length > 0 ? HostOf(s.Url) : seed);
+                Tabs.Add(new WebTabCardVm(s.Url) { Title = title, Host = s.Host, IsActive = false });
+            }
+            int activeAt = saved.FindIndex(s => s.IsActive);
+            if (activeAt < 0) activeAt = 0;
+            await ShowViewAsync(Tabs[activeAt]);
+            return true;
+        }
+
+        /// <summary>A link asked to open as a tab of its own (v1.19.24): the
+        /// page menu's "Open in new tab" and a bookmark's right-click both
+        /// land here. With no browser yet the address waits for the engine
+        /// like any first address; otherwise it rides a brand-new tab on
+        /// top. Web addresses only - the reader's tabs are pages.</summary>
+        public void OpenLinkInNewTab(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? u)) return;
+            if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) return;
+            if (_env is null || _activeView is null)
+            {
+                _pendingUrl = url;
+                _ = EnsureReadyAsync();
+            }
+            else
+            {
+                _ = CreateTabAsync(url);
+            }
         }
 
         // ── Small shared helpers ──────────────────────────────────────────────────────────
@@ -2260,6 +2413,42 @@ namespace Avalanche.Controls
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name!));
+    }
+
+    /// <summary>One line of the browser's saved tab session (v1.19.24): the
+    /// address to revive, the title the page wore, its host, and whether this
+    /// was the tab on screen. Order in the file is order in the strip.</summary>
+    internal sealed record WebTabSnapshot(string Url, string Title, string Host, bool IsActive);
+
+    /// <summary>The tab session's pure core (v1.19.24): what is written and
+    /// what survives a read. Junk rows - empty, unparseable, non-web - are
+    /// dropped on the way in, so a corrupted or hand-edited file can never
+    /// resurrect a tab that makes no sense.</summary>
+    internal static class WebTabSnapshotStore
+    {
+        internal static string SerializeTabsSnapshot(List<WebTabSnapshot> tabs)
+            => System.Text.Json.JsonSerializer.Serialize(
+                tabs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+        internal static List<WebTabSnapshot> ParseTabsSnapshot(string? json)
+        {
+            List<WebTabSnapshot> parsed = new();
+            if (string.IsNullOrWhiteSpace(json)) return parsed;
+            try
+            {
+                List<WebTabSnapshot>? saved = System.Text.Json.JsonSerializer.Deserialize<List<WebTabSnapshot>>(json);
+                if (saved is null) return parsed;
+                foreach (WebTabSnapshot s in saved)
+                {
+                    if (string.IsNullOrWhiteSpace(s.Url)) continue;
+                    if (!Uri.TryCreate(s.Url, UriKind.Absolute, out Uri? u)) continue;
+                    if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) continue;
+                    parsed.Add(s);
+                }
+            }
+            catch { /* a session file that will not read is not worth a crash */ }
+            return parsed;
+        }
     }
 
     /// <summary>One saved page in the browser's bookmarks (v1.19.11): the name the

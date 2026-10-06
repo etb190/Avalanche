@@ -1274,6 +1274,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_PdfOpening">Descargando el PDF para el lector...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">No se encontró el runtime de WebView2. Instale el Evergreen Runtime de Microsoft y vuelva a abrir el navegador.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Nueva pestaña</sys:String>
+    <sys:String x:Key="Str_Web_OpenInNewTab">Abrir en nueva pestaña</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nueva pestaña (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Este enlace no entregó un archivo PDF - se muestra la propia página.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">No se pudo obtener este PDF - el sitio bloqueó la descarga.</sys:String>

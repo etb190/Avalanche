@@ -1282,6 +1282,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_PdfOpening">Pobieranie PDF dla czytnika...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Nie znaleziono środowiska WebView2. Zainstaluj Evergreen Runtime od Microsoftu i otwórz przeglądarkę ponownie.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Nowa karta</sys:String>
+    <sys:String x:Key="Str_Web_OpenInNewTab">Otwórz w nowej karcie</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nowa karta (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ten link nie dostarczył pliku PDF - pokazywana jest sama strona.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Nie udało się pobrać tego pliku PDF - witryna zablokowała pobieranie.</sys:String>

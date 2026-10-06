@@ -1293,6 +1293,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_PdfOpening">Оқу құралы үшін PDF жүктелуде...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 жүйесі табылмады. Microsoft Evergreen Runtime орнатып, браузерді қайта ашыңыз.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Жаңа қойынды</sys:String>
+    <sys:String x:Key="Str_Web_OpenInNewTab">Жаңа қойындыда ашу</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Жаңа қойынды (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Бұл сілтеме PDF файлын бермеді - оның орнына беттің өзі көрсетіледі.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Бұл PDF жүктеп алу мүмкін болмады - сайт жүктеп алуға тыйым салды.</sys:String>

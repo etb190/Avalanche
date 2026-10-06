@@ -1294,6 +1294,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_PdfOpening">Recupero del PDF per il lettore...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Runtime WebView2 non trovato. Installa la Evergreen Runtime di Microsoft e riapri il browser.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Nuova scheda</sys:String>
+    <sys:String x:Key="Str_Web_OpenInNewTab">Apri in una nuova scheda</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nuova scheda (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Questo link non ha fornito un file PDF - viene mostrata la pagina stessa.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Impossibile scaricare questo PDF - il sito ha bloccato il download.</sys:String>

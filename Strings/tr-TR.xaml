@@ -1274,6 +1274,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_PdfOpening">Okuyucu için PDF alınıyor...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">WebView2 çalışma zamanı bulunamadı. Microsoft Evergreen Runtime'ı kurup tarayıcıyı yeniden açın.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Yeni sekme</sys:String>
+    <sys:String x:Key="Str_Web_OpenInNewTab">Yeni sekmede aç</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Yeni sekme (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Bu bağlantı bir PDF dosyası vermedi - sayfanın kendisi gösteriliyor.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Bu PDF alınamadı - site indirmeyi engelledi.</sys:String>

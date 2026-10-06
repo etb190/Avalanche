@@ -1409,8 +1409,11 @@ namespace Avalanche.Features.AI
                 ContextTitle = WebContextLabel(title, url);
                 IndexingStatus = "";
                 IndexingProgress = 0.0;
-                // The research button has nothing to build for a page: say so.
-                SemanticStatus = _loc("Str_AiWebSemanticOff");
+                // The research button has nothing to build for a page, and
+                // the status line no longer says so forever - the one message
+                // that never went away was noise, not information. Silence
+                // collapses the row; the button itself explains on click.
+                SemanticStatus = "";
             });
         }
 

@@ -1294,6 +1294,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_PdfOpening">Récupération du PDF pour le lecteur...</sys:String>
     <sys:String x:Key="Str_Web_RuntimeMissing">Le runtime WebView2 est introuvable. Installez le Evergreen Runtime de Microsoft, puis rouvrez le navigateur.</sys:String>
     <sys:String x:Key="Str_Web_NewTab">Nouvel onglet</sys:String>
+    <sys:String x:Key="Str_Web_OpenInNewTab">Ouvrir dans un nouvel onglet</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nouvel onglet (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ce lien n'a pas fourni de fichier PDF - la page elle-même s'affiche.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Impossible de récupérer ce PDF - le site a bloqué le téléchargement.</sys:String>

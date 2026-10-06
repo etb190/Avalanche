@@ -2247,6 +2247,20 @@ namespace Avalanche
                 // PDF button between its chat and save faces.
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             };
+            // v1.19.24: the context line follows the page while it loads.
+            // The tab's title used to reach the chat only at the switch and
+            // stay the "New tab" seed for the page's whole life; every rename
+            // now re-announces the same tab, and the view model's same-tab
+            // path touches only the header - never the transcript, never
+            // another tab's session.
+            WebPane.TitleChanged += title =>
+            {
+                if (WebPaneHost.Visibility == Visibility.Visible
+                    && AiChatOverlay?.Visibility == Visibility.Visible
+                    && WebPane.ActiveTabId is { } tabId)
+                    _aiChatViewModel?.HandleWebContextChanged(
+                        tabId, title, WebPane.ActiveTabUrl);
+            };
             WebPane.TabClosed += tabId => _aiChatViewModel?.DiscardWebSession(tabId);
         }
 

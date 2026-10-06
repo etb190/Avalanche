@@ -3134,7 +3134,7 @@
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
                             Background="Transparent" CornerRadius="0"
-                            Padding="12,5">
+                            Padding="12,4">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -3195,7 +3195,7 @@
                                        Text="{Binding ContextTitle}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="11"
                                        Foreground="{DynamicResource MutedTextBrush}"
-                                       TextTrimming="CharacterEllipsis" Margin="24,1,0,0"
+                                       TextTrimming="CharacterEllipsis" Margin="24,0,0,0"
                                        Visibility="{Binding ContextTitle, Converter={StaticResource StringToVisibilityConverter}}"/>
                         </Grid>
                     </Border>
