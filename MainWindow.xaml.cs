@@ -901,6 +901,10 @@ namespace Avalanche
         // that as a switch-away - the book keeps its flag - and never as the
         // reader putting the window down, which is what clears the flag.
         private Features.Summary.SummaryWindow? _summarySwitchAway;
+        // v1.19.26: the book whose navigator closed so a search could ride the
+        // browser. One-shot: HideWebPane consumes it and brings the navigator
+        // back - and only the search ever writes it.
+        private string? _summaryHiddenForSearchPath;
 
         private void AiChatBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -2256,6 +2260,7 @@ namespace Avalanche
         {
             WebPane.PdfRequested += path =>
             {
+                _summaryHiddenForSearchPath = null;   // a web PDF switches books: the old navigator stays put
                 HideWebPane();
                 OpenInNewTab(path);
                 // v1.19.5: a fresh web download IS the save button's client -
@@ -2331,7 +2336,18 @@ namespace Avalanche
         private void OpenSummarySearchInBrowser(string url)
         {
             ShowWebPane();
-            WebPane.OpenLinkInNewTab(url);
+            // v1.19.26: every search rides the one search tab - africa then
+            // europe is one tab overwritten, never a strip of one-off tabs.
+            WebPane.OpenSearchTab(url);
+            // The navigator steps out for the search's duration - strictly
+            // the search's doing, no other path here - and HideWebPane
+            // brings it back when the browser steps away.
+            if (_summaryWindow is { } navigator && _currentFile is not null
+                && navigator.DocumentPathEquals(_currentFile))
+            {
+                _summaryHiddenForSearchPath = _currentFile;
+                navigator.Close();   // the Closed hook clears the field and the per-doc wish
+            }
         }
 
         private void ToggleWebPane()
@@ -2372,6 +2388,19 @@ namespace Avalanche
             }
             // v1.19.23: the pane stepped aside - the button is a save button again.
             RefreshWebSaveButton(_originalFile ?? _currentFile);
+
+            // v1.19.26: the browser that a search opened steps away - the
+            // navigator that asked for the search returns to its book.
+            if (_summaryHiddenForSearchPath is { } searchPath)
+            {
+                _summaryHiddenForSearchPath = null;
+                if (_summaryWindow is null && _doc is not null
+                    && !string.IsNullOrEmpty(_currentFile)
+                    && string.Equals(searchPath, _currentFile, StringComparison.OrdinalIgnoreCase))
+                {
+                    OpenSummaryWindow();
+                }
+            }
         }
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ────────────────────────────────────

@@ -53,6 +53,26 @@ namespace Avalanche.Features.AI
         public static void SetParagraphAlignment(DependencyObject o, TextAlignment value) =>
             o.SetValue(ParagraphAlignmentProperty, value);
 
+        /// <summary>
+        /// Opt-in typesetting aid for justified text in a NARROW column
+        /// (v1.19.26): the optimal-paragraph breaker minimizes the slack it
+        /// leaves on every line and hyphenation gives it the last syllable
+        /// to work with. The digest's wide measure never needed the aid;
+        /// the sidechat's bubbles did - a greedy break at ~300px plus
+        /// justification stretched the remainder of a line into huge word
+        /// gaps. The summarizer window, the reference the reader asked for,
+        /// keeps its exact current look.
+        /// </summary>
+        public static readonly DependencyProperty JustifyAidProperty = DependencyProperty.RegisterAttached(
+            "JustifyAid", typeof(bool), typeof(AiMarkdown),
+            new FrameworkPropertyMetadata(false));
+
+        public static bool GetJustifyAid(DependencyObject o) =>
+            (bool)o.GetValue(JustifyAidProperty);
+
+        public static void SetJustifyAid(DependencyObject o, bool value) =>
+            o.SetValue(JustifyAidProperty, value);
+
         // Marker used to attach the hyperlink navigation handler exactly once
         // per RichTextBox (documents are rebuilt on every Content change, but
         // AddHandler must not be called repeatedly).
@@ -102,7 +122,18 @@ namespace Avalanche.Features.AI
             // Cap the control at the document's natural (unwrapped) width so
             // bubbles hug their content exactly like the old TextBlock did;
             // longer content still wraps because the cap exceeds the column.
-            rtb.MaxWidth = Math.Ceiling(MeasureNaturalWidth(doc, rtb) * 1.04) + 10.0;
+            if (GetParagraphAlignment(rtb) == TextAlignment.Justify)
+            {
+                // v1.19.26: justified text sets like the digest - filling the
+                // whole column. The hug-cap narrowed the measure below the
+                // bubble, and every wrap inside that narrower box is where
+                // the huge word gaps came from.
+                rtb.MaxWidth = double.PositiveInfinity;
+            }
+            else
+            {
+                rtb.MaxWidth = Math.Ceiling(MeasureNaturalWidth(doc, rtb) * 1.04) + 10.0;
+            }
         }
 
         // ---------- markdown patterns ----------
@@ -191,6 +222,15 @@ namespace Avalanche.Features.AI
             doc.SetResourceReference(TextElement.ForegroundProperty, "TextBrush");
             doc.SetResourceReference(TextElement.FontFamilyProperty, "UiFont");
             doc.FontSize = rtb is not null && rtb.FontSize > 0 ? rtb.FontSize : 12.0;
+
+            // v1.19.26: the narrow column's typesetting aid (see JustifyAid).
+            // Typography rides the document, so every paragraph it gains
+            // below inherits the better break.
+            if (rtb is not null && GetJustifyAid(rtb) && paragraphAlignment == TextAlignment.Justify)
+            {
+                doc.IsOptimalParagraphEnabled = true;
+                doc.IsHyphenationEnabled = true;
+            }
 
             // Citation footnotes resolve against the bubble's own message so
             // each circle knows its page/quote (tooltip) and its click target.

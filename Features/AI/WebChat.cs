@@ -350,14 +350,19 @@ namespace Avalanche.Features.AI
         /// <summary>
         /// Maps each SOURCE_n id a WEB reply returned back to the n-th
         /// segment of the page snapshot (the same numbering the prompt
-        /// offered), and drops everything that cannot navigate: invented or
-        /// out-of-range ids, duplicates, and quotes the page's own text does
-        /// not carry - a quote the snapshot cannot confirm would only send
-        /// the browser hunting for words that are not there. The 0-based
-        /// numbering some models drift into is detected and shifted exactly
-        /// like the PDF path does.
+        /// offered), and makes every in-range citation navigable (v1.19.26):
+        /// a quote that matches the page's whitespace-normalized text is
+        /// kept verbatim; one that drifted in punctuation or case is
+        /// repaired to the page substring it names; one the page cannot
+        /// confirm still keeps its circle alive on the cited segment's own
+        /// head - real page text either way, because a dead footnote tells
+        /// the reader nothing. Only invented or out-of-range ids are
+        /// dropped, and inline markers the 'sources' list never backed are
+        /// grounded in the segments they named. The 0-based numbering some
+        /// models drift into is detected and shifted exactly like the PDF
+        /// path does.
         /// </summary>
-        public static void ResolveWebSources(List<AiSource>? sources, IReadOnlyList<string> segments, string? pageText)
+        public static void ResolveWebSources(List<AiSource>? sources, string? answer, IReadOnlyList<string> segments, string? pageText)
         {
             if (sources is null)
                 return;
@@ -366,16 +371,20 @@ namespace Avalanche.Features.AI
                 sources.Clear();    // nothing to resolve against: no citations
                 return;
             }
-            if (sources.Count == 0)
-                return;
 
             string pageNorm = NormalizeForMatch(pageText);
 
+            // The 0-based drift detection needs id numbers: the sources list
+            // when it brought any, the answer's own markers otherwise (a
+            // plain-prose reply with no 'sources' JSON still deserves its
+            // footnotes).
+            List<int> ids = sources.Count > 0
+                ? sources.Select(s => AiCitations.ParseSourceId(s.SourceId)).ToList()
+                : MarkerNumbers(answer);
             int offset = 0;
-            var parsedIds = sources.Select(s => AiCitations.ParseSourceId(s.SourceId)).ToList();
-            if (parsedIds.Count > 0
-                && parsedIds.All(v => v >= 0 && v < segments.Count)
-                && parsedIds.Any(v => v == 0))
+            if (ids.Count > 0
+                && ids.All(v => v >= 0 && v < segments.Count)
+                && ids.Any(v => v == 0))
             {
                 offset = 1;
             }
@@ -390,22 +399,97 @@ namespace Avalanche.Features.AI
                 if (!seenIds.Add(n))
                     continue;   // repeated id: keep only the first occurrence
 
-                string quote = NormalizeForMatch(src.Quote);
-                if (quote.Length < 3 || !pageNorm.Contains(quote))
-                    continue;   // nothing the browser could find: not a citation
+                MakeNavigable(src, n, offset, segments, pageNorm, pageText);
+                kept.Add(src);
+            }
 
-                src.SourceId = offset == 1
-                    ? AiCitations.FormatId(n - offset)
-                    : AiCitations.FormatId(n);
-                src.QuoteVerified = true;
-                src.Location = AiQuoteLocation.Exact;
-                src.PageIndex = -1;
-                src.PageNumber = 0;
+            // Every inline marker the answer carries lands in the evidence
+            // too: the model may cite [SOURCE_3] without listing it, or send
+            // prose with markers and no sources JSON at all. A marker naming
+            // a real segment must never render as a dead circle.
+            foreach (int marker in MarkerNumbers(answer))
+            {
+                int n = marker + offset;
+                if (n < 1 || n > segments.Count || !seenIds.Add(n))
+                    continue;
+
+                var src = new AiSource { SourceId = AiCitations.FormatId(marker) };
+                MakeNavigable(src, n, offset, segments, pageNorm, pageText);
                 kept.Add(src);
             }
 
             sources.Clear();
             sources.AddRange(kept);
+        }
+
+        /// <summary>The quoted passage is verified against the page; anything
+        /// the exact compare refuses is repaired, and anything the repair
+        /// cannot place falls back to the cited segment's own head. Every
+        /// path ends in a quote that is real page text, so the browser's
+        /// finder always has something to find.</summary>
+        private static void MakeNavigable(
+            AiSource src, int n, int offset, IReadOnlyList<string> segments,
+            string pageNorm, string? pageText)
+        {
+            string quote = NormalizeForMatch(src.Quote);
+            if (quote.Length >= 3 && pageNorm.Contains(quote))
+            {
+                src.QuoteVerified = true;
+                src.Location = AiQuoteLocation.Exact;
+            }
+            else
+            {
+                string? repaired = WebQuoteRepair.Repair(src.Quote, pageText);
+                if (!string.IsNullOrEmpty(repaired))
+                {
+                    src.Quote = repaired;
+                    src.Location = AiQuoteLocation.Approximate;
+                }
+                else
+                {
+                    src.Quote = SegmentHead(segments[n - 1]);
+                    src.Location = AiQuoteLocation.Approximate;
+                }
+                src.QuoteVerified = true;   // the quote IS page text now
+            }
+
+            src.SourceId = offset == 1
+                ? AiCitations.FormatId(n - offset)
+                : AiCitations.FormatId(n);
+            src.PageIndex = -1;
+            src.PageNumber = 0;
+        }
+
+        /// <summary>Every citation number the answer's inline markers carry,
+        /// in order of appearance (duplicates included; the caller dedupes).</summary>
+        private static List<int> MarkerNumbers(string? answer)
+        {
+            var numbers = new List<int>();
+            if (string.IsNullOrEmpty(answer))
+                return numbers;
+            foreach (System.Text.RegularExpressions.Match m in AiCitations.InlineRx.Matches(answer))
+            {
+                int n = AiCitations.MatchToNumber(m);
+                if (n >= 0)
+                    numbers.Add(n);
+            }
+            return numbers;
+        }
+
+        /// <summary>The cited segment's own head: the fallback quote when the
+        /// model's words cannot be matched to the page - a real page substring
+        /// the browser can always find, at the passage the citation names.</summary>
+        public const int FallbackQuoteChars = 120;
+
+        public static string SegmentHead(string? segment)
+        {
+            string norm = NormalizeForMatch(segment);
+            if (norm.Length <= FallbackQuoteChars)
+                return norm;
+            int cut = norm.LastIndexOf(' ', FallbackQuoteChars);
+            if (cut < FallbackQuoteChars / 2)
+                cut = FallbackQuoteChars;   // no word boundary nearby: a hard cut
+            return norm[..cut];
         }
 
         /// <summary>
@@ -453,5 +537,110 @@ namespace Avalanche.Features.AI
                 return null;   // anything unreadable is simply no verdict
             }
         }
+    }
+
+    /// <summary>
+    /// The quote repair pass (v1.19.26): a model's copied quote usually
+    /// fails the page's exact text only in punctuation and case - curly
+    /// quotes for straight ones, an em-dash for a hyphen, a ligature, an
+    /// ellipsis character, a stray soft hyphen. Both sides fold into a
+    /// letters-and-digits shape (case-insensitive, punctuation and symbols
+    /// dropped, ligatures expanded, whitespace collapsed) while a map
+    /// remembers where every folded character came from; a folded match
+    /// maps back onto the page as the literal substring it names - text
+    /// the browser's finder can always locate. Null when nothing foldable
+    /// matches: the caller falls back to the cited segment's head.
+    /// </summary>
+    internal static class WebQuoteRepair
+    {
+        public static string? Repair(string? quote, string? pageText)
+        {
+            if (string.IsNullOrWhiteSpace(quote) || string.IsNullOrWhiteSpace(pageText))
+                return null;
+
+            string page = FoldMap(pageText, out List<int> pageMap);
+            string needle = FoldMap(quote, out _);
+            // Three folded WORD characters minimum: spaces and punctuation do
+            // not count - two letters can sit anywhere, and a repair that
+            // short would "confirm" anything.
+            if (CountWordChars(needle) < 3)
+                return null;
+
+            int at = page.IndexOf(needle, StringComparison.Ordinal);
+            if (at < 0)
+                return null;
+
+            int start = pageMap[at];
+            int end = pageMap[at + needle.Length - 1] + 1;
+            if (end <= start || end > pageText.Length)
+                return null;
+            return WebChat.NormalizeForMatch(pageText[start..end]);
+        }
+
+        private static int CountWordChars(string s)
+        {
+            int n = 0;
+            foreach (char c in s)
+                if (char.IsLetterOrDigit(c)) n++;
+            return n;
+        }
+
+        /// <summary>Letters and digits only, lowercased; ligatures expand;
+        /// control/format characters vanish; whitespace collapses to one
+        /// space exactly like NormalizeForMatch. map[i] names the original
+        /// index the i-th folded character came from (expansions repeat the
+        /// source index, so a span's ends map back onto real characters).</summary>
+        private static string FoldMap(string? text, out List<int> map)
+        {
+            var sb = new System.Text.StringBuilder(text?.Length ?? 0);
+            map = new List<int>(text?.Length ?? 0);
+            for (int i = 0; i < (text?.Length ?? 0); i++)
+            {
+                char c = text![i];
+                if (char.IsWhiteSpace(c))
+                {
+                    if (sb.Length > 0 && sb[sb.Length - 1] != ' ')
+                    {
+                        sb.Append(' ');
+                        map.Add(i);
+                    }
+                    continue;
+                }
+                if (char.IsPunctuation(c) || char.IsSymbol(c))
+                    continue;
+                switch (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c))
+                {
+                    case System.Globalization.UnicodeCategory.Control:
+                    case System.Globalization.UnicodeCategory.Format:
+                        continue;
+                }
+
+                foreach (char ex in Expand(c))
+                {
+                    sb.Append(char.ToLowerInvariant(ex));
+                    map.Add(i);
+                }
+            }
+
+            string s = sb.ToString();
+            int trim = s.Length - s.TrimEnd().Length;
+            if (trim > 0)
+            {
+                map.RemoveRange(map.Count - trim, trim);
+                s = s.TrimEnd();
+            }
+            return s;
+        }
+
+        private static string Expand(char c) => c switch
+        {
+            '\uFB00' => "ff",
+            '\uFB01' => "fi",
+            '\uFB02' => "fl",
+            '\uFB03' => "ffi",
+            '\uFB04' => "ffl",
+            '\uFB05' or '\uFB06' => "st",
+            _ => c.ToString(),
+        };
     }
 }

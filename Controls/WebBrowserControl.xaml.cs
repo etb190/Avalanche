@@ -93,6 +93,10 @@ namespace Avalanche.Controls
         private const string HomePage = "https://www.google.com/";
 
         private string? _pendingUrl;
+        // v1.19.26: every navigator search rides ONE tab - its id lives here.
+        // A closed search tab simply makes the next search open a fresh one.
+        private string? _searchTabId;
+        private bool _pendingSearchTab;   // the parked first search; its tab is not born yet
         private string? _lastPageUrl;
 
         // Only the hand-offs currently in flight are remembered, and only so two
@@ -318,7 +322,16 @@ namespace Avalanche.Controls
                 bool typedAhead = _pendingUrl is not null && !UriEquals(url, HomePage);
                 _pendingUrl = null;
                 if (!await RestoreSessionAsync() || typedAhead)
-                    await CreateTabAsync(url);
+                {
+                    WebTabCardVm? first = await CreateTabAsync(url);
+                    // v1.19.26: a search parked ahead of the engine marks the
+                    // tab it finally lands in as the one all searches ride.
+                    if (first is not null && _pendingSearchTab)
+                    {
+                        _pendingSearchTab = false;
+                        _searchTabId = first.TabId;
+                    }
+                }
             }
             SetChromeEnabled(true);
             RefreshBookmarkButton();
@@ -1679,13 +1692,13 @@ namespace Avalanche.Controls
         /// <summary>A new tab: its card seeded at once (top of the rail), its view
         /// built and walked to its first address. The engine must exist - callers
         /// without one go through EnsureReadyAsync, which lands here after.</summary>
-        private async Task CreateTabAsync(string url)
+        private async Task<WebTabCardVm?> CreateTabAsync(string url)
         {
             if (_env is null)
             {
                 _pendingUrl = url;
                 _ = EnsureReadyAsync();
-                return;
+                return null;
             }
             WebTabCardVm card = new(url)
             {
@@ -1699,6 +1712,7 @@ namespace Avalanche.Controls
             PersistTabs();   // v1.19.24
             WebView2 view = await BuildViewAsync(card);
             await ShowViewAsync(card, view, url);
+            return card;
         }
 
         /// <summary>One view for one tab: built transparent over the themed card,
@@ -1964,6 +1978,52 @@ namespace Avalanche.Controls
             {
                 _ = CreateTabAsync(url);
             }
+        }
+
+        /// <summary>Every search from the navigator's word popup rides ONE
+        /// tab (v1.19.26): the first search opens it, every later search
+        /// overwrites whatever it currently shows - even a page the reader
+        /// has since taken it to - and a closed search tab simply makes the
+        /// next search open a fresh one. The strip never floods with one
+        /// tab per word. Web addresses only.</summary>
+        public void OpenSearchTab(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? u)) return;
+            if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) return;
+
+            WebTabCardVm? card = null;
+            if (_searchTabId is { } sid)
+                card = Tabs.FirstOrDefault(t => t.TabId == sid);
+            if (card is null)
+            {
+                _searchTabId = null;
+                if (_env is null || _activeView is null)
+                {
+                    // The engine (or its first view) is not up: the address
+                    // waits like any first one, and EnsureReadyAsync marks
+                    // the tab it finally lands in as the search tab.
+                    _pendingUrl = url;
+                    _pendingSearchTab = true;
+                    _ = EnsureReadyAsync();
+                }
+                else
+                {
+                    _ = MarkSearchTabAsync(url);
+                }
+                return;
+            }
+
+            // The search tab lives - whatever it currently shows, the new
+            // search replaces it and the tab comes to the screen.
+            _ = ShowViewAsync(card, navigate: url);
+        }
+
+        private async Task MarkSearchTabAsync(string url)
+        {
+            WebTabCardVm? card = await CreateTabAsync(url);
+            if (card is not null)
+                _searchTabId = card.TabId;
         }
 
         // ── Small shared helpers ──────────────────────────────────────────────────────────

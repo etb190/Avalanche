@@ -117,6 +117,7 @@ namespace Avalanche.Features.Summary
         private string? _prefetchText;              // the completed buffer (null = none)
         private int _prefetchFirst, _prefetchLast;  // the stretch the buffer covers
         private DateTime _prefetchStartedUtc = DateTime.UtcNow;  // the flight's clock
+        private bool _schedulePrefetchOnIdle;   // v1.19.26: the finally arms the next buffer - SchedulePrefetch refuses a live run
 
         // The live run's clock: StartGeneration winds it, the digest spends
         // it into the status line ("took 42s" / "took 1m 12s", v1.19.25).
@@ -738,6 +739,7 @@ namespace Avalanche.Features.Summary
             int gen = ++_generation;
             _generating = true;
             _runStartedUtc = DateTime.UtcNow;   // the status line's "took ..." starts here
+            _schedulePrefetchOnIdle = false;
             _fullText = string.Empty;
             // The superseded source is deliberately NOT disposed: the detached loop is
             // still polling its token, and a disposed source can throw from those
@@ -852,6 +854,15 @@ namespace Avalanche.Features.Summary
                 {
                     _generating = false;
                     SetBusy(false);
+                    // v1.19.26: the 30s prefetch clock arms HERE - it never
+                    // fired before, because FinishSuccess asked while this
+                    // run was still "generating" and SchedulePrefetch rightly
+                    // refused it.
+                    if (_schedulePrefetchOnIdle)
+                    {
+                        _schedulePrefetchOnIdle = false;
+                        SchedulePrefetch();
+                    }
                 }
             }
         }
@@ -890,7 +901,7 @@ namespace Avalanche.Features.Summary
             SaveDigest();       // the digest survives the window, the app, the session
             _cts?.Dispose();
             _cts = null;
-            SchedulePrefetch(); // 30s from now, the next stretch fetches itself
+            _schedulePrefetchOnIdle = true;   // v1.19.26: the finally arms it - _generating still holds here
         }
 
         // The post-run status line. With provider usage: the verification badge -
@@ -1131,6 +1142,7 @@ namespace Avalanche.Features.Summary
                 StatusText.Text = VerificationStatusLine();
                 SaveDigest();
                 InvalidatePrefetch();
+                SchedulePrefetch();   // v1.19.26: the served stretch arms the next buffer
                 return true;
             }
 
@@ -1207,6 +1219,7 @@ namespace Avalanche.Features.Summary
             }
 
             InvalidatePrefetch();
+            SchedulePrefetch();   // v1.19.26: this stretch landed - the next buffer arms
         }
 
         // Kill the clock, the flight and the buffer. Every manual navigation,

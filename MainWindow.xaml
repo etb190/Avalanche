@@ -3275,6 +3275,7 @@
                                                              carried into the sidechat; the reader's own
                                                              words stay naturally left-aligned. -->
                                                         <Setter Property="ai:AiMarkdown.ParagraphAlignment" Value="Justify"/>
+                                                        <Setter Property="ai:AiMarkdown.JustifyAid" Value="True"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding IsLoading}" Value="True">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>

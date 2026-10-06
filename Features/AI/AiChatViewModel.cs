@@ -986,7 +986,7 @@ namespace Avalanche.Features.AI
                     // against them and against the page's own text before a
                     // single footnote circle is allowed to render.
                     var segments = WebChat.SplitPageSegments(page.Text);
-                    WebChat.ResolveWebSources(webResponse.Sources, segments, page.Text);
+                    WebChat.ResolveWebSources(webResponse.Sources, webResponse.Answer, segments, page.Text);
                     assistantMsg.Sources = webResponse.Sources;
                     assistantMsg.Content = webResponse.Answer;
                     assistantMsg.IsLoading = false;
