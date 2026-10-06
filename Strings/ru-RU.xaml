@@ -1299,6 +1299,8 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_PdfBlocked">Не удалось получить этот PDF - сайт заблокировал загрузку.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Построить семантический исследовательский индекс для этого документа (повторное нажатие во время построения отменит его)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Сохранить этот веб-PDF на ваш компьютер</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Чат об этой странице</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Чат страницы</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">Сохранить PDF</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Здесь появляются страницы, открытые в браузере.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

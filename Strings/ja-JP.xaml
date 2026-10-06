@@ -1299,6 +1299,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">このPDFは取得できませんでした - サイトがダウンロードをブロックしています。</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">この文書のセマンティック研究インデックスを構築します（構築中に再度クリックすると中止します）</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">このウェブPDFをコンピューターに保存します</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">このページについてチャット</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">ページチャット</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">PDFを保存</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">ブラウザーで開いたページがここに表示されます。</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

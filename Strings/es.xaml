@@ -1279,6 +1279,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">No se pudo obtener este PDF - el sitio bloqueó la descarga.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Crear el índice de investigación semántica de este documento (pulse de nuevo durante la creación para cancelar)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Guardar este PDF web en su equipo</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Chatear sobre esta página</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Chat de página</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">Guardar PDF</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Las páginas que abra en el navegador aparecen aquí.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

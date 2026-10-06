@@ -1298,6 +1298,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_PdfBlocked">Бұл PDF жүктеп алу мүмкін болмады - сайт жүктеп алуға тыйым салды.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Осы құжат үшін семантикалық зерттеу индексін құру (құру кезінде тоқтату үшін қайта басыңыз)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Бұл веб-PDF компьютеріңізге сақтаңыз</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Осы бет туралы чат</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Бет чаты</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">PDF сақтау</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Браузерде ашқан беттеріңіз осында пайда болады.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

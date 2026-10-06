@@ -2243,6 +2243,9 @@ namespace Avalanche
                     && AiChatOverlay?.Visibility == Visibility.Visible)
                     _aiChatViewModel?.HandleWebContextChanged(
                         tabId, WebPane.ActiveTabTitle, WebPane.ActiveTabUrl);
+                // v1.19.23: a first view landing (or a switch) retargets the
+                // PDF button between its chat and save faces.
+                RefreshWebSaveButton(_originalFile ?? _currentFile);
             };
             WebPane.TabClosed += tabId => _aiChatViewModel?.DiscardWebSession(tabId);
         }
@@ -2290,6 +2293,8 @@ namespace Avalanche
                 && WebPane.ActiveTabId is { } webTab)
                 _aiChatViewModel?.HandleWebContextChanged(
                     webTab, WebPane.ActiveTabTitle, WebPane.ActiveTabUrl);
+            // v1.19.23: the PDF button becomes the page chat while the pane leads.
+            RefreshWebSaveButton(_originalFile ?? _currentFile);
         }
 
         private void HideWebPane()
@@ -2306,6 +2311,8 @@ namespace Avalanche
                 if (AiChatOverlay?.Visibility == Visibility.Visible && _currentFile is not null)
                     _ = chat.InitializeForDocumentAsync(_currentFile);
             }
+            // v1.19.23: the pane stepped aside - the button is a save button again.
+            RefreshWebSaveButton(_originalFile ?? _currentFile);
         }
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ────────────────────────────────────
@@ -2609,13 +2616,47 @@ namespace Avalanche
                     c.RenderTransform = null;
         }
 
-        /// <summary>The toolbar's save button follows the book on screen: it
-        /// appears only while the active document is a PDF the browser
-        /// downloaded into the reader's temp area.</summary>
+        /// <summary>The toolbar's PDF button follows the screen (v1.19.23):
+        /// while the browser leads with a live tab, the button the reader
+        /// reaches for on a web page IS the page's chat - it opens the
+        /// sidechat bound to that tab. With the browser away it keeps its
+        /// old job: saving the web-downloaded PDF, and it exists only while
+        /// the active document is one. Tooltip and caption follow the
+        /// function, so the button always says what it does.</summary>
         private void RefreshWebSaveButton(string? path)
         {
+            if (WebPaneHost.Visibility == Visibility.Visible && WebPane.ActiveTabId is not null)
+            {
+                WebSavePdfBtn.Visibility = Visibility.Visible;
+                WebSavePdfBtn.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_TT_WebPageChat");
+                RetargetToolbarCaption(WebSavePdfBtn, "Str_Lbl_WebPageChat");
+                return;
+            }
+            WebSavePdfBtn.SetResourceReference(FrameworkElement.ToolTipProperty, "Str_TT_SaveWebPdf");
+            RetargetToolbarCaption(WebSavePdfBtn, "Str_Lbl_WebSavePdf");
             WebSavePdfBtn.Visibility = Controls.WebBrowserControl.IsWebDownloadsPath(path)
                 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>One toolbar button's caption retargets in place
+        /// (v1.19.23): the caption engine's recorded key swaps and the button
+        /// re-dresses for the current label mode, so a button whose function
+        /// follows the screen keeps saying what it does in every label mode.
+        /// A key that already matches does nothing - the refresh runs on
+        /// every pane and document change.</summary>
+        private void RetargetToolbarCaption(Button btn, string labelKey)
+        {
+            for (int i = 0; i < _toolbarButtons.Count; i++)
+            {
+                if (!ReferenceEquals(_toolbarButtons[i].btn, btn)) continue;
+                if (string.Equals(_toolbarButtons[i].labelKey, labelKey, StringComparison.Ordinal)) return;
+                var glyph = _toolbarButtons[i].glyph;
+                _toolbarButtons[i] = (btn, glyph, labelKey);
+                SetToolbarButton(btn, glyph, labelKey, withLabel: true);
+                InvalidateToolbarReflow();
+                ReflowToolbar();
+                return;
+            }
         }
 
         /// <summary>Keep this web PDF: the reader's own Save As dialog, seeded
@@ -2624,6 +2665,15 @@ namespace Avalanche
         /// file now and the button steps aside.</summary>
         private void WebSavePdfBtn_Click(object sender, RoutedEventArgs e)
         {
+            // v1.19.23: while the browser leads, this button opens the page's
+            // chat - OpenAiChat binds web-first when the pane is on screen,
+            // so the click lands in the active tab's own conversation. Save
+            // stays the button's job whenever the browser is away.
+            if (WebPaneHost.Visibility == Visibility.Visible && WebPane.ActiveTabId is not null)
+            {
+                OpenAiChat();
+                return;
+            }
             if (_doc is null) return;
             SaveAs_Click(sender, e);
             RefreshWebSaveButton(_originalFile ?? _currentFile);

@@ -1287,6 +1287,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_PdfBlocked">Nie udało się pobrać tego pliku PDF - witryna zablokowała pobieranie.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Zbuduj semantyczny indeks badawczy tego dokumentu (kliknij ponownie podczas budowania, aby anulować)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Zapisz ten internetowy PDF na komputerze</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Czat o tej stronie</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Czat strony</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">Zapisz PDF</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Tutaj pojawiają się strony otwarte w przeglądarce.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

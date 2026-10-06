@@ -1279,6 +1279,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_PdfBlocked">Bu PDF alınamadı - site indirmeyi engelledi.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Bu belge için anlamsal araştırma dizinini oluştur (oluşturma sırasında iptal etmek için tekrar tıklayın)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Bu web PDF'sini bilgisayarınıza kaydedin</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Bu sayfa hakkında sohbet</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Sayfa sohbeti</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">PDF kaydet</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Tarayıcıda açtığınız sayfalar burada görünür.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

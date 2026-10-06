@@ -1299,6 +1299,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_PdfBlocked">This PDF couldn't be fetched - the site blocked the download.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Build the semantic research index for this document (click again while building to cancel)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Save this web PDF to your computer</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Chat about this page</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Page chat</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">Save PDF</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Pages you open in the browser appear here.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

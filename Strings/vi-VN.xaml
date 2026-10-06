@@ -1299,6 +1299,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_PdfBlocked">Không thể tải tệp PDF này - trang web đã chặn việc tải xuống.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Dựng chỉ mục nghiên cứu ngữ nghĩa cho tài liệu này (nhấp lần nữa khi đang dựng để hủy)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Lưu PDF web này vào máy tính của bạn</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Trò chuyện về trang này</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Trò chuyện trang</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">Lưu PDF</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Các trang bạn mở trong trình duyệt sẽ xuất hiện tại đây.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

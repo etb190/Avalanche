@@ -1285,6 +1285,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_PdfBlocked">Dieses PDF konnte nicht geladen werden - die Seite hat den Download blockiert.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Semantischen Recherche-Index für dieses Dokument aufbauen (während des Aufbaus erneut klicken zum Abbrechen)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Dieses Web-PDF auf Ihrem Computer speichern</sys:String>
+    <sys:String x:Key="Str_TT_WebPageChat">Über diese Seite chatten</sys:String>
+    <sys:String x:Key="Str_Lbl_WebPageChat">Seiten-Chat</sys:String>
     <sys:String x:Key="Str_Lbl_WebSavePdf">PDF speichern</sys:String>
     <sys:String x:Key="Str_Web_TabsEmpty">Hier erscheinen die im Browser geöffneten Seiten.</sys:String>
     <sys:String x:Key="Str_Web_Dial_Archive">Internet Archive</sys:String>

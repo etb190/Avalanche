@@ -2175,7 +2175,7 @@ namespace Avalanche.Controls
             "var text=(art&&art.textContent)?art.textContent:'';" +
             "var mode='readability';" +
             "if(text.trim().length<250){mode='innertext';try{text=document.body?document.body.innerText:'';}catch(e){text='';}}" +
-            "text=text.replace(/\n{3,}/g,'\n\n').trim();" +
+            "text=text.replace(/\\n{3,}/g,'\\n\\n').trim();" +
             "return JSON.stringify({ok:text.length>0,mode:mode,url:loc.href," +
             "title:(art&&art.title)||document.title||''," +
             "byline:(art&&art.byline)||'',site:(art&&art.siteName)||'',error:err,text:text});" +
