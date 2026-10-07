@@ -19,8 +19,10 @@
 // and saves itself, and a reopened navigator adopts the run it finds there,
 // elapsed clock still counting (v1.19.35). A digest that lands while the
 // reader is elsewhere can say so out loud: the Ping switch (v1.19.40) rings
-// the system notification sound the moment the summary is ready - on by
-// default, remembered across sessions.
+// the moment the summary is ready - on by default, remembered across
+// sessions. v1.19.41: the ding is the app's own bundled sound, played
+// directly, because the OS scheme's notification alias is silent on
+// machines whose sound scheme is "No Sounds" - and nothing was heard.
 // The reading position survives restarts per document; so do range, word
 // ceiling, language and the window's size and place.
 
@@ -1561,22 +1563,43 @@ namespace Avalanche.Features.Summary
             }
         }
 
-        // v1.19.40: the ping itself - the system's own notification sound, the
-        // moment a digest lands. Only a real generation rings it: a serve from
-        // the range cache was ready before the reader looked away, so it says
-        // nothing. The sound comes from the OS scheme (SystemSounds.Asterisk),
-        // the familiar ding, not a bundled asset - and a machine without a
-        // sound scheme stays silent instead of throwing.
+        // v1.19.41: the ping itself - the app's own bundled ding, played
+        // directly the moment a digest lands. v1.19.40 borrowed the OS
+        // scheme's notification sound (SystemSounds.Asterisk), and the floor
+        // report came back flat: nothing was ever heard. A machine whose
+        // sound scheme is "No Sounds" - or whose Asterisk event lost its
+        // mapping - plays exactly nothing, silently. So the sound now
+        // travels with the app: a half-second two-tone ding embedded as a
+        // resource, handed to SoundPlayer once and replayed from memory.
+        // No scheme, no registry, no theme can silence it; a machine that
+        // cannot play at all stays silent instead of throwing. Every
+        // landing rings - a serve from the range cache is a ready summary
+        // all the same.
+        private static System.IO.MemoryStream? _pingStream;   // kept alive: SoundPlayer re-reads it on every play
+        private static System.Media.SoundPlayer? _pingPlayer;
+
         private static void PingSummaryReady()
         {
             if (!PingEnabled) return;
             try
             {
-                System.Media.SystemSounds.Asterisk.Play();
+                if (_pingPlayer is null)
+                {
+                    var sri = Application.GetResourceStream(
+                        new Uri("pack://application:,,,/Resources/ping.wav"));
+                    if (sri?.Stream is null) return;
+                    _pingStream = new System.IO.MemoryStream();
+                    sri.Stream.CopyTo(_pingStream);
+                    _pingStream.Position = 0;
+                    _pingPlayer = new System.Media.SoundPlayer(_pingStream);
+                    _pingPlayer.Load();
+                }
+
+                _pingPlayer.Play();
             }
             catch
             {
-                // no audio scheme, no sound - never a crash for a courtesy
+                // no audio device, no sound - never a crash for a courtesy
             }
         }
 

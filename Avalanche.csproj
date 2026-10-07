@@ -13,10 +13,10 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.19.40</Version>
+    <Version>1.19.41</Version>
 
-    <AssemblyVersion>1.19.40.0</AssemblyVersion>
-    <FileVersion>1.19.40.0</FileVersion>
+    <AssemblyVersion>1.19.41.0</AssemblyVersion>
+    <FileVersion>1.19.41.0</FileVersion>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
          CHANGELOG section; release.ps1 enforces that before packaging. -->
@@ -141,6 +141,12 @@
          sidechat injects it into the active tab to lift the page's article text. -->
     <Resource Include="Resources\Scripts\Readability.js" />
     <Resource Include="Resources\kp-icon.png" />
+    <!-- v1.19.41: the ping's own ding - a half-second two-tone strike the
+         summary navigator plays the moment a digest lands. Bundled on
+         purpose: the OS sound scheme's notification alias (v1.19.40's
+         SystemSounds.Asterisk) is silent on machines whose scheme is
+         "No Sounds", and a ready summary must never depend on that. -->
+    <Resource Include="Resources\ping.wav" />
     <Resource Include="Fonts\Typewriter-A602.ttf" />
         <Resource Include="Resources\open_hand.cur" />
         <Resource Include="Resources\closed_hand.cur" />
