@@ -1115,6 +1115,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiModelWebSidechat">ব্রাউজার সাইডচ্যাট</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
+    <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">রিক্যাপ</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI টেস্টার</sys:String>
     <sys:String x:Key="Str_AiModelNotes">নোট</sys:String>

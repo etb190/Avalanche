@@ -1115,6 +1115,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Chat lateral del navegador</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
+    <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Recapitulador</sys:String>
     <sys:String x:Key="Str_AiModelTester">Probador de IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notas</sys:String>

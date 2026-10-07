@@ -1135,6 +1135,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">ブラウザーサイドチャット</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
+    <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">リキャップ</sys:String>
     <sys:String x:Key="Str_AiModelTester">AIテスター</sys:String>
     <sys:String x:Key="Str_AiModelNotes">ノート</sys:String>

@@ -29,6 +29,20 @@ namespace Avalanche.Features.AI
         public const string NemotronChoice = "nemotron";
         public const string GptChoice = "gpt-oss";
 
+        // v1.19.47: two more guests on NVIDIA's NIM cloud API - the dial's
+        // third and fourth names, offered on the sidechat dials. Both
+        // speak the same OpenAI-compatible /chat/completions as nemotron;
+        // the reader named them Kimi and Glm.
+        public const string KimiChoice = "kimi";
+        public const string GlmChoice = "glm";
+
+        // The NIM model ids behind the dial names, and the NIM key that
+        // carries the two guests - their calls bill this key, not the
+        // nemotron key the settings panel holds.
+        public const string KimiModel = "moonshotai/kimi-k3";
+        public const string GlmModel = "z-ai/glm-5.3-flash";
+        public const string NimGuestApiKey = "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";
+
         private sealed class SurfaceChoices
         {
             public string Summary { get; set; } = NemotronChoice;
@@ -92,10 +106,15 @@ namespace Avalanche.Features.AI
             => NormalizeChoice(value);
 
         /// <summary>The panel's setters share the same gate: anything that is
-        /// not the gpt choice reads as the Nemotron default.</summary>
+        /// not one of the named choices reads as the Nemotron default.</summary>
         public static string NormalizeChoice(string? value)
-            => string.Equals(value, GptChoice, StringComparison.OrdinalIgnoreCase)
-                ? GptChoice : NemotronChoice;
+        {
+            if (string.IsNullOrEmpty(value)) return NemotronChoice;
+            if (string.Equals(value, GptChoice, StringComparison.OrdinalIgnoreCase)) return GptChoice;
+            if (string.Equals(value, KimiChoice, StringComparison.OrdinalIgnoreCase)) return KimiChoice;
+            if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
+            return NemotronChoice;
+        }
 
         public static string Get(AiSurface surface)
         {
@@ -139,11 +158,40 @@ namespace Avalanche.Features.AI
         public static AiProviderConfig Configure(AiProviderConfig baseConfig, AiSurface surface)
         {
             if (baseConfig is null) return new AiProviderConfig();
-            if (Get(surface) == GptChoice) return GptIdentity(baseConfig);
-            if (baseConfig.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
-                return baseConfig;
-            return NemotronIdentity(baseConfig);
+            switch (Get(surface))
+            {
+                case GptChoice: return GptIdentity(baseConfig);
+                case KimiChoice: return NimIdentity(baseConfig, KimiModel);
+                case GlmChoice: return NimIdentity(baseConfig, GlmModel);
+                default:
+                    return baseConfig.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase)
+                        ? baseConfig
+                        : NemotronIdentity(baseConfig);
+            }
         }
+
+        /// <summary>The canonical NIM guest (v1.19.47): NVIDIA's NIM cloud
+        /// API wearing the guest's model id and the guest key. The reader's
+        /// tuning (temperature, tokens, retrieval, prefixes) copies over
+        /// verbatim, the same ride the other identities give.</summary>
+        private static AiProviderConfig NimIdentity(AiProviderConfig baseConfig, string model) => new AiProviderConfig
+        {
+            ProviderType = "NVIDIA NIM",
+            BaseUrl = "https://integrate.api.nvidia.com/v1",
+            ApiKey = NimGuestApiKey,
+            Model = model,
+            EmbeddingModel = baseConfig.EmbeddingModel,
+            TopK = baseConfig.TopK,
+            EvidenceCharBudget = baseConfig.EvidenceCharBudget,
+            MaxHistoryMessages = baseConfig.MaxHistoryMessages,
+            EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
+            EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
+            Temperature = baseConfig.Temperature,
+            MaxTokens = baseConfig.MaxTokens,
+            TopP = baseConfig.TopP,
+            ReasoningEffort = baseConfig.ReasoningEffort,
+            RequestJsonOutput = baseConfig.RequestJsonOutput,
+        };
 
         /// <summary>The canonical gpt-oss: the local Ollama bridge wearing
         /// gpt-oss:120b-cloud - the dial's second name, made flesh. The

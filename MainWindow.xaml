@@ -3551,6 +3551,9 @@
                                           SelectedValue="{Binding SidechatModelChoice, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <!-- v1.19.47: NIM guests - the dial's third and fourth names. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelWebSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3558,6 +3561,9 @@
                                           SelectedValue="{Binding WebSidechatModelChoice, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <!-- v1.19.47: NIM guests - the dial's third and fourth names. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelRecaller}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"

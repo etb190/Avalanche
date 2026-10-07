@@ -1135,6 +1135,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelWebSidechat">Trò chuyện bên trình duyệt</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
+    <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
+    <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Nhắc lại</sys:String>
     <sys:String x:Key="Str_AiModelTester">Trình kiểm thử AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Ghi chú</sys:String>
