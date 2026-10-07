@@ -17,7 +17,10 @@
 // and its request cancelled - stale continuations cannot repaint the card.
 // Closing the window cancels nothing: a generating digest finishes underground
 // and saves itself, and a reopened navigator adopts the run it finds there,
-// elapsed clock still counting (v1.19.35).
+// elapsed clock still counting (v1.19.35). A digest that lands while the
+// reader is elsewhere can say so out loud: the Ping switch (v1.19.40) rings
+// the system notification sound the moment the summary is ready - on by
+// default, remembered across sessions.
 // The reading position survives restarts per document; so do range, word
 // ceiling, language and the window's size and place.
 
@@ -236,10 +239,13 @@ namespace Avalanche.Features.Summary
                 CornerRadius = new CornerRadius(0),
                 UseAeroCaptionButtons = false
             });
-            // The switches ride the navigator row itself: Recap into the slot left
-            // of the back arrow, Discord into the slot right of the forward arrow,
-            // each a small space from the arrows - and the window a full switch-row
-            // shorter than the rail-above-the-stepper layout it replaces.
+            // The switches ride the navigator row itself: Ping into the slot
+            // ahead of Recap (v1.19.40), Recap into the slot left of the back
+            // arrow, Discord into the slot right of the forward arrow, each a
+            // small space from its neighbours - and the window a full
+            // switch-row shorter than the rail-above-the-stepper layout it
+            // replaces.
+            PingSlot.Content = BuildPingToggle();
             RecapSlot.Content = BuildRecapToggle();
             DiscordSlot.Content = BuildDiscordToggle();
             BufferSlot.Content = BuildBufferToggle();
@@ -1023,6 +1029,7 @@ namespace Avalanche.Features.Summary
             StatusText.Text = VerificationStatusLine()
                 + (_runFromCache ? string.Empty : DurationSuffix(DateTime.UtcNow - _runStartedUtc));
             SaveDigest();       // the digest survives the window, the app, the session
+            PingSummaryReady(); // v1.19.40: the reader looked away; the ding says it is ready
             _cts?.Dispose();
             _cts = null;
             _schedulePrefetchOnIdle = true;   // v1.19.26: the finally arms it - _generating still holds here
@@ -1522,6 +1529,57 @@ namespace Avalanche.Features.Summary
             }
         }
 
+        // The ping's persisted choice ("summary.ping.enabled"): ON unless the
+        // reader turned it off, remembered across app closing and opening the
+        // same way the buffer switch remembers (v1.19.40). Read wherever a
+        // digest lands - including underground, where the window is closed and
+        // nobody is watching - so the choice holds without this window awake.
+        internal static bool PingEnabled
+        {
+            get
+            {
+                try
+                {
+                    return AppDataPaths.GetSetting("summary.ping.enabled") != "0";
+                }
+                catch
+                {
+                    return true;
+                }
+            }
+        }
+
+        private static void SetPingEnabled(bool on)
+        {
+            try
+            {
+                AppDataPaths.SetSetting("summary.ping.enabled", on ? "1" : "0");
+            }
+            catch
+            {
+                // best-effort persistence; a read-only disk must not flip a switch
+            }
+        }
+
+        // v1.19.40: the ping itself - the system's own notification sound, the
+        // moment a digest lands. Only a real generation rings it: a serve from
+        // the range cache was ready before the reader looked away, so it says
+        // nothing. The sound comes from the OS scheme (SystemSounds.Asterisk),
+        // the familiar ding, not a bundled asset - and a machine without a
+        // sound scheme stays silent instead of throwing.
+        private static void PingSummaryReady()
+        {
+            if (!PingEnabled) return;
+            try
+            {
+                System.Media.SystemSounds.Asterisk.Play();
+            }
+            catch
+            {
+                // no audio scheme, no sound - never a crash for a courtesy
+            }
+        }
+
         // The buffer switch: the Recap and Discord switches' exact twin - the
         // same iOS style, the same press-not-click flip taken in the tunnel -
         // with a bold "Buffer" label on its left, the pair riding the
@@ -1819,6 +1877,51 @@ namespace Avalanche.Features.Summary
             };
             chip.PreviewMouseLeftButtonDown += (_, e) => { e.Handled = true; onClick(); };
             return chip;
+        }
+
+        // The Ping switch: the Recap switch's exact twin - the same iOS style
+        // (the 40px track, the 16px white thumb gliding 18px in 150ms, the
+        // style mirrored verbatim in this window's resources), the same
+        // press-not-click flip taken in the tunnel so no stray drag ever turns
+        // a tap into a window move - with a bold "Ping" label on its right,
+        // the pair riding the navigator row ahead of Recap's (v1.19.40).
+        // Checked is the persisted state; a digest that lands while checked
+        // rings the system notification sound, wherever the reader went.
+        private FrameworkElement BuildPingToggle()
+        {
+            var toggle = new ToggleButton
+            {
+                Style = (Style)FindResource("TestModeToggle"),
+                IsChecked = PingEnabled,
+                ToolTip = _loc("Str_TT_Ping")
+            };
+            toggle.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                e.Handled = true;
+                toggle.IsChecked = toggle.IsChecked != true;
+            };
+            toggle.Checked += (_, _) => SetPingEnabled(true);
+            toggle.Unchecked += (_, _) => SetPingEnabled(false);
+
+            var label = new TextBlock
+            {
+                Text = _loc("Str_Lbl_Ping"),
+                FontSize = 11.5,
+                FontWeight = FontWeights.Bold,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(7, 0, 0, 0),
+                ToolTip = _loc("Str_TT_Ping")
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            row.Children.Add(toggle);
+            row.Children.Add(label);
+            return row;
         }
 
         // The Recap switch: the AI tester's iOS-style toggle (the exact same

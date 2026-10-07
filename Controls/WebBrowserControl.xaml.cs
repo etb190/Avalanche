@@ -70,6 +70,11 @@ namespace Avalanche.Controls
     /// extensions root with a manifest.json rides the profile, a .crx dropped in
     /// the inbox unpacks itself, and the toolbar's puzzle button lists what rides,
     /// installs from a file and opens the folder.
+    /// v1.19.40: two more store crates asked for the blocker's ride - Free
+    /// Download Manager and Free VPN for Chrome. The one-extension errand grew
+    /// a rider list: every store id keeps its own folder and the same
+    /// fetch-once-then-settle life, and all three fetch in parallel so one
+    /// slow crate never holds the next one back.
     /// </summary>
     public partial class WebBrowserControl : UserControl
     {
@@ -166,21 +171,37 @@ namespace Avalanche.Controls
         // AddBrowserExtensionAsync door the little pdf helper rides. A failed fetch
         // is never remembered; the next launch quietly tries again.
         private const string AdGuardExtId = "bgnkhhnnamicmpeenaelnjfhikgbkllg";
-        private const string AdGuardCrxUrl =
+        // v1.19.40: the two riders the reader asked for by name - the download
+        // manager and the free VPN, exactly the ids the store's own addresses
+        // carry.
+        private const string FreeDownloadManagerExtId = "ahmpjcflkgiildlgicmcieglgoilbfdp";
+        private const string FreeVpnExtId = "majdfhpaihoncoakbjgbdhglocklcgno";
+
+        /// <summary>The official update endpoint's crate for a store extension
+        /// id: the very CRX the Chrome Web Store itself would serve.</summary>
+        private static string StoreCrxUrl(string extId) =>
             "https://update.googleapis.com/service/update2/crx?response=redirect" +
-            "&acceptformat=crx2,crx3&x=id%3D" + AdGuardExtId +
+            "&acceptformat=crx2,crx3&x=id%3D" + extId +
             "%26uc&prodversion=131.0.0.0";
+
         private static string ExtensionsRoot =>
             Path.Combine(AppDataPaths.UserRoot, "WebView2Data", "extensions");
         private static string ExtensionsInbox => Path.Combine(ExtensionsRoot, "inbox");
 
         private static string AdGuardExtDir => Path.Combine(ExtensionsRoot, "adguard");
+        private static string FdmExtDir => Path.Combine(ExtensionsRoot, "free-download-manager");
+        private static string FreeVpnExtDir => Path.Combine(ExtensionsRoot, "free-vpn");
         private static readonly System.Net.Http.HttpClient WbHttp = new()
         {
             Timeout = TimeSpan.FromSeconds(120),
         };
-        private bool _adGuardLoaded;     // the adguard folder is on disk (or the fetch retired)
-        private bool _adGuardFetching;   // one fetch at a time
+
+        // v1.19.40: the riders' ledger - a folder that is on disk (or whose
+        // fetch retired) never fetches again, and a crate mid-fetch never
+        // spawns a second copy of itself. Keyed by folder, so the blocker,
+        // the download manager and the VPN each mind their own.
+        private readonly HashSet<string> _storeCrxSettled = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _storeCrxFetching = new(StringComparer.OrdinalIgnoreCase);
 
         // v1.19.29: the shared door's ledger - folders handed to the profile this
         // run, so a folder that comes back retries instead of double-riding.
@@ -237,7 +258,7 @@ namespace Avalanche.Controls
             // whose gallery closed entirely gets its one view back the same way.
             if (_env is null || _activeView is null) _ = EnsureReadyAsync();
             foreach (WebView2 v in _views.ToArray()) DropVisualGuard(v, restore: true);
-            _ = EnsureAdGuardAsync();   // v1.19.14: a fetch that failed earlier retries here
+            EnsureStoreRiders();   // v1.19.14: riders that failed earlier quietly retry here
             // The address bar takes the caret, browser-style - deferred once so the
             // first show (pane still measuring) cannot silently drop the focus.
             Dispatcher.BeginInvoke(
@@ -346,7 +367,7 @@ namespace Avalanche.Controls
             }
             SetChromeEnabled(true);
             RefreshBookmarkButton();
-            _ = EnsureAdGuardAsync();   // v1.19.14: the blocker rides along, never in the way
+            EnsureStoreRiders();   // v1.19.14: the riders come along, never in the way
         }
 
         /// <summary>The one wiring every view wears: the PDF hand-off's watchtowers,
@@ -2665,7 +2686,7 @@ namespace Avalanche.Controls
             _spinTimer = null;
         }
 
-        // ── AdGuard (v1.19.14) ──────────────────────────────────────────────────────
+        // ── The store riders (v1.19.14 AdGuard; v1.19.40 FDM + free VPN) ───────────
         // The store's own installer cannot speak to this engine, so the app plays
         // the installer: one fetch of the CRX Google's update endpoint serves for
         // the extension's id, the CRX3 envelope peeled off (four bytes of magic,
@@ -2752,34 +2773,55 @@ namespace Avalanche.Controls
             return clean.Length == 0 ? "extension" : clean;
         }
 
-        /// <summary>The blocker on disk: fetch it once if it is missing, then let
-        /// the profile take it. Fire-and-forget on every path; browsing never waits.</summary>
-        private async Task EnsureAdGuardAsync()
+        /// <summary>The store riders on disk: each fetches once if it is
+        /// missing, then the profile takes the folder like any other. The
+        /// errand itself never waits - the on-disk check is instant, and every
+        /// missing crate spawns its own fetch so one slow endpoint never holds
+        /// the next rider back. Fire-and-forget on every path; browsing never
+        /// waits.</summary>
+        private void EnsureStoreRiders()
         {
-            if (_adGuardLoaded) return;
-            if (Directory.Exists(AdGuardExtDir))
+            (string Url, string Dir)[] riders =
             {
-                _adGuardLoaded = true;   // v1.19.29: on disk means settled - the generic loader owns loading
-                if (_activeView?.CoreWebView2 is { } existing) LoadPendingExtensions(existing);
-                return;
+                (StoreCrxUrl(AdGuardExtId), AdGuardExtDir),
+                (StoreCrxUrl(FreeDownloadManagerExtId), FdmExtDir),
+                (StoreCrxUrl(FreeVpnExtId), FreeVpnExtDir),
+            };
+            foreach ((string url, string dir) in riders)
+            {
+                if (_storeCrxSettled.Contains(dir)) continue;
+                if (Directory.Exists(dir))
+                {
+                    _storeCrxSettled.Add(dir);   // v1.19.29: on disk means settled - the generic loader owns loading
+                    if (_activeView?.CoreWebView2 is { } existing) LoadPendingExtensions(existing);
+                    continue;
+                }
+
+                if (!_storeCrxFetching.Add(dir)) continue;   // one fetch at a time per crate
+                _ = FetchStoreRiderAsync(url, dir);
             }
-            if (_adGuardFetching) return;
-            _adGuardFetching = true;
+        }
+
+        /// <summary>One rider's crate: fetch, peel, spread, and hand the fresh
+        /// folder to the generic door. Nothing is remembered about a failure -
+        /// the next show tries that rider again.</summary>
+        private async Task FetchStoreRiderAsync(string url, string dir)
+        {
             try
             {
-                byte[] crx = await WbHttp.GetByteArrayAsync(AdGuardCrxUrl);
-                UnpackCrx(crx, AdGuardExtDir);
-                _adGuardLoaded = true;   // v1.19.29: fetched and on disk - the fetch retires
+                byte[] crx = await WbHttp.GetByteArrayAsync(url);
+                UnpackCrx(crx, dir);
+                _storeCrxSettled.Add(dir);   // fetched and on disk - the fetch retires
                 if (_activeView?.CoreWebView2 is { } core) LoadPendingExtensions(core);
             }
             catch
             {
-                // a fetch that fails is a launch that browses without the
-                // blocker; nothing is remembered, so the next show tries again.
+                // a fetch that fails is a launch that browses without that
+                // rider; nothing is remembered, so the next show tries again.
             }
             finally
             {
-                _adGuardFetching = false;
+                _storeCrxFetching.Remove(dir);
             }
         }
 

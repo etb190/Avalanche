@@ -1278,6 +1278,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_RecapMode">Włącz lub wyłącz automatyczne podsumowanie przy przewracaniu stron</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Bufor</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Generuje w tle streszczenie następnego fragmentu podczas czytania</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Odtwórz dźwięk powiadomienia, gdy podsumowanie będzie gotowe</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Nie ma jeszcze streszczenia</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Wybierz zakres i naciśnij Start - AI przeczyta te strony i napisze tu streszczenie.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

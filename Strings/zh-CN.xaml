@@ -1274,6 +1274,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">切换翻页时自动生成的上一页回顾</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">缓冲</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">阅读时在后台生成下一范围的摘要</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">提示音</sys:String>
+    <sys:String x:Key="Str_TT_Ping">摘要就绪时播放提示音</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">还没有摘要</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">选择范围并点击开始 - AI 会阅读这些页面并在此写出摘要。</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

@@ -1270,6 +1270,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_TT_RecapMode">Sayfa çevirirken otomatik özeti aç veya kapat</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Arabellek</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Okurken bir sonraki bölümün özetini arka planda oluşturur</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Özet hazır olduğunda bildirim sesi çal</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Henüz özet yok</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Bir aralık seçin ve Başlat'a basın - yapay zeka bu sayfaları okur ve özeti buraya yazar.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

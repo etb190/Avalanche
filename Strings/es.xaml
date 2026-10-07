@@ -1270,6 +1270,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">Activar el resumen automático al pasar de página</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Búfer</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Genera en segundo plano el resumen del siguiente tramo mientras lees</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Reproducir un sonido de notificación cuando el resumen esté listo</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Aún no hay resumen</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Elige un rango y pulsa Iniciar: la IA lee esas páginas y escribe el resumen aquí.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

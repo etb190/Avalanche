@@ -1277,6 +1277,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_RecapMode">Automatikus összefoglaló be- vagy kikapcsolása lapozáskor</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Puffer</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Előre generálja a következő szakasz összefoglalóját a háttérben, miközben olvas</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Értesítési hang lejátszása, amikor az összefoglaló elkészült</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Még nincs összefoglaló</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Válasszon tartományt, és nyomja meg az Indítás gombot - az AI elolvassa ezeket az oldalakat, és ide írja az összefoglalót.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

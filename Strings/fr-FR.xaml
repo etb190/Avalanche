@@ -1290,6 +1290,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_TT_RecapMode">Activer le récapitulatif automatique au changement de page</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Tampon</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Génère en arrière-plan le résumé du prochain passage pendant votre lecture</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Jouer un son de notification dès que le résumé est prêt</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Rien de résumé pour l'instant</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Choisissez une plage et cliquez sur Démarrer - l'IA lit ces pages et rédige le résumé ici.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

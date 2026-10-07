@@ -1290,6 +1290,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_TT_RecapMode">Toggle automatic recap companion when turning pages</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Buffer</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Generate the next stretch's digest in the background while you read</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Play a notification sound when the summary is ready</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Nothing summarized yet</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Pick a range and press Start - the AI reads those pages and writes the digest here.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

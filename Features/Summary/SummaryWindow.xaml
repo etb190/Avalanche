@@ -326,13 +326,18 @@
              of the back arrow, the Discord switch right of the forward arrow, each
              a small space away from the arrows they serve. v1.19.15 retired the
              toggle rail's own row above the stepper, and the window is a full
-             switch-row shorter for it. -->
+             switch-row shorter for it. v1.19.40: the Ping switch joins ahead of
+             Recap, so the pair a reader turns to first stands leftmost. -->
         <StackPanel Grid.Row="0" HorizontalAlignment="Center" Orientation="Horizontal"
                     Margin="14,12,14,0" VerticalAlignment="Center">
-            <!-- The switches themselves are code-built (BuildRecapToggle /
-                 BuildDiscordToggle) and drop into their slots on construction -
-                 the Recap pair's label facing in from the left, the Discord
-                 pair's from the right, so the two bookend the stepper. -->
+            <!-- The switches themselves are code-built (BuildPingToggle /
+                 BuildRecapToggle / BuildDiscordToggle) and drop into their
+                 slots on construction - the Recap pair's label facing in from
+                 the left, the Discord pair's from the right, so the two
+                 bookend the stepper. v1.19.40: the Ping pair rides ahead of
+                 Recap, dressed the same way (toggle, then its bold label). -->
+            <ContentControl x:Name="PingSlot" VerticalAlignment="Center"/>
+            <Border Width="10"/>
             <ContentControl x:Name="RecapSlot" VerticalAlignment="Center"/>
             <Border Width="10"/>
             <Button x:Name="NavPrevBtn" Style="{StaticResource SumNavBtn}"

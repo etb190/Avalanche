@@ -1289,6 +1289,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_RecapMode">Беттерді айналдырғандағы автоматты қорытындыны қосу немесе өшіру</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Буфер</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Оқу барысында келесі бөліктің түйіндемесін фондық режимде жасайды</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Пинг</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Түйін дайын болғанда хабарландыру дыбысын ойнатады</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Әзірге түйіндеме жоқ</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Ауқымды таңдап, «Бастау» түймесін басыңыз - AI сол беттерді оқып, түйіндемені осында жазады.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

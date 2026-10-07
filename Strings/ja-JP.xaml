@@ -1290,6 +1290,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">ページをめくったときの自動サマリーを切り替えます</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">バッファ</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">読んでいる間に次の範囲の要約をバックグラウンドで生成します</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">ピング</sys:String>
+    <sys:String x:Key="Str_TT_Ping">要約の準備ができたら通知音を鳴らします</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">まだ要約はありません</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">範囲を選んで「開始」を押すと、AIがそのページを読み、ここに要約を書きます。</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

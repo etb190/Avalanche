@@ -1290,6 +1290,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_TT_RecapMode">Attiva o disattiva il riepilogo automatico quando cambi pagina</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Buffer</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Genera in background il riassunto del prossimo tratto mentre leggi</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Ping</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Riproduci un suono di notifica quando il riepilogo è pronto</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Ancora nulla da riassumere</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Scegli un intervallo e premi Avvia: l'IA legge quelle pagine e scrive il riassunto qui.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

@@ -1290,6 +1290,8 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_TT_RecapMode">Включить или выключить автоматический краткий пересказ при перелистывании страниц</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">Буфер</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">Фоновая генерация краткого содержания следующего отрезка, пока вы читаете</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">Пинг</sys:String>
+    <sys:String x:Key="Str_TT_Ping">Проигрывает звук уведомления, когда сводка готова</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">Пока ничего не суммировано</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">Выберите диапазон и нажмите «Начать» - ИИ прочитает эти страницы и напишет краткое содержание здесь.</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

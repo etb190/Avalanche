@@ -1272,6 +1272,8 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_TT_RecapMode">切換翻頁時自動產生的上一頁回顧</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">緩衝</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">閱讀時在背景產生下一範圍的摘要</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">提示音</sys:String>
+    <sys:String x:Key="Str_TT_Ping">摘要就緒時播放提示音</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">還沒有摘要</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">選擇範圍並點擊開始 - AI 會閱讀這些頁面並在此寫出摘要。</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>

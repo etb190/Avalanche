@@ -1270,6 +1270,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_RecapMode">পৃষ্ঠা উল্টানোর সময় স্বয়ংক্রিয় সংক্ষিপ্ত সারাংশ চালু বা বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_Lbl_BufferToggle">বাফার</sys:String>
     <sys:String x:Key="Str_TT_BufferToggle">আপনি পড়ার সময় পরবর্তী অংশের সারাংশ পটভূমিতে তৈরি করে</sys:String>
+    <sys:String x:Key="Str_Lbl_Ping">পিং</sys:String>
+    <sys:String x:Key="Str_TT_Ping">সারসংক্ষেপ প্রস্তুত হলে একটি নোটিফিকেশন শব্দ বাজান</sys:String>
     <sys:String x:Key="Str_SummaryEmptyTitle">এখনও কোনো সারাংশ নেই</sys:String>
     <sys:String x:Key="Str_SummaryEmptySubtitle">একটি পরিসর বেছে নিয়ে শুরু চাপুন - AI সেই পৃষ্ঠাগুলো পড়ে এখানে সারাংশ লেখে।</sys:String>
     <sys:String x:Key="Str_Lbl_DiscordRpc">Discord</sys:String>
