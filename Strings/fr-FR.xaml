@@ -1137,6 +1137,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
     <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
+    <sys:String x:Key="Str_AiModelDeepseek">Deepseek</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Récapitulatif</sys:String>
     <sys:String x:Key="Str_AiModelTester">Testeur IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>

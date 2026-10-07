@@ -1124,6 +1124,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
     <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
+    <sys:String x:Key="Str_AiModelDeepseek">Deepseek</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Emlékeztető</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI-teszter</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Jegyzetek</sys:String>

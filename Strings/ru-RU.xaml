@@ -1137,6 +1137,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
     <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
+    <sys:String x:Key="Str_AiModelDeepseek">Deepseek</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Рекап</sys:String>
     <sys:String x:Key="Str_AiModelTester">ИИ-тестер</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Заметки</sys:String>

@@ -43,6 +43,15 @@ namespace Avalanche.Features.AI
         public const string GlmModel = "z-ai/glm-5.3-flash";
         public const string NimGuestApiKey = "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";
 
+        // v1.19.49: a fifth guest, and a different cloud - OrcaRouter's
+        // OpenAI-compatible /v1 API wearing the deepseek model the
+        // reader asked for by name, under its own key. Same shape as
+        // the NIM guests: only the model and its host are rewritten;
+        // the reader's tuning copies over verbatim.
+        public const string DeepseekChoice = "deepseek";
+        public const string DeepseekModel = "deepseek/deepseek-v4-flash-free";
+        public const string OrcaRouterApiKey = "sk-orca-aBisZa9PYPmkRFEJmSvVE6KJ5zjYYADv2Xvjd8sMc3T";
+
         private sealed class SurfaceChoices
         {
             public string Summary { get; set; } = NemotronChoice;
@@ -113,6 +122,7 @@ namespace Avalanche.Features.AI
             if (string.Equals(value, GptChoice, StringComparison.OrdinalIgnoreCase)) return GptChoice;
             if (string.Equals(value, KimiChoice, StringComparison.OrdinalIgnoreCase)) return KimiChoice;
             if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
+            if (string.Equals(value, DeepseekChoice, StringComparison.OrdinalIgnoreCase)) return DeepseekChoice;
             return NemotronChoice;
         }
 
@@ -163,6 +173,7 @@ namespace Avalanche.Features.AI
                 case GptChoice: return GptIdentity(baseConfig);
                 case KimiChoice: return NimIdentity(baseConfig, KimiModel);
                 case GlmChoice: return NimIdentity(baseConfig, GlmModel);
+                case DeepseekChoice: return OrcaIdentity(baseConfig);
                 default:
                     return baseConfig.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase)
                         ? baseConfig
@@ -180,6 +191,30 @@ namespace Avalanche.Features.AI
             BaseUrl = "https://integrate.api.nvidia.com/v1",
             ApiKey = NimGuestApiKey,
             Model = model,
+            EmbeddingModel = baseConfig.EmbeddingModel,
+            TopK = baseConfig.TopK,
+            EvidenceCharBudget = baseConfig.EvidenceCharBudget,
+            MaxHistoryMessages = baseConfig.MaxHistoryMessages,
+            EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
+            EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
+            Temperature = baseConfig.Temperature,
+            MaxTokens = baseConfig.MaxTokens,
+            TopP = baseConfig.TopP,
+            ReasoningEffort = baseConfig.ReasoningEffort,
+            RequestJsonOutput = baseConfig.RequestJsonOutput,
+        };
+
+        /// <summary>The canonical OrcaRouter guest (v1.19.49): OrcaRouter's
+        /// OpenAI-compatible cloud API wearing the deepseek model id and
+        /// the guest key. The reader's tuning (temperature, tokens,
+        /// retrieval, prefixes) copies over verbatim, the same ride the
+        /// other identities give.</summary>
+        private static AiProviderConfig OrcaIdentity(AiProviderConfig baseConfig) => new AiProviderConfig
+        {
+            ProviderType = "OrcaRouter",
+            BaseUrl = "https://api.orcarouter.ai/v1",
+            ApiKey = OrcaRouterApiKey,
+            Model = DeepseekModel,
             EmbeddingModel = baseConfig.EmbeddingModel,
             TopK = baseConfig.TopK,
             EvidenceCharBudget = baseConfig.EvidenceCharBudget,
