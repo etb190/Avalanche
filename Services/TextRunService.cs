@@ -59,7 +59,16 @@ namespace Avalanche.Services
         // should not be re-parsed on every click.
         private readonly ConcurrentDictionary<(string Path, long Ticks, int Page), PageTextRuns?> _cache = [];
 
-        public PageTextRuns? GetPage(string path, int pageIdx)
+        public PageTextRuns? GetPage(string path, int pageIdx) => GetPage(path, pageIdx, null);
+
+        /// <summary>Core read with an optional caller-owned document. Callers walking
+        /// many pages of one file (the summarizer's extraction) pass the handle they
+        /// already opened: N sequential reads cost one file open instead of N, each of
+        /// which re-parses the xref/trailer. The cache still answers first for anything
+        /// it holds, and nulls (files PdfPig cannot open) are cached too - the key
+        /// carries the file's last-write ticks, so a resaved file never reads stale
+        /// geometry from a foreign handle.</summary>
+        public PageTextRuns? GetPage(string path, int pageIdx, PdfDocument? openDoc)
         {
             if (string.IsNullOrEmpty(path) || pageIdx < 0) return null;
             long ticks;
@@ -73,9 +82,17 @@ namespace Avalanche.Services
             PageTextRuns? runs = null;
             try
             {
-                using var doc = PdfDocument.Open(path);
-                if (pageIdx < doc.NumberOfPages)
-                    runs = Build(doc.GetPage(pageIdx + 1));   // PdfPig is 1-based
+                if (openDoc is not null)
+                {
+                    if (pageIdx < openDoc.NumberOfPages)
+                        runs = Build(openDoc.GetPage(pageIdx + 1));   // PdfPig is 1-based
+                }
+                else
+                {
+                    using var doc = PdfDocument.Open(path);
+                    if (pageIdx < doc.NumberOfPages)
+                        runs = Build(doc.GetPage(pageIdx + 1));   // PdfPig is 1-based
+                }
             }
             catch { /* encrypted/broken: selection just is not offered on this page */ }
 

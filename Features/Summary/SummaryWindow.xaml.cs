@@ -1447,17 +1447,20 @@ namespace Avalanche.Features.Summary
         }
 
         // ------------------------------------------------------------------
-        // The post-digest queue (v1.19.30): recap first, then the buffer
+        // The post-digest queue (v1.19.51): the buffer first, the recap beside it
         // ------------------------------------------------------------------
 
         // The moment a digest lands - a fresh run, a served buffer, a restored
-        // card - the navigator works for the pages ahead. With Recap mode on,
-        // the stretch on screen condenses FIRST (its "generating" and "done"
-        // words live in the same status line the buffer speaks through), and
-        // the buffer for the NEXT stretch starts the moment the recap is done;
-        // with Recap off, the buffer starts right away. No clock, no
-        // unexplained wait. Any manual range move or new run invalidates the
-        // queue mid-flight, and a queue that wakes up stale just stands down.
+        // card - the navigator works for the pages ahead. v1.19.51 killed the
+        // old recap-first ordering: the recap's own round trip used to eat the
+        // buffer's head start before the buffer was even asked to run. Now the
+        // buffer for the NEXT stretch starts the moment the digest lands, and
+        // the stretch on screen condenses BESIDE it (a small temperature-0 call,
+        // narrated in the same status line the buffer speaks through; when the
+        // recap's word is spoken, the line is handed back to the flight). No
+        // clock, no unexplained wait. Any manual range move or new run
+        // invalidates the queue mid-flight, and a queue that wakes up stale
+        // just stands down.
 
         private void SchedulePrefetch()
         {
@@ -1473,6 +1476,18 @@ namespace Avalanche.Features.Summary
 
         private async Task RunPostDigestQueueAsync(int queueGen)
         {
+            // v1.19.51: the buffer starts FIRST - the head start is the entire
+            // point of the buffer, and it is no longer spent standing in line
+            // behind the recap. The recap condenses beside the flight, not in
+            // front of it.
+            // v1.19.34: the buffer's own switch. Off, the prefetch never
+            // starts - the recap keeps its own toggle's mind, and the reader
+            // who silenced the buffer hears nothing more from it.
+            if (BufferEnabled && !_closed && !_generating && queueGen == _postQueueGeneration)
+            {
+                StartPrefetch();
+            }
+
             if (RecapController.Enabled)
             {
                 int recapFirst = _runFirstPage > 0 ? _runFirstPage : _startPage;
@@ -1496,21 +1511,22 @@ namespace Avalanche.Features.Summary
                     {
                         return;
                     }
+
+                    // The recap's word is spoken; hand the status line back to
+                    // the flight it briefly borrowed - busy while it still runs,
+                    // its ready/failed word if it already landed.
+                    if (BufferEnabled)
+                    {
+                        BufferStatusText.Text = _prefetchFlight switch
+                        {
+                            { IsCompletedSuccessfully: true } => _loc("Str_SummaryBufferReady"),
+                            { IsFaulted: true } => _loc("Str_SummaryBufferFailed"),
+                            { IsCompleted: false } => _loc("Str_SummaryBufferBusy"),
+                            _ => BufferStatusText.Text,
+                        };
+                    }
                 }
             }
-
-            if (_closed || _generating || queueGen != _postQueueGeneration)
-            {
-                return;
-            }
-            // v1.19.34: the buffer's own switch. Off, the prefetch never
-            // starts - the recap above keeps its own toggle's mind, and the
-            // reader who silenced the buffer hears nothing more from it.
-            if (!BufferEnabled)
-            {
-                return;
-            }
-            StartPrefetch();
         }
 
         // The buffer's persisted choice ("summary.buffer.enabled"): ON unless

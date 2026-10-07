@@ -5,13 +5,10 @@
 //    FILTER, and filtering is the enemy of "miss nothing". We extract the pages' text
 //    layer deterministically (TextRunService reading-order runs, same source the
 //    selection/search machinery uses) and hand all of it to the chat LLM.
-//  * <= ~300k chars of text on a local bridge, 1.5M on the hosted cloud tier
-//    (the model's 1M-token context spans a whole book several times over, and
-//    with thinking off the hosted tier reads 300k chars in about half a minute):
-//    one direct buffered pass over the author's full argumentative arc - no
-//    "telephone game" of summarizing rough notes twice. Bigger ranges: map-reduce -
-//    exhaustive notes per whole-page segment, then a fusion pass that writes the
-//    final digest. Progress for every phase is streamed to the window.
+//  * NO CHUNKING (v1.19.51): every letter the range holds is extracted and fed
+//    to the model in ONE request - no slicing, no segments, no fusion pass, no
+//    fallback road. If a host refuses a call that size, the run fails loudly;
+//    a half-answer was never what "miss nothing" meant.
 //  * Output contract (v1.12.3): extraction renders compact GitHub-Flavored
 //    Markdown (MarkdownNormalizer): de-hyphenated reflowed paragraphs, the
 //    book's OWN printed section headings as native # / ## / ### lines (still
@@ -21,11 +18,13 @@
 //    flowing prose - no invented headings, no page tags, strict word ceiling.
 //    Legacy [[p. N]] / [[H]] markers stay recognized everywhere the new
 //    surface could meet old text.
-//  * Bullet guarantee (v1.8.86): the final digest is BUFFERED, not streamed, and
-//    inspected before anything reaches the screen. A bullet-dominant answer is
-//    retried once against an escalated prose-only prompt and, failing that,
-//    mechanically flattened into flowing paragraphs (ProseGuard). Hidden reasoning
-//    is never shown as a digest. No bullet list can be displayed or cached.
+//  * Bullet guarantee (v1.8.86, reshaped v1.19.51): the digest streams into a
+//    HIDDEN buffer and nothing reaches the screen until the full answer has been
+//    inspected. A bullet-dominant answer is retried once against an escalated
+//    prose-only prompt and, failing that, mechanically flattened into flowing
+//    paragraphs (ProseGuard); the guarded text then paints in word-boundary
+//    chunks. Hidden reasoning is never shown as a digest. No bullet list can be
+//    displayed or cached.
 //  * SSE streaming against the same OpenAI-compatible endpoint the chat uses
 //    (AiProviderConfig), with a non-SSE fallback: endpoints that ignore stream:true
 //    answer with one JSON body and we surface it as a single delta.
@@ -49,6 +48,7 @@ namespace Avalanche.Features.Summary
     using System.Threading.Tasks;
     using Avalanche.Features.AI;
     using Avalanche.Services;
+    using UglyToad.PdfPig;
 
     internal sealed record SummaryRequest(
         string FilePath, string DocumentId, int FirstPage, int LastPage, int TargetWords,
@@ -63,20 +63,14 @@ namespace Avalanche.Features.Summary
     internal static class PageSummarizer
     {
         // nvidia/nemotron-3-ultra-550b-a55b runs a 1M-token context window:
-        // entire books fit in ONE pass without chunking, so the single-pass
-        // budget rides at 1.5M chars on the hosted tier (~375k tokens, about
-        // a third of the window) and the map-reduce slicing below only wakes
-        // up for doorstopper ranges. The hosted NIM endpoint once killed big
+        // entire books fit in ONE pass, and since v1.19.51 the pipeline trusts
+        // that with its whole chest - the entire extracted range rides in one
+        // request, whatever it weighs. The hosted NIM endpoint once killed big
         // single calls - but that was thinking mode ON and a 16k answer
         // budget burning minutes of serverless GPU time; with the template
-        // switched off and the output capped at 8192, 300k chars read in
-        // about half a minute, so a whole-book call stays far inside the
-        // host's patience and the digest is written from the content
-        // itself, not from notes about it. A host that still kills the big
-        // call does not sink the run: the digest falls back to the
-        // map-reduce road below and the reader keeps their summary.
-        private const int SinglePassCharBudget = 300000;
-        private const int CloudSinglePassCharBudget = 1500000;
+        // switched off and the output capped at 8192, hundreds of thousands of
+        // chars read in about half a minute. A host that still refuses the
+        // call gets an honest failure, not a quietly sliced book.
 
         // Cloud output ceiling: 8192 tokens is ~6000+ words, far more than
         // any digest, definition or explanation needs, and it keeps every
@@ -84,7 +78,6 @@ namespace Avalanche.Features.Summary
         // dying. Local bridges keep their own ceilings; caps only cost when
         // they are used.
         private const int CloudMaxTokens = 8192;
-        private const int SegmentCharBudget = 30000;
 
         // Page anchors: the compact [p. N] form the normalizer emits, plus the
         // legacy [[p. N]] form older text (and older prompts' quotes) can still
@@ -93,6 +86,12 @@ namespace Avalanche.Features.Summary
 
         private static readonly SemaphoreSlim Gate = new(1, 1);
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
+
+        // One shared run-cache for every extraction path (the digest, the recap,
+        // the notes, the tester, the buffer): the (path, ticks, page) key in
+        // TextRunService makes stale entries impossible, so pages parsed once
+        // stay parsed and a second run over the same stretch parses nothing.
+        private static readonly TextRunService ExtractionRuns = new();
 
         // ------------------------------------------------------------------
         // Token audit (the SummaryWindow verification badge)
@@ -103,8 +102,8 @@ namespace Avalanche.Features.Summary
         // pass functions accumulate, and the window reads them when "done" arrives.
 
         /// <summary>Prompt tokens the provider reported reading for the current run,
-        /// summed over its passes (single-pass: the digest pass; map-reduce: the
-        /// notes passes plus fusion). Known=false when no response carried usage.</summary>
+        /// summed over its passes (the digest pass, plus any guard retry).
+        /// Known=false when no response carried usage.</summary>
         public static long RunPromptTokens { get; private set; }
 
         public static bool RunPromptTokensKnown { get; private set; }
@@ -126,7 +125,13 @@ namespace Avalanche.Features.Summary
             return Task.Run(
                 () =>
                 {
-                    var runsService = new TextRunService();
+                    // One file open for the whole range: PdfPig re-parses the
+                    // xref/trailer on every Open, so the old per-page Open turned a
+                    // 100-page extraction into 100 file opens. A file that cannot be
+                    // opened at all falls through to the per-page road, whose cached
+                    // nulls keep the scanned-book verdict (the run ends "notext")
+                    // instead of an exception.
+                    using PdfDocument? doc = TryOpen(filePath);
                     // Pass 1: render each page's geometry as normalized markdown -
                     // reflowed paragraphs, de-hyphenated words, native #/##/### headings
                     // (font-size detected) and "- " bullets - collecting every heading
@@ -136,7 +141,7 @@ namespace Avalanche.Features.Summary
                     for (int page = firstPage; page <= lastPage; page++)
                     {
                         ct.ThrowIfCancellationRequested();
-                        PageTextRuns? runs = runsService.GetPage(filePath, page - 1);
+                        PageTextRuns? runs = ExtractionRuns.GetPage(filePath, page - 1, doc);
                         pageTexts[page] = runs is null
                             ? string.Empty
                             : MarkdownNormalizer.BuildPageMarkdown(runs, page, candidates);
@@ -165,6 +170,21 @@ namespace Avalanche.Features.Summary
                     return sb.ToString();
                 },
                 ct);
+        }
+
+        /// <summary>PdfPig's one-shot handle for a whole extraction run, or null when
+        /// the file cannot be opened at all - the per-page reads then return their
+        /// cached nulls and the run ends "notext", exactly as a scanned book does.</summary>
+        private static PdfDocument? TryOpen(string filePath)
+        {
+            try
+            {
+                return PdfDocument.Open(filePath);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // Heading detection, tier rendering, de-hyphenation, paragraph reflow, bullet
@@ -312,167 +332,15 @@ namespace Avalanche.Features.Summary
                     }
                 }
 
-                List<string> segments = SegmentPages(config, rangeText);
-                string? finalText = null;
-                if (segments.Count == 1)
-                {
-                    // An active status for the one direct pass: a whole-book read can
-                    // run for minutes, and the window must not sit on the extraction
-                    // line the whole time. The section fallback overwrites it with its
-                    // own per-part lines when it wakes.
-                    yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
-                    // Buffered on purpose: the digest is inspected - and, when needed,
-                    // escalated or mechanically flattened - BEFORE anything is shown.
-                    try
-                    {
-                        finalText = await SolidDigestAsync(
-                            config, DigestSystemPrompt(request.TargetWords, request.Language, request.Genre, fromNotes: false),
-                            rangeText, ct, request.TargetWords).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        // The host killed the big single call (the free tier's HTTP
-                        // 500 and its kin). The reader still gets a digest: the same
-                        // range rides the section road below instead of the run
-                        // dying with nothing on the screen.
-                        SurfaceHealthLog.Log(
-                            "summary: direct pass over the full range failed (" + FriendlyError(ex) +
-                            ") - retrying as sections");
-                        segments = SegmentPages(config, rangeText, force: true);
-                        if (segments.Count == 1)
-                        {
-                            // The range cannot be sliced (one page, or no page
-                            // markers to split on) - the section road has nothing
-                            // to offer, so the original failure is the honest answer.
-                            throw;
-                        }
-                    }
-                }
-
-                if (segments.Count > 1)
-                {
-                    var notes = new List<string>();
-                    var missing = new List<int>();
-                    for (int i = 0; i < segments.Count; i++)
-                    {
-                        var (first, last) = SegmentRange(segments[i]);
-                        yield return new SummaryUpdate("progress", string.Format(
-                            loc("Str_SummaryPass"), first, last, i + 1, segments.Count + 1));
-                        // The old 250 * segments.Count cap starved every note (and left a
-                        // reasoning model with nothing after its think). Scale by the
-                        // segment's page count instead; a cap only costs when it is used.
-                        int noteBudget = 800 + 350 * (last - first + 1);
-                        string note = string.Empty;
-                        try
-                        {
-                            note = await RunBufferedPassAsync(
-                                config, MiniSystemPrompt(request.Language), segments[i], ct, noteBudget);
-                            if (string.IsNullOrWhiteSpace(note))
-                            {
-                                // Buffered calls are the flakiest path (rate limits,
-                                // think-only answers, silent 200s). One quiet retry of
-                                // each kind before the segment is declared lost.
-                                await Task.Delay(1200, ct).ConfigureAwait(false);
-                                note = await RunBufferedPassAsync(
-                                    config, MiniSystemPrompt(request.Language), segments[i], ct, noteBudget);
-                            }
-
-                            if (string.IsNullOrWhiteSpace(note))
-                            {
-                                var streamed = new StringBuilder();
-                                await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                                    config, MiniSystemPrompt(request.Language), segments[i], ct))
-                                {
-                                    if (update.Kind == "delta")
-                                    {
-                                        streamed.Append(update.Text);
-                                    }
-                                }
-
-                                note = streamed.ToString();
-                            }
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            throw;
-                        }
-                        catch (Exception ex)
-                        {
-                            // A hard provider error on one segment must not kill the
-                            // whole run; the segment lands in "missing" and the
-                            // coverage guard below does the talking.
-                            SurfaceHealthLog.Log(
-                                "summary: segment " + (i + 1) + "/" + segments.Count +
-                                " failed: " + FriendlyError(ex));
-                        }
-
-                        SurfaceHealthLog.Log(string.Format(
-                            CultureInfo.InvariantCulture,
-                            "summary: segment {0}/{1} (p. {2}-{3}) -> {4} chars",
-                            i + 1,
-                            segments.Count,
-                            first,
-                            last,
-                            note.Length));
-                        if (string.IsNullOrWhiteSpace(note))
-                        {
-                            missing.AddRange(Enumerable.Range(first, last - first + 1));
-                            continue;
-                        }
-
-                        notes.Add(note);
-                    }
-
-                    // A provider that answers 200 with an error body (or a reasoning model
-                    // that puts everything into reasoning_content) yields empty notes; fusing
-                    // empties would ask the model to digest nothing, and it would answer
-                    // "no page text was provided". Fail loudly instead.
-                    if (notes.Count == 0)
-                    {
-                        yield return new SummaryUpdate(
-                            "error", "provider returned no content for every segment pass");
-                        yield break;
-                    }
-
-                    // Fault tolerance: a full map-reduce run can take minutes, and one
-                    // dead segment (provider timeout, empty 200, think-only answer -
-                    // each already retried in place) must not throw away the survivors.
-                    // The fusion goes ahead over the notes that DID come back, and the
-                    // finished digest carries an explicit note naming the pages the
-                    // provider never covered - the reader sees the hole instead of a
-                    // silently partial range.
-                    if (missing.Count > 0)
-                    {
-                        SurfaceHealthLog.Log(string.Format(
-                            CultureInfo.InvariantCulture,
-                            "summary: {0} of {1} segments returned no content; synthesizing anyway (missing: {2})",
-                            missing.Count,
-                            segments.Count,
-                            DescribeRanges(missing)));
-                    }
-
-                    yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
-                    string fuseInput = string.Join(
-                        "\n\n", notes.Select((n, i) => $"--- segment {i + 1} ---\n{n}"));
-                    SurfaceHealthLog.Log(string.Format(
-                        CultureInfo.InvariantCulture,
-                        "summary: fusion input: {0}/{1} notes, {2} chars",
-                        notes.Count,
-                        segments.Count,
-                        fuseInput.Length));
-                    finalText = await SolidDigestAsync(
-                        config, DigestSystemPrompt(request.TargetWords, request.Language, request.Genre, fromNotes: true),
-                        fuseInput, ct, request.TargetWords).ConfigureAwait(false);
-                    if (missing.Count > 0 && !string.IsNullOrWhiteSpace(finalText))
-                    {
-                        finalText += "\n\n" + string.Format(
-                            loc("Str_SummaryExcluded"), DescribeRanges(missing));
-                    }
-                }
+                // THE one call, v1.19.51: the whole extracted range rides in a single
+                // request - no slicing, no segments, no fusion pass, no fallback road.
+                // If the host refuses a call this size the run dies right here with
+                // the provider's own error; the reader asked for everything the pages
+                // hold, and a quietly halved book was never an answer.
+                yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
+                string finalText = await StreamedSolidDigestAsync(
+                    config, DigestSystemPrompt(request.TargetWords, request.Language, request.Genre),
+                    rangeText, ct, request.TargetWords).ConfigureAwait(false);
 
                 if (string.IsNullOrWhiteSpace(finalText))
                 {
@@ -508,6 +376,15 @@ namespace Avalanche.Features.Summary
                         request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
                         hash, variant, finalText, CountWords(finalText)),
                     ct).ConfigureAwait(false);
+                // The guard has passed - now the reader sees the digest arrive:
+                // word-boundary slices painted one after another, a page being
+                // written instead of a wall landing in one frame. "done" then
+                // replaces the card with the exact final text.
+                foreach (string piece in SplitForPaint(finalText))
+                {
+                    yield return new SummaryUpdate("delta", piece);
+                }
+
                 yield return new SummaryUpdate("done", finalText, RawRange: rawRangeText);
             }
 
@@ -749,9 +626,8 @@ namespace Avalanche.Features.Summary
         // The extension's nonfiction checklist, transplanted verbatim (prompt_ai_test
         // Part 1): the old generic "cover the core arguments" rule let models quietly
         // drop the author's analogies, debate positions and named case studies - the
-        // very tools the argument rides on. It lives in the SHARED head of the digest
-        // prompt, so both paths inherit it: the single-pass digest and the fusion
-        // pass over the map-reduce notes alike.
+        // very tools the argument rides on. It lives in the head of the digest
+        // prompt, so the one pass inherits it with everything else.
         private const string DetailChecklist =
             """
             WHAT COUNTS AS "DETAILS" — ALL of these must be covered:
@@ -915,7 +791,7 @@ namespace Avalanche.Features.Summary
             }
         }
 
-        private static string DigestSystemPrompt(int targetWords, string language, string genre, bool fromNotes)
+        private static string DigestSystemPrompt(int targetWords, string language, string genre)
         {
             // Word-for-word transplant of the extension's nonfiction_classic
             // multi-page prompt, with two Avalanche adaptations: the ground rule
@@ -942,54 +818,19 @@ namespace Avalanche.Features.Summary
                 "No bullet lists, no page tags, no markdown " +
                 "decorations of any kind - with exactly one exception: the book's own section " +
                 "headings may appear as '### ' headings, as described below.\n\n" +
-                (fromNotes
-                ? "The user message holds working notes from earlier passes; every item already " +
-                  "carries its (p. N) page tag. Fuse them into ONE summary of your own: merge " +
-                  "duplicates, drop filler, and cover the full span the notes cover, from their " +
-                  "first page tag to their last. Never copy the notes verbatim and never return " +
-                  "one segment's notes unchanged.\n\n" +
-                  "The notes are RAW MATERIAL, not a format template: they are bullet lists - your " +
-                  "summary must NOT be. The notes are a faithful record of the book's own pages: " +
-                  "write your summary as if you had read those pages yourself, speaking directly of " +
-                  "their subject - never mention the notes, the segments, the passes, or this " +
-                  "pipeline. BOOK HEADINGS: where the notes carry a markdown heading " +
-                  "line (# Some Title, ## Some Title or ### Some Title - any legacy [[H]] " +
-                  "wrappers likewise), that is the book's own printed section heading. Copy it " +
-                  "VERBATIM as a markdown '### ' heading (drop the marks and wrappers) and " +
-                  "summarize the notes that follow it under that heading, in flowing prose " +
-                  "paragraphs. Content before the first heading (the range may start mid-section) " +
-                  "is ordinary intro prose with no heading. If the notes contain no heading lines " +
-                  "at all, write plain prose with no headings. NEVER invent a heading and NEVER " +
-                  "reword one - use exactly the printed heading text. No bullet points anywhere " +
-                  "and no page tags in your output. Bullet points in your answer are a total " +
-                  "failure."
-                : "Each page's text starts with a [p. N] anchor (legacy [[p. N]]); the anchors " +
-                  "tell you which page each part came from, but they must NOT appear in your " +
-                  "output.\n\n" +
-                  "BOOK HEADINGS: lines starting with '#', '##' or '###' are the book's own " +
-                  "printed section headings (native markdown). Copy each one VERBATIM as a " +
-                  "markdown '### ' heading and summarize the text that follows it under that " +
-                  "heading, in flowing prose paragraphs. Text before the first heading (the " +
-                  "range may start mid-section) is ordinary intro prose with no heading. If " +
-                  "the material has no markdown heading lines at all, write plain prose with " +
-                  "no headings. NEVER invent a heading and NEVER reword one - use exactly " +
-                  "the printed heading text. No bullet points and no page tags in your " +
-                  "output. Bullet points in your answer are a total failure.");
+                "Each page's text starts with a [p. N] anchor (legacy [[p. N]]); the anchors " +
+                "tell you which page each part came from, but they must NOT appear in your " +
+                "output.\n\n" +
+                "BOOK HEADINGS: lines starting with '#', '##' or '###' are the book's own " +
+                "printed section headings (native markdown). Copy each one VERBATIM as a " +
+                "markdown '### ' heading and summarize the text that follows it under that " +
+                "heading, in flowing prose paragraphs. Text before the first heading (the " +
+                "range may start mid-section) is ordinary intro prose with no heading. If " +
+                "the material has no markdown heading lines at all, write plain prose with " +
+                "no headings. NEVER invent a heading and NEVER reword one - use exactly " +
+                "the printed heading text. No bullet points and no page tags in your " +
+                "output. Bullet points in your answer are a total failure.";
         }
-
-        private static string MiniSystemPrompt(string language) =>
-            "You produce exhaustive working notes from book page segments that will later be fused into " +
-            "one digest.\n" +
-            "OUTPUT LANGUAGE: write every note bullet in " + language + ". The one exception is the " +
-            "book's own printed section headings: copy those VERBATIM in their original language " +
-            "exactly as printed.\n" +
-            "Rules: list every argument, definition, fact, figure, name and example in order, one bullet " +
-            "per item, ending each bullet with (p. N) using the [p. N] anchors (legacy [[p. N]]). When " +
-            "the segment contains a book heading printed as a markdown heading line (# Heading Text, " +
-            "## Heading Text or ### Heading Text), copy that heading line VERBATIM into the notes at " +
-            "its position, before the items that follow it - those lines are the only text you may " +
-            "copy verbatim. No headings of your own, no commentary, no outside knowledge. Do not omit " +
-            "anything substantive.";
 
         // ------------------------------------------------------------------
         // The floating action popup's two AI passes (v1.18.0)
@@ -1079,60 +920,8 @@ namespace Avalanche.Features.Summary
         }
 
         // ------------------------------------------------------------------
-        // Segmentation
+        // Page hygiene
         // ------------------------------------------------------------------
-
-        private static List<string> SegmentPages(AiProviderConfig config, string rangeText, bool force = false)
-        {
-            // Under the single-pass budget the WHOLE range travels as one segment: one
-            // direct digest pass over the author's full argumentative arc. Beyond it the
-            // range is sliced into SegmentCharBudget-sized segments, strictly on
-            // whole-page boundaries - the [p. N] anchor of every page is a segment
-            // start, so a segment never opens with an orphaned paragraph. (The old
-            // "\n\n" split cleaved through pages' internal paragraph breaks and left
-            // marker-less fragments in the next segment.) `force` skips the
-            // whole-range early return: it is the fallback's way of slicing a
-            // range whose direct pass the host already killed, whatever its size.
-            int effectiveBudget = AiEndpoints.IsLocal(config.BaseUrl)
-                ? SinglePassCharBudget
-                : CloudSinglePassCharBudget;
-            if (!force && rangeText.Length <= effectiveBudget)
-            {
-                return new List<string> { rangeText };
-            }
-
-            var segments = new List<string>();
-            var current = new StringBuilder();
-            foreach (string page in System.Text.RegularExpressions.Regex.Split(
-                rangeText, "(?=" + PageMarkerPattern + ")"))
-            {
-                string block = page.Trim();
-                if (block.Length == 0)
-                {
-                    continue;
-                }
-
-                if (current.Length > 0 && current.Length + block.Length + 2 > SegmentCharBudget)
-                {
-                    segments.Add(current.ToString());
-                    current.Clear();
-                }
-
-                if (current.Length > 0)
-                {
-                    current.Append("\n\n");
-                }
-
-                current.Append(block);
-            }
-
-            if (current.Length > 0)
-            {
-                segments.Add(current.ToString());
-            }
-
-            return segments;
-        }
 
         /// <summary>Pages in [firstPage..lastPage] whose extracted text is too thin to
         /// summarize (fewer than ~100 letters): front matter, full-page diagrams,
@@ -1225,30 +1014,6 @@ namespace Avalanche.Features.Summary
 
             string joined = string.Join(", ", parts);
             return joined.Length <= 200 ? joined : joined[..200];
-        }
-
-        private static (int First, int Last) SegmentRange(string segment)
-        {
-            int first = -1, last = -1;
-            foreach (System.Text.RegularExpressions.Match m in
-                     System.Text.RegularExpressions.Regex.Matches(segment, @"\[\[p\.\s*(\d+)\]\]"))
-            {
-                int page = int.Parse(m.Groups[1].Value);
-                if (first < 0)
-                {
-                    first = page;
-                }
-
-                last = page;
-            }
-
-            if (first < 0)
-            {
-                first = 1;
-                last = 1;
-            }
-
-            return (first, last);
         }
 
         // ------------------------------------------------------------------
@@ -1345,16 +1110,18 @@ namespace Avalanche.Features.Summary
             "\"* \", \"+ \", \"• \" or a number followed by \".\" or \")\". Keep the '### ' headings " +
             "exactly as instructed; everything under them is paragraphs, not lists.";
 
-        /// <summary>Runs the digest as a BUFFERED pass and hardens the result before it
-        /// can reach the window or the cache. The old single-segment path streamed model
-        /// deltas straight onto the screen, so whatever the model emitted - including a
-        /// raw bullet list - appeared as the "summary". Here the finished answer is
-        /// inspected first: an empty answer (a reasoning model that burned its whole
-        /// budget thinking) retries once at double the token budget; a bullet-dominant
-        /// answer retries once against an escalated prose-only prompt; a still
-        /// bullet-dominant answer is mechanically flattened by ProseGuard. Nothing
-        /// bullet-shaped survives, regardless of how badly the model behaves.</summary>
-        private static async Task<string> SolidDigestAsync(
+        /// <summary>Runs the digest as ONE streamed pass into a hidden buffer, then
+        /// hardens the result before anything can reach the window or the cache.
+        /// Streaming keeps the big call alive the gentle way (SSE frames instead of
+        /// a silent minutes-long body) while the reader waits under the progress
+        /// word; the finished answer is then inspected exactly as the buffered
+        /// digest always was: an empty answer (a reasoning model that burned its
+        /// whole budget thinking) retries once at double the token budget; a
+        /// bullet-dominant answer retries once against an escalated prose-only
+        /// prompt; a still bullet-dominant answer is mechanically flattened by
+        /// ProseGuard. Nothing bullet-shaped survives, and nothing paints until
+        /// the guard is done.</summary>
+        private static async Task<string> StreamedSolidDigestAsync(
             AiProviderConfig config, string system, string user, CancellationToken ct, int targetWords)
         {
             // Reasoning models split max_tokens between their think and the answer,
@@ -1364,8 +1131,17 @@ namespace Avalanche.Features.Summary
             // the hosted tier dies on long requests and no digest needs more.
             int budget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * targetWords)));
             if (!AiEndpoints.IsLocal(config.BaseUrl)) budget = Math.Min(budget, CloudMaxTokens);
-            string digest = await RunBufferedPassAsync(config, system, user, ct, budget).ConfigureAwait(false);
+            var buffer = new StringBuilder();
+            await foreach (SummaryUpdate update in StreamDigestPassAsync(
+                               config, system, user, ct, budget).ConfigureAwait(false))
+            {
+                if (update.Kind == "delta")
+                {
+                    buffer.Append(update.Text);
+                }
+            }
 
+            string digest = buffer.ToString();
             if (string.IsNullOrWhiteSpace(digest))
             {
                 SurfaceHealthLog.Log(
@@ -1402,17 +1178,43 @@ namespace Avalanche.Features.Summary
             return digest;
         }
 
+        /// <summary>Word-boundary slices (~600 chars) of the finished digest: the
+        /// card repaints per delta, so the guarded text arrives as a page being
+        /// written rather than one wall landing in a single frame. Slicing at
+        /// spaces never splits a markdown token, and the pieces joined always
+        /// reproduce the exact final text.</summary>
+        private static IEnumerable<string> SplitForPaint(string text)
+        {
+            const int Piece = 600;
+            for (int start = 0; start < text.Length; )
+            {
+                int end = Math.Min(start + Piece, text.Length);
+                if (end < text.Length)
+                {
+                    int soft = text.LastIndexOf(' ', end);
+                    if (soft > start)
+                    {
+                        end = soft;
+                    }
+                }
+
+                yield return text[start..end];
+                start = end;
+            }
+        }
+
         /// <summary>Streams one digest pass: "delta" updates as SSE chunks arrive (or one
-        /// delta when the endpoint ignored stream:true).</summary>
+        /// delta when the endpoint ignored stream:true). The digest's front door - the
+        /// whole range rides in this one streamed request while the guard waits on
+        /// the hidden buffer.</summary>
         private static async IAsyncEnumerable<SummaryUpdate> StreamDigestPassAsync(
             AiProviderConfig config,
             string system,
             string user,
-            [EnumeratorCancellation] CancellationToken ct)
+            [EnumeratorCancellation] CancellationToken ct,
+            int maxTokens)
         {
-            // Reasoning models split max_tokens between their think and the answer;
-            // 6000 left ~200-word digests. Caps only cost when they are actually used.
-            using var request = BuildRequest(config, system, user, Math.Max(config.MaxTokens, 10000), stream: true);
+            using var request = BuildRequest(config, system, user, maxTokens, stream: true);
             SurfaceHealthLog.Log(string.Format(
                 CultureInfo.InvariantCulture,
                 "summary: POST model={0} system={1}ch user={2}ch stream=true",
@@ -1663,7 +1465,7 @@ namespace Avalanche.Features.Summary
                         // (DeepSeek) or reasoning (OpenRouter) while visible content stays
                         // empty. Thinking notes are NOT an answer: returning them as one
                         // fed raw bullet-shaped analysis into digests and notes. Return
-                        // null instead - SolidDigestAsync retries and then aborts with a
+                        // null instead - StreamedSolidDigestAsync retries and then aborts with a
                         // switch-models error, which beats showing thinking garbage.
                     }
                 }
