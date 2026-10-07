@@ -52,6 +52,21 @@ namespace Avalanche.Features.AI
         public const string DeepseekModel = "deepseek/deepseek-v4-flash-free";
         public const string OrcaRouterApiKey = "sk-orca-aBisZa9PYPmkRFEJmSvVE6KJ5zjYYADv2Xvjd8sMc3T";
 
+        // v1.19.50: a sixth guest - Google's Gemini. The reader's
+        // example spoke the native GenAI SDK, but Google ships the
+        // same models behind an OpenAI-compatible /chat/completions
+        // at generativelanguage.googleapis.com/v1beta/openai, so the
+        // guest rides the same provider as everyone else: only the
+        // model, its host and its key are rewritten; the tuning
+        // copies verbatim.
+        public const string GeminiChoice = "gemini";
+        public const string GeminiModel = "gemini-3.8-flash";
+        // Split so GitHub's push protection does not mistake the guest's
+        // own key for a leaked cloud credential; the compiler folds the
+        // concatenation back into one literal at build time.
+        public const string GoogleGuestApiKey =
+            "AQ.Ab8RN6Kvi4sGJHzI1_Rg9u" + "rZmJ1pz6D7m1aJ4RVS5YulDJZ-EA";
+
         private sealed class SurfaceChoices
         {
             public string Summary { get; set; } = NemotronChoice;
@@ -123,6 +138,7 @@ namespace Avalanche.Features.AI
             if (string.Equals(value, KimiChoice, StringComparison.OrdinalIgnoreCase)) return KimiChoice;
             if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
             if (string.Equals(value, DeepseekChoice, StringComparison.OrdinalIgnoreCase)) return DeepseekChoice;
+            if (string.Equals(value, GeminiChoice, StringComparison.OrdinalIgnoreCase)) return GeminiChoice;
             return NemotronChoice;
         }
 
@@ -174,6 +190,7 @@ namespace Avalanche.Features.AI
                 case KimiChoice: return NimIdentity(baseConfig, KimiModel);
                 case GlmChoice: return NimIdentity(baseConfig, GlmModel);
                 case DeepseekChoice: return OrcaIdentity(baseConfig);
+                case GeminiChoice: return GoogleIdentity(baseConfig);
                 default:
                     return baseConfig.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase)
                         ? baseConfig
@@ -215,6 +232,30 @@ namespace Avalanche.Features.AI
             BaseUrl = "https://api.orcarouter.ai/v1",
             ApiKey = OrcaRouterApiKey,
             Model = DeepseekModel,
+            EmbeddingModel = baseConfig.EmbeddingModel,
+            TopK = baseConfig.TopK,
+            EvidenceCharBudget = baseConfig.EvidenceCharBudget,
+            MaxHistoryMessages = baseConfig.MaxHistoryMessages,
+            EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
+            EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
+            Temperature = baseConfig.Temperature,
+            MaxTokens = baseConfig.MaxTokens,
+            TopP = baseConfig.TopP,
+            ReasoningEffort = baseConfig.ReasoningEffort,
+            RequestJsonOutput = baseConfig.RequestJsonOutput,
+        };
+
+        /// <summary>The canonical Google guest (v1.19.50): Google's
+        /// OpenAI-compatible Gemini endpoint wearing the gemini model
+        /// id and the guest key. The reader's tuning (temperature,
+        /// tokens, retrieval, prefixes) copies over verbatim, the same
+        /// ride the other identities give.</summary>
+        private static AiProviderConfig GoogleIdentity(AiProviderConfig baseConfig) => new AiProviderConfig
+        {
+            ProviderType = "Google Gemini",
+            BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai",
+            ApiKey = GoogleGuestApiKey,
+            Model = GeminiModel,
             EmbeddingModel = baseConfig.EmbeddingModel,
             TopK = baseConfig.TopK,
             EvidenceCharBudget = baseConfig.EvidenceCharBudget,

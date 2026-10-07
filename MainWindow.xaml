@@ -3549,6 +3549,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <!-- v1.19.50: the Google guest. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3561,6 +3563,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <!-- v1.19.50: the Google guest. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelWebSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3573,6 +3577,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <!-- v1.19.50: the Google guest. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelRecaller}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3585,6 +3591,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <!-- v1.19.50: the Google guest. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                 </ComboBox>
                                 <!-- v1.19.34: the notes dial - the left sidebar's own
                                      voice, back under its own name. -->
@@ -3599,6 +3607,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <!-- v1.19.50: the Google guest. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelTester}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3611,6 +3621,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <!-- v1.19.50: the Google guest. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatBaseUrl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>

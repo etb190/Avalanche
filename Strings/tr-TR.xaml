@@ -1118,6 +1118,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
     <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelDeepseek">Deepseek</sys:String>
+    <sys:String x:Key="Str_AiModelGemini">Gemini</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Kısa Tekrar</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI test aracı</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notlar</sys:String>

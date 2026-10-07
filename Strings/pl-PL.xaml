@@ -1126,6 +1126,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
     <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelDeepseek">Deepseek</sys:String>
+    <sys:String x:Key="Str_AiModelGemini">Gemini</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Rekapitulacja</sys:String>
     <sys:String x:Key="Str_AiModelTester">Tester AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notatki</sys:String>
