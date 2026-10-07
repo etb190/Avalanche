@@ -530,27 +530,55 @@ namespace Avalanche.Features.AI
 
         /// <summary>Maps an HTTP status (plus the in-memory body where the
         /// caller already has it) to a typed failure. Response bodies are
-        /// inspected for the usage-limit signal but never embedded in the
-        /// exception message.</summary>
+        /// inspected for the usage-limit signal, and the server's own error
+        /// text rides along as ServerDetail so surfaces can quote the
+        /// provider verbatim instead of paraphrasing a category.</summary>
         private static AiProviderException MapError(System.Net.HttpStatusCode statusCode, string responseJson, AiProviderConfig config)
         {
+            string detail = ExtractServerDetail(responseJson);
             return statusCode switch
             {
                 System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden =>
-                    new AiProviderException(AiErrorCategory.NotSignedIn, config.Model, statusCode),
+                    new AiProviderException(AiErrorCategory.NotSignedIn, config.Model, statusCode, serverDetail: detail),
 
                 System.Net.HttpStatusCode.NotFound =>
-                    new AiProviderException(AiErrorCategory.ModelNotFound, config.Model, statusCode),
+                    new AiProviderException(AiErrorCategory.ModelNotFound, config.Model, statusCode, serverDetail: detail),
 
                 System.Net.HttpStatusCode.TooManyRequests => IsUsageLimitBody(responseJson)
-                    ? new AiProviderException(AiErrorCategory.UsageLimit, config.Model, statusCode)
-                    : new AiProviderException(AiErrorCategory.Busy, config.Model, statusCode),
+                    ? new AiProviderException(AiErrorCategory.UsageLimit, config.Model, statusCode, serverDetail: detail)
+                    : new AiProviderException(AiErrorCategory.Busy, config.Model, statusCode, serverDetail: detail),
 
                 System.Net.HttpStatusCode.ServiceUnavailable =>
-                    new AiProviderException(AiErrorCategory.Busy, config.Model, statusCode),
+                    new AiProviderException(AiErrorCategory.Busy, config.Model, statusCode, serverDetail: detail),
 
-                _ => new AiProviderException(AiErrorCategory.Other, config.Model, statusCode)
+                _ => new AiProviderException(AiErrorCategory.Other, config.Model, statusCode, serverDetail: detail)
             };
+        }
+
+        /// <summary>The server's own error text, verbatim: the body's
+        /// error.message when it speaks that shape, the trimmed raw body when
+        /// it does not, empty when there is nothing readable to quote.</summary>
+        internal static string ExtractServerDetail(string? body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return string.Empty;
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object
+                    && doc.RootElement.TryGetProperty("error", out var err)
+                    && err.ValueKind == JsonValueKind.Object
+                    && err.TryGetProperty("message", out var msg)
+                    && msg.ValueKind == JsonValueKind.String)
+                {
+                    return msg.GetString() ?? string.Empty;
+                }
+            }
+            catch (JsonException)
+            {
+                // not JSON - the raw body IS the verbatim text
+            }
+
+            return body.Trim();
         }
 
         public void Dispose()

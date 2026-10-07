@@ -1024,7 +1024,11 @@ namespace Avalanche.Features.Summary
                 if (_generating && gen == _generation)
                 {
                     DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                    DocBox.ScrollToEnd();
+                    // v1.19.53: the reader owns the scroll position - the
+                    // paint never scrolls the page out from under them. The
+                    // empty state stands down here too: words on the card are
+                    // the loading indicator now.
+                    UpdateEmptyState();
                 }
             }));
         }
@@ -1319,11 +1323,12 @@ namespace Avalanche.Features.Summary
                 bool generating = _generating;
                 bool hasDigest = _fullText.Length > 0;
 
-                if (overlaySpeaking || (hasDigest && !generating))
+                if (overlaySpeaking || hasDigest)
                 {
-                    // A message owns the card, or a digest fills it: the voice
-                    // yields. (A generating card with text already painted -
-                    // the streaming path - keeps quiet too.)
+                    // A message owns the card, or words are on it - a finished
+                    // digest or a stream mid-paint: the voice yields, and the
+                    // dots stand down the moment the first words land (the
+                    // painted text IS the loading indicator from here on).
                     EmptyState.Visibility = Visibility.Collapsed;
                     SetDotsRunning(false);
                     return;

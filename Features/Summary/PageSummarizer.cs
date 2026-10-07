@@ -36,6 +36,7 @@
 namespace Avalanche.Features.Summary
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -69,16 +70,16 @@ namespace Avalanche.Features.Summary
         // request, whatever it weighs. The hosted NIM endpoint once killed big
         // single calls - but that was thinking mode ON and a 16k answer
         // budget burning minutes of serverless GPU time; with the template
-        // switched off and the output capped at 8192, hundreds of thousands of
+        // switched off and the output capped, hundreds of thousands of
         // chars read in about half a minute. A host that still refuses the
         // call gets an honest failure, not a quietly sliced book.
 
-        // Cloud output ceiling: 8192 tokens is ~6000+ words, far more than
-        // any digest, definition or explanation needs, and it keeps every
-        // request short enough that the hosted endpoint answers instead of
-        // dying. Local bridges keep their own ceilings; caps only cost when
-        // they are used.
-        private const int CloudMaxTokens = 8192;
+        // Cloud output ceiling: 16384 tokens of room, so think + answer fit
+        // together on the always-thinking dials (kimi, glm, deepseek, gemini)
+        // - every one of their output ceilings sits well above this line. The
+        // cap bounds the worst case instead of starving the answer; local
+        // bridges keep their own ceilings, and a cap only costs when used.
+        private const int CloudMaxTokens = 16384;
 
         // Page anchors: the compact [p. N] form the normalizer emits, plus the
         // legacy [[p. N]] form older text (and older prompts' quotes) can still
@@ -87,6 +88,16 @@ namespace Avalanche.Features.Summary
 
         private static readonly SemaphoreSlim Gate = new(1, 1);
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
+
+        // The learned reasoning_effort drop, per endpoint - the same gate the
+        // chat provider runs (OpenAiCompatibleProvider.LearnedFieldDrops): a
+        // strict server that 400s the optional field retires it for every
+        // later request from this surface, so no pass pays the rejection twice.
+        private static readonly ConcurrentDictionary<string, byte> EffortDroppedEndpoints = new();
+
+        // Same identity the chat provider keys its learned drops by.
+        private static string EffortEndpointKey(AiProviderConfig config) =>
+            $"{config.ProviderType}|{config.BaseUrl}|{config.Model}";
 
         // One shared run-cache for every extraction path (the digest, the recap,
         // the notes, the tester, the buffer): the (path, ticks, page) key in
@@ -1073,11 +1084,22 @@ namespace Avalanche.Features.Summary
             return text?.Trim() ?? string.Empty;
         }
 
+        // Whether this request carries the configured reasoning_effort: cloud
+        // dials only (local bridges have no effort field), never nemotron (its
+        // thinking is the template switch below), only when the reader
+        // configured one, and never after the endpoint taught us it rejects
+        // the field.
+        private static bool EffortEligible(AiProviderConfig config) =>
+            !AiEndpoints.IsLocal(config.BaseUrl) &&
+            !config.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(config.ReasoningEffort) &&
+            !EffortDroppedEndpoints.ContainsKey(EffortEndpointKey(config));
+
         private static HttpRequestMessage BuildRequest(AiProviderConfig config, string system, string user, int maxTokens, bool stream, double? temperature = null)
         {
-            // Cloud free-tier guard: the hosted endpoint kills long-running
-            // requests (HTTP 500 after minutes of GPU time), so the output
-            // budget never exceeds 8192 there no matter how the callers floored
+            // Cloud output bound: think + answer share one budget on the
+            // always-thinking dials, so the ceiling is generous (16384) - but
+            // it still bounds the worst case no matter how the callers floored
             // or doubled it - the digest retry, the streaming floor and the
             // popup passes all travel through this one door. A local bridge
             // keeps its own ceilings; a cap only costs when it is used.
@@ -1110,6 +1132,17 @@ namespace Avalanche.Features.Summary
                 body["chat_template_kwargs"] = new { enable_thinking = false };
             }
 
+            // Reasoning effort rides along exactly as the chat path sends it
+            // (OpenAiCompatibleProvider): kimi, glm, deepseek and gemini all
+            // think by default, and an unsent effort let the hidden reasoning
+            // eat the whole budget before one word of answer existed. Nemotron
+            // is excluded - its thinking is the template switch above, and the
+            // summarizer never reads the traces.
+            if (EffortEligible(config))
+            {
+                body["reasoning_effort"] = config.ReasoningEffort;
+            }
+
             var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 (config.BaseUrl ?? string.Empty).TrimEnd('/') + "/chat/completions")
@@ -1119,6 +1152,61 @@ namespace Avalanche.Features.Summary
             string key = string.IsNullOrWhiteSpace(config.ApiKey) ? "ollama" : config.ApiKey;
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
             return request;
+        }
+
+        /// <summary>One send shared by the streaming and buffered digest passes:
+        /// builds the request, logs the POST line, and on an HTTP 400 whose body
+        /// blames reasoning_effort retires the field for this endpoint and
+        /// retries once without it - the chat provider's learned-drop gate,
+        /// mirrored. Any other non-success status throws with the provider's
+        /// own body verbatim, so the card says what the server said instead of
+        /// a bare "HTTP 400".</summary>
+        private static async Task<HttpResponseMessage> SendGatedAsync(
+            AiProviderConfig config, string system, string user, int maxTokens, bool stream,
+            double? temperature, CancellationToken ct)
+        {
+            bool effortSent = EffortEligible(config);
+            for (int attempt = 0; ; attempt++)
+            {
+                using var request = BuildRequest(config, system, user, maxTokens, stream, temperature);
+                SurfaceHealthLog.Log(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "summary: POST model={0} system={1}ch user={2}ch stream={3} maxTokens={4} effort={5}",
+                    config.Model,
+                    system.Length,
+                    user.Length,
+                    stream,
+                    maxTokens,
+                    effortSent ? config.ReasoningEffort : "off"));
+                using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+                    .ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    return response;
+                }
+
+                string bodyText = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                if (attempt == 0 && effortSent && (int)response.StatusCode == 400 &&
+                    bodyText.Contains("reasoning_effort", StringComparison.OrdinalIgnoreCase))
+                {
+                    EffortDroppedEndpoints[EffortEndpointKey(config)] = 1;
+                    SurfaceHealthLog.Log(
+                        "summary: endpoint rejected reasoning_effort - dropping it for this endpoint and retrying once without the field");
+                    response.Dispose();
+                    continue;
+                }
+
+                int status = (int)response.StatusCode;
+                response.Dispose();
+                if (string.IsNullOrWhiteSpace(bodyText))
+                {
+                    // Nothing quotable in the body: keep the friendly status wording.
+                    throw new HttpRequestException("HTTP " + status, null, (System.Net.HttpStatusCode)status);
+                }
+
+                SurfaceHealthLog.Log("summary: HTTP " + status + " - provider body: " + Snippet(bodyText, 240));
+                throw new HttpRequestException(bodyText);
+            }
         }
 
         /// <summary>Streams one digest pass: "delta" updates as SSE chunks arrive (or one
@@ -1132,16 +1220,8 @@ namespace Avalanche.Features.Summary
             [EnumeratorCancellation] CancellationToken ct,
             int maxTokens)
         {
-            using var request = BuildRequest(config, system, user, maxTokens, stream: true);
-            SurfaceHealthLog.Log(string.Format(
-                CultureInfo.InvariantCulture,
-                "summary: POST model={0} system={1}ch user={2}ch stream=true",
-                config.Model,
-                system.Length,
-                user.Length));
-            using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+            using var response = await SendGatedAsync(config, system, user, maxTokens, stream: true, null, ct)
                 .ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
             string mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
             if (!mediaType.Contains("event-stream", StringComparison.OrdinalIgnoreCase))
             {
@@ -1240,16 +1320,8 @@ namespace Avalanche.Features.Summary
         private static async Task<string> RunBufferedPassAsync(
             AiProviderConfig config, string system, string user, CancellationToken ct, int maxTokens, double? temperature = null)
         {
-            using var request = BuildRequest(config, system, user, maxTokens, stream: false, temperature);
-            SurfaceHealthLog.Log(string.Format(
-                CultureInfo.InvariantCulture,
-                "summary: POST model={0} system={1}ch user={2}ch stream=false maxTokens={3}",
-                config.Model,
-                system.Length,
-                user.Length,
-                maxTokens));
-            using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            using var response = await SendGatedAsync(config, system, user, maxTokens, stream: false, temperature, ct)
+                .ConfigureAwait(false);
             string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             CollectRunUsage(json);
             CollectRunSent(user);
@@ -1270,7 +1342,7 @@ namespace Avalanche.Features.Summary
             string? err = ExtractErrorText(json);
             if (!string.IsNullOrEmpty(err))
             {
-                throw new HttpRequestException(err.Length > 200 ? err[..200] : err);
+                throw new HttpRequestException(err);
             }
 
             SurfaceHealthLog.Log("summary: no content in body; snippet: " + Snippet(json, 240));
@@ -1413,7 +1485,10 @@ namespace Avalanche.Features.Summary
                     };
                 }
 
-                return message.Length > 160 ? message[..160] : message;
+                // Verbatim bodies land here (no status code on purpose): the
+                // reader asked for the provider's own words, not a summary of
+                // them - the cap only guards against a pathological dump.
+                return message.Length > 2000 ? message[..2000] : message;
             }
 
             string text = ex.Message;

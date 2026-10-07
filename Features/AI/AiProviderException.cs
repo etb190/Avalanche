@@ -23,23 +23,28 @@ namespace Avalanche.Features.AI
     /// <summary>The only exception type the provider throws at callers.
     /// Carries the machine-readable category (plus HTTP status and model
     /// name where known) instead of English prose that callers would have
-    /// to keyword-match.</summary>
+    /// to keyword-match. When the server answered with a body, its own
+    /// error text rides along as ServerDetail for surfaces that quote the
+    /// provider verbatim.</summary>
     public sealed class AiProviderException : Exception
     {
         public AiErrorCategory Category { get; }
         public System.Net.HttpStatusCode? HttpStatus { get; }
         public string? ModelName { get; }
+        public string? ServerDetail { get; }
 
         public AiProviderException(
             AiErrorCategory category,
             string? modelName = null,
             System.Net.HttpStatusCode? httpStatus = null,
-            Exception? inner = null)
+            Exception? inner = null,
+            string? serverDetail = null)
             : base($"AI request failed: {category}", inner)
         {
             Category = category;
             HttpStatus = httpStatus;
             ModelName = modelName;
+            ServerDetail = serverDetail;
         }
     }
 }

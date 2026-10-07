@@ -1098,10 +1098,12 @@ namespace Avalanche.Features.AI
                 var failureDetail = !string.IsNullOrEmpty(IndexingStatus)
                     ? IndexingStatus
                     : _loc("Str_AiChatIndexingFailed");
+                // v1.19.53: the error box is the single surface here too -
+                // with the error border sharing the bubble's cell, a message
+                // carrying both would render the same words twice.
                 Application.Current.Dispatcher.Invoke(() => Messages.Add(new ChatMessage
                 {
                     MessageRole = ChatMessage.Role.Assistant,
-                    Content = failureDetail,
                     Error = failureDetail
                 }));
                 return;
@@ -1990,12 +1992,23 @@ namespace Avalanche.Features.AI
         /// arrive typed (AiProviderException.Category) - keyword matching on
         /// English exception text misfired on Windows wording ("actively
         /// refused"), on the provider's own signin message and on timeouts.
-        /// Raw exception text and response bodies never reach the UI.
+        /// When the server answered with its own error text, that text is
+        /// quoted verbatim - the reader sees what the provider said, not a
+        /// paraphrase of it.
         /// </summary>
         private string MapErrorToFriendlyMessage(Exception ex)
         {
             if (ex is AiProviderException ape)
             {
+                // The server's own words first: a bare "HTTP 400" never
+                // helped anyone debug a dial. Local failures (no server
+                // involved) carry no detail and keep their localized
+                // wording below.
+                if (!string.IsNullOrWhiteSpace(ape.ServerDetail))
+                {
+                    return ape.ServerDetail;
+                }
+
                 switch (ape.Category)
                 {
                     case AiErrorCategory.OllamaNotRunning:

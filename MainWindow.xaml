@@ -3354,10 +3354,14 @@
                                             </StackPanel>
                                         </Border>
 
-                                            <!-- Error (theme-aware: DangerRed is defined in every palette) -->
-                                            <Border Grid.Row="1" Grid.Column="1"
+                                            <!-- Error (theme-aware: DangerRed is defined in every palette).
+                                                 Lives in the answer's own cell (v1.19.53): every path
+                                                 that sets Error leaves Content empty, so the bubble and
+                                                 the loading box are always collapsed here and a second
+                                                 row would only float the box below a phantom gap. -->
+                                            <Border Grid.Row="0" Grid.Column="1"
                                                     Visibility="{Binding Error, Converter={StaticResource StringToVisibilityConverter}}"
-                                                    Margin="0,6,0,0" Padding="10,6"
+                                                    Margin="0,0,0,4" Padding="10,6"
                                                     Background="{DynamicResource PaneBrush}"
                                                     CornerRadius="8" BorderBrush="{DynamicResource DangerRed}" BorderThickness="1">
                                                 <TextBlock Text="{Binding Error}"
