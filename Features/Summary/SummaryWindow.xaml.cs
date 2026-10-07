@@ -214,6 +214,12 @@ namespace Avalanche.Features.Summary
             DialogChrome.Configure(this, owner, resizable: true, fade: false);
             WindowFx.EnableFadeClose(this, WindowFx.PopMs, pop: true);
 
+            // v1.19.43: the digest window is a float - while it holds the app's
+            // foreground, a taskbar toggle is a click at it, not an order to
+            // minimize the whole app. The ledger is how the main window knows
+            // (Shell/FloatFocusLedger.cs).
+            Activated += (_, _) => FloatFocusLedger.NoteFloatActivated();
+
             // The entrance: the window is born transparent and PlayOpenPop raises
             // it on Loaded, so the first painted frame is already animating from
             // zero - no flash of a fully drawn window before the motion starts.

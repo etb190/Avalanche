@@ -100,6 +100,11 @@ namespace Avalanche.Features.Summary
             // The companion appears uninvited (a page turn summoned it): it
             // must never steal the focus the reader's hands are still using.
             ShowActivated = false;
+            // v1.19.43: uninvited is not unclickable - a click makes the
+            // companion the app's foreground all the same, and the float
+            // ledger should know: a taskbar toggle then reads as a click at
+            // it, not as an order to minimize the whole app.
+            Activated += (_, _) => FloatFocusLedger.NoteFloatActivated();
             WindowFx.EnableFadeClose(this, WindowFx.PopMs, pop: true);
             Opacity = 0;
             Loaded += (_, _) => WindowFx.PlayOpenPop(this);

@@ -231,6 +231,11 @@ namespace Avalanche.Controls
                     OpenNewTab();
                 }
             };
+            // v1.19.43: the previews breathe - the pulse recaptures the active
+            // view so its card shows the page AS IT IS, not as it was when the
+            // navigation landed. Self-guarding; see PulseActiveThumbAsync.
+            _thumbPulse.Tick += (_, _) => _ = PulseActiveThumbAsync();
+            _thumbPulse.Start();
             // v1.19.11: the chips load before the pane is ever shown - the reader
             // opens the browser onto its own saved pages, never an empty row.
             LoadBookmarks();
@@ -1958,6 +1963,21 @@ namespace Avalanche.Controls
         /// dozen; the oldest view falls off the end.</summary>
         public ObservableCollection<WebTabCardVm> Tabs { get; } = new();
 
+        // v1.19.43: the live-preview pulse and its guard. MainWindow reports
+        // while the tab cards are on screen (TabCardsVisible); the pulse also
+        // stands down for a hidden pane, a guarded hand-off, a missing engine,
+        // or a capture still in flight. One frame every beat and a half keeps
+        // the active card breathing with its page at a cost the reader never
+        // notices.
+        private readonly System.Windows.Threading.DispatcherTimer _thumbPulse =
+            new() { Interval = TimeSpan.FromMilliseconds(1500) };
+        private bool _thumbPulseBusy;
+
+        /// <summary>MainWindow raises this when the web-tab cards come on screen
+        /// and drops it when the sidebar shows anything else - the pulse never
+        /// spends a capture on previews nobody is watching.</summary>
+        public bool TabCardsVisible { get; set; }
+
         private const int MaxWebTabCards = 12;
 
         /// <summary>The window clicked a gallery card or a strip tab: the browser
@@ -2086,6 +2106,50 @@ namespace Avalanche.Controls
                 foreach (WebTabCardVm t in Tabs) t.IsActive = ReferenceEquals(t.View, v);
             }
             catch { /* a gallery that stumbles never disturbs the browsing */ }
+        }
+
+        // v1.19.43: the pulse's whole job - the active card's preview keeps
+        // pace with its page. A frame captured for a view that stopped being
+        // the active one mid-capture is dropped, and a background view keeps
+        // its last honest face: its engine may be suspended, and a fresh
+        // capture of a suspended engine would paint a lie over a truth.
+        private async Task PulseActiveThumbAsync()
+        {
+            if (_thumbPulseBusy || !IsVisible || _browserGuarded || !TabCardsVisible) return;
+            WebView2? v = _activeView;
+            if (v is null || v.CoreWebView2 is null) return;
+            WebTabCardVm? card = CardFor(v);
+            if (card is null || !card.IsActive) return;
+            _thumbPulseBusy = true;
+            try
+            {
+                byte[] png;
+                using (MemoryStream ms = new())
+                {
+                    await v.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
+                    png = ms.ToArray();
+                }
+                if (!ReferenceEquals(_activeView, v)) return;   // the tab moved on mid-capture
+                ImageSource? thumb = DecodePngThumb(png);
+                if (thumb is not null) card.Thumb = thumb;
+            }
+            catch { /* a pulse that stumbles waits for the next one */ }
+            finally { _thumbPulseBusy = false; }
+        }
+
+        private static ImageSource? DecodePngThumb(byte[] png)
+        {
+            try
+            {
+                BitmapImage img = new();
+                img.BeginInit();
+                img.CacheOption = BitmapCacheOption.OnLoad;
+                img.StreamSource = new MemoryStream(png);
+                img.EndInit();
+                img.Freeze();
+                return img;
+            }
+            catch { return null; }
         }
 
         // ── The view per tab (v1.19.13) ────────────────────────────────────────────────────
@@ -3276,15 +3340,6 @@ namespace Avalanche.Controls
         // One action window at a time; the reader's next click closes the last.
         private Window? _extActionWindow;
 
-        // v1.19.42: a click-away dismisses the bubble the instant the click
-        // lands elsewhere - Windows deactivates the popup while the shell is
-        // still cutting its own toggle command, so by the time the main
-        // window sees the minimize, _extActionWindow is already null and the
-        // v1.19.36 veto reads false. This stamps WHEN the last click-away
-        // dismissal happened; ExtMinimizeGuardActive turns it into a grace
-        // window the veto can still catch.
-        private long _extPopupDismissedTick;
-
         private System.Windows.Media.Brush ResBrush(string key, System.Windows.Media.Brush fallback)
             => TryFindResource(key) as System.Windows.Media.Brush ?? fallback;
 
@@ -3394,17 +3449,12 @@ namespace Avalanche.Controls
             // bubble (the book, the browser, another app) closes it, exactly
             // as a Chrome popup leaves when it loses the click. Escape, the
             // caption's X, the owner's death and this are the four exits.
-            // v1.19.42: this is the exit the shell's taskbar toggle races.
-            // The tick is stamped BEFORE the close: deactivation is the first
-            // thing that happens when the click lands on the taskbar, and the
-            // minimize command the shell sends at mouse-up arrives at a window
-            // that no longer holds a popup - only this stamp lets the main
-            // window's veto recognize that command as the click's echo.
-            win.Deactivated += (_, _) =>
-            {
-                _extPopupDismissedTick = Environment.TickCount64;
-                try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ }
-            };
+            win.Deactivated += (_, _) => { try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ } };
+            // v1.19.43: the bubble reports its activation to the float ledger -
+            // while it holds the app's foreground, a taskbar toggle reads as a
+            // click at it, not as an order to minimize the whole app
+            // (Shell/FloatFocusLedger.cs).
+            win.Activated += (_, _) => FloatFocusLedger.NoteFloatActivated();
             win.Content = root;
             shell.Window = win;
             return shell;
@@ -3417,26 +3467,13 @@ namespace Avalanche.Controls
         }
 
         // v1.19.36: the main window's WndProc asks these before honoring a
-        // minimize command - see Shell/WindowChrome.cs. A taskbar toggle with
-        // the popup in the foreground closes the popup instead of taking the
-        // whole app down with it.
+        // minimize command. A taskbar toggle with the popup in the foreground
+        // closes the popup instead of taking the whole app down with it.
+        // v1.19.43: the veto's guard itself moved to the float ledger, which
+        // answers for EVERY owned float, not just these windows - see
+        // Shell/FloatFocusLedger.cs; this window's state still answers "is a
+        // bubble up", which the veto's close needs.
         internal bool HasExtActionWindow => _extActionWindow is not null;
-
-        // v1.19.42: the toggle v1.19.36 aimed to catch usually arrives too
-        // late for the check above. Deactivation closes the bubble on the
-        // mouse-down; the shell cuts its minimize on the mouse-up; the field
-        // reads false by then, and the app went down with the bubble exactly
-        // as before the veto existed - the report had outlived its fix. So
-        // the guard the veto asks also covers a bubble dismissed a breath
-        // ago: within three hundred milliseconds of a click-away, a minimize
-        // command is that click's echo and is swallowed, the window instead
-        // coming forward, which is what a click on its own taskbar button
-        // plainly meant. A deliberate minimize - the caption button, the
-        // system menu, a second taskbar click once the grace has lapsed -
-        // goes through untouched.
-        internal bool ExtMinimizeGuardActive
-            => _extActionWindow is not null
-               || Environment.TickCount64 - _extPopupDismissedTick < 300;
 
         internal void CloseExtActionWindowExt() => CloseExtActionWindow();
 

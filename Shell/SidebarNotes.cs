@@ -47,6 +47,7 @@ namespace Avalanche
             if (WebTabsPanel.Visibility == Visibility.Visible)
             {
                 WebTabsPanel.Visibility = Visibility.Collapsed;
+                WebPane.TabCardsVisible = false;   // v1.19.43: the pulse stands down with the gallery
                 _webSidebarWasNotes = true;
             }
             SwitchSidebarToNotesTab();

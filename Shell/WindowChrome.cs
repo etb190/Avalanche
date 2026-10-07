@@ -70,10 +70,20 @@ namespace Avalanche
             // swallowing it; the window comes forward instead, which is what a
             // click on its own taskbar button means. (The close below is a
             // no-op in the grace case; the bubble died with the click.)
+            // v1.19.43: the guard stopped being a popup field entirely. Every
+            // owned float - the extension bubble, its options page, the digest
+            // window, the recap companion - reports its activation to the
+            // ledger (Shell/FloatFocusLedger.cs), and the veto asks the ledger:
+            // a minimize cut while a float was the last window the reader
+            // actually activated is that float's click-away heard at the app's
+            // own button, whoever the float was and however the shell orders
+            // the click. The foreground check keeps a deliberate minimize
+            // (the system menu, reached from THIS window) passing untouched.
             if (msg == WM_SYSCOMMAND && (wParam.ToInt64() & 0xFFF0) == SC_MINIMIZE
-                && WebPane?.ExtMinimizeGuardActive == true)
+                && FloatFocusLedger.ShouldShieldMinimize(hwnd))
             {
-                WebPane.CloseExtActionWindowExt();
+                WebPane?.CloseExtActionWindowExt();
+                FloatFocusLedger.NoteMainActivated();
                 Activate();
                 handled = true;
                 return IntPtr.Zero;

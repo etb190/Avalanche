@@ -336,6 +336,10 @@ namespace Avalanche
             // WndProc while the popup is up, so this fires only for a minimize the
             // reader really asked for.
             StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) WebPane.CloseExtActionWindowExt(); };
+            // v1.19.43: the ledger's other half - the main window taking the
+            // foreground hands the app back to itself, so the next taskbar
+            // click minimizes the old way (Shell/FloatFocusLedger.cs).
+            Activated += (_, _) => FloatFocusLedger.NoteMainActivated();
             // These three live inside the PdfViewer control, and a UserControl is its own
             // namescope - FindName would return NULL SILENTLY rather than throw, so the failure
             // would surface much later as an unrelated NullReference. Take them off the control
@@ -2492,6 +2496,7 @@ namespace Avalanche
             NotesPanel.Visibility = Visibility.Collapsed;
             PageControlsRow.Visibility = Visibility.Collapsed;
             WebTabsPanel.Visibility = Visibility.Visible;
+            WebPane.TabCardsVisible = true;   // v1.19.43: previews are watched again - the pulse may spend captures
             SidebarPagesTab.Tag = null;
             SidebarNotesTab.Tag = null;
         }
@@ -2500,6 +2505,7 @@ namespace Avalanche
         {
             if (WebTabsPanel.Visibility != Visibility.Visible) return;
             WebTabsPanel.Visibility = Visibility.Collapsed;
+            WebPane.TabCardsVisible = false;   // v1.19.43: nobody is watching the previews - the pulse stands down
             if (_webSidebarWasNotes) SwitchSidebarToNotesTab();
             else SwitchSidebarToPagesTab();
         }

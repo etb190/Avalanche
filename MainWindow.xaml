@@ -1980,7 +1980,7 @@
                                                                     <StackPanel>
                                                                         <Border Background="White" Height="74"
                                                                                 CornerRadius="2" ClipToBounds="True">
-                                                                            <Image Source="{Binding Thumb}" Stretch="Uniform"
+                                                                            <Image Source="{Binding Thumb}" Stretch="UniformToFill"
                                                                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                                                                         </Border>
                                                                         <TextBlock Text="{Binding Title}" FontSize="11"
