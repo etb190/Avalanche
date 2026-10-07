@@ -3276,6 +3276,15 @@ namespace Avalanche.Controls
         // One action window at a time; the reader's next click closes the last.
         private Window? _extActionWindow;
 
+        // v1.19.42: a click-away dismisses the bubble the instant the click
+        // lands elsewhere - Windows deactivates the popup while the shell is
+        // still cutting its own toggle command, so by the time the main
+        // window sees the minimize, _extActionWindow is already null and the
+        // v1.19.36 veto reads false. This stamps WHEN the last click-away
+        // dismissal happened; ExtMinimizeGuardActive turns it into a grace
+        // window the veto can still catch.
+        private long _extPopupDismissedTick;
+
         private System.Windows.Media.Brush ResBrush(string key, System.Windows.Media.Brush fallback)
             => TryFindResource(key) as System.Windows.Media.Brush ?? fallback;
 
@@ -3385,7 +3394,17 @@ namespace Avalanche.Controls
             // bubble (the book, the browser, another app) closes it, exactly
             // as a Chrome popup leaves when it loses the click. Escape, the
             // caption's X, the owner's death and this are the four exits.
-            win.Deactivated += (_, _) => { try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ } };
+            // v1.19.42: this is the exit the shell's taskbar toggle races.
+            // The tick is stamped BEFORE the close: deactivation is the first
+            // thing that happens when the click lands on the taskbar, and the
+            // minimize command the shell sends at mouse-up arrives at a window
+            // that no longer holds a popup - only this stamp lets the main
+            // window's veto recognize that command as the click's echo.
+            win.Deactivated += (_, _) =>
+            {
+                _extPopupDismissedTick = Environment.TickCount64;
+                try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ }
+            };
             win.Content = root;
             shell.Window = win;
             return shell;
@@ -3402,6 +3421,22 @@ namespace Avalanche.Controls
         // the popup in the foreground closes the popup instead of taking the
         // whole app down with it.
         internal bool HasExtActionWindow => _extActionWindow is not null;
+
+        // v1.19.42: the toggle v1.19.36 aimed to catch usually arrives too
+        // late for the check above. Deactivation closes the bubble on the
+        // mouse-down; the shell cuts its minimize on the mouse-up; the field
+        // reads false by then, and the app went down with the bubble exactly
+        // as before the veto existed - the report had outlived its fix. So
+        // the guard the veto asks also covers a bubble dismissed a breath
+        // ago: within three hundred milliseconds of a click-away, a minimize
+        // command is that click's echo and is swallowed, the window instead
+        // coming forward, which is what a click on its own taskbar button
+        // plainly meant. A deliberate minimize - the caption button, the
+        // system menu, a second taskbar click once the grace has lapsed -
+        // goes through untouched.
+        internal bool ExtMinimizeGuardActive
+            => _extActionWindow is not null
+               || Environment.TickCount64 - _extPopupDismissedTick < 300;
 
         internal void CloseExtActionWindowExt() => CloseExtActionWindow();
 

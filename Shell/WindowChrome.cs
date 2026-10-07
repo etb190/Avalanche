@@ -60,8 +60,18 @@ namespace Avalanche
             // where it was; the next click minimizes as usual. A deliberate
             // minimize (the caption button) sets WindowState directly and never
             // passes through here.
+            // v1.19.42: but the check usually ran on an already-empty field.
+            // Deactivation closes the bubble on the mouse-down and the shell
+            // cuts its minimize on the mouse-up, so HasExtActionWindow read
+            // false by the time the command got here, and the app went down
+            // with the bubble exactly as before - the report had outlived its
+            // fix. The guard now also spans a short grace after a click-away
+            // dismissal, reading the arriving command as that click's echo and
+            // swallowing it; the window comes forward instead, which is what a
+            // click on its own taskbar button means. (The close below is a
+            // no-op in the grace case; the bubble died with the click.)
             if (msg == WM_SYSCOMMAND && (wParam.ToInt64() & 0xFFF0) == SC_MINIMIZE
-                && WebPane?.HasExtActionWindow == true)
+                && WebPane?.ExtMinimizeGuardActive == true)
             {
                 WebPane.CloseExtActionWindowExt();
                 Activate();
