@@ -24,6 +24,7 @@ namespace Avalanche
         // Window proc / Win32 interop (custom chrome, resize, DPI)
         // ============================================================
 
+        private const int  WM_ACTIVATE        = 0x0006;
         private const int  WM_GETMINMAXINFO   = 0x0024;
         private const int  WM_DPICHANGED      = 0x02E0;
         private const int  WM_MOUSEHWHEEL     = 0x020E;
@@ -79,17 +80,41 @@ namespace Avalanche
             // own button, whoever the float was and however the shell orders
             // the click. The foreground check keeps a deliberate minimize
             // (the system menu, reached from THIS window) passing untouched.
-            if (msg == WM_SYSCOMMAND && (wParam.ToInt64() & 0xFFF0) == SC_MINIMIZE
-                && FloatFocusLedger.ShouldShieldMinimize(hwnd))
+            if (msg == WM_SYSCOMMAND && (wParam.ToInt64() & 0xFFF0) == SC_MINIMIZE)
             {
-                WebPane?.CloseExtActionWindowExt();
-                FloatFocusLedger.NoteMainActivated();
-                FloatFocusLedger.NoteShieldedMinimizeUndo();
-                Activate();
-                handled = true;
-                return IntPtr.Zero;
+                // v1.19.45: every minimize command speaks first - the
+                // wparam, the shield's clocks and the true foreground, one
+                // line in the trace log, so a report that outlives the fix
+                // replays message by message.
+                MinimizeRecorder.Log("wnd.syscommand",
+                    $"wparam=0x{(wParam.ToInt64() & 0xFFFF):X4} {FloatFocusLedger.Snapshot()}");
+                var shield = FloatFocusLedger.ShouldShieldMinimize(hwnd);
+                // v1.19.45: the veto learned the echo window - a minimize
+                // cut a breath after a float died, carrying no deliberate
+                // stamp, is that float's click-away whatever the foreground
+                // says now. Swallowing here never flickers; the restore net
+                // stays behind it for channels that skip this message. The
+                // cooldown still rules: once a shielded event has stood the
+                // shield down, the reader's next minimize is their own.
+                var echo = FloatFocusLedger.FloatDismissedRecently
+                           && !FloatFocusLedger.DeliberateMinimizeFresh
+                           && !FloatFocusLedger.ShieldSuspended;
+                if (shield || echo)
+                {
+                    WebPane?.CloseExtActionWindowExt();
+                    FloatFocusLedger.NoteMainActivated();
+                    FloatFocusLedger.NoteShieldedMinimizeUndo();
+                    Activate();
+                    MinimizeRecorder.Log("wnd.veto", $"shield={shield} echo={echo}");
+                    handled = true;
+                    return IntPtr.Zero;
+                }
             }
 
+            if (msg == WM_NCLBUTTONDOWN)   // v1.19.45: which pixel of the chrome ate the click
+                MinimizeRecorder.Log("wnd.nclb", $"hit=0x{wParam.ToInt64() & 0xFFFF:X4}");
+            if (msg == WM_ACTIVATE)        // v1.19.45: the activation storm around a click-away
+                MinimizeRecorder.Log("wnd.activate", $"wparam=0x{wParam.ToInt64() & 0xFFFF:X4}");
             if (msg == WM_NCCALCSIZE)
             {
                 handled = WmNcCalcSize(hwnd, wParam, lParam);
@@ -449,6 +474,7 @@ namespace Avalanche
             // deliberate so the restore net never reads it as a click-away
             // echo and bounces it (Shell/FloatFocusLedger.cs).
             FloatFocusLedger.NoteDeliberateMinimize();
+            MinimizeRecorder.Log("chrome.minimizeBtn", "");
             WindowState = WindowState.Minimized;
         }
 
@@ -481,8 +507,26 @@ namespace Avalanche
                 // already closed the bubble by the time this runs.
                 if (FloatFocusLedger.ShouldRestoreMinimize())
                 {
+                    MinimizeRecorder.Log("net.fire", $"to={_stateBeforeMinimize}");
                     FloatFocusLedger.NoteShieldedMinimizeUndo();
-                    WindowState = _stateBeforeMinimize;
+                    // v1.19.45: the undo used to run synchronously - a
+                    // ShowWindow nested inside the ShowWindow still draining
+                    // this very minimize - and WPF swallows exactly that.
+                    // The restore rides the dispatcher now and checks its
+                    // work: still minimized one hop later, it tries once
+                    // more, and the trace log records every hand.
+                    Dispatcher.InvokeAsync(() =>
+                    {
+                        if (WindowState != WindowState.Minimized) return;
+                        WindowState = _stateBeforeMinimize;
+                        MinimizeRecorder.Log("net.applied", $"to={_stateBeforeMinimize}");
+                        Dispatcher.InvokeAsync(() =>
+                        {
+                            if (WindowState != WindowState.Minimized) return;
+                            WindowState = _stateBeforeMinimize;
+                            MinimizeRecorder.Log("net.retry", $"to={_stateBeforeMinimize}");
+                        }, System.Windows.Threading.DispatcherPriority.Input);
+                    }, System.Windows.Threading.DispatcherPriority.Input);
                     return;
                 }
                 _wasMinimized = true;

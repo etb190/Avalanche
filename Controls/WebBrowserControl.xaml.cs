@@ -3431,7 +3431,11 @@ namespace Avalanche.Controls
                     Cursor = System.Windows.Input.Cursors.Hand,
                 };
                 close.SetResourceReference(System.Windows.Controls.Button.ForegroundProperty, "TextBrush");
-                close.Click += (_, _) => win.Close();
+                close.Click += (_, _) =>
+                {
+                    MinimizeRecorder.Log("float.ext.x", "");
+                    win.Close();
+                };
                 caption.Children.Add(title);
                 caption.Children.Add(close);
                 caption.MouseLeftButtonDown += (_, _) => { try { win.DragMove(); } catch { /* a caption pressed while maximized is no one's emergency */ } };

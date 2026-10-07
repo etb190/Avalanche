@@ -335,11 +335,24 @@ namespace Avalanche
             // the popup's life ends here. The taskbar-toggle route is vetoed in
             // WndProc while the popup is up, so this fires only for a minimize the
             // reader really asked for.
-            StateChanged += (_, _) => { if (WindowState == WindowState.Minimized) WebPane.CloseExtActionWindowExt(); };
+            StateChanged += (_, _) =>
+            {
+                if (WindowState != WindowState.Minimized) return;
+                // v1.19.45: the trace log's spine - every arrival at
+                // minimized the WPF surface reports, whatever cut it.
+                MinimizeRecorder.Log("main.statechanged", "minimized");
+                WebPane.CloseExtActionWindowExt();
+            };
             // v1.19.43: the ledger's other half - the main window taking the
             // foreground hands the app back to itself, so the next taskbar
             // click minimizes the old way (Shell/FloatFocusLedger.cs).
             Activated += (_, _) => FloatFocusLedger.NoteMainActivated();
+            // v1.19.45: the flight recorder rides with the main window - one
+            // install, three WinEvent channels, one log. The main window's
+            // own deactivation is recorded too: the click-away's first foot
+            //step is the foreground leaving this window.
+            MinimizeRecorder.Install();
+            Deactivated += (_, _) => MinimizeRecorder.Log("main.deactivated", "");
             // These three live inside the PdfViewer control, and a UserControl is its own
             // namescope - FindName would return NULL SILENTLY rather than throw, so the failure
             // would surface much later as an unrelated NullReference. Take them off the control
