@@ -45,13 +45,33 @@ namespace Avalanche.Features.AI
         /// </summary>
         public static readonly DependencyProperty ParagraphAlignmentProperty = DependencyProperty.RegisterAttached(
             "ParagraphAlignment", typeof(TextAlignment), typeof(AiMarkdown),
-            new FrameworkPropertyMetadata(TextAlignment.Left));
+            new FrameworkPropertyMetadata(TextAlignment.Left, OnParagraphAlignmentChanged));
 
         public static TextAlignment GetParagraphAlignment(DependencyObject o) =>
             (TextAlignment)o.GetValue(ParagraphAlignmentProperty);
 
         public static void SetParagraphAlignment(DependencyObject o, TextAlignment value) =>
             o.SetValue(ParagraphAlignmentProperty, value);
+
+        // v1.19.46: the alignment can arrive AFTER the text. The chat template
+        // binds ai:AiMarkdown.Text and styles the box in the same layout pass:
+        // the style's default setter (Justify) is in force for the first render,
+        // and the user-role trigger that switches to Left lands a moment later.
+        // With no change callback the document kept the alignment it was born
+        // with, so the reader's own messages stayed justified and full-width.
+        // Re-typeset on every alignment change so the trigger always wins.
+        private static void OnParagraphAlignmentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not RichTextBox rtb)
+                return;
+            string text = GetText(rtb);
+            if (string.IsNullOrEmpty(text))
+                return;
+            bool parse = true;
+            if (rtb.DataContext is ChatMessage msg)
+                parse = msg.MessageRole != ChatMessage.Role.User;
+            Render(rtb, text, parse);
+        }
 
         // Marker used to attach the hyperlink navigation handler exactly once
         // per RichTextBox (documents are rebuilt on every Content change, but

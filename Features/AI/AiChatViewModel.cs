@@ -44,21 +44,48 @@ namespace Avalanche.Features.AI
         // must not fan the GPU for books the reader only skims: the lexical channel
         // (text extraction, chunking, BM25) stays instant and automatic, and the
         // vector pass runs only when the reader clicks the research button.
-        private bool _semanticResearchEnabled;   // the reader asked for THIS document's index
-        private bool _semanticBuilding;          // an embedding pass is in flight
-        private bool _semanticIndexReady;        // the current document's index finished
-        private int _semanticTextlessPages;      // carried from indexing for the ready line
-        private CancellationTokenSource? _semanticPassCts;   // the on-demand pass's lifetime
+        // v1.19.46: semantic research state is PER DOCUMENT and survives every
+        // context switch. Leaving a document no longer cancels its embedding
+        // pass - the pass keeps building in the background, a single lane
+        // serializes the passes, and returning to a requested document resumes
+        // its pass from the embedding store's checkpoint (already-embedded
+        // chunks are skipped, so nothing repeats and nothing is lost).
+        private readonly HashSet<string> _semanticRequestedDocs = new();   // the reader asked research for these documents
+        private readonly HashSet<string> _semanticReadyDocs = new();       // these documents' semantic layers are done
+        private readonly Dictionary<string, string> _semanticStatusByDoc = new();   // per-document terminal status line
+        private readonly Dictionary<string, int> _semanticTextlessByDoc = new();    // carried from indexing for the ready line
+        private string _semanticBuildingDoc = "";     // the document whose embedding pass is in flight ("" = idle lane)
+        private int _semanticProgressDone;            // live batch counters of the running pass
+        private int _semanticProgressTotal;
+        private CancellationTokenSource? _semanticPassCts;   // the running pass's lifetime
         private CancellationTokenSource? _indexingCts;
-        private bool _isProcessing;
         private readonly object _processingLock = new();
         private int _maxHistoryMessages = 6;
-        private string? _pendingUserInput;  // Queue message if indexing not complete
-        private ChatMessage? _pendingPlaceholder;  // "Preparing..." bubble shown while a queued message waits
 
-        /// <summary>Cancels the in-flight reply (user Stop button or document
-        /// switch). Replaced for every new reply.</summary>
-        private CancellationTokenSource? _replyCts;
+        // v1.19.46: a message queued behind a document's index build is per
+        // context - the "Preparing..." bubble and the question both survive a
+        // switch away and come back with the conversation.
+        private sealed class PendingMessage
+        {
+            public string Input = "";
+            public ChatMessage Placeholder = null!;
+        }
+        private readonly Dictionary<string, PendingMessage> _pendingByContext = new();
+
+        // v1.19.46: replies are PER CONTEXT and keep running when the reader
+        // routes elsewhere. The thinking bubble belongs to its conversation:
+        // returning re-attaches it, and the finished answer (or the error)
+        // lands in that conversation's history even if the reader was on
+        // another tab when the model finished - "it stops generating" is over.
+        private sealed class InflightReply
+        {
+            public ChatMessage Bubble = null!;
+            public CancellationTokenSource Cts = null!;
+        }
+        private readonly Dictionary<string, InflightReply> _inflightByContext = new();
+        // Web sessions die with their tab; a reply for a dead session is
+        // never delivered anywhere.
+        private readonly HashSet<string> _deadSessions = new();
 
         /// <summary>Chat transcript per document id - restored when the user
         /// switches back to a document (C6). Entries are snapshots without
@@ -104,9 +131,22 @@ namespace Avalanche.Features.AI
             private set { _semanticStatus = value; OnPropertyChanged(); }
         }
 
-        /// <summary>Drives the research button's face: lit in the accent while the
-        /// semantic layer builds or is ready, muted while idle. (v1.19.5)</summary>
-        public bool SemanticResearchActive => _semanticBuilding || _semanticIndexReady;
+        /// <summary>Drives the research button's face: lit in the accent while
+        /// THIS document's semantic layer builds or is ready, muted while idle.
+        /// (v1.19.5) v1.19.46: the state is the document's own - the button
+        /// stays lit across switches while its background pass runs.</summary>
+        public bool SemanticResearchActive
+        {
+            get
+            {
+                lock (_processingLock)
+                {
+                    string doc = _isWebContext ? "" : _currentDocumentId;
+                    return doc.Length > 0
+                        && (doc == _semanticBuildingDoc || _semanticReadyDocs.Contains(doc));
+                }
+            }
+        }
 
         private void OnSemanticStateChanged() => OnPropertyChanged(nameof(SemanticResearchActive));
 
@@ -158,10 +198,26 @@ namespace Avalanche.Features.AI
         /// model knows nothing about WebView2 - the window owns the browser.</summary>
         public Func<string, System.Threading.CancellationToken, Task<WebPageSnapshot?>>? WebPageReader { get; set; }
 
+        // v1.19.46: "a reply is running" is now a question about the CURRENT
+        // conversation, not the whole view model - a reply the reader left
+        // behind keeps running without blocking the conversation on screen.
         public bool IsProcessing
         {
-            get => _isProcessing;
-            private set { _isProcessing = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanSend)); OnPropertyChanged(nameof(CanStartNewChat)); }
+            get
+            {
+                lock (_processingLock)
+                    return _currentDocumentId.Length > 0 && _inflightByContext.ContainsKey(_currentDocumentId);
+            }
+        }
+
+        /// <summary>Re-announces the bindings derived from the in-flight set
+        /// (Stop button, send gating) after a reply started or ended, or the
+        /// active context changed.</summary>
+        private void RaiseProcessingStateChanged()
+        {
+            OnPropertyChanged(nameof(IsProcessing));
+            OnPropertyChanged(nameof(CanSend));
+            OnPropertyChanged(nameof(CanStartNewChat));
         }
 
         /// <summary>Gate for the New-chat button: a fresh conversation cannot
@@ -274,7 +330,6 @@ namespace Avalanche.Features.AI
         {
             if (string.IsNullOrEmpty(filePath)) return;
 
-            bool restored = false;
             lock (_processingLock)
             {
                 // Same document already indexed OR still being indexed: keep
@@ -287,7 +342,6 @@ namespace Avalanche.Features.AI
                 // Claim a new generation: any index build still running for
                 // the previous document is now stale and must not commit.
                 _initGeneration++;
-                int generation = _initGeneration;
                 _currentFilePath = filePath;
                 _currentIndex = null;
                 _currentDocumentId = DocumentIndexer.ComputeDocumentId(filePath);
@@ -296,25 +350,46 @@ namespace Avalanche.Features.AI
 
                 // v1.19.5: the research button is per-document. A new book starts
                 // idle - zero embedding compute until the reader asks for it.
-                _semanticResearchEnabled = false;
-                _semanticIndexReady = false;
-                _semanticTextlessPages = 0;
-                OnSemanticStateChanged();
-
-                // Restore this document's saved transcript, if any (C6).
-                restored = _historyByDocument.ContainsKey(_currentDocumentId);
+                // v1.19.46: the ask is REMEMBERED per document, so a book the
+                // reader left mid-research picks its pass back up here.
             }
 
-            var docId = _currentDocumentId;
+            string docId = _currentDocumentId;
+            InflightReply? inflight = null;
+            bool inflightLoading = false;
+            PendingMessage? pending = null;
+            List<ChatMessage> savedSnapshot = new();
+            lock (_processingLock)
+            {
+                // Restore this document's saved transcript, if any (C6) -
+                // snapshotted under the lock so a background delivery that is
+                // appending an answer can never tear the walk (v1.19.46).
+                if (_historyByDocument.TryGetValue(docId, out var savedList))
+                    savedSnapshot.AddRange(savedList);
+                if (_inflightByContext.TryGetValue(docId, out inflight))
+                    inflightLoading = inflight.Bubble.IsLoading;
+                _pendingByContext.TryGetValue(docId, out pending);
+            }
             Application.Current.Dispatcher.Invoke(() =>
             {
                 Messages.Clear();
-                if (restored && _historyByDocument.TryGetValue(docId, out var saved))
-                {
-                    foreach (var m in saved)
-                        Messages.Add(m);
-                }
+                foreach (var m in savedSnapshot)
+                    Messages.Add(m);
+                // v1.19.46: a reply still running for THIS conversation puts its
+                // thinking bubble straight back - routing away no longer hides
+                // it, and the answer lands inside it when the model finishes.
+                if (inflight is not null && inflightLoading && !Messages.Contains(inflight.Bubble))
+                    Messages.Add(inflight.Bubble);
+                // v1.19.46: a message queued behind this document's index build
+                // returns with its "Preparing..." placeholder, same story.
+                else if (pending is not null && !Messages.Contains(pending.Placeholder))
+                    Messages.Add(pending.Placeholder);
                 ContextTitle = Path.GetFileName(filePath);
+                // The status line is this document's own: research it left
+                // building reads as still building, a finished pass reads ready.
+                SemanticStatus = CurrentSemanticStatusLine();
+                OnSemanticStateChanged();
+                RaiseProcessingStateChanged();
             });
 
             await IndexDocumentAsync(filePath, _initGeneration);
@@ -374,18 +449,19 @@ namespace Avalanche.Features.AI
                 if (textlessPages > 0)
                     SemanticStatus = string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages);
 
-                // Consume anything queued while indexing ran.
+                // Consume anything queued while indexing ran (v1.19.46: the
+                // queue is per context - only THIS document's waiting question
+                // is served here, keyed by its own conversation).
                 lock (_processingLock)
                 {
-                    if (!string.IsNullOrEmpty(_pendingUserInput))
+                    if (generation == _initGeneration
+                        && _pendingByContext.TryGetValue(_currentDocumentId, out var queuedMsg))
                     {
-                        var pendingInput = _pendingUserInput;
-                        _pendingUserInput = null;
-                        var placeholder = _pendingPlaceholder;
-                        _pendingPlaceholder = null;
-                        if (placeholder is not null)
-                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(placeholder));
-                        _ = GenerateReplyAsync(pendingInput);
+                        string pendingKey = _currentDocumentId;
+                        _pendingByContext.Remove(pendingKey);
+                        var placeholder = queuedMsg.Placeholder;
+                        Application.Current.Dispatcher.Invoke(() => Messages.Remove(placeholder));
+                        _ = GenerateReplyAsync(queuedMsg.Input, pendingKey);
                     }
                 }
 
@@ -396,11 +472,22 @@ namespace Avalanche.Features.AI
                 // v1.19.5: the pass is OPT-IN. Rapidly browsing papers must not fan
                 // the GPU for books the reader only skims: the lexical channel above
                 // is live, and the embedding pass runs only when the reader clicks
-                // the research button (ToggleSemanticResearch) - which lands here
-                // with its own demand token.
-                _semanticTextlessPages = textlessPages;
-                if (_semanticResearchEnabled)
-                    StartSemanticEmbeddingPass(index, textlessPages, generation, progress, indexingCts.Token);
+                // the research button (ToggleSemanticResearch).
+                // v1.19.46: the ask is remembered per document - a book the reader
+                // left mid-research resumes its pass right here, from whatever
+                // checkpoint the embedding store already holds.
+                string embedDocId;
+                lock (_processingLock)
+                {
+                    embedDocId = _currentDocumentId;
+                    _semanticTextlessByDoc[embedDocId] = textlessPages;
+                }
+                if (generation == _initGeneration
+                    && _semanticRequestedDocs.Contains(embedDocId)
+                    && !_semanticReadyDocs.Contains(embedDocId))
+                {
+                    EnsureSemanticPassRunning(index, embedDocId, progress);
+                }
 
                 // Nothing else to publish here: the lexical index went live
                 // BEFORE the embedding pass, so readiness never waited on it.
@@ -411,17 +498,23 @@ namespace Avalanche.Features.AI
 
                 // Never leave a deferred "Preparing document..." bubble stuck:
                 // if a message was queued while indexing, surface the failure
-                // in-chat instead of waiting for an answer that cannot come.
-                var failedInput = _pendingUserInput;
-                var failedPlaceholder = _pendingPlaceholder;
-                _pendingUserInput = null;
-                _pendingPlaceholder = null;
-                if (failedInput is not null)
+                // in-chat instead of waiting for an answer that cannot come
+                // (v1.19.46: the queue is per context).
+                PendingMessage? failed = null;
+                lock (_processingLock)
+                {
+                    if (generation == _initGeneration
+                        && _pendingByContext.TryGetValue(_currentDocumentId, out var fm))
+                    {
+                        failed = fm;
+                        _pendingByContext.Remove(_currentDocumentId);
+                    }
+                }
+                if (failed is not null)
                 {
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        if (failedPlaceholder is not null)
-                            Messages.Remove(failedPlaceholder);
+                        Messages.Remove(failed.Placeholder);
                         Messages.Add(new ChatMessage
                         {
                             MessageRole = ChatMessage.Role.Assistant,
@@ -450,47 +543,71 @@ namespace Avalanche.Features.AI
             }
         }
 
-        /// <summary>The semantic embedding pass, lifted out of IndexDocumentAsync
-        /// unchanged (v1.19.5): background, fail-soft, generation-guarded. The
-        /// token owns the pass's lifetime - document initialization passes the
-        /// indexing CTS's token, the research button passes its own demand token,
-        /// and both share the same cancel-and-stale semantics.</summary>
-        private void StartSemanticEmbeddingPass(
-            DocumentIndex index,
-            int textlessPages,
-            int generation,
-            IProgress<IndexingProgress>? progress,
-            CancellationToken passCt)
+/// <summary>Starts THIS document's semantic embedding pass when the lane
+        /// is free (v1.19.46). The pass belongs to the DOCUMENT, not to the
+        /// panel's current context: switching tabs, opening pages or hiding the
+        /// chat leaves it running, and every status update only paints while
+        /// its document is the one on screen. A pass already running for another
+        /// document parks this request (the requested set) - when the lane
+        /// frees, the document on screen that asked for research starts at once,
+        /// and a background document resumes on the reader's return from the
+        /// embedding store's checkpoint.</summary>
+        private void EnsureSemanticPassRunning(DocumentIndex index, string docId, IProgress<IndexingProgress>? progress)
         {
-            _semanticBuilding = true;
-            OnSemanticStateChanged();
+            bool started = false;
+            lock (_processingLock)
+            {
+                if (_semanticBuildingDoc.Length == 0)
+                {
+                    started = true;
+                    try { _semanticPassCts?.Dispose(); } catch (ObjectDisposedException) { }
+                    _semanticPassCts = new CancellationTokenSource();
+                    _semanticBuildingDoc = docId;
+                    _semanticProgressDone = 0;
+                    _semanticProgressTotal = 0;
+                }
+            }
+            if (!started)
+            {
+                // The lane is busy with another document's pass; this request
+                // stays parked in the requested set. The line says research is
+                // on its way - and the store's checkpoint makes the eventual
+                // run as short as the work left over allows.
+                PaintSemanticStatus(docId, () => _loc("Str_AiChatSemanticBuilding"));
+                return;
+            }
+
+            var passCt = _semanticPassCts!.Token;
             var embeddingModel = _configProvider().EmbeddingModel;
             var documentPrefix = _configProvider().EmbeddingDocumentPrefix;
             var queryPrefix = _configProvider().EmbeddingQueryPrefix;
-            SemanticStatus = _loc("Str_AiChatSemanticBuilding");
 
             // Live per-batch progress for the semantic status line: the
             // IndexingStatus row goes dark once IsIndexing clears, so a
             // background pass used to show a FROZEN "building..." for its
             // whole duration - indistinguishable from a hang (regression
-            // report: "wont go away"). Now every batch updates the line.
+            // report: "wont go away"). Now every batch updates the line -
+            // and v1.19.46 keeps it honest across switches: the line only
+            // paints while this document is on screen, and returning to the
+            // document repaints the last counters it left behind.
             var embedProgress = new FanOutProgress(progress, p =>
             {
                 if (p.Stage != IndexingStage.Embedding || p.Total <= 0) return;
-                try
+                lock (_processingLock)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
-                        SemanticStatus = string.Format(_loc("Str_AiChatSemanticBuildingProgress"), p.Done, p.Total));
+                    _semanticProgressDone = p.Done;
+                    _semanticProgressTotal = p.Total;
                 }
-                catch { /* app shutting down */ }
+                PaintSemanticStatus(docId, () => string.Format(
+                    _loc("Str_AiChatSemanticBuildingProgress"), p.Done, p.Total));
             });
+
+            Avalanche.Services.AiHighlightLog.Log(
+                $"embedding pass START: doc={TruncLog(docId)} chunks={index.Chunks.Count} model={embeddingModel}");
 
             _ = Task.Run(async () =>
             {
-                CancellationToken passToken = default;
                 var passStopwatch = System.Diagnostics.Stopwatch.StartNew();
-                int chunkCount = index.Chunks.Count;
-                bool staleStatus = false;
 
                 // One full embedding attempt. Success publishes the ready
                 // status; failures propagate to the handlers below.
@@ -498,29 +615,18 @@ namespace Avalanche.Features.AI
                 {
                     await _indexer.EnsureEmbeddingsAsync(index,
                         (texts, ct) => _embeddingClient.GenerateEmbeddingsAsync(texts, ct),
-                        embeddingModel, embedProgress, passToken,
+                        embeddingModel, embedProgress, passCt,
                         documentPrefix, queryPrefix);
 
-                    lock (_processingLock)
-                    {
-                        if (generation != _initGeneration)
-                        {
-                            staleStatus = true;
-                            return;
-                        }
-                    }
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        _semanticIndexReady = true;
-                        OnSemanticStateChanged();
-                        if (textlessPages > 0)
-                            SemanticStatus = string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages) +
-                                             " " + _loc("Str_AiChatSemanticReady");
-                        else
-                            SemanticStatus = _loc("Str_AiChatSemanticReady");
-                    });
+                    // v1.19.46: no generation veto here any more - the pass
+                    // belongs to its document, and the vectors it wrote are the
+                    // document's own. A switch away must not undo the work.
+                    if (passCt.IsCancellationRequested) return;
+                    lock (_processingLock) _semanticReadyDocs.Add(docId);
+                    StoreSemanticStatus(docId, () => SemanticReadyLine(docId));
+                    PaintSemanticStatus(docId, () => SemanticReadyLine(docId));
                     Avalanche.Services.AiHighlightLog.Log(
-                        $"embedding pass DONE in {passStopwatch.ElapsedMilliseconds}ms: {chunkCount} chunk(s), semantic channel ready");
+                        $"embedding pass DONE in {passStopwatch.ElapsedMilliseconds}ms: {index.Chunks.Count} chunk(s), semantic channel ready");
                 }
 
                 // NO total pass deadline. The previous 10-minute CancelAfter
@@ -535,19 +641,18 @@ namespace Avalanche.Features.AI
                 // completion with live progress above.
                 try
                 {
-                    passToken = passCt;
-                    Avalanche.Services.AiHighlightLog.Log(
-                        $"embedding pass START: gen={generation} chunks={chunkCount} model={embeddingModel}");
                     await AttemptAsync();
                 }
-                catch (OperationCanceledException) when (passToken.IsCancellationRequested)
+                catch (OperationCanceledException) when (passCt.IsCancellationRequested)
                 {
-                    // Document switched (or panel re-bound): the pass was
-                    // cancelled - previously this exited SILENTLY and left
-                    // the status line stuck on "building" forever.
-                    staleStatus = true;
+                    // The reader toggled research off for this document (or the
+                    // app is closing) - the only hands that stop a pass now
+                    // (v1.19.46). Nothing is lost: embedded chunks stay in the
+                    // store and a later ask resumes from there.
                     Avalanche.Services.AiHighlightLog.Log(
-                        $"embedding pass CANCELLED after {passStopwatch.ElapsedMilliseconds}ms (document switch, gen={generation})");
+                        $"embedding pass CANCELLED after {passStopwatch.ElapsedMilliseconds}ms (doc={TruncLog(docId)})");
+                    StoreSemanticStatus(docId, null);
+                    PaintSemanticStatus(docId, () => "");
                 }
                 catch (OperationCanceledException)
                 {
@@ -556,19 +661,17 @@ namespace Avalanche.Features.AI
                     // visible keyword-only state instead of an eternal wait.
                     Avalanche.Services.AiHighlightLog.Log(
                         $"embedding pass TIMEOUT after {passStopwatch.ElapsedMilliseconds}ms - endpoint never finished; keyword-only mode");
-                    try
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                            SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
-                    }
-                    catch { /* app shutting down */ }
+                    StoreSemanticStatus(docId, () => _loc("Str_AiChatEmbeddingsUnavailable"));
+                    PaintSemanticStatus(docId, () => _loc("Str_AiChatEmbeddingsUnavailable"));
                 }
                 catch (AiProviderException pex) when (pex.Category == AiErrorCategory.ModelNotFound)
                 {
                     Avalanche.Services.AiHighlightLog.Log(
                         $"embedding pass FAILED in {passStopwatch.ElapsedMilliseconds}ms: model missing ({pex.ModelName})");
-                    Application.Current.Dispatcher.Invoke(() =>
-                        SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
+                    StoreSemanticStatus(docId, () => string.Format(
+                        _loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
+                    PaintSemanticStatus(docId, () => string.Format(
+                        _loc("Str_AiChatEmbeddingModelMissing"), pex.ModelName ?? embeddingModel));
                 }
                 catch (Exception embedEx)
                 {
@@ -581,9 +684,7 @@ namespace Avalanche.Features.AI
                     Avalanche.Services.AiHighlightLog.Log(
                         $"embedding pass FAILED after {passStopwatch.ElapsedMilliseconds}ms ({embedEx.GetType().Name}: {TruncLog(embedEx.Message)}) - retrying once in 65s");
 
-                    var outcome = await RetryEmbeddingOnceAsync(
-                        passToken, generation, AttemptAsync,
-                        stale => staleStatus |= stale);
+                    var outcome = await RetryEmbeddingOnceAsync(passCt, AttemptAsync);
 
                     if (outcome == SemanticRetryOutcome.ModelMissing)
                     {
@@ -592,78 +693,200 @@ namespace Avalanche.Features.AI
                             missingModel = firstTyped.ModelName;
                         else if (embedEx.InnerException is AiProviderException innerTyped && !string.IsNullOrEmpty(innerTyped.ModelName))
                             missingModel = innerTyped.ModelName;
-                        Application.Current.Dispatcher.Invoke(() =>
-                            SemanticStatus = string.Format(_loc("Str_AiChatEmbeddingModelMissing"), missingModel));
+                        StoreSemanticStatus(docId, () => string.Format(
+                            _loc("Str_AiChatEmbeddingModelMissing"), missingModel));
+                        PaintSemanticStatus(docId, () => string.Format(
+                            _loc("Str_AiChatEmbeddingModelMissing"), missingModel));
                     }
                     else if (outcome == SemanticRetryOutcome.Unavailable)
                     {
-                        Application.Current.Dispatcher.Invoke(() =>
-                            SemanticStatus = _loc("Str_AiChatEmbeddingsUnavailable"));
+                        StoreSemanticStatus(docId, () => _loc("Str_AiChatEmbeddingsUnavailable"));
+                        PaintSemanticStatus(docId, () => _loc("Str_AiChatEmbeddingsUnavailable"));
                     }
-                    // Ready / Cancelled / Stale need no message here: Ready
-                    // was published by the attempt itself, Cancelled/Stale
-                    // clear the line in the finally below.
+                    // Ready / Cancelled need no message here: Ready
+                    // was published by the attempt itself, Cancelled
+                    // cleared the line in its own handler.
                 }
                 finally
                 {
-                    // A cancelled/orphaned pass must not leave "building"
-                    // on the status line: clear it when this generation
-                    // no longer owns the panel.
-                    if (staleStatus)
+                    lock (_processingLock)
                     {
-                        try
-                        {
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
-                                if (SemanticStatus == _loc("Str_AiChatSemanticBuilding"))
-                                    SemanticStatus = "";
-                            });
-                        }
-                        catch { /* app shutting down */ }
+                        if (_semanticBuildingDoc == docId)
+                            _semanticBuildingDoc = "";
+                        _semanticProgressDone = 0;
+                        _semanticProgressTotal = 0;
                     }
-
-                    // v1.19.5: the research button follows the pass - building
-                    // is over either way (ready, failed, cancelled or stale).
-                    try
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            _semanticBuilding = false;
-                            OnSemanticStateChanged();
-                        });
-                    }
+                    try { Application.Current.Dispatcher.Invoke(OnSemanticStateChanged); }
                     catch { /* app shutting down */ }
+                    // The lane freed: a document on screen that asked for
+                    // research and has none yet starts its pass at once
+                    // (v1.19.46) - queued demand never waits for a click.
+                    HandSemanticLaneToNextDemand();
                 }
             });
+        }
+
+        /// <summary>Remembers a document's terminal research verdict for the
+        /// status line (v1.19.46): the ready line, a failure line, or (null)
+        /// silence after a cancel. The factory runs on the UI thread.</summary>
+        private void StoreSemanticStatus(string docId, Func<string>? lineFactory)
+        {
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    string? line = lineFactory?.Invoke();
+                    lock (_processingLock)
+                    {
+                        if (line is null) _semanticStatusByDoc.Remove(docId);
+                        else _semanticStatusByDoc[docId] = line;
+                    }
+                });
+            }
+            catch { /* app shutting down */ }
+        }
+
+        /// <summary>The ready line for a document's completed research: the
+        /// partial-text-layer caveat rides along when the book has scanned
+        /// pages (v1.19.46 - the line is per document, so returning to the
+        /// book shows the same verdict it earned). UI thread only.</summary>
+        private string SemanticReadyLine(string docId)
+        {
+            int textlessPages;
+            lock (_processingLock) _semanticTextlessByDoc.TryGetValue(docId, out textlessPages);
+            return textlessPages > 0
+                ? string.Format(_loc("Str_AiChatPartialTextLayer"), textlessPages) +
+                  " " + _loc("Str_AiChatSemanticReady")
+                : _loc("Str_AiChatSemanticReady");
+        }
+
+        /// <summary>Paints a semantic status line, but ONLY when the named
+        /// document is the context on screen (v1.19.46): a background pass for
+        /// a document the reader left never writes over the live conversation.</summary>
+        private void PaintSemanticStatus(string docId, Func<string> lineFactory)
+        {
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    lock (_processingLock)
+                    {
+                        if (_isWebContext || _currentDocumentId != docId) return;
+                        SemanticStatus = lineFactory();
+                    }
+                    OnSemanticStateChanged();
+                });
+            }
+            catch { /* app shutting down */ }
+        }
+
+        /// <summary>The semantic status line for the CURRENT document from its
+        /// own state (v1.19.46): the live building counters, the terminal ready
+        /// line, a stored failure, or silence. Each document keeps its own line,
+        /// so returning to a document restores what its research was doing.
+        /// UI thread only.</summary>
+        private string CurrentSemanticStatusLine()
+        {
+            lock (_processingLock)
+            {
+                if (_isWebContext) return "";
+                string doc = _currentDocumentId;
+                if (doc.Length == 0) return "";
+                if (_semanticBuildingDoc == doc)
+                {
+                    return _semanticProgressTotal > 0
+                        ? string.Format(_loc("Str_AiChatSemanticBuildingProgress"),
+                            _semanticProgressDone, _semanticProgressTotal)
+                        : _loc("Str_AiChatSemanticBuilding");
+                }
+                if (_semanticReadyDocs.Contains(doc))
+                    return SemanticReadyLine(doc);
+                return _semanticStatusByDoc.TryGetValue(doc, out var line) ? line : "";
+            }
+        }
+
+        /// <summary>The embedding lane freed (v1.19.46): if the document
+        /// currently on screen asked for research and has none yet, its pass
+        /// starts at once. Requested documents in the background wait for their
+        /// reader to return - their pass resumes then, from the checkpoint.</summary>
+        private void HandSemanticLaneToNextDemand()
+        {
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    DocumentIndex? index = null;
+                    string docId = "";
+                    lock (_processingLock)
+                    {
+                        if (!_isWebContext)
+                        {
+                            docId = _currentDocumentId;
+                            index = _currentIndex;
+                        }
+                        if (docId.Length == 0
+                            || !_semanticRequestedDocs.Contains(docId)
+                            || _semanticReadyDocs.Contains(docId))
+                            return;
+                    }
+                    if (index is not null)
+                        EnsureSemanticPassRunning(index, docId, null);
+                });
+            }
+            catch { /* app shutting down */ }
         }
 
         /// <summary>The reader clicked the research button (v1.19.5): build the
         /// semantic layer for the current document on demand - or, while it is
         /// building, cancel the pass. A ready index needs no second build; the
         /// accent on the button IS the feedback. No lexical index yet (the
-        /// document is still preparing): a no-op worth one more click.</summary>
+        /// document is still preparing): a no-op worth one more click.
+        /// v1.19.46: the request survives switches - clicking research and
+        /// leaving the document does NOT kill the pass; only a second click on
+        /// the same document (or app shutdown) stops it. While another
+        /// document's pass holds the lane, this document's ask parks and its
+        /// line says research is coming.</summary>
         public void ToggleSemanticResearch()
         {
             DocumentIndex? index;
-            int generation;
+            string docId;
             lock (_processingLock)
             {
+                if (_isWebContext) return;
                 index = _currentIndex;
-                generation = _initGeneration;
+                docId = _currentDocumentId;
             }
-            if (index is null) return;
+            if (index is null || docId.Length == 0) return;
 
-            if (_semanticBuilding)
+            bool stopThisDoc = false;
+            bool queuedHere = false;
+            lock (_processingLock)
             {
+                if (_semanticBuildingDoc == docId)
+                    stopThisDoc = true;
+                else if (_semanticReadyDocs.Contains(docId))
+                    return;   // already built; the accent is the feedback
+                else if (_semanticRequestedDocs.Contains(docId) && _semanticBuildingDoc.Length > 0)
+                    queuedHere = true;   // parked behind another document's pass
+                else
+                    _semanticRequestedDocs.Add(docId);
+            }
+
+            if (stopThisDoc)
+            {
+                lock (_processingLock) _semanticRequestedDocs.Remove(docId);
                 try { _semanticPassCts?.Cancel(); } catch (ObjectDisposedException) { }
                 return;
             }
-            if (_semanticIndexReady) return;   // already built; the accent is the feedback
-
-            _semanticResearchEnabled = true;
-            try { _semanticPassCts?.Dispose(); } catch (ObjectDisposedException) { }
-            _semanticPassCts = new CancellationTokenSource();
-            StartSemanticEmbeddingPass(index, _semanticTextlessPages, generation, null, _semanticPassCts.Token);
+            if (queuedHere)
+            {
+                // A parked ask: a second click takes it back.
+                lock (_processingLock) _semanticRequestedDocs.Remove(docId);
+                PaintSemanticStatus(docId, () => "");
+                OnSemanticStateChanged();
+                return;
+            }
+            EnsureSemanticPassRunning(index, docId, null);
         }
 
         /// <summary>Outcome of the single delayed embedding retry.</summary>
@@ -679,12 +902,11 @@ namespace Avalanche.Features.AI
         /// <summary>Waits out the probe cool-down (65s) and retries the whole
         /// embedding pass ONCE. Gives Ollama time to finish a cold model load
         /// that outran the 15s probe window; a still-dead endpoint ends in the
-        /// visible keyword-only state instead of retrying forever.</summary>
+        /// visible keyword-only state instead of retrying forever.
+        /// v1.19.46: no generation veto - the retry belongs to the document.</summary>
         private async Task<SemanticRetryOutcome> RetryEmbeddingOnceAsync(
             CancellationToken passToken,
-            int generation,
-            Func<Task> attempt,
-            Action<bool> markStale)
+            Func<Task> attempt)
         {
             try
             {
@@ -692,17 +914,7 @@ namespace Avalanche.Features.AI
             }
             catch (OperationCanceledException)
             {
-                markStale(true);
                 return SemanticRetryOutcome.Cancelled;
-            }
-
-            lock (_processingLock)
-            {
-                if (generation != _initGeneration)
-                {
-                    markStale(true);
-                    return SemanticRetryOutcome.Stale;
-                }
             }
 
             try
@@ -712,7 +924,6 @@ namespace Avalanche.Features.AI
             }
             catch (OperationCanceledException) when (passToken.IsCancellationRequested)
             {
-                markStale(true);
                 return SemanticRetryOutcome.Cancelled;
             }
             catch (OperationCanceledException)
@@ -828,29 +1039,43 @@ namespace Avalanche.Features.AI
             {
                 if (IsIndexing)
                 {
-                    _pendingUserInput = input;
-                    _pendingPlaceholder = new ChatMessage
+                    string queueKey;
+                    lock (_processingLock) queueKey = _currentDocumentId;
+                    var placeholder = new ChatMessage
                     {
                         MessageRole = ChatMessage.Role.Assistant,
                         Content = _loc("Str_AiChatPreparing"),
                         IsLoading = true
                     };
-                    Application.Current.Dispatcher.Invoke(() => Messages.Add(_pendingPlaceholder));
+                    var queuedMsg = new PendingMessage { Input = input, Placeholder = placeholder };
+                    bool indexArrived;
+                    lock (_processingLock)
+                    {
+                        _pendingByContext[queueKey] = queuedMsg;
+                        indexArrived = _currentIndex != null;
+                    }
+                    Application.Current.Dispatcher.Invoke(() => Messages.Add(placeholder));
 
                     // Indexing can complete while the placeholder is being added
                     // (the completion callback only consumes input queued before
                     // it ran) - resolve immediately so this message is never left
                     // waiting on a placeholder that nothing will replace.
-                    if (_currentIndex != null)
+                    if (indexArrived)
                     {
-                        var queued = _pendingUserInput;
-                        var queuedPlaceholder = _pendingPlaceholder;
-                        _pendingUserInput = null;
-                        _pendingPlaceholder = null;
-                        if (queuedPlaceholder is not null)
-                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(queuedPlaceholder));
-                        if (!string.IsNullOrEmpty(queued))
-                            _ = GenerateReplyAsync(queued);
+                        PendingMessage? resolved = null;
+                        lock (_processingLock)
+                        {
+                            if (_pendingByContext.TryGetValue(queueKey, out var q) && q == queuedMsg)
+                            {
+                                _pendingByContext.Remove(queueKey);
+                                resolved = q;
+                            }
+                        }
+                        if (resolved is not null)
+                        {
+                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(resolved.Placeholder));
+                            _ = GenerateReplyAsync(resolved.Input, queueKey);
+                        }
                     }
                     return;
                 }
@@ -892,47 +1117,63 @@ namespace Avalanche.Features.AI
             OnPropertyChanged(nameof(CanSend));
         }
 
-        /// <summary>
+/// <summary>
         /// Runs retrieval and generation for an already-displayed user message.
-        /// Only one reply can run at a time; the reply runs on its own
-        /// CancellationTokenSource so the user (or a document switch) can
-        /// cancel it - a cancelled reply removes the loading bubble without
-        /// showing an error.
+        /// v1.19.46: the reply belongs to the CONVERSATION it was asked in, not
+        /// to the panel's momentary context. Routing elsewhere in the sidechat
+        /// leaves it running: the thinking bubble re-attaches when the reader
+        /// comes back, and the finished answer (or the error) is delivered into
+        /// that conversation's history even if the reader was elsewhere when
+        /// the model finished. Only that conversation's own Stop cancels.
         /// </summary>
-        private async Task GenerateReplyAsync(string input)
+        private async Task GenerateReplyAsync(string input, string? contextKey = null)
         {
-            var cts = new CancellationTokenSource();
-            CancellationToken ct;
-            int generation;
+            string key;
+            ChatMessage assistantMsg;
+            CancellationTokenSource cts;
             lock (_processingLock)
             {
-                if (IsProcessing)
+                key = contextKey ?? _currentDocumentId;
+                if (key.Length == 0) return;
+                if (_inflightByContext.ContainsKey(key)) return;   // one reply per conversation
+                cts = new CancellationTokenSource();
+                // Add loading assistant message. This is the reply indicator, so
+                // it must not reuse the indexing placeholder text ("Preparing
+                // document...") - during the embedding stall users could not
+                // tell a working reply from a stuck index build.
+                assistantMsg = new ChatMessage
                 {
-                    cts.Dispose();
-                    return; // serialized by the caller paths; never queue a second reply
-                }
-                IsProcessing = true;
-                _replyCts?.Dispose();
-                _replyCts = cts;
-                ct = cts.Token;
-                generation = _initGeneration;
+                    MessageRole = ChatMessage.Role.Assistant,
+                    Content = _loc("Str_AiChatThinking"),
+                    IsLoading = true
+                };
+                _inflightByContext[key] = new InflightReply { Bubble = assistantMsg, Cts = cts };
             }
+            RaiseProcessingStateChanged();
 
-            // Add loading assistant message. This is the reply indicator, so
-            // it must not reuse the indexing placeholder text ("Preparing
-            // document...") - during the embedding stall users could not
-            // tell a working reply from a stuck index build.
-            var assistantMsg = new ChatMessage
-            {
-                MessageRole = ChatMessage.Role.Assistant,
-                Content = _loc("Str_AiChatThinking"),
-                IsLoading = true
-            };
-            Application.Current.Dispatcher.Invoke(() => Messages.Add(assistantMsg));
+            // The bubble joins the live view only when its conversation is the
+            // one on screen; otherwise it travels with the in-flight record and
+            // is delivered to the conversation when it finishes (v1.19.46).
+            bool onScreen;
+            lock (_processingLock) onScreen = _currentDocumentId == key;
+            if (onScreen)
+                Application.Current.Dispatcher.Invoke(() => Messages.Add(assistantMsg));
+
+            CancellationToken ct = cts.Token;
+
+            // v1.19.46: the prompt's memory is snapshotted NOW, from the reply's
+            // own conversation - a switch mid-reply can never pollute it with
+            // another conversation's turns.
+            List<ChatMessage> recentHistory = onScreen
+                ? GetRecentMessages()
+                : RecentHistoryFor(key);
+            if (!recentHistory.Any(m => m.MessageRole == ChatMessage.Role.User && m.Content == input))
+                recentHistory.Add(new ChatMessage { MessageRole = ChatMessage.Role.User, Content = input });
 
             // v1.19.25: the reply's wall clock - extraction/retrieval plus
             // the provider's turn, everything the reader waits through.
             var replyClock = System.Diagnostics.Stopwatch.StartNew();
+            bool cancelled = false;
 
             try
             {
@@ -954,12 +1195,17 @@ namespace Avalanche.Features.AI
                 // prompt's numbered segments are the evidence list, and each
                 // footnote's quote is what the browser hunts down, selects
                 // and highlights on the live page.
-                bool webContext;
-                lock (_processingLock) webContext = _isWebContext;
+                // v1.19.46: the reply's key decides the kind - a web session
+                // key stays a web reply even when the reader moved to a book.
+                bool webContext = WebChat.IsWebSessionKey(key);
                 if (webContext)
                 {
-                    string tabId;
-                    lock (_processingLock) tabId = _currentWebTabId;
+                    // The tab rides the key, not the panel's current context:
+                    // the page the question was asked about is the page it
+                    // reads, wherever the reader went.
+                    string tabId = key.StartsWith(WebChat.SessionPrefix, StringComparison.Ordinal)
+                        ? key[WebChat.SessionPrefix.Length..]
+                        : key;
                     var reader = WebPageReader;
                     WebPageSnapshot? page = null;
                     if (reader is not null)
@@ -982,22 +1228,11 @@ namespace Avalanche.Features.AI
                     var webConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.WebSidechat);
                     var webResponse = await GetProvider(webConfig).GetChatCompletionAsync(
                         WebChat.BuildSystemPrompt(page),
-                        GetRecentMessages(),
+                        recentHistory,
                         new List<DocumentChunk>(),
                         "",
                         webConfig,
                         ct);
-
-                    // A context switch while the request ran must not write the
-                    // old page's answer into the new context's conversation.
-                    lock (_processingLock)
-                    {
-                        if (generation != _initGeneration)
-                        {
-                            Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg));
-                            return;
-                        }
-                    }
 
                     // v1.19.25: the segments the prompt numbered are this
                     // reply's evidence list; the model's sources resolve
@@ -1008,11 +1243,11 @@ namespace Avalanche.Features.AI
                     assistantMsg.Sources = webResponse.Sources;
                     assistantMsg.Content = webResponse.Answer;
                     assistantMsg.IsLoading = false;
-                    // v1.19.25: this answer's wall clock, above the input.
-                    LastDurationText = string.Format(
-                        _loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed));
-                    // v1.19.32: which model answered, at the line's right end.
-                    LastAnswerModel = FormatModelUsed(webConfig.Model);
+                    // v1.19.25: this answer's wall clock, above the input -
+                    // only when this conversation is the one on screen (v1.19.46).
+                    PaintReplyAttribution(key,
+                        () => string.Format(_loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed)),
+                        () => FormatModelUsed(webConfig.Model));
                     return;
                 }
 
@@ -1025,8 +1260,8 @@ namespace Avalanche.Features.AI
                 // from live config (D2/D4).
                 RefreshRetrievalOptions();
 
-                var retrievalQuery = BuildRetrievalQuery(input);
-                var retrieved = await _retriever.RetrieveAsync(_currentDocumentId, retrievalQuery, _retrievalOptions.TopK, ct);
+                var retrievalQuery = BuildRetrievalQuery(input, recentHistory);
+                var retrieved = await _retriever.RetrieveAsync(key, retrievalQuery, _retrievalOptions.TopK, ct);
 
                 Avalanche.Services.AiHighlightLog.Log(
                     $"retrieve: '{TruncLog(retrievalQuery)}' -> {retrieved.Count} chunk(s)" +
@@ -1053,22 +1288,11 @@ namespace Avalanche.Features.AI
                 var config = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.Sidechat);
                 var response = await GetProvider(config).GetChatCompletionAsync(
                     systemPrompt,
-                    GetRecentMessages(),
+                    recentHistory,
                     retrieved.ConvertAll(r => r.Chunk),
                     sourceRefs,
                     config,
                     ct);
-
-                // A document switch while the request ran must not write the
-                // old document's answer into the new document's conversation.
-                lock (_processingLock)
-                {
-                    if (generation != _initGeneration)
-                    {
-                        Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg));
-                        return;
-                    }
-                }
 
                 // Resolve each returned sourceId through THIS reply's evidence
                 // list before anything binds to Sources: the chip row and the
@@ -1078,11 +1302,11 @@ namespace Avalanche.Features.AI
                 assistantMsg.Sources = response.Sources; // chip row binds on this change
                 assistantMsg.Content = response.Answer;  // markdown rebuild sees the sources
                 assistantMsg.IsLoading = false;
-                // v1.19.25: this answer's wall clock, above the input.
-                LastDurationText = string.Format(
-                    _loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed));
-                // v1.19.32: which model answered, at the line's right end.
-                LastAnswerModel = FormatModelUsed(config.Model);
+                // v1.19.25: this answer's wall clock, above the input -
+                // only when this conversation is the one on screen (v1.19.46).
+                PaintReplyAttribution(key,
+                    () => string.Format(_loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed)),
+                    () => FormatModelUsed(config.Model));
 
                 // Scroll to bottom - fire-and-forget UI update
                 _ = Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
@@ -1092,9 +1316,12 @@ namespace Avalanche.Features.AI
             }
             catch (OperationCanceledException)
             {
-                // User cancel (Stop button) or document switch: the loading
-                // bubble disappears without an error bubble.
-                Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg));
+                // The conversation's own Stop button (or a dead web session
+                // letting go): the loading bubble disappears without an error
+                // bubble, and nothing is recorded (v1.19.46).
+                cancelled = true;
+                try { Application.Current.Dispatcher.Invoke(() => Messages.Remove(assistantMsg)); }
+                catch { /* app shutting down */ }
             }
             catch (Exception ex)
             {
@@ -1108,34 +1335,123 @@ namespace Avalanche.Features.AI
             }
             finally
             {
-                lock (_processingLock)
-                {
-                    if (_replyCts == cts)
-                    {
-                        _replyCts.Dispose();
-                        _replyCts = null;
-                    }
-                    IsProcessing = false;
-                }
+                // v1.19.46: retire the in-flight record; when the reader is
+                // elsewhere the finished bubble (answer or error - never a
+                // cancel) is delivered into its own conversation's history,
+                // so coming back shows what was produced.
+                RetireInflight(key, assistantMsg, record: !cancelled);
             }
         }
 
-        /// <summary>Cancels the in-flight reply, if any (Stop button).</summary>
-        public void CancelReply()
+        /// <summary>The timing/model line above the input (v1.19.25/v1.19.32).
+        /// Only the reply whose conversation is on screen may write it
+        /// (v1.19.46): an answer delivered in the background never repaints
+        /// the context the reader is looking at.</summary>
+        private void PaintReplyAttribution(string key, Func<string> durationFactory, Func<string> modelFactory)
+        {
+            bool isCurrent;
+            lock (_processingLock) isCurrent = _currentDocumentId == key;
+            if (!isCurrent) return;
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    lock (_processingLock)
+                    {
+                        if (_currentDocumentId != key) return;
+                        LastDurationText = durationFactory();
+                        LastAnswerModel = modelFactory();
+                    }
+                });
+            }
+            catch { /* app shutting down */ }
+        }
+
+        /// <summary>Ends a reply's bookkeeping (v1.19.46): the in-flight record
+        /// is retired, and when the bubble is not on screen the finished
+        /// message - the answer, or the error - is appended to its own
+        /// conversation's history so returning shows it. A bubble that IS on
+        /// screen stays put; the next SaveHistory picks it up.</summary>
+        private void RetireInflight(string key, ChatMessage assistantMsg, bool record)
         {
             lock (_processingLock)
             {
-                try { _replyCts?.Cancel(); } catch (ObjectDisposedException) { }
+                if (_inflightByContext.TryGetValue(key, out var rec) && rec.Bubble == assistantMsg)
+                {
+                    _inflightByContext.Remove(key);
+                    try { rec.Cts.Dispose(); } catch { }
+                }
             }
+            RaiseProcessingStateChanged();
+            if (!record) return;
+            bool displayed = false;
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() => displayed = Messages.Contains(assistantMsg));
+            }
+            catch { return; /* app shutting down */ }
+            if (displayed) return;
+            lock (_processingLock)
+            {
+                if (_deadSessions.Contains(key)) return;
+                // Copy-on-write: a restore walking the old list on the UI
+                // thread can never meet the append mid-enumeration.
+                var list = _historyByDocument.TryGetValue(key, out var existing)
+                    ? new List<ChatMessage>(existing)
+                    : new List<ChatMessage>();
+                list.Add(assistantMsg);
+                _historyByDocument[key] = list;
+            }
+        }
+
+        /// <summary>The saved transcript of a conversation the reader is not
+        /// looking at (v1.19.46): a reply that keeps running in the background
+        /// builds its prompt from its OWN conversation's history, never from
+        /// whatever context is on screen now.</summary>
+        private List<ChatMessage> RecentHistoryFor(string key)
+        {
+            List<ChatMessage> savedCopy;
+            lock (_processingLock)
+            {
+                savedCopy = _historyByDocument.TryGetValue(key, out var saved)
+                    ? new List<ChatMessage>(saved)
+                    : new List<ChatMessage>();
+            }
+            return GetRecentMessagesFrom(savedCopy);
+        }
+
+        /// <summary>Cancels the CURRENT conversation's in-flight reply, if any
+        /// (Stop button). Replies running for conversations the reader left
+        /// keep running - their answers still reach their own history
+        /// (v1.19.46).</summary>
+        public void CancelReply()
+        {
+            InflightReply? rec;
+            lock (_processingLock)
+            {
+                _inflightByContext.TryGetValue(_currentDocumentId, out rec);
+            }
+            if (rec is null) return;
+            try { rec.Cts.Cancel(); } catch (ObjectDisposedException) { }
         }
 
         /// <summary>Releases the DB connection, HTTP clients and the static
         /// citation-click subscription (which was never removed before, so a
-        /// closed window's VM kept responding to clicks).</summary>
+        /// closed window's VM kept responding to clicks). v1.19.46: the
+        /// research pass and every background reply are stopped too - the app
+        /// is going down, nothing should outlive it.</summary>
         public void Dispose()
         {
             AiMarkdown.CitationClicked -= OnInlineCitationClicked;
             CancelReply();
+            try { _semanticPassCts?.Cancel(); } catch (ObjectDisposedException) { }
+            lock (_processingLock)
+            {
+                foreach (var rec in _inflightByContext.Values)
+                {
+                    try { rec.Cts.Cancel(); } catch (ObjectDisposedException) { }
+                }
+            }
             _vectorIndex.Dispose();
             _embeddingClient.Dispose();
             (_aiProvider as IDisposable)?.Dispose();
@@ -1277,8 +1593,14 @@ namespace Avalanche.Features.AI
         }
 
         private List<ChatMessage> GetRecentMessages()
+            => GetRecentMessagesFrom(Messages);
+
+        /// <summary>v1.19.46: the same trim over any transcript - the live
+        /// conversation for a reply on screen, or the saved transcript of the
+        /// conversation a background reply belongs to.</summary>
+        private List<ChatMessage> GetRecentMessagesFrom(IEnumerable<ChatMessage> source)
         {
-            return Messages
+            return source
                 .Where(m => m.MessageRole != ChatMessage.Role.System
                             && !m.IsLoading
                             && string.IsNullOrWhiteSpace(m.Error))
@@ -1339,20 +1661,20 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>
-        /// Clears the current conversation and index (for document switch).
-        /// Cancels the in-flight reply and any queued message: without that,
-        /// a reply for the PREVIOUS document kept IsProcessing true for up to
-        /// five minutes and the new document's chat could not send.
+        /// Clears the current conversation binding (for document switch).
+        /// v1.19.46: the in-flight reply and the research pass belong to their
+        /// document now - NEITHER is cancelled here. The reply lands in its
+        /// conversation's history when the model answers, the embedding pass
+        /// keeps building, and the new context's chat can send at once because
+        /// "processing" is a per-conversation question.
         /// </summary>
         public void ClearForDocumentSwitch()
         {
             lock (_processingLock)
             {
-                // Invalidate any in-flight index build or deferred reply.
+                // Invalidate any in-flight index build for the leaving document.
                 _initGeneration++;
-                try { _replyCts?.Cancel(); } catch (ObjectDisposedException) { }
                 try { _indexingCts?.Cancel(); } catch (ObjectDisposedException) { }
-                try { _semanticPassCts?.Cancel(); } catch (ObjectDisposedException) { }
                 _currentIndex = null;
                 _currentFilePath = "";
                 _currentDocumentId = "";
@@ -1360,8 +1682,6 @@ namespace Avalanche.Features.AI
                 _currentWebTabId = "";
                 _webTitle = "";
                 _webUrl = "";
-                _pendingUserInput = null;
-                _pendingPlaceholder = null;
             }
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -1370,30 +1690,34 @@ namespace Avalanche.Features.AI
                 SemanticStatus = "";
                 LastDurationText = "";   // no answer of this context is on screen
                 LastAnswerModel = "";
-                // v1.19.5: the research button returns to idle with the book.
-                _semanticResearchEnabled = false;
-                _semanticBuilding = false;
-                _semanticIndexReady = false;
-                _semanticTextlessPages = 0;
-                OnSemanticStateChanged();
+                OnSemanticStateChanged();   // the research face follows the leaving document
             });
+            RaiseProcessingStateChanged();
         }
 
         /// <summary>
         /// Starts a fresh conversation: clears bubbles, the input box and any
-        /// deferred reply without dropping the document index, so the next
-        /// question answers immediately (no re-index wait). The New-chat
-        /// button is disabled (CanStartNewChat) while a reply is streaming.
+        /// message queued for THIS conversation, without dropping the document
+        /// index, so the next question answers immediately (no re-index wait).
+        /// The New-chat button is disabled (CanStartNewChat) while a reply is
+        /// streaming.
         /// </summary>
         public void StartNewChat()
         {
+            PendingMessage? parked = null;
             lock (_processingLock)
             {
-                _pendingUserInput = null;
-                _pendingPlaceholder = null;
+                if (_currentDocumentId.Length > 0
+                    && _pendingByContext.TryGetValue(_currentDocumentId, out var pm))
+                {
+                    _pendingByContext.Remove(_currentDocumentId);
+                    parked = pm;
+                }
             }
             Application.Current.Dispatcher.Invoke(() =>
             {
+                if (parked is not null)
+                    Messages.Remove(parked.Placeholder);
                 Messages.Clear();
                 ClearInput();
                 LastDurationText = "";   // a fresh conversation has no last answer
@@ -1463,8 +1787,11 @@ namespace Avalanche.Features.AI
             }
 
             SaveHistory();
-            ClearForDocumentSwitch();   // bump generation, cancel everything, clear bubbles
-            bool restored;
+            ClearForDocumentSwitch();   // bump generation, re-bind identity, clear bubbles
+            InflightReply? inflight = null;
+            bool inflightLoading = false;
+            PendingMessage? pending = null;
+            List<ChatMessage> savedSnapshot = new();
             lock (_processingLock)
             {
                 _isWebContext = true;
@@ -1474,17 +1801,27 @@ namespace Avalanche.Features.AI
                 _currentIndex = null;
                 _webTitle = title;
                 _webUrl = url;
-                restored = _historyByDocument.ContainsKey(key);
+                // Restore this tab's saved transcript (C6) - snapshotted under
+                // the lock so a background delivery appending an answer can
+                // never tear the walk (v1.19.46).
+                if (_historyByDocument.TryGetValue(key, out var savedList))
+                    savedSnapshot.AddRange(savedList);
+                if (_inflightByContext.TryGetValue(key, out inflight))
+                    inflightLoading = inflight.Bubble.IsLoading;
+                _pendingByContext.TryGetValue(key, out pending);
             }
-            var sessionKey = key;
             Application.Current.Dispatcher.Invoke(() =>
             {
                 Messages.Clear();
-                if (restored && _historyByDocument.TryGetValue(sessionKey, out var saved))
-                {
-                    foreach (var m in saved)
-                        Messages.Add(m);
-                }
+                foreach (var m in savedSnapshot)
+                    Messages.Add(m);
+                // v1.19.46: this tab's own in-flight reply re-attaches its
+                // thinking bubble - the answer lands inside it when the model
+                // finishes, however many times the reader routed away.
+                if (inflight is not null && inflightLoading && !Messages.Contains(inflight.Bubble))
+                    Messages.Add(inflight.Bubble);
+                else if (pending is not null && !Messages.Contains(pending.Placeholder))
+                    Messages.Add(pending.Placeholder);
                 ContextTitle = WebContextLabel(title, url);
                 IndexingStatus = "";
                 IndexingProgress = 0.0;
@@ -1493,6 +1830,8 @@ namespace Avalanche.Features.AI
                 // that never went away was noise, not information. Silence
                 // collapses the row; the button itself explains on click.
                 SemanticStatus = "";
+                OnSemanticStateChanged();
+                RaiseProcessingStateChanged();
             });
         }
 
@@ -1532,6 +1871,17 @@ namespace Avalanche.Features.AI
             lock (_processingLock)
             {
                 _historyByDocument.Remove(key);
+                // v1.19.46: a dead tab's queued question and in-flight reply
+                // die with the session - the reply is cancelled and its result
+                // is never delivered anywhere.
+                _deadSessions.Add(key);
+                _pendingByContext.Remove(key);
+                if (_inflightByContext.TryGetValue(key, out var rec))
+                {
+                    _inflightByContext.Remove(key);
+                    try { rec.Cts.Cancel(); } catch (ObjectDisposedException) { }
+                    try { rec.Cts.Dispose(); } catch { }
+                }
                 wasCurrent = _isWebContext && _currentDocumentId == key;
                 if (wasCurrent)
                 {
@@ -1540,6 +1890,7 @@ namespace Avalanche.Features.AI
                     _currentDocumentId = "";
                 }
             }
+            RaiseProcessingStateChanged();
             if (wasCurrent)
             {
                 Application.Current.Dispatcher.Invoke(() =>
@@ -1587,14 +1938,16 @@ namespace Avalanche.Features.AI
         /// Retrieval query for the user's input, the previous question and the
         /// shared follow-up heuristics now live in the testable AiChatText
         /// helper (D5): only genuine follow-ups are widened, and widening
-        /// caps the PREVIOUS question, never the current one.
+        /// caps the PREVIOUS question, never the current one. v1.19.46: the
+        /// previous question comes from the reply's own conversation snapshot,
+        /// never from whatever context is on screen when the model is read.
         /// </summary>
-        private string BuildRetrievalQuery(string input)
+        private string BuildRetrievalQuery(string input, List<ChatMessage> transcript)
         {
             string? previous = null;
-            for (int i = Messages.Count - 1; i >= 0; i--)
+            for (int i = transcript.Count - 1; i >= 0; i--)
             {
-                var m = Messages[i];
+                var m = transcript[i];
                 if (m.MessageRole == ChatMessage.Role.User && !string.IsNullOrWhiteSpace(m.Content))
                 {
                     previous = m.Content.Trim();
