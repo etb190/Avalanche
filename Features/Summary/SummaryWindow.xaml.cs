@@ -219,6 +219,13 @@ namespace Avalanche.Features.Summary
             // minimize the whole app. The ledger is how the main window knows
             // (Shell/FloatFocusLedger.cs).
             Activated += (_, _) => FloatFocusLedger.NoteFloatActivated();
+            // v1.19.44: the float's death - or its deactivation, for the
+            // floats that linger past the click - opens the restore net's
+            // echo window: a minimize landing within it reads as the
+            // click-away's echo, not as an order to the whole app
+            // (Shell/FloatFocusLedger.cs).
+            Deactivated += (_, _) => FloatFocusLedger.NoteFloatDismissed();
+            Closed += (_, _) => FloatFocusLedger.NoteFloatDismissed();
 
             // The entrance: the window is born transparent and PlayOpenPop raises
             // it on Loaded, so the first painted frame is already animating from

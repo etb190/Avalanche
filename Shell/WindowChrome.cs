@@ -84,6 +84,7 @@ namespace Avalanche
             {
                 WebPane?.CloseExtActionWindowExt();
                 FloatFocusLedger.NoteMainActivated();
+                FloatFocusLedger.NoteShieldedMinimizeUndo();
                 Activate();
                 handled = true;
                 return IntPtr.Zero;
@@ -442,8 +443,14 @@ namespace Avalanche
                 { UseShellExecute = true });
         }
 
-        private void MinimizeBtn_Click(object sender, RoutedEventArgs e) =>
+        private void MinimizeBtn_Click(object sender, RoutedEventArgs e)
+        {
+            // v1.19.44: the caption button is the reader's own hand - stamped
+            // deliberate so the restore net never reads it as a click-away
+            // echo and bounces it (Shell/FloatFocusLedger.cs).
+            FloatFocusLedger.NoteDeliberateMinimize();
             WindowState = WindowState.Minimized;
+        }
 
         private void MaximizeBtn_Click(object sender, RoutedEventArgs e) =>
             WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
@@ -459,17 +466,44 @@ namespace Avalanche
             RepositionAnnotationBars();
             if (WindowState == WindowState.Minimized)
             {
+                // v1.19.44: the restore net - the last line behind the WndProc
+                // veto. Three vetoes reading the world BEFORE the command all
+                // lost to one ordering: the click-away activates this window
+                // first, so by the time the minimize is cut the guards see a
+                // foreground that is already ours. This net reads the world
+                // AFTER: a minimize that lands while a float was in charge or
+                // a breath after one died, carrying no deliberate stamp and no
+                // suspended shield, is not a minimize the reader asked for -
+                // it is undone to the state before it, whatever channel
+                // delivered it (WM_SYSCOMMAND, a shell that skips it,
+                // anything). The float itself still dies with its click-away:
+                // the StateChanged subscriber in MainWindow.xaml.cs has
+                // already closed the bubble by the time this runs.
+                if (FloatFocusLedger.ShouldRestoreMinimize())
+                {
+                    FloatFocusLedger.NoteShieldedMinimizeUndo();
+                    WindowState = _stateBeforeMinimize;
+                    return;
+                }
                 _wasMinimized = true;
                 _minimizedAt = DateTime.UtcNow;
             }
-            else if (_wasMinimized)
+            else
             {
-                _wasMinimized = false;
-                OnWindowRestoredFromMinimize();
+                _stateBeforeMinimize = WindowState;
+                if (_wasMinimized)
+                {
+                    _wasMinimized = false;
+                    OnWindowRestoredFromMinimize();
+                }
             }
         }
 
         private bool _wasMinimized;
+        // v1.19.44: the state the restore net returns to - Normal or
+        // Maximized, kept fresh on every non-minimized transition so the undo
+        // lands the window exactly where the reader left it.
+        private WindowState _stateBeforeMinimize = WindowState.Normal;
         // The restore repaint lives in Shell/SurfaceResurrection.cs: a staggered 4-pass
         // "surface resurrection" (synchronous Win32 full redraw + 1px render-target nudge
         // + full render-pipeline rebuild) driven by monitor-power, resume, unlock and

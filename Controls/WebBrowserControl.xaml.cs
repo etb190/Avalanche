@@ -3449,12 +3449,20 @@ namespace Avalanche.Controls
             // bubble (the book, the browser, another app) closes it, exactly
             // as a Chrome popup leaves when it loses the click. Escape, the
             // caption's X, the owner's death and this are the four exits.
-            win.Deactivated += (_, _) => { try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ } };
+            win.Deactivated += (_, _) =>
+            {
+                FloatFocusLedger.NoteFloatDismissed();   // v1.19.44: the echo window opens with the death
+                try { win.Close(); } catch { /* an already-closing bubble is no one's emergency */ }
+            };
             // v1.19.43: the bubble reports its activation to the float ledger -
             // while it holds the app's foreground, a taskbar toggle reads as a
             // click at it, not as an order to minimize the whole app
             // (Shell/FloatFocusLedger.cs).
             win.Activated += (_, _) => FloatFocusLedger.NoteFloatActivated();
+            // v1.19.44: and reports every exit - the X, Escape, the owner's
+            // own death - so the restore net's echo window always opens,
+            // whichever exit the click-away raced (Shell/FloatFocusLedger.cs).
+            win.Closed += (_, _) => FloatFocusLedger.NoteFloatDismissed();
             win.Content = root;
             shell.Window = win;
             return shell;

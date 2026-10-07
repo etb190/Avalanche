@@ -168,6 +168,12 @@ namespace Avalanche
         {
             var hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd == IntPtr.Zero) return;
+            // v1.19.44: this menu's Minimize is the reader's own decision made
+            // on THIS window - stamp it deliberate so the restore net never
+            // reads it as a click-away echo and bounces it. The command it
+            // posts is indistinguishable from a shell's taskbar toggle by the
+            // time it arrives; only this stamp can tell them apart.
+            if (cmd == SC_MINIMIZE) FloatFocusLedger.NoteDeliberateMinimize();
             // Post rather than Send: the menu is still closing, and SC_MOVE / SC_SIZE start a
             // modal loop that must not run inside the click handler.
             PostMessage(hwnd, WM_SYSCOMMAND, new IntPtr(cmd), IntPtr.Zero);

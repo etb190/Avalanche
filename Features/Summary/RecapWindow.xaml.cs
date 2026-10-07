@@ -105,6 +105,12 @@ namespace Avalanche.Features.Summary
             // ledger should know: a taskbar toggle then reads as a click at
             // it, not as an order to minimize the whole app.
             Activated += (_, _) => FloatFocusLedger.NoteFloatActivated();
+            // v1.19.44: same echo window as every other float - a click makes
+            // the companion the foreground, so its death and deactivation
+            // open the window the restore net reads
+            // (Shell/FloatFocusLedger.cs).
+            Deactivated += (_, _) => FloatFocusLedger.NoteFloatDismissed();
+            Closed += (_, _) => FloatFocusLedger.NoteFloatDismissed();
             WindowFx.EnableFadeClose(this, WindowFx.PopMs, pop: true);
             Opacity = 0;
             Loaded += (_, _) => WindowFx.PlayOpenPop(this);
