@@ -631,6 +631,41 @@ namespace Avalanche.Controls
             }));
         }
 
+        // v1.19.39: the fast path of RenderActiveSession, for a tab arrival that adopts its
+        // own retained continuous view (SwitchToTab's fastSwitch / CloseTabCore's fastArrival).
+        // Everything the queued path defers - the Loaded setup dispatch, the Background zoom
+        // replay, the ContextIdle scroll restore - runs inline here, and the saved position is
+        // applied after one synchronous layout pass, while the dispatcher still has not painted
+        // a single frame of the switch. The reader's eye keeps the previous tab's last frame
+        // until the new book's finished first frame replaces it. The gate's Begin() also
+        // retires whatever restores an older arrival still had queued, so a stale offset can
+        // never land on top of ours.
+        private void RenderActiveSessionSync()
+        {
+            DocumentSession session = _active!;
+            _tabViewportRestoreGate.Begin();
+            // Snapshot before rebuilding the viewport (same reason as the queued path).
+            double sh = session.ScrollH, sv = session.ScrollV;
+
+            FileNameLabel.Text = System.IO.Path.GetFileName(session.OriginalFile ?? "");
+            _annotationCanvas.Children.Clear();
+            MarkDirty(_isDirty);
+            BootstrapDocumentView(session.PageIndex, autoFit: false,
+                restoreVerticalOffset: session.View == ViewMode.Continuous ? session.ScrollV : null,
+                synchronous: true);
+            SetTool(session.Tool);   // restore this document's active editing tool (and its tool bar)
+
+            // One synchronous layout pass so the scroll extent matches the adopted tree under
+            // this tab's zoom, then the saved position - all inside the click's dispatcher pass.
+            PagePreviewPanel.UpdateLayout();
+            try
+            {
+                PagePreviewPanel.ScrollToHorizontalOffset(sh);
+                PagePreviewPanel.ScrollToVerticalOffset(sv);
+            }
+            catch { }
+        }
+
         // Visual reset to the no-document drop-zone state. Mirrors CloseFile's teardown but
         // does not close the document or touch session bookkeeping (callers handle that).
         private void ShowEmptyState()
@@ -814,14 +849,33 @@ namespace Avalanche.Controls
             // a re-seat of the tab's own array; every unusable case (never built, still
             // decoding, file rewritten, page count moved) falls back to the full refresh.
             _sidebarReseatPending = true;
+            // v1.19.39: an arrival that carries its own built continuous view (v1.19.38's
+            // stash, with the engine view that was its identity gate) goes up in ONE paint:
+            // the tree is re-attached, laid out, re-scrolled and re-zoomed synchronously, at
+            // full opacity. The dispatcher never paints anything but the finished book, so
+            // the flip reads as if that pdf had always been there. The old unconditional dip
+            // was the flash itself: a WPF Render pass outranks Loaded, so the dip's blank
+            // frame was guaranteed BEFORE the deferred setup even started, and the 140 ms
+            // fade on top of the whole dispatch chain was the tail of the "one second" every
+            // flip still cost.
+            bool fastSwitch = target.Doc != null && target.DeferredPath == null
+                           && target.View == ViewMode.Continuous
+                           && target.EngineView != null
+                           && target.RetainedContinuousSlots is { Count: > 0 } fastSlots
+                           && target.RetainedContinuousTops is { } fastTops
+                           && fastTops.Count == fastSlots.Count;
+            PageContentGrid.BeginAnimation(UIElement.OpacityProperty, null);
             // Hide the document content while the new tab renders and restores its scroll position, then fade
             // it in. This masks the rebuild and the "loads at the top then snaps to my place" jump - the user
             // only sees the final, correctly-scrolled view fade in. PageContentGrid is the parent of BOTH the
             // single/grid panel and the continuous panel, so one fade covers every view mode.
-            PageContentGrid.BeginAnimation(UIElement.OpacityProperty, null);
-            PageContentGrid.Opacity = 0;
+            // v1.19.39: only a genuine rebuild (fresh open, rewritten file, first arrival,
+            // another view mode) still needs that mask.
+            PageContentGrid.Opacity = fastSwitch ? 1 : 0;
             if (target.Doc == null && target.DeferredPath != null)
                 MaterializeDeferred(target);
+            else if (fastSwitch)
+                RenderActiveSessionSync();
             else
                 RenderActiveSession();
             // The switch can move the overflow window (the incoming tab may have been behind the
@@ -835,7 +889,7 @@ namespace Avalanche.Controls
             // copy whose name must not stand in for the reader's real file.
             if (target.CurrentFile != null)
                 Host?.ActiveDocumentChanged(target.OriginalFile ?? target.CurrentFile);
-            FadeInDocContent();
+            if (!fastSwitch) FadeInDocContent();   // a fast arrival is already at full opacity
         }
 
         // Fade the document pane content back in after a switch. Queued at ContextIdle so it runs AFTER the
@@ -950,6 +1004,15 @@ namespace Avalanche.Controls
             s.RenderCacheSize.Clear();
             s.EngineView = null;     // the closed tab's engine view (file bytes included) goes with it
             s.DropRetainedContinuousView();   // v1.19.38: and its kept view with both
+            // v1.19.39: the decoded sidebar thumbnails are bitmaps too - a big book's array is
+            // tens of MB, and nothing else was releasing it. Cancel a decode that is still
+            // running for this book (it would keep feeding a dead tab's array) and drop the
+            // cache with the tab, so CompactLohSoon below returns all of it at once.
+            try { s.ThumbCts?.Cancel(); } catch { }
+            s.ThumbCache = null;
+            s.ThumbCacheFile = null;
+            s.ThumbCacheStamp = null;
+            s.ThumbCacheComplete = false;
             CompactLohSoon();        // #122: give the freed bitmap memory back to the OS
 
             if (_sessions.Count == 0)
@@ -970,7 +1033,23 @@ namespace Avalanche.Controls
                 // v1.19.37: closing one tab and landing on its neighbor is a switch too - the
                 // neighbor's own page list never changed. Same re-seat, same fallbacks.
                 _sidebarReseatPending = true;
+                // v1.19.39: the same single-paint fast arrival a switch gets. The stash above
+                // detached the closed tab's slots synchronously, so the queued path painted an
+                // EMPTY pane for every frame before the Loaded callback rebuilt - a neighbor
+                // with its built view intact now attaches, lays out and re-scrolls inline.
+                bool fastArrival = next.Doc != null && next.DeferredPath == null
+                                && next.View == ViewMode.Continuous
+                                && next.EngineView != null
+                                && next.RetainedContinuousSlots is { Count: > 0 } naSlots
+                                && next.RetainedContinuousTops is { } naTops
+                                && naTops.Count == naSlots.Count;
+                if (fastArrival)
+                {
+                    PageContentGrid.BeginAnimation(UIElement.OpacityProperty, null);
+                    PageContentGrid.Opacity = 1;
+                }
                 if (next.Doc == null && next.DeferredPath != null) MaterializeDeferred(next);
+                else if (fastArrival) RenderActiveSessionSync();
                 else RenderActiveSession();
                 if (next.CurrentFile != null)
                     Host?.ActiveDocumentChanged(next.OriginalFile ?? next.CurrentFile);   // AI chat follows the tab
@@ -997,11 +1076,27 @@ namespace Avalanche.Controls
             }
 
             CancelRenderWork();
-            foreach (var s in docTabs) { try { s.Doc?.Close(); } catch { } s.EngineView = null; s.DropRetainedContinuousView(); }
+            foreach (var s in docTabs)
+            {
+                try { s.Doc?.Close(); } catch { }
+                s.EngineView = null;
+                s.DropRetainedContinuousView();
+                // v1.19.39: same release a single close gets - a running decode stops, the
+                // decoded thumbnails go with the tab.
+                try { s.ThumbCts?.Cancel(); } catch { }
+                s.ThumbCache = null;
+                s.ThumbCacheFile = null;
+                s.ThumbCacheStamp = null;
+                s.ThumbCacheComplete = false;
+            }
             try { _doc?.Close(); } catch { }
             _doc = null;
 
             _sessions.Clear();
+            // v1.19.39: the closed tabs sat in the LRU list with their render-bitmap caches
+            // alive - Close All left every one of them rooted until enough new tabs pushed
+            // them out the cap. Clearing the list releases the bitmaps with the tabs.
+            _renderLru.Clear();
             Host?.NotesHistoryDiscarded(null);   // every tab at once: the whole history dies
             Host?.SummaryVisibilityDiscarded(null);   // and every book's navigator wish with it
             App.RemoveSetting("LastFile");   // a manually emptied window won't reopen on launch

@@ -454,7 +454,7 @@ namespace Avalanche.Controls
         }
 
         internal void SetupContinuousView(int initialPage, bool fitDefault = true,
-            double? restoreVerticalOffset = null)
+            double? restoreVerticalOffset = null, bool synchronous = false)
         {
             if (_doc is null) return;
             PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
@@ -466,7 +466,7 @@ namespace Avalanche.Controls
             // here - no teardown, no rebuild, no re-render, no re-sharpen. The rebuild below
             // stays for every genuinely-new layout: fresh opens, file rewrites, mode returns
             // without a stash.
-            if (TryAdoptRetainedContinuousView(engineSession, initialPage, restoreVerticalOffset)) return;
+            if (TryAdoptRetainedContinuousView(engineSession, initialPage, restoreVerticalOffset, synchronous)) return;
             _continuousScrollTarget = restoreVerticalOffset.HasValue ? -1 : initialPage;
             SyncPageListSelection(initialPage);
             // Coming from Grid, the shared ScrollViewer still carries the grid's overrides
@@ -622,7 +622,7 @@ namespace Avalanche.Controls
         // Re-attach a session's stashed continuous tree. False = no usable stash (the caller
         // rebuilds as always); a stale or unusable stash is dropped on the way out.
         private bool TryAdoptRetainedContinuousView(PdfEngineDocumentSession engineSession,
-            int initialPage, double? restoreVerticalOffset)
+            int initialPage, double? restoreVerticalOffset, bool synchronous = false)
         {
             var s = _active;
             if (s?.RetainedContinuousSlots is not { } slots) return false;
@@ -667,13 +667,17 @@ namespace Avalanche.Controls
 
             // The same scroll restore the rebuild path queues: the saved offset, or the page
             // the tab reports. RenderActiveSession's ContextIdle restore still runs after this.
-            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
-            {
-                if (restoreVerticalOffset.HasValue)
-                    PagePreviewPanel.ScrollToVerticalOffset(restoreVerticalOffset.Value);
-                else
-                    ScrollContinuousToPage(initialPage);
-            });
+            // v1.19.39: the synchronous fast path skips the queue - its caller runs one layout
+            // pass inline and applies the saved offset itself, while the dispatcher still has
+            // not painted a frame of the switch.
+            if (!synchronous)
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+                {
+                    if (restoreVerticalOffset.HasValue)
+                        PagePreviewPanel.ScrollToVerticalOffset(restoreVerticalOffset.Value);
+                    else
+                        ScrollContinuousToPage(initialPage);
+                });
 
             // Fill any slot the stash left empty the way every render arrives: adopted window
             // slots hold their bitmaps, so the todo list is usually empty; cache hits re-attach
@@ -1648,7 +1652,8 @@ namespace Avalanche.Controls
         }
 
         internal void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false,
-            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null)
+            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null,
+            bool synchronous = false)
         {
             DocumentSession? expectedSession = _active;
             // The document is (re)displaying - usually a different one (tab switch/close/open). The
@@ -1681,12 +1686,22 @@ namespace Avalanche.Controls
                 _currentPage = page;
                 // Continuous's SelectionChanged returns early (no RenderPage call), so build its panel here.
                 if (isContinuous)
-                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                        () =>
-                        {
-                            if (expectedSession is not null && !ReferenceEquals(_active, expectedSession)) return;
-                            SetupContinuousView(page, fitDefault: autoFit, restoreVerticalOffset);
-                        });
+                {
+                    if (synchronous)
+                    {
+                        // v1.19.39: the fast switch runs the whole arrival inline - the caller
+                        // wants tree, layout and scroll settled before the dispatcher paints.
+                        SetupContinuousView(page, fitDefault: autoFit, restoreVerticalOffset,
+                            synchronous: true);
+                    }
+                    else
+                        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                            () =>
+                            {
+                                if (expectedSession is not null && !ReferenceEquals(_active, expectedSession)) return;
+                                SetupContinuousView(page, fitDefault: autoFit, restoreVerticalOffset);
+                            });
+                }
                 // RefreshPageList re-seats the sidebar under _syncingPageList, so the selection
                 // handler never renders the primary for a new document. Render it here, or the
                 // previous tab's page stays on screen in Single, Two-Page and Grid.
@@ -1695,6 +1710,27 @@ namespace Avalanche.Controls
                 // Fit / zoom once the first page has rendered and layout has settled.
                 // DispatcherPriority.Background is lower than Loaded, so this fires after
                 // all pending RenderPage / RefreshPageView callbacks have completed.
+                // v1.19.39: the synchronous fast path applies the zoom INLINE instead. The
+                // adopted tree's bitmaps were rendered at exactly the tab's saved zoom, so the
+                // LayoutTransform is the only thing that has to move: ApplyZoom(lite) rescales
+                // the existing render without re-rendering it, without clobbering the tab's
+                // fit mode, and without scheduling the deferred re-sharpen whose blur-to-sharp
+                // snap read as a second load after the flip. The tab shows the exact pixels it
+                // wore when it left - which is the whole point of the retained tree.
+                if (synchronous)
+                {
+                    if (_viewMode == ViewMode.Grid)
+                        SetZoom(GridZoomForN(_gridColumns));
+                    else
+                    {
+                        if (_pageContentGrid.LayoutTransform is not ScaleTransform)
+                            _pageContentGrid.LayoutTransform = new ScaleTransform(1, 1);
+                        ApplyZoom(lite: true);
+                    }
+                    if (System.Windows.Input.Keyboard.FocusedElement is not TextBox { IsReadOnly: false })
+                        PagePreviewPanel.Focus();
+                }
+                else
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
                     (Action)(() =>
                     {
@@ -1743,7 +1779,9 @@ namespace Avalanche.Controls
                         if (System.Windows.Input.Keyboard.FocusedElement is not TextBox { IsReadOnly: false })
                             PagePreviewPanel.Focus();
                     }));
-                if (restoreHorizontalOffset.HasValue || restoreVerticalOffset.HasValue)
+                // v1.19.39: the synchronous caller restores both offsets itself, after its own
+                // UpdateLayout - a queued restore here would only re-apply the same numbers.
+                if (!synchronous && (restoreHorizontalOffset.HasValue || restoreVerticalOffset.HasValue))
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,
                         (Action)(() =>
                         {
