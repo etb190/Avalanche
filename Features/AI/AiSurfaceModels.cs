@@ -30,7 +30,7 @@ namespace Avalanche.Features.AI
         public const string GptChoice = "gpt-oss";
 
         // v1.19.47: two more guests on NVIDIA's NIM cloud API - the dial's
-        // third and fourth names, offered on the sidechat dials. Both
+        // third and fourth names, on every dial as of v1.19.48. Both
         // speak the same OpenAI-compatible /chat/completions as nemotron;
         // the reader named them Kimi and Glm.
         public const string KimiChoice = "kimi";

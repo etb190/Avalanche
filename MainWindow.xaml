@@ -3544,6 +3544,9 @@
                                           SelectedValue="{Binding SummaryModelChoice, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3571,6 +3574,9 @@
                                           SelectedValue="{Binding RecallerModelChoice, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                 </ComboBox>
                                 <!-- v1.19.34: the notes dial - the left sidebar's own
                                      voice, back under its own name. -->
@@ -3580,6 +3586,9 @@
                                           SelectedValue="{Binding NotesModelChoice, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelTester}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3587,6 +3596,9 @@
                                           SelectedValue="{Binding AiTesterModelChoice, Mode=TwoWay}">
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatBaseUrl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
