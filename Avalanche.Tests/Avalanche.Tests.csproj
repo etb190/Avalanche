@@ -76,8 +76,6 @@
     <Compile Include="..\Features\AI\FtsQueryBuilder.cs" Link="Features\AI\FtsQueryBuilder.cs" />
     <Compile Include="..\Features\AI\PassageQuoteValidator.cs" Link="Features\AI\PassageQuoteValidator.cs" />
     <Compile Include="..\Features\AI\DocumentChunker.cs" Link="Features\AI\DocumentChunker.cs" />
-    <!-- Pure prose-guarantee logic for the page digest - no WPF, no I/O. -->
-    <Compile Include="..\Features\Summary\ProseGuard.cs" Link="Features\Summary\ProseGuard.cs" />
     <!-- The geometric Markdown normalizer: pure (PageTextRuns in, GFM text out). -->
     <Compile Include="..\Features\Summary\MarkdownNormalizer.cs" Link="Features\Summary\MarkdownNormalizer.cs" />
     <Compile Include="..\Features\Summary\ExplainSourceSelection.cs" Link="Features\Summary\ExplainSourceSelection.cs" />

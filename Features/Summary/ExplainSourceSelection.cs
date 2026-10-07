@@ -10,7 +10,7 @@
 // plain characters, and a range too large for one request travels pre-selected:
 // whole [p. N] pages scored by word-overlap with the excerpt ride first and the
 // far pages stay home. Pure and unit-testable; compiled into the test project
-// directly, like ProseGuard and MarkdownNormalizer.
+// directly, like MarkdownNormalizer.
 
 namespace Avalanche.Features.Summary
 {

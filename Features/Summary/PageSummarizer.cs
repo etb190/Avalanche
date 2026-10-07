@@ -18,13 +18,14 @@
 //    flowing prose - no invented headings, no page tags, strict word ceiling.
 //    Legacy [[p. N]] / [[H]] markers stay recognized everywhere the new
 //    surface could meet old text.
-//  * Bullet guarantee (v1.8.86, reshaped v1.19.51): the digest streams into a
-//    HIDDEN buffer and nothing reaches the screen until the full answer has been
-//    inspected. A bullet-dominant answer is retried once against an escalated
-//    prose-only prompt and, failing that, mechanically flattened into flowing
-//    paragraphs (ProseGuard); the guarded text then paints in word-boundary
-//    chunks. Hidden reasoning is never shown as a digest. No bullet list can be
-//    displayed or cached.
+//  * Live paint (v1.19.52): the digest streams straight to the card AS the
+//    model writes it - no hidden buffer, no post-hoc reshaping, no retried
+//    second draft. What the model says is what the reader sees, bullets and
+//    all. Two quiet guards remain and neither touches the prose: a refusal
+//    detected at stream-end is reported and never cached, and an answer that
+//    never started (a reasoning model that burned its whole budget thinking)
+//    retries once at double the token budget before failing loudly - nothing
+//    has painted yet, so the retry is invisible.
 //  * SSE streaming against the same OpenAI-compatible endpoint the chat uses
 //    (AiProviderConfig), with a non-SSE fallback: endpoints that ignore stream:true
 //    answer with one JSON body and we surface it as a single delta.
@@ -306,16 +307,15 @@ namespace Avalanche.Features.Summary
                         ct).ConfigureAwait(false);
                     if (!string.IsNullOrEmpty(cached))
                     {
-                        if (LooksLikeRefusal(cached) || ProseGuard.LooksLikeBulletList(cached))
+                        if (LooksLikeRefusal(cached))
                         {
-                            // An older build could cache the model's refusal (or, before the
-                            // prose guard, a bullet dump) as the
+                            // An older build could cache the model's refusal as the
                             // "digest"; replaying it makes every retry fail the same
                             // way ("its back to saying..."). Self-heal: treat the
                             // poisoned entry as a miss and regenerate.
                             SurfaceHealthLog.Log(
                                 "summary: cache hit for pages " + request.FirstPage + "-" +
-                                request.LastPage + " is a stored refusal or bullet dump - ignoring and regenerating");
+                                request.LastPage + " is a stored refusal - ignoring and regenerating");
                         }
                         else
                         {
@@ -332,20 +332,49 @@ namespace Avalanche.Features.Summary
                     }
                 }
 
-                // THE one call, v1.19.51: the whole extracted range rides in a single
-                // request - no slicing, no segments, no fusion pass, no fallback road.
-                // If the host refuses a call this size the run dies right here with
-                // the provider's own error; the reader asked for everything the pages
-                // hold, and a quietly halved book was never an answer.
+                // THE one call, v1.19.52: the whole extracted range rides in a single
+                // streamed request, and the answer paints live as the model writes it -
+                // no hidden buffer, no prose guard, no second draft. If the host
+                // refuses a call this size the run dies right here with the provider's
+                // own error; the reader asked for everything the pages hold, and a
+                // quietly halved book was never an answer.
                 yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
-                string finalText = await StreamedSolidDigestAsync(
-                    config, DigestSystemPrompt(request.TargetWords, request.Language, request.Genre),
-                    rangeText, ct, request.TargetWords).ConfigureAwait(false);
+                string digestSystem = DigestSystemPrompt(request.TargetWords, request.Language, request.Genre);
+                // Reasoning models split max_tokens between their think and the answer,
+                // and a 4,500-word ceiling needs real room: floor at 3k + 4 tokens per
+                // target word, never below 10k. Caps only cost when they are used - and
+                // on a cloud endpoint this floor is capped right back down, since the
+                // hosted tier dies on long requests and no digest needs more.
+                int digestBudget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * request.TargetWords)));
+                if (!AiEndpoints.IsLocal(config.BaseUrl)) digestBudget = Math.Min(digestBudget, CloudMaxTokens);
+                var live = new StringBuilder();
+                await foreach (SummaryUpdate update in StreamDigestPassAsync(
+                                   config, digestSystem, rangeText, ct, digestBudget).ConfigureAwait(false))
+                {
+                    if (update.Kind == "delta")
+                    {
+                        live.Append(update.Text);
+                        yield return update;
+                    }
+                }
 
+                string finalText = live.ToString();
                 if (string.IsNullOrWhiteSpace(finalText))
                 {
-                    yield return new SummaryUpdate("error", "empty response");
-                    yield break;
+                    // A reasoning model can burn its whole budget on hidden thinking
+                    // and stream nothing. Nothing has painted, so one quiet retry at
+                    // double the token budget is invisible to the reader; still nothing
+                    // means the run fails loudly right here.
+                    SurfaceHealthLog.Log(
+                        "summary: digest pass returned no content - retrying once at double the token budget");
+                    finalText = await RunBufferedPassAsync(config, digestSystem, rangeText, ct, digestBudget * 2)
+                        .ConfigureAwait(false);
+                    if (string.IsNullOrWhiteSpace(finalText))
+                    {
+                        throw new InvalidOperationException(
+                            "the model produced no answer (its whole budget went to hidden reasoning) - " +
+                            "switch to a non-thinking model or raise the token limit");
+                    }
                 }
 
                 // A refusal streamed as the "digest" must never be cached (it would
@@ -376,15 +405,9 @@ namespace Avalanche.Features.Summary
                         request.DocumentId, request.FirstPage, request.LastPage, config.Model ?? "?",
                         hash, variant, finalText, CountWords(finalText)),
                     ct).ConfigureAwait(false);
-                // The guard has passed - now the reader sees the digest arrive:
-                // word-boundary slices painted one after another, a page being
-                // written instead of a wall landing in one frame. "done" then
-                // replaces the card with the exact final text.
-                foreach (string piece in SplitForPaint(finalText))
-                {
-                    yield return new SummaryUpdate("delta", piece);
-                }
-
+                // The digest painted live while the model wrote it - nothing left
+                // to reveal. "done" hands the window the exact final text for the
+                // card and the cache, plus the unabridged extraction for Explain.
                 yield return new SummaryUpdate("done", finalText, RawRange: rawRangeText);
             }
 
@@ -1098,115 +1121,10 @@ namespace Avalanche.Features.Summary
             return request;
         }
 
-        // Appended to the digest system prompt when the first answer comes back as a
-        // bullet list. Short and blunt on purpose: the full prompt already bans bullets,
-        // so the escalation leans on rejection, not on repeating more prose theory.
-        private const string ProseEscalation =
-            "\n\nREJECTED: your previous answer for this exact request was a bullet list. That is " +
-            "a total failure. Write the summary again as flowing prose: full sentences grouped " +
-            "into plain paragraphs, like pages in a book, with connective phrasing between " +
-            "the sentences so each paragraph reads as one continuous argument. Not one line " +
-            "may start with \"- \", " +
-            "\"* \", \"+ \", \"• \" or a number followed by \".\" or \")\". Keep the '### ' headings " +
-            "exactly as instructed; everything under them is paragraphs, not lists.";
-
-        /// <summary>Runs the digest as ONE streamed pass into a hidden buffer, then
-        /// hardens the result before anything can reach the window or the cache.
-        /// Streaming keeps the big call alive the gentle way (SSE frames instead of
-        /// a silent minutes-long body) while the reader waits under the progress
-        /// word; the finished answer is then inspected exactly as the buffered
-        /// digest always was: an empty answer (a reasoning model that burned its
-        /// whole budget thinking) retries once at double the token budget; a
-        /// bullet-dominant answer retries once against an escalated prose-only
-        /// prompt; a still bullet-dominant answer is mechanically flattened by
-        /// ProseGuard. Nothing bullet-shaped survives, and nothing paints until
-        /// the guard is done.</summary>
-        private static async Task<string> StreamedSolidDigestAsync(
-            AiProviderConfig config, string system, string user, CancellationToken ct, int targetWords)
-        {
-            // Reasoning models split max_tokens between their think and the answer,
-            // and a 4,500-word ceiling needs real room: floor at 3k + 4 tokens per
-            // target word, never below 10k. Caps only cost when they are used -
-            // and on a cloud endpoint this floor is capped right back down, since
-            // the hosted tier dies on long requests and no digest needs more.
-            int budget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * targetWords)));
-            if (!AiEndpoints.IsLocal(config.BaseUrl)) budget = Math.Min(budget, CloudMaxTokens);
-            var buffer = new StringBuilder();
-            await foreach (SummaryUpdate update in StreamDigestPassAsync(
-                               config, system, user, ct, budget).ConfigureAwait(false))
-            {
-                if (update.Kind == "delta")
-                {
-                    buffer.Append(update.Text);
-                }
-            }
-
-            string digest = buffer.ToString();
-            if (string.IsNullOrWhiteSpace(digest))
-            {
-                SurfaceHealthLog.Log(
-                    "summary: digest pass returned no content - retrying once at double the token budget");
-                digest = await RunBufferedPassAsync(config, system, user, ct, budget * 2).ConfigureAwait(false);
-                if (string.IsNullOrWhiteSpace(digest))
-                {
-                    throw new InvalidOperationException(
-                        "the model produced no answer (its whole budget went to hidden reasoning) - " +
-                        "switch to a non-thinking model or raise the token limit");
-                }
-            }
-
-            if (ProseGuard.LooksLikeBulletList(digest))
-            {
-                SurfaceHealthLog.Log(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "summary: digest arrived as a bullet list ({0} words) - escalating to prose-only and retrying",
-                    CountWords(digest)));
-                string escalated = await RunBufferedPassAsync(
-                    config, system + ProseEscalation, user, ct, budget).ConfigureAwait(false);
-                if (!ProseGuard.LooksLikeBulletList(escalated))
-                {
-                    digest = escalated;
-                }
-                else
-                {
-                    SurfaceHealthLog.Log(
-                        "summary: escalated digest is still a bullet list - flattening mechanically to prose");
-                    digest = ProseGuard.ConvertBulletsToProse(escalated);
-                }
-            }
-
-            return digest;
-        }
-
-        /// <summary>Word-boundary slices (~600 chars) of the finished digest: the
-        /// card repaints per delta, so the guarded text arrives as a page being
-        /// written rather than one wall landing in a single frame. Slicing at
-        /// spaces never splits a markdown token, and the pieces joined always
-        /// reproduce the exact final text.</summary>
-        private static IEnumerable<string> SplitForPaint(string text)
-        {
-            const int Piece = 600;
-            for (int start = 0; start < text.Length; )
-            {
-                int end = Math.Min(start + Piece, text.Length);
-                if (end < text.Length)
-                {
-                    int soft = text.LastIndexOf(' ', end);
-                    if (soft > start)
-                    {
-                        end = soft;
-                    }
-                }
-
-                yield return text[start..end];
-                start = end;
-            }
-        }
-
         /// <summary>Streams one digest pass: "delta" updates as SSE chunks arrive (or one
         /// delta when the endpoint ignored stream:true). The digest's front door - the
-        /// whole range rides in this one streamed request while the guard waits on
-        /// the hidden buffer.</summary>
+        /// whole range rides in this one streamed request and every delta paints as
+        /// it lands.</summary>
         private static async IAsyncEnumerable<SummaryUpdate> StreamDigestPassAsync(
             AiProviderConfig config,
             string system,
@@ -1465,7 +1383,7 @@ namespace Avalanche.Features.Summary
                         // (DeepSeek) or reasoning (OpenRouter) while visible content stays
                         // empty. Thinking notes are NOT an answer: returning them as one
                         // fed raw bullet-shaped analysis into digests and notes. Return
-                        // null instead - StreamedSolidDigestAsync retries and then aborts with a
+                        // null instead - the digest run retries once and then aborts with a
                         // switch-models error, which beats showing thinking garbage.
                     }
                 }
