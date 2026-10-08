@@ -100,9 +100,50 @@ internal static class AppDataPaths
 
     private static void WriteSettings(Dictionary<string, string> settings)
     {
-        Directory.CreateDirectory(UserRoot);
-        string temporary = SettingsFile + ".tmp";
-        File.WriteAllText(temporary, JsonSerializer.Serialize(settings, JsonOptions));
-        File.Move(temporary, SettingsFile, overwrite: true);
+        // v1.19.63: a settings write is best effort, never a crash. The old
+        // single Move(overwrite) died loudly when an antivirus held the fresh
+        // file, a sync client locked the folder, or the settings file carried
+        // a read-only bit - and one such death, mid-window-construction, took
+        // the whole app down with an UnauthorizedAccessException. Now: retries
+        // with backoff, the read-only bit cleared, the temp file discarded
+        // between attempts, and after every fallback a silent give-up - a
+        // lost preference is recovered by moving on, a lost app is not.
+        try
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                string temporary = SettingsFile + ".tmp";
+                try
+                {
+                    Directory.CreateDirectory(UserRoot);
+                    File.WriteAllText(temporary, JsonSerializer.Serialize(settings, JsonOptions));
+                    try
+                    {
+                        if (File.Exists(SettingsFile)
+                            && File.GetAttributes(SettingsFile).HasFlag(FileAttributes.ReadOnly))
+                        {
+                            File.SetAttributes(SettingsFile, FileAttributes.Normal);
+                        }
+                    }
+                    catch
+                    {
+                        // the move below reports what actually matters
+                    }
+
+                    File.Move(temporary, SettingsFile, overwrite: true);
+                    return;
+                }
+                catch (Exception ex) when (attempt < 5 && ex is IOException or UnauthorizedAccessException)
+                {
+                    try { File.Delete(temporary); } catch { /* rebuilt next attempt */ }
+                    Thread.Sleep(40 * (attempt + 1));
+                }
+            }
+        }
+        catch
+        {
+            // every retry lost: the write is dropped rather than taking the
+            // caller - often a UI event handler mid-window-construction - down.
+        }
     }
 }

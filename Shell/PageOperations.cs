@@ -83,6 +83,11 @@ namespace Avalanche
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveExtractedAs"),
                             CheckFileExists = false, CheckPathExists = true,
                             InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) };
+            // v1.19.63: the dialog opens NAMED, not blank - the pages the reader
+            // asked for, then the book they came from: "452-684, 4, 8 - Moby
+            // Dick.pdf". The Desktop seed above picks the place; this picks the
+            // words, so a fresh extraction is one keystroke from saved.
+            dlg.FileName = ExtractSuggestedName(prompt.SpecText);
             if (dlg.ShowDialog(this) != true) return;
             try
             {
@@ -94,6 +99,69 @@ namespace Avalanche
             {
                 KillerDialog.Show(this, Loc("Str_Err_SplitFailed") + "\n" + ex.Message, "Avalanche", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // The extract's suggested file name: the page spec as the reader typed
+        // it, then the book it came from - "452-684, 4, 8 - Moby Dick.pdf".
+        // The title is the document's own Info/Title (read through the engine
+        // session the Document Info dialog uses); a producer that wrote none
+        // leaves the file name to speak. Characters a Windows file name cannot
+        // carry fold to dashes, and the whole thing is capped so a chatty
+        // title cannot push the spec off the dialog's field.
+        private string ExtractSuggestedName(string spec)
+        {
+            string title = string.Empty;
+            try
+            {
+                title = Avalanche.Engine.Documents.PdfDocumentInformation
+                    .Read(EnsureEngineDocumentSession().Document).Title ?? string.Empty;
+            }
+            catch
+            {
+                // a document that refuses to name itself falls back to the file
+            }
+
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                title = System.IO.Path.GetFileNameWithoutExtension(_currentFile ?? string.Empty);
+            }
+
+            string head = CleanFileName(spec);
+            string tail = CleanFileName(title);
+            string name = tail.Length == 0 ? head
+                : head.Length == 0 ? tail
+                : head + " - " + tail;
+            const int MaxName = 120;    // keep the dialog's field readable; NTFS allows far more
+            if (name.Length > MaxName)
+            {
+                if (head.Length > 0 && tail.Length > 0)
+                {
+                    int headShare = Math.Clamp(MaxName - tail.Length - 3, 1, head.Length);
+                    name = head[..headShare] + "... - " + tail;
+                }
+                else
+                {
+                    name = name[..MaxName].TrimEnd('-', ' ', '.');
+                }
+            }
+
+            return name.Length == 0 ? string.Empty : name + ".pdf";
+        }
+
+        // Folds everything a Windows file name cannot carry to a dash and
+        // strips the edge characters the shell refuses (a trailing dot or
+        // space would be swallowed, a bare dash reads like a mistake).
+        private static string CleanFileName(string raw)
+        {
+            var built = new System.Text.StringBuilder(raw.Length);
+            foreach (char ch in raw.Trim())
+            {
+                bool illegal = ch is '<' or '>' or ':' or '"' or '/' or '\\' or '|' or '?' or '*'
+                    || char.IsControl(ch);
+                built.Append(illegal ? '-' : ch);
+            }
+
+            return built.ToString().Trim(' ', '.', '-');
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)

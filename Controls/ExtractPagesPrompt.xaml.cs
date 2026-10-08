@@ -52,6 +52,11 @@
         // only after ShowDialog() returns true.
         public IReadOnlyList<int> SelectedPages { get; private set; } = Array.Empty<int>();
 
+        // The spec as the reader wrote it - "452-684, 4, 8" - the head of the
+        // save dialog's suggested name ([pages] - [title]). Meaningful only
+        // after ShowDialog() returns true.
+        public string SpecText { get; private set; } = string.Empty;
+
         public ExtractPagesPrompt(Window owner, int pageCount, string prefill)
         {
             InitializeComponent();
@@ -155,6 +160,7 @@
             }
 
             SelectedPages = pages;
+            SpecText = _spec.Text.Trim();
             Answer(true);
         }
 

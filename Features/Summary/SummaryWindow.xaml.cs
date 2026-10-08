@@ -98,7 +98,19 @@ namespace Avalanche.Features.Summary
         private CancellationTokenSource? _cts;
         private bool _generating;
         private string _fullText = string.Empty;
-        private bool _flushPending;
+
+        // v1.19.63: the typewriter. The stream pump (a worker, since this
+        // build) parks deltas in _incoming; the 20ms timer on the UI thread
+        // drains it into _fullText and paints _shownLength of it - the reader
+        // watches the digest written letter by letter, about three words
+        // behind the stream. _wiring gates the constructor's restore: a window
+        // being built must not write the settings its own restore fires.
+        private readonly object _incomingGate = new();
+        private readonly System.Text.StringBuilder _incoming = new();
+        private int _shownLength;
+        private bool _sawDeltas;
+        private DispatcherTimer _typeTimer = null!;
+        private bool _wiring;
         private bool _closed;
         private int _generation;        // bumped by supersede/reset/close: stale continuations can't repaint
         private bool _freshNextRun;     // armed by Reset: the next run must be GENERATED, never replayed from the cache
@@ -374,7 +386,11 @@ namespace Avalanche.Features.Summary
                 if (WordsCombo.SelectedItem is ComboBoxItem item && item.Tag is int words)
                 {
                     _targetWords = words;
-                    AppDataPaths.SetSetting("summary.words", words.ToString(CultureInfo.InvariantCulture));
+                    if (!_wiring)
+                    {
+                        AppDataPaths.SetSetting("summary.words", words.ToString(CultureInfo.InvariantCulture));
+                    }
+
                     InvalidatePrefetch();   // the buffer was fetched for the old ceiling
                 }
             };
@@ -395,7 +411,11 @@ namespace Avalanche.Features.Summary
                 if (LangCombo.SelectedItem is ComboBoxItem item && item.Tag is string language)
                 {
                     _language = language;
-                    AppDataPaths.SetSetting("summary.lang", language);
+                    if (!_wiring)
+                    {
+                        AppDataPaths.SetSetting("summary.lang", language);
+                    }
+
                     InvalidatePrefetch();   // the buffer was fetched for the old language
                     ApplyReadingDirection();
                 }
@@ -420,17 +440,35 @@ namespace Avalanche.Features.Summary
                 if (GenreCombo.SelectedItem is ComboBoxItem item && item.Tag is string genre)
                 {
                     _genre = genre;
-                    AppDataPaths.SetSetting("book." + _documentId + ".genre", genre);
-                    AppDataPaths.SetSetting("summary.default_genre", genre);
+                    if (!_wiring)
+                    {
+                        AppDataPaths.SetSetting("book." + _documentId + ".genre", genre);
+                        AppDataPaths.SetSetting("summary.default_genre", genre);
+                    }
+
                     InvalidatePrefetch();   // the buffer was fetched for the old genre
                 }
             };
 
+            // v1.19.63: the typewriter's painting clock - 20ms, one letter at
+            // a crawl, proportionally faster when the backlog grows. Built
+            // once, started by every run, self-stopping when drained and idle.
+            _typeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
+            _typeTimer.Tick += (_, _) => TypeTimerTick();
+
+            // v1.19.63: the restore below sets SelectedItem / IsChecked, and
+            // WPF answers with the very SelectionChanged handlers that save.
+            // A window being BUILT must not write settings for choices the
+            // reader has not made - and the write that fired here (under the
+            // constructor's stack, against a file another thread may hold) is
+            // the UnauthorizedAccessException the reader caught on open.
+            _wiring = true;
             LoadPreferences();
             SelectChip(_rangePages);            // fires Checked -> OnRangeChanged -> ShowRange
             SelectCombo(WordsCombo, _targetWords);
             SelectCombo(LangCombo, _language);
             SelectCombo(GenreCombo, _genre);
+            _wiring = false;
             ApplyReadingDirection();
             DocBox.FontSize = _digestFont;
             WireActionPopup();                  // the floating action popup over the digest
@@ -807,7 +845,11 @@ namespace Avalanche.Features.Summary
         private void OnRangeChanged(int pages)
         {
             _rangePages = pages;
-            AppDataPaths.SetSetting("summary.range", pages.ToString(CultureInfo.InvariantCulture));
+            if (!_wiring)
+            {
+                AppDataPaths.SetSetting("summary.range", pages.ToString(CultureInfo.InvariantCulture));
+            }
+
             InvalidatePrefetch();   // the buffered stretch no longer matches the span
             DismissActionPopup();   // the range reshaped: the anchor no longer marks the word
             ShowRange();        // reshape the displayed range - never a generation trigger
@@ -873,6 +915,12 @@ namespace Avalanche.Features.Summary
             // polls. Garbage collection reclaims it.
             _cts = new CancellationTokenSource();
             _runFromCache = false;   // the new run earns its own verdict
+            // v1.19.63: the pen starts empty too - the typewriter state resets
+            // with the card, and the 20ms painting clock runs for the new run.
+            _shownLength = 0;
+            _sawDeltas = false;
+            lock (_incomingGate) { _incoming.Clear(); }
+            _typeTimer.Start();
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
@@ -886,151 +934,285 @@ namespace Avalanche.Features.Summary
                 BypassCache: _freshNextRun);
             _runFirstPage = first;
             _runLastPage = last;
-            try
+            // v1.19.63: the run's config is read on the UI thread, once - the
+            // pump below lives on a worker and the provider getter is built
+            // around the window's own world.
+            var runConfig = _configProvider();
+            // v1.19.63: the stream is consumed OFF the UI thread. The old loop
+            // awaited on the dispatcher between every token, so whatever
+            // slowed this window's thread - the reader switching to the
+            // browser, the window occluded or closed - slowed the stream with
+            // it and the digest visibly froze. Now the pump reads the SSE
+            // lines on a worker, deltas park in a lock-guarded buffer, and the
+            // only UI work left is the typewriter timer: streaming keeps
+            // running - and keeps painting - wherever the reader goes.
+            await Task.Run(async () =>
             {
-                await foreach (SummaryUpdate update in PageSummarizer.GenerateAsync(
-                                   request, _configProvider(), _loc, _cts.Token))
+                try
                 {
-                    switch (update.Kind)
+                    await foreach (SummaryUpdate update in PageSummarizer.GenerateAsync(
+                                       request, runConfig, _loc, _cts.Token))
                     {
-                        case "progress":
-                            if (gen == _generation)
-                            {
-                                // v1.19.35: the progress word carries the live
-                                // clock - the elapsed seconds tick beside it
-                                // until the digest lands and the line becomes
-                                // the counts + "took" verdict.
-                                _progressBase = update.Text;
-                                StatusText.Text = _progressBase + ElapsedSuffix();
-                            }
-
-                            break;
-                        case "delta":
-                            AppendDelta(update.Text, gen);
-                            break;
-                        case "done":
-                            if (gen == _generation)
-                            {
-                                // A digest landed: Reset's fresh-run arm is spent. A run
-                                // that errored keeps the arm - its retries stay cache-free.
-                                _freshNextRun = false;
-                                _runFromCache = update.FromCache;
-                                if (update.RawRange.Length > 0)
+                        switch (update.Kind)
+                        {
+                            case "progress":
+                                Post(() =>
                                 {
-                                    // The pass's own unabridged extraction: the floating
-                                    // action popup's Explain grounds itself in these pages.
-                                    _cachedRangeRawText = update.RawRange;
-                                    _cachedRangeFirst = _runFirstPage;
-                                    _cachedRangeLast = _runLastPage;
-                                }
-
-                                if (update.Text.Length > 0)
+                                    if (gen == _generation)
+                                    {
+                                        // v1.19.35: the progress word carries the live
+                                        // clock - the elapsed seconds tick beside it
+                                        // until the digest lands and the line becomes
+                                        // the counts + "took" verdict.
+                                        _progressBase = update.Text;
+                                        StatusText.Text = _progressBase + ElapsedSuffix();
+                                    }
+                                });
+                                break;
+                            case "delta":
+                                FeedDelta(update.Text, gen);
+                                break;
+                            case "done":
+                                Post(() => DoneLanded(gen, update));
+                                break;
+                            case "notext":
+                                Post(() =>
                                 {
-                                    _fullText = update.Text;
-                                }
+                                    if (gen == _generation)
+                                    {
+                                        Overlay(_loc("Str_SummaryNoText"));
+                                        DiagnosticsBundle.Dump("summary notext");
+                                    }
+                                });
+                                break;
+                            case "error":
+                                Post(() =>
+                                {
+                                    if (gen == _generation)
+                                    {
+                                        Overlay(string.Format(_loc("Str_SummaryError"), update.Text));
+                                        DiagnosticsBundle.Dump("summary error");
+                                    }
+                                });
+                                break;
+                        }
 
-                                DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                                FinishSuccess();
-                                // The field keeps showing the stretch just read; the
-                                // next arrow lands on the page after it.
-                            }
-
+                        if (update.Kind is "done" or "notext" or "error")
+                        {
                             break;
-                        case "notext":
-                            if (gen == _generation)
-                            {
-                                Overlay(_loc("Str_SummaryNoText"));
-                                DiagnosticsBundle.Dump("summary notext");
-                            }
-
-                            break;
-                        case "error":
-                            if (gen == _generation)
-                            {
-                                Overlay(string.Format(_loc("Str_SummaryError"), update.Text));
-                                DiagnosticsBundle.Dump("summary error");
-                            }
-
-                            break;
+                        }
                     }
-
-                    if (update.Kind is "done" or "notext" or "error")
+                }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation means this run was superseded (or the window closed);
+                    // both bump the generation, so only repaint when still current.
+                    Post(() =>
                     {
-                        break;
-                    }
+                        if (gen == _generation)
+                        {
+                            CancelPaint();
+                            StatusText.Text = _loc("Str_SummaryStopped");
+                        }
+                    });
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // Cancellation means this run was superseded (or the window closed);
-                // both bump the generation, so only repaint when still current.
-                if (gen == _generation)
+                catch (Exception ex)
                 {
-                    DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                    StatusText.Text = _loc("Str_SummaryStopped");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Terminal failure: drop the evidence (log tail with the extraction
-                // and POST lines) on the Desktop regardless of generation - a stale
-                // dump after a close is still evidence.
-                DiagnosticsBundle.Dump("summary exception: " + ex.GetType().Name);
-                if (gen == _generation)
-                {
-                    Overlay(string.Format(_loc("Str_SummaryError"), PageSummarizer.FriendlyError(ex)));
-                }
-            }
-            finally
-            {
-                // A superseded run must not clear the busy state of the run that
-                // replaced it - only the current generation owns the UI here.
-                if (gen == _generation)
-                {
-                    _generating = false;
-                    SetBusy(false);
-                    StopElapsedClock();
-                    // v1.19.35: the voice follows the card's final state here
-                    // too. Without this the dots kept pulsing over the finished
-                    // digest: UpdateEmptyState ran at "done" while _generating
-                    // still held, took the generating branch, and nothing after
-                    // the flip ever told the dots to stop.
-                    UpdateEmptyState();
-                    // v1.19.26: the 30s prefetch clock arms HERE - it never
-                    // fired before, because FinishSuccess asked while this
-                    // run was still "generating" and SchedulePrefetch rightly
-                    // refused it.
-                    if (_schedulePrefetchOnIdle)
+                    // Terminal failure: drop the evidence (log tail with the extraction
+                    // and POST lines) on the Desktop regardless of generation - a stale
+                    // dump after a close is still evidence.
+                    DiagnosticsBundle.Dump("summary exception: " + ex.GetType().Name);
+                    Post(() =>
                     {
-                        _schedulePrefetchOnIdle = false;
-                        SchedulePrefetch();
-                    }
+                        if (gen == _generation)
+                        {
+                            Overlay(string.Format(_loc("Str_SummaryError"), PageSummarizer.FriendlyError(ex)));
+                        }
+                    });
                 }
-            }
+                finally
+                {
+                    // A superseded run must not clear the busy state of the run that
+                    // replaced it - only the current generation owns the UI here.
+                    Post(() =>
+                    {
+                        if (gen == _generation)
+                        {
+                            _generating = false;
+                            SetBusy(false);
+                            StopElapsedClock();
+                            // v1.19.35: the voice follows the card's final state here
+                            // too. Without this the dots kept pulsing over the finished
+                            // digest: UpdateEmptyState ran at "done" while _generating
+                            // still held, took the generating branch, and nothing after
+                            // the flip ever told the dots to stop.
+                            UpdateEmptyState();
+                            // v1.19.26: the 30s prefetch clock arms HERE - it never
+                            // fired before, because FinishSuccess asked while this
+                            // run was still "generating" and SchedulePrefetch rightly
+                            // refused it.
+                            if (_schedulePrefetchOnIdle)
+                            {
+                                _schedulePrefetchOnIdle = false;
+                                SchedulePrefetch();
+                            }
+                        }
+                    });
+                }
+            });
         }
 
-        private void AppendDelta(string delta, int gen)
+        // ------------------------------------------------------------------
+        // The typewriter (v1.19.63)
+        // ------------------------------------------------------------------
+
+        // The pump never touches the UI: FeedDelta parks tokens in _incoming,
+        // and this 20ms dispatcher timer is the ONLY writer of the card. The
+        // reader sees the digest written letter by letter - about three words
+        // behind the stream, the pace self-tuning so a fast model stays a
+        // constant lag away and a finished backlog flushes briskly. The timer
+        // keeps ticking when the window is occluded, minimized or closed (an
+        // underground run's own clock), so the card is always exactly as far
+        // along as the stream - never frozen, never behind on return.
+        private void TypeTimerTick()
         {
-            _fullText += delta;
-            if (_flushPending)
+            string arrived;
+            lock (_incomingGate)
+            {
+                arrived = _incoming.ToString();
+                _incoming.Clear();
+            }
+
+            if (arrived.Length > 0)
+            {
+                _fullText += arrived;
+            }
+
+            int total = _fullText.Length;
+            if (_shownLength >= total)
+            {
+                if (!_generating)
+                {
+                    _typeTimer.Stop();
+                }
+
+                return;
+            }
+
+            // ~3 words (18 chars) of lag at a crawl - one letter per tick; a
+            // deeper backlog steps proportionally faster (capped at 60 letters
+            // per tick, a 3000-letters-per-second flush) so a finished run
+            // writes itself out in seconds instead of half a minute.
+            int backlog = total - _shownLength;
+            int step = Math.Clamp((backlog + 5) / 6, 1, 60);
+            _shownLength = Math.Min(total, _shownLength + step);
+            DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+            // v1.19.53: the reader owns the scroll position - the paint never
+            // scrolls the page out from under them. The empty state stands
+            // down here too: words on the card are the loading indicator now.
+            UpdateEmptyState();
+        }
+
+        // What the card is showing right now: the painted prefix of the text.
+        // The font chip re-renders the shown slice, never the unpainted tail.
+        private string TypewriterShown()
+            => _shownLength >= _fullText.Length
+                ? _fullText
+                : _fullText[..Math.Max(0, _shownLength)];
+
+        // The pump's one stop on its way past: park the delta behind the gate.
+        // A superseded run's last words are refused outright - the generation
+        // check is the same fence the posted closures answer to.
+        private void FeedDelta(string delta, int gen)
+        {
+            if (gen != _generation)
             {
                 return;
             }
 
-            _flushPending = true;
-            Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() =>
+            lock (_incomingGate)
             {
-                _flushPending = false;
-                if (_generating && gen == _generation)
+                _incoming.Append(delta);
+            }
+
+            _sawDeltas = true;
+        }
+
+        // Marshals a pump-thread verdict onto the UI thread. FIFO at one
+        // priority, so done -> finally keep their order across the hop.
+        private void Post(Action action)
+            => Dispatcher.BeginInvoke(DispatcherPriority.Normal, action);
+
+        // A cancelled run shows everything that arrived - no typewriter grace
+        // on the way out; "Stopped" means stopped.
+        private void CancelPaint()
+        {
+            lock (_incomingGate)
+            {
+                _fullText += _incoming.ToString();
+                _incoming.Clear();
+            }
+
+            _shownLength = _fullText.Length;
+            DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+        }
+
+        // The "done" verdict, run on the UI thread. The live stream keeps
+        // typing toward the final text (providers hand back exactly what they
+        // streamed); a card that never saw deltas - the range cache's serve -
+        // lands whole and instant, the v1.19.34 honesty: a two-second lookup
+        // never pretends to have been written.
+        private void DoneLanded(int gen, SummaryUpdate done)
+        {
+            if (gen != _generation)
+            {
+                return;
+            }
+
+            // A digest landed: Reset's fresh-run arm is spent. A run
+            // that errored keeps the arm - its retries stay cache-free.
+            _freshNextRun = false;
+            _runFromCache = done.FromCache;
+            if (done.RawRange.Length > 0)
+            {
+                // The pass's own unabridged extraction: the floating
+                // action popup's Explain grounds itself in these pages.
+                _cachedRangeRawText = done.RawRange;
+                _cachedRangeFirst = _runFirstPage;
+                _cachedRangeLast = _runLastPage;
+            }
+
+            // The saved digest and the cache must see the COMPLETE text: drain
+            // whatever the pump parked but the pen has not reached yet.
+            lock (_incomingGate)
+            {
+                _fullText += _incoming.ToString();
+                _incoming.Clear();
+            }
+
+            if (done.Text.Length > 0)
+            {
+                bool typedPrefix = _sawDeltas && _shownLength > 0 && _shownLength <= _fullText.Length
+                    && done.Text.StartsWith(_fullText[.._shownLength], StringComparison.Ordinal);
+                if (_sawDeltas && !typedPrefix)
                 {
-                    DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
-                    // v1.19.53: the reader owns the scroll position - the
-                    // paint never scrolls the page out from under them. The
-                    // empty state stands down here too: words on the card are
-                    // the loading indicator now.
-                    UpdateEmptyState();
+                    // The final text diverged from what was painted: the pen
+                    // restarts from the top so the card never shows a splice.
+                    _shownLength = 0;
                 }
-            }));
+
+                _fullText = done.Text;
+            }
+
+            if (!_sawDeltas)
+            {
+                _shownLength = _fullText.Length;
+                DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+            }
+
+            FinishSuccess();
+            // The field keeps showing the stretch just read; the
+            // next arrow lands on the page after it.
         }
 
         private void FinishSuccess()
@@ -1116,13 +1298,16 @@ namespace Avalanche.Features.Summary
             _runLastPage = orphan._runLastPage;
             _runFromCache = false;
             _fullText = orphan._fullText;
-            _flushPending = false;
+            _shownLength = _fullText.Length;    // v1.19.63: the card catches up whole, then types on live
+            _sawDeltas = true;
+            lock (_incomingGate) { _incoming.Clear(); }
             _progressBase = orphan._progressBase;
             DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
             Overlay(null);                  // the busy voice: dots over the card
             SetBusy(true);
             SetModelLabel(_runModel);
             StartElapsedClock();
+            _typeTimer.Start();     // v1.19.63: the pen runs while the mirror feeds it
             _orphanPoll = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
             _orphanPoll.Tick += (_, _) => PollOrphanRun();
             _orphanPoll.Start();
@@ -1153,7 +1338,15 @@ namespace Avalanche.Features.Summary
                 {
                     _fullText = orphan._fullText;
                     _runFromCache = orphan._runFromCache;
-                    DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+                    if (_shownLength > _fullText.Length)
+                    {
+                        _shownLength = _fullText.Length;
+                    }
+
+                    // v1.19.63: the typewriter finishes the landing - the
+                    // timer is already running, so the card completes at the
+                    // pen's pace instead of blinking in whole.
+                    DocBox.SetValue(AiMarkdown.TextProperty, TypewriterShown());
                     StatusText.Text = VerificationStatusLine()
                         + (_runFromCache ? string.Empty : DurationSuffix(DateTime.UtcNow - _runStartedUtc));
                     UpdateEmptyState();
@@ -1172,7 +1365,11 @@ namespace Avalanche.Features.Summary
                 return;
             }
 
-            // Still running: mirror the progress word and keep the clock honest.
+            // Still running: mirror the progress word, keep the clock honest,
+            // and hand the typewriter whatever arrived since the last poll -
+            // the adopter watches the digest being written, not a frozen card
+            // that only jumps when the run lands (v1.19.63).
+            _fullText = orphan._fullText;
             _progressBase = orphan._progressBase;
             StatusText.Text = _progressBase + ElapsedSuffix();
         }
@@ -1276,7 +1473,9 @@ namespace Avalanche.Features.Summary
             _cts = null;
             DismissActionPopup();   // a reset empties the card: the popup goes too
             _fullText = string.Empty;
-            _flushPending = false;
+            _shownLength = 0;
+            _sawDeltas = false;
+            lock (_incomingGate) { _incoming.Clear(); }
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             StatusText.Text = string.Empty;
@@ -1778,6 +1977,9 @@ namespace Avalanche.Features.Summary
                 _generation++;      // any stray continuation of the old run loses the card
                 _generating = false;
                 _fullText = ready;
+                _shownLength = ready.Length;    // v1.19.63: a buffered digest lands whole - no pen to race
+                _sawDeltas = false;
+                lock (_incomingGate) { _incoming.Clear(); }
                 _runFirstPage = _prefetchFirst;
                 _runLastPage = _prefetchLast;
                 DismissActionPopup();   // the stretch changed: the anchor is stale
@@ -1815,6 +2017,9 @@ namespace Avalanche.Features.Summary
             int gen = ++_generation;
             _generating = true;
             _fullText = string.Empty;
+            _shownLength = 0;
+            _sawDeltas = false;
+            lock (_incomingGate) { _incoming.Clear(); }
             DocBox.SetValue(AiMarkdown.TextProperty, string.Empty);
             Overlay(null);
             SetBusy(true);
@@ -1865,6 +2070,9 @@ namespace Avalanche.Features.Summary
             if (!string.IsNullOrEmpty(text))
             {
                 _fullText = text;
+                _shownLength = text.Length;     // v1.19.63: the flight's text lands whole
+                _sawDeltas = false;
+                lock (_incomingGate) { _incoming.Clear(); }
                 _runFirstPage = _prefetchFirst;
                 _runLastPage = _prefetchLast;
                 DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
@@ -2154,7 +2362,9 @@ namespace Avalanche.Features.Summary
             // the new base: body and headings scale together.
             if (_fullText.Length > 0)
             {
-                AiMarkdown.Rebuild(DocBox, _fullText);
+                // v1.19.63: re-render what the card SHOWS - mid-typewriter,
+                // the unpainted tail stays with the pen instead of flashing in.
+                AiMarkdown.Rebuild(DocBox, TypewriterShown());
             }
         }
 
@@ -2230,6 +2440,7 @@ namespace Avalanche.Features.Summary
                 }
 
                 _fullText = text;
+                _shownLength = text.Length;     // v1.19.63: a restored card is fully written
                 DocBox.SetValue(AiMarkdown.TextProperty, text);
                 StatusText.Text = string.Format(
                     _loc("Str_SummaryCounts"), PageSummarizer.CountWords(text), text.Length);
