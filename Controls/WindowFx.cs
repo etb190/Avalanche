@@ -7,7 +7,11 @@ namespace Avalanche
 {
 
     // Fade a window out on close: cancel the first close, animate opacity to 0, then close for real.
-    // DialogResult is set before Closing fires, so it survives the deferral.
+    // The deferral is safe for the modeless windows that use it - but a MODAL window must not
+    // assign DialogResult before the fade: WPF resets DialogResult to null whenever a close is
+    // cancelled, and the deferral IS a cancelled close. The themed FileDialog learned this first
+    // (its _pendingResult is assigned only in the fade's completion) and the extract prompt runs
+    // the same deferral over PlayClosePop below.
     internal static class WindowFx
     {
         public const int FadeMs = 150;
@@ -92,6 +96,37 @@ namespace Avalanche
                 scale.BeginAnimation(ScaleTransform.ScaleXProperty, grow);
                 scale.BeginAnimation(ScaleTransform.ScaleYProperty, grow);
             }
+        }
+
+        // The pop exit, offered WITHOUT the Closing hook. EnableFadeClose's own
+        // completion callback has no seat for the caller's last word, and a modal
+        // window needs one: its DialogResult may only be assigned once the fade
+        // has landed and no close can be cancelled anymore (a cancelled close
+        // resets DialogResult to null - see the class comment). The caller drives
+        // the deferral in its OnClosing and hands this the motion; `completed`
+        // fires when the window may finally close for real.
+        public static void PlayClosePop(Window w, int ms, Action completed)
+        {
+            var anim = new DoubleAnimation(w.Opacity, 0, new Duration(TimeSpan.FromMilliseconds(ms)))
+            {
+                EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+            };
+            anim.Completed += (_, _) => completed();
+
+            if (ScaleRoot(w) is FrameworkElement root)
+            {
+                var shrink = new DoubleAnimation(1, 0.985, new Duration(TimeSpan.FromMilliseconds(ms)))
+                {
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn }
+                };
+                var scale = new ScaleTransform(1, 1);
+                root.RenderTransform = scale;
+                root.RenderTransformOrigin = new Point(0.5, 0.33);
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, shrink);
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, shrink);
+            }
+
+            w.BeginAnimation(UIElement.OpacityProperty, anim);
         }
     }
 }
