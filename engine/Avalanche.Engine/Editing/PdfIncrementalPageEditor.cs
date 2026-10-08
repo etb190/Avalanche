@@ -13456,21 +13456,26 @@ public sealed class PdfIncrementalPageEditor
                 || Resolve(flags) is not PdfInteger flagValue || flagValue.Value < 0)
                 throw new InvalidOperationException(
                     $"{descriptorDescription} has no nonnegative /Flags integer.");
-            if (!descriptor.TryGetValue(Name("FontBBox"), out PdfObject? boundingBox)
-                || Resolve(boundingBox) is not PdfArray boundingBoxArray
-                || boundingBoxArray.Count != 4
-                || boundingBoxArray.Any(item =>
-                    !TryFontNumber(Resolve(item), out double coordinate)
-                    || !double.IsFinite(coordinate)))
+            // A descriptor's metrics - /FontBBox and the five geometry numbers below -
+            // are rendering metadata a verbatim import copies and never consumes, and
+            // a source that omits them still renders exactly as its producer intended,
+            // so their absence no longer refuses the import; a value that is present
+            // but malformed is still refused, like every other descriptor field.
+            if (descriptor.TryGetValue(Name("FontBBox"), out PdfObject? boundingBox)
+                && (Resolve(boundingBox) is not PdfArray boundingBoxArray
+                    || boundingBoxArray.Count != 4
+                    || boundingBoxArray.Any(item =>
+                        !TryFontNumber(Resolve(item), out double coordinate)
+                        || !double.IsFinite(coordinate))))
                 throw new InvalidOperationException(
-                    $"{descriptorDescription} has no four-number /FontBBox array.");
+                    $"{descriptorDescription} /FontBBox value is not a four-number array.");
             foreach (string key in new[]
                 { "ItalicAngle", "Ascent", "Descent", "CapHeight", "StemV" })
-                if (!descriptor.TryGetValue(Name(key), out PdfObject? metric)
-                    || !TryFontNumber(Resolve(metric), out double number)
-                    || !double.IsFinite(number))
+                if (descriptor.TryGetValue(Name(key), out PdfObject? metric)
+                    && (!TryFontNumber(Resolve(metric), out double number)
+                        || !double.IsFinite(number)))
                     throw new InvalidOperationException(
-                        $"{descriptorDescription} has no finite /{key} number.");
+                        $"{descriptorDescription} /{key} value is not a finite number.");
             foreach (string key in new[]
                 { "AvgWidth", "MaxWidth", "MissingWidth", "Leading", "StemH", "XHeight" })
                 if (descriptor.TryGetValue(Name(key), out PdfObject? metric)

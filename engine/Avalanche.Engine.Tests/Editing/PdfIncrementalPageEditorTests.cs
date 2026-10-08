@@ -3273,7 +3273,7 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
-    public void Build_RejectsIncompleteImportedFontDescriptors()
+    public void Build_AcceptsImportedFontDescriptorWithoutMetrics()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage(200, 300)
@@ -3300,12 +3300,106 @@ public sealed class PdfIncrementalPageEditorTests
             .ReplaceObject(references[0].ObjectNumber, invalidPage)
             .Build());
 
+        byte[] output = new PdfIncrementalPageEditor(
+                PdfDocument.Open(new PdfDocumentBuilder().Build()))
+            .AddImportedPage(source, 0)
+            .Build();
+
+        PdfDocument merged = PdfDocument.Open(output);
+        PdfDictionary fonts = ResolveDictionary(merged, ResolveDictionary(merged,
+            FlatPages(merged).Pages[0][Name("Resources")])[Name("Font")]);
+        PdfDictionary descriptor = ResolveDictionary(merged,
+            ResolveDictionary(merged, fonts[Name("Bad")])[Name("FontDescriptor")]);
+        Assert.False(descriptor.ContainsKey(Name("FontBBox")));
+        Assert.False(descriptor.ContainsKey(Name("Ascent")));
+        Assert.Equal("Example",
+            Assert.IsType<PdfName>(descriptor[Name("FontName")]).ValueAsLatin1());
+    }
+
+    [Fact]
+    public void Build_RejectsMalformedImportedFontDescriptorBoundingBox()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
+        var resources = new PdfDictionary([
+            new(Name("Font"), new PdfDictionary([
+                new(Name("Bad"), new PdfDictionary([
+                    new(Name("Type"), Name("Font")),
+                    new(Name("Subtype"), Name("Type1")),
+                    new(Name("BaseFont"), Name("Example")),
+                    new(Name("FontDescriptor"), new PdfDictionary([
+                        new(Name("Type"), Name("FontDescriptor")),
+                        new(Name("FontName"), Name("Example")),
+                        new(Name("Flags"), new PdfInteger(32)),
+                        new(Name("FontBBox"), new PdfArray([
+                            new PdfInteger(0), new PdfInteger(0), new PdfInteger(500)
+                        ]))
+                    ]))
+                ]))
+            ]))
+        ]);
+        PdfDictionary invalidPage = new(pages[0]
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), resources)));
+        source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(references[0].ObjectNumber, invalidPage)
+            .Build());
+
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
             new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
                 .AddImportedPage(source, 0)
                 .Build());
 
-        Assert.Contains("/FontDescriptor value has no four-number /FontBBox array",
+        Assert.Contains("/FontDescriptor value /FontBBox value is not a four-number array",
+            error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("ItalicAngle")]
+    [InlineData("Ascent")]
+    [InlineData("Descent")]
+    [InlineData("CapHeight")]
+    [InlineData("StemV")]
+    public void Build_RejectsMalformedImportedFontDescriptorMetrics(string key)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
+        var resources = new PdfDictionary([
+            new(Name("Font"), new PdfDictionary([
+                new(Name("Bad"), new PdfDictionary([
+                    new(Name("Type"), Name("Font")),
+                    new(Name("Subtype"), Name("Type1")),
+                    new(Name("BaseFont"), Name("Example")),
+                    new(Name("FontDescriptor"), new PdfDictionary([
+                        new(Name("Type"), Name("FontDescriptor")),
+                        new(Name("FontName"), Name("Example")),
+                        new(Name("Flags"), new PdfInteger(32)),
+                        new(Name("FontBBox"), new PdfArray([
+                            new PdfInteger(0), new PdfInteger(0),
+                            new PdfInteger(500), new PdfInteger(700)
+                        ])),
+                        new(Name(key), new PdfString("wide"u8, PdfStringForm.Literal))
+                    ]))
+                ]))
+            ]))
+        ]);
+        PdfDictionary invalidPage = new(pages[0]
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), resources)));
+        source = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(references[0].ObjectNumber, invalidPage)
+            .Build());
+
+        InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+            new PdfIncrementalPageEditor(PdfDocument.Open(new PdfDocumentBuilder().Build()))
+                .AddImportedPage(source, 0)
+                .Build());
+
+        Assert.Contains($"/FontDescriptor value /{key} value is not a finite number",
             error.Message, StringComparison.Ordinal);
     }
 
