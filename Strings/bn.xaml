@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">ফ্ল্যাটেন করা PDF সংরক্ষণ করুন (সব পৃষ্ঠা রাস্টারাইজ করুন - সম্পূর্ণ অসম্পাদনযোগ্য)</sys:String>
     <sys:String x:Key="Str_TT_Print">মুদ্রণ (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDF একত্রিত করুন (এই PDF-এ অতিরিক্ত PDF যোগ করুন)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">পৃষ্ঠা বের করুন (নির্বাচিত পৃষ্ঠাগুলো নতুন PDF-এ সংরক্ষণ করুন)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">পৃষ্ঠা বের করুন (পৃষ্ঠাগুলো নতুন PDF-এ সংরক্ষণ করুন)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">নির্বাচিত পৃষ্ঠাগুলো মুছুন</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">পৃষ্ঠা উপরে সরান (পুনর্বিন্যাস)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">পৃষ্ঠা নিচে সরান (পুনর্বিন্যাস)</sys:String>
@@ -140,6 +140,12 @@
     <sys:String x:Key="Str_RemovedCrop">{0}টি পৃষ্ঠা থেকে CropBox সরানো হয়েছে</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">ক্রপ সরানো ব্যর্থ হয়েছে: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0}টি পৃষ্ঠা {1}-এ বের করা হয়েছে</sys:String>
+    <sys:String x:Key="Str_Extract_Title">পৃষ্ঠা বের করুন</sys:String>
+    <sys:String x:Key="Str_Extract_Label">যে পৃষ্ঠাগুলো বের করতে হবে</sys:String>
+    <sys:String x:Key="Str_Extract_Example">যেমন 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">এটি পৃষ্ঠার নম্বর মনে হচ্ছে না। একক পৃষ্ঠা ও a-b ব্যাপ্তি ব্যবহার করুন, যেমন 452-684, 4, 8।</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">পৃষ্ঠাগুলো 1 থেকে {0} পর্যন্ত।</sys:String>
+    <sys:String x:Key="Str_Extract_Button">বের করুন</sys:String>
     <sys:String x:Key="Str_Deleted">{0}টি পৃষ্ঠা মুছে ফেলা হয়েছে - {1}টি অবশিষ্ট</sys:String>
     <sys:String x:Key="Str_Printed">{0}টি পৃষ্ঠা প্রিন্টারে পাঠানো হয়েছে</sys:String>
     <sys:String x:Key="Str_LinkRemoved">লিংক সরানো হয়েছে।</sys:String>

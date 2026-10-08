@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">統合して保存 (全ページをラスタライズ - 完全に編集不可)</sys:String>
     <sys:String x:Key="Str_TT_Print">印刷 (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDF を結合 (この PDF に他の PDF を追加)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">ページを抽出 (選択ページを新しい PDF に保存)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">ページを抽出 (指定ページを新しい PDF に保存)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">選択ページを削除</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">ページを上に移動 (並べ替え)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">ページを下に移動 (並べ替え)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">{0} ページから CropBox を削除しました</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">トリミング解除に失敗しました : {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0} ページを {1} に抽出しました</sys:String>
+    <sys:String x:Key="Str_Extract_Title">ページを抽出</sys:String>
+    <sys:String x:Key="Str_Extract_Label">抽出するページ</sys:String>
+    <sys:String x:Key="Str_Extract_Example">例: 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">ページ番号として読み取れません。単一ページと a-b の範囲で指定してください。例: 452-684, 4, 8</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">ページは 1 から {0} までです。</sys:String>
+    <sys:String x:Key="Str_Extract_Button">抽出</sys:String>
     <sys:String x:Key="Str_Deleted">{0} ページを削除しました - {1} ページ残っています</sys:String>
     <sys:String x:Key="Str_Printed">{0} ページをプリンターに送信しました</sys:String>
     <sys:String x:Key="Str_LinkRemoved">リンクを削除しました。</sys:String>

@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Guardar PDF aplanado (rasterizar todas las páginas - completamente ineditable)</sys:String>
     <sys:String x:Key="Str_TT_Print">Imprimir (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Combinar PDFs (agregar PDFs adicionales a este)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Extraer páginas (guardar páginas seleccionadas en un nuevo PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Extraer páginas (guardar páginas en un nuevo PDF)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Eliminar páginas seleccionadas</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Subir página (reordenar)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Bajar página (reordenar)</sys:String>
@@ -140,6 +140,12 @@
     <sys:String x:Key="Str_RemovedCrop">CropBox eliminado de {0} página(s)</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Error al eliminar recorte: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Extraídas {0} página(s) a {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Extraer páginas</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Páginas a extraer</sys:String>
+    <sys:String x:Key="Str_Extract_Example">p. ej. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">No se lee como números de página. Usa páginas sueltas y rangos a-b, p. ej. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Las páginas van de 1 a {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Extraer</sys:String>
     <sys:String x:Key="Str_Deleted">Eliminadas {0} página(s) - {1} restante(s)</sys:String>
     <sys:String x:Key="Str_Printed">Enviadas {0} página(s) a la impresora</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Enlace eliminado.</sys:String>

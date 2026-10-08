@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Uložit PDF se sloučenými vrstvami (rastrovat všechny stránky - zcela neupravitelné)</sys:String>
     <sys:String x:Key="Str_TT_Print">Tisk (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Sloučit PDF (připojit další PDF do tohoto)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Extrahovat stránky (uložit vybrané stránky do nového PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Extrahovat stránky (uložit stránky do nového PDF)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Smazat vybrané stránky</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Posunout stránku nahoru (změna pořadí)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Posunout stránku dolů (změna pořadí)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">CropBox odstraněn ze stránek: {0}</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Odstranění ořezu selhalo: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Extrahováno stránek: {0} do {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Extrahovat stránky</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Stránky k extrahování</sys:String>
+    <sys:String x:Key="Str_Extract_Example">např. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">To se nečte jako čísla stránek. Použijte jednotlivé stránky a rozsahy a-b, např. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Stránky jsou od 1 do {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Extrahovat</sys:String>
     <sys:String x:Key="Str_Deleted">Smazáno stránek: {0} - zbývá stránek: {1}</sys:String>
     <sys:String x:Key="Str_Printed">Na tiskárnu odesláno stránek: {0}</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Odkaz odstraněn.</sys:String>

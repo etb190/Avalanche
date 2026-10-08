@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Сохранить сжатый PDF-файл (растеризует все страницы - итоговый файл станет недоступным для редактирования)</sys:String>
     <sys:String x:Key="Str_TT_Print">Печать (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Добавить PDF-файлы в текущий проект</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Извлечение страниц (сохранение выбранных страниц в новом PDF-файле)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Извлечение страниц (сохранение страниц в новом PDF-файле)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Удаление выбранных страниц</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Переместить страницу вверх (изменить порядок)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Переместить страницу вниз (изменить порядок)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">Удалена зона обрезки из {0} страниц </sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Удалить обрезку не удалось: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Извлеченно {0} страниц(ы) к {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Извлечь страницы</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Страницы для извлечения</sys:String>
+    <sys:String x:Key="Str_Extract_Example">напр. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Это не похоже на номера страниц. Укажите отдельные страницы и диапазоны a-b, напр. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Страницы от 1 до {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Извлечь</sys:String>
     <sys:String x:Key="Str_Deleted">Удалено {0} страниц(ы) - {1} remaining</sys:String>
     <sys:String x:Key="Str_Printed">Отправлено {0} страниц на принтер</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Ссылка удалена.</sys:String>

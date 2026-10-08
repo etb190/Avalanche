@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Zapisz spłaszczony PDF (rasteryzuj wszystkie strony - całkowicie nieedytowalne)</sys:String>
     <sys:String x:Key="Str_TT_Print">Drukuj (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Scal PDF-y (połącz dodatkowe pliki PDF w ten jeden)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Wyodrębnij strony (zapisz wybrane strony do nowego PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Wyodrębnij strony (zapisz strony do nowego PDF)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Usuń wybrane strony</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Przesuń stronę w górę (zmiana kolejności)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Przesuń stronę w dół (zmiana kolejności)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">Usunięto CropBox ze {0} stron(y)</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Niepowodzenie przycięcia: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Wyodrębniono stronę(y) ({0}) do {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Wyodrębnij strony</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Strony do wyodrębnienia</sys:String>
+    <sys:String x:Key="Str_Extract_Example">np. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">To nie czyta się jak numery stron. Użyj pojedynczych stron i zakresów a-b, np. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Strony są od 1 do {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Wyodrębnij</sys:String>
     <sys:String x:Key="Str_Deleted">Usunięto {0} stronę(sy) - {1} pozostało</sys:String>
     <sys:String x:Key="Str_Printed">Wysłano {0} stronę(y) do drukarki</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Link usunięto.</sys:String>

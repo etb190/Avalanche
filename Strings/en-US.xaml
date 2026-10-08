@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Save Flattened PDF (rasterize all pages - fully uneditable)</sys:String>
     <sys:String x:Key="Str_TT_Print">Print (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Merge PDFs (combine additional PDFs into this one)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Extract Pages (save selected pages to a new PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Extract Pages (save pages to a new PDF)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Delete Selected Pages</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Move Page Up (reorder)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Move Page Down (reorder)</sys:String>
@@ -193,6 +193,12 @@
     <sys:String x:Key="Str_RemovedCrop">Removed CropBox from {0} page(s)</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Remove crop failed: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Extracted {0} page(s) to {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Extract Pages</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Pages to extract</sys:String>
+    <sys:String x:Key="Str_Extract_Example">e.g. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">That doesn't read as page numbers. Use single pages and a-b ranges, e.g. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Pages go from 1 to {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Extract</sys:String>
     <sys:String x:Key="Str_Deleted">Deleted {0} page(s) - {1} remaining</sys:String>
     <sys:String x:Key="Str_Printed">Sent {0} page(s) to printer</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Link removed.</sys:String>

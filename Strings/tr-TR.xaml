@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Düzenlenemez PDF Olarak Kaydet (tüm sayfalar görsele dönüştürülür - tamamen düzenlenemez hale gelir)</sys:String>
     <sys:String x:Key="Str_TT_Print">Yazdır (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDF'leri Birleştir (bu PDF'ye ek PDF'ler ekle)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Sayfaları Çıkart (seçili sayfaları yeni bir PDF'ye kaydet)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Sayfaları Çıkart (sayfaları yeni bir PDF'ye kaydet)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Seçili Sayfaları Sil</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Sayfayı Yukarı Taşı (yeniden sırala)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Sayfayı Aşağı Taşı (yeniden sırala)</sys:String>
@@ -140,6 +140,12 @@
     <sys:String x:Key="Str_RemovedCrop">{0} sayfadan CropBox kaldırıldı</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Kırpmayı kaldırma başarısız: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0} sayfa {1} konumuna çıkarıldı</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Sayfaları Çıkart</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Çıkarılacak sayfalar</sys:String>
+    <sys:String x:Key="Str_Extract_Example">örn. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Bu sayfa numaraları olarak okunmuyor. Tek sayfalar ve a-b aralıkları kullanın, örn. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Sayfalar 1 ile {0} arasında.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Çıkart</sys:String>
     <sys:String x:Key="Str_Deleted">{0} sayfa silindi - {1} kaldı</sys:String>
     <sys:String x:Key="Str_Printed">{0} sayfa yazıcıya gönderildi</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Bağlantı kaldırıldı.</sys:String>

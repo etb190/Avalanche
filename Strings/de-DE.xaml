@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Als reduzierte PDF speichern (alle Seiten rastern - nicht mehr bearbeitbar)</sys:String>
     <sys:String x:Key="Str_TT_Print">Drucken (Strg+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDFs zusammenführen (weitere PDFs hinzufügen)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Seiten extrahieren (ausgewählte Seiten in neue PDF speichern)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Seiten extrahieren (Seiten in neue PDF speichern)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Ausgewählte Seiten löschen</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Seite nach oben verschieben (Reihenfolge ändern)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Seite nach unten verschieben (Reihenfolge ändern)</sys:String>
@@ -140,6 +140,12 @@
     <sys:String x:Key="Str_RemovedCrop">Zuschneidebereich von {0} Seite(n) entfernt</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Entfernen des Zuschnitts fehlgeschlagen: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0} Seite(n) nach {1} extrahiert</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Seiten extrahieren</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Zu extrahierende Seiten</sys:String>
+    <sys:String x:Key="Str_Extract_Example">z. B. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Das liest sich nicht als Seitenzahlen. Verwende einzelne Seiten und a-b-Bereiche, z. B. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Die Seiten gehen von 1 bis {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Extrahieren</sys:String>
     <sys:String x:Key="Str_Deleted">{0} Seite(n) gelöscht - {1} verbleibend</sys:String>
     <sys:String x:Key="Str_Printed">{0} Seite(n) an den Drucker gesendet</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Link entfernt.</sys:String>

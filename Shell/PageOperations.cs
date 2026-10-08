@@ -59,23 +59,35 @@ namespace Avalanche
             }
         }
 
+        // v1.19.58: the extract button stopped assuming the selection. Every
+        // click opens the Extract Pages prompt - a recap-styled ask with one
+        // input taking single pages and inclusive a-b ranges in any mix
+        // ("452-684, 4, 8, 54-68") - and a live selection merely prefills the
+        // field with its own collapsed spec, so the old flow survives as
+        // "confirm what you selected". Only a valid answer reaches the save
+        // dialog, which starts at the Desktop.
         private void Split_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
             var currentFile = _currentFile;
+            int pageCount = _doc.PageCount;
             var selected = PageList.SelectedItems;
-            if (selected.Count == 0) { KillerDialog.Show(this, Loc("Str_Dlg_SelectExtract")); return; }
+            string prefill = selected.Count == 0
+                ? string.Empty
+                : ExtractPagesPrompt.SpecFromPages(
+                    selected.Cast<PageThumbnailVm>().Select(vm => vm.PageIndex));
+            var prompt = new ExtractPagesPrompt(this, pageCount, prefill);
+            if (prompt.ShowDialog() != true) return;
+            List<int> indices = [.. prompt.SelectedPages];
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveExtractedAs"),
-                            CheckFileExists = false, CheckPathExists = true };
+                            CheckFileExists = false, CheckPathExists = true,
+                            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) };
             if (dlg.ShowDialog(this) != true) return;
             try
             {
-                var indices = new List<int>();
-                foreach (PageThumbnailVm vm in selected) indices.Add(vm.PageIndex);
-                int[] ordered = [.. indices.OrderBy(index => index)];
                 PdfEngineIntegration.ExtractPages(
-                    currentFile, dlg.FileName, ordered, _pageRotations);
+                    currentFile, dlg.FileName, [.. indices], _pageRotations);
                 SetStatus(string.Format(Loc("Str_Extracted"), indices.Count, System.IO.Path.GetFileName(dlg.FileName)));
             }
             catch (Exception ex)

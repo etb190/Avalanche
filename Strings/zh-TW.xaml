@@ -22,7 +22,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">儲存平面化 PDF（點陣化所有頁面，完全不可編輯）</sys:String>
     <sys:String x:Key="Str_TT_Print">列印 (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">合併 PDF（將其他 PDF 加入此文件）</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">擷取頁面（將選取的頁面另存為新 PDF）</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">擷取頁面（將指定的頁面另存為新 PDF）</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">刪除選取的頁面</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">向上移動頁面（重新排序）</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">向下移動頁面（重新排序）</sys:String>
@@ -142,6 +142,12 @@
     <sys:String x:Key="Str_RemovedCrop">已從 {0} 頁移除 CropBox</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">移除裁切失敗：{0}</sys:String>
     <sys:String x:Key="Str_Extracted">已將 {0} 頁擷取至 {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">擷取頁面</sys:String>
+    <sys:String x:Key="Str_Extract_Label">要擷取的頁面</sys:String>
+    <sys:String x:Key="Str_Extract_Example">例如 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">無法解讀為頁碼。請使用單一頁面與 a-b 範圍，例如 452-684, 4, 8。</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">頁面範圍為 1 到 {0}。</sys:String>
+    <sys:String x:Key="Str_Extract_Button">擷取</sys:String>
     <sys:String x:Key="Str_Deleted">已刪除 {0} 頁 - 剩餘 {1} 頁</sys:String>
     <sys:String x:Key="Str_Printed">已將 {0} 頁傳送至印表機</sys:String>
     <sys:String x:Key="Str_LinkRemoved">連結已移除。</sys:String>

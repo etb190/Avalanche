@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Тегістелген PDF сақтау (барлық беттерді растрлеу - толық өңделмейтін)</sys:String>
     <sys:String x:Key="Str_TT_Print">Басып шығару (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDF біріктіру (қосымша PDF-терді осыған қосу)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Беттерді шығару (таңдалған беттерді жаңа PDF-ке сақтау)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Беттерді шығару (беттерді жаңа PDF-ке сақтау)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Таңдалған беттерді жою</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Бетті жоғары жылжыту (қайта реттеу)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Бетті төмен жылжыту (қайта реттеу)</sys:String>
@@ -156,6 +156,12 @@
     <sys:String x:Key="Str_RemovedCrop">{0} беттен CropBox жойылды</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Қиюды алу сәтсіз: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0} бет {1} ішіне шығарылды</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Беттерді шығару</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Шығарылатын беттер</sys:String>
+    <sys:String x:Key="Str_Extract_Example">мыс. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Бұл бет нөмірлері сияқты оқылмайды. Жеке беттер мен a-b ауқымдарын қолданыңыз, мыс. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Беттер 1-ден {0}-ге дейін.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Шығару</sys:String>
     <sys:String x:Key="Str_Deleted">{0} бет жойылды - {1} қалды</sys:String>
     <sys:String x:Key="Str_Printed">{0} бет принтерге жіберілді</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Сілтеме жойылды.</sys:String>

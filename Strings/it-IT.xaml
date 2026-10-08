@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Salva PDF piatto (rasterizza tutte le pagine - completamente non modificabile)</sys:String>
     <sys:String x:Key="Str_TT_Print">Stampa (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Unisci PDF (unisce diversi PDF in questo file)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Estrai pagine (salva le pagine selezionate in un nuovo PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Estrai pagine (salva le pagine in un nuovo PDF)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Elimina pagine selezionate</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Sposta pagina in su (riordina)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Sposta pagina in giù (riordina)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">Rimuovi CropBox da {0} pagina/e</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Rimozione ritaglio fallita: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Estratte {0} pagine in {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Estrai pagine</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Pagine da estrarre</sys:String>
+    <sys:String x:Key="Str_Extract_Example">es. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Non si legge come numeri di pagina. Usa singole pagine ed intervalli a-b, es. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Le pagine vanno da 1 a {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Estrai</sys:String>
     <sys:String x:Key="Str_Deleted">Eliminate {0} pagine - rimanenti {1}</sys:String>
     <sys:String x:Key="Str_Printed">Inviate {0} pagine alla stampante</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Collegamento rimosso.</sys:String>

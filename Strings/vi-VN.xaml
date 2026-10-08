@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Lưu PDF đã làm phẳng (chuyển đổi tất cả trang thành dạng ảnh - hoàn toàn không thể chỉnh sửa)</sys:String>
     <sys:String x:Key="Str_TT_Print">In (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Gộp các tệp PDF (kết hợp các tệp PDF bổ sung vào tệp này)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Trích xuất trang (lưu các trang đã chọn thành tệp PDF mới)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Trích xuất trang (lưu các trang thành tệp PDF mới)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Xóa các trang đã chọn</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Di chuyển trang lên trên (sắp xếp lại)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Di chuyển trang xuống dưới (sắp xếp lại)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">Đã xóa CropBox khỏi {0} trang</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Xóa vùng cắt thất bại: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">Đã trích xuất {0} trang tới {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Trích xuất trang</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Các trang cần trích xuất</sys:String>
+    <sys:String x:Key="Str_Extract_Example">vd. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Không đọc được thành số trang. Dùng trang đơn và vùng a-b, vd. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Các trang nằm trong khoảng từ 1 đến {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Trích xuất</sys:String>
     <sys:String x:Key="Str_Deleted">Đã xóa {0} trang - còn lại {1}</sys:String>
     <sys:String x:Key="Str_Printed">Đã gửi {0} trang tới máy in</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Đã xóa liên kết.</sys:String>

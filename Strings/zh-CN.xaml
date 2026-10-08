@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">保存平面化 PDF（栅格化所有页面，完全不可编辑）</sys:String>
     <sys:String x:Key="Str_TT_Print">打印 (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">合并 PDF（将其他 PDF 加入此文档）</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">截取页面（将选取的页面另存为新 PDF）</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">截取页面（将指定的页面另存为新 PDF）</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">删除选取的页面</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">向上移动页面（重新排序）</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">向下移动页面（重新排序）</sys:String>
@@ -140,6 +140,12 @@
     <sys:String x:Key="Str_RemovedCrop">已从 {0} 页移除 CropBox</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">移除裁切失败：{0}</sys:String>
     <sys:String x:Key="Str_Extracted">已将 {0} 页截取至 {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">截取页面</sys:String>
+    <sys:String x:Key="Str_Extract_Label">要截取的页面</sys:String>
+    <sys:String x:Key="Str_Extract_Example">例如 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">无法解读为页码。请使用单个页面与 a-b 范围，例如 452-684, 4, 8。</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">页面范围为 1 到 {0}。</sys:String>
+    <sys:String x:Key="Str_Extract_Button">截取</sys:String>
     <sys:String x:Key="Str_Deleted">已删除 {0} 页 - 剩余 {1} 页</sys:String>
     <sys:String x:Key="Str_Printed">已将 {0} 页发送至打印机</sys:String>
     <sys:String x:Key="Str_LinkRemoved">链接已移除。</sys:String>

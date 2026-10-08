@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Lapított PDF mentése (minden oldal raszterizálása - teljesen nem szerkeszthető)</sys:String>
     <sys:String x:Key="Str_TT_Print">Nyomtatás (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDF-ek egyesítése (további PDF-ek hozzáfűzése ehhez)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Oldalak kinyerése (a kijelölt oldalak mentése új PDF-be)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Oldalak kinyerése (oldalak mentése új PDF-be)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Kijelölt oldalak törlése</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Oldal mozgatása felfelé (átrendezés)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Oldal mozgatása lefelé (átrendezés)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">CropBox eltávolítva {0} oldalról</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">A vágás eltávolítása sikertelen: {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0} oldal kinyerve ide: {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Oldalak kinyerése</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Kinyerendő oldalak</sys:String>
+    <sys:String x:Key="Str_Extract_Example">pl. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Ez nem olvasható oldalszámokként. Használj egyes oldalakat és a-b tartományokat, pl. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Az oldalak 1-től {0}-ig terjednek.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Kinyerés</sys:String>
     <sys:String x:Key="Str_Deleted">{0} oldal törölve - {1} maradt</sys:String>
     <sys:String x:Key="Str_Printed">{0} oldal elküldve a nyomtatóra</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Hivatkozás eltávolítva.</sys:String>

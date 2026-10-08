@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Enregistrer le PDF aplati (toutes les pages rastérisées - non modifiable)</sys:String>
     <sys:String x:Key="Str_TT_Print">Imprimer (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Fusionner des PDF (ajouter d'autres fichiers PDF)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Extraire des pages (enregistrer les pages sélectionnées dans un nouveau PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Extraire des pages (enregistrer les pages dans un nouveau PDF)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Supprimer les pages sélectionnées</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Déplacer la page vers le haut (réorganiser)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Déplacer la page vers le bas (réorganiser)</sys:String>
@@ -157,6 +157,12 @@
     <sys:String x:Key="Str_RemovedCrop">CropBox supprimée de {0} page(s)</sys:String>
     <sys:String x:Key="Str_RemoveCropFailed">Échec de la suppression du recadrage : {0}</sys:String>
     <sys:String x:Key="Str_Extracted">{0} page(s) extraite(s) vers {1}</sys:String>
+    <sys:String x:Key="Str_Extract_Title">Extraire des pages</sys:String>
+    <sys:String x:Key="Str_Extract_Label">Pages à extraire</sys:String>
+    <sys:String x:Key="Str_Extract_Example">ex. 452-684, 4, 8, 54-68</sys:String>
+    <sys:String x:Key="Str_Extract_BadSpec">Cela ne se lit pas comme des numéros de pages. Utilisez des pages isolées et des plages a-b, ex. 452-684, 4, 8.</sys:String>
+    <sys:String x:Key="Str_Extract_OutOfRange">Les pages vont de 1 à {0}.</sys:String>
+    <sys:String x:Key="Str_Extract_Button">Extraire</sys:String>
     <sys:String x:Key="Str_Deleted">{0} page(s) supprimée(s) - {1} restante(s)</sys:String>
     <sys:String x:Key="Str_Printed">{0} page(s) envoyée(s) à l'imprimante</sys:String>
     <sys:String x:Key="Str_LinkRemoved">Lien supprimé.</sys:String>
