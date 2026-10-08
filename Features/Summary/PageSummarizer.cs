@@ -87,7 +87,30 @@ namespace Avalanche.Features.Summary
         private const string PageMarkerPattern = @"\[{1,2}p\.\s*\d+\]{1,2}";
 
         private static readonly SemaphoreSlim Gate = new(1, 1);
-        private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
+
+        // No auto-timeout on the shared client. HttpClient's own deadline
+        // disposes the response the moment it fires, and a reader still pulling
+        // a streamed body then dies with "Cannot access a disposed object"
+        // (System.Net.Http.HttpConnectionResponseContent) instead of a clean
+        // timeout - and with ResponseHeadersRead that deadline spans the whole
+        // body consumption, so a long think+answer stream was a ticking crash
+        // on its own. Every pass therefore enforces its own budget on a token
+        // it owns (PassBudget below, wired into the two pass methods).
+        private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
+
+        // The pass budget: the longest silence a pass may hold. A buffered call
+        // must finish inside it; a streamed call re-arms the clock on every
+        // line, so for streams the budget measures silence - eight quiet
+        // minutes fail honestly, a stream that keeps talking may take as long
+        // as it takes. Keep this number in step with the two sentences below.
+        private static readonly TimeSpan PassBudget = TimeSpan.FromMinutes(8);
+
+        // The two sentences the pass clock throws. The card prints failures
+        // verbatim (v1.19.53), so these are written as sentences, not codes.
+        private const string StreamQuietError =
+            "The provider stopped sending data for over 8 minutes.";
+        private const string BufferedTimeoutError =
+            "The provider did not answer within 8 minutes.";
 
         // The learned reasoning_effort drop, per endpoint - the same gate the
         // chat provider runs (OpenAiCompatibleProvider.LearnedFieldDrops): a
@@ -1178,14 +1201,30 @@ namespace Avalanche.Features.Summary
                     stream,
                     maxTokens,
                     effortSent ? config.ReasoningEffort : "off"));
-                using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
+                // Ownership, deliberately loud: this response must OUTLIVE the
+                // method - the caller is the one who reads the body. A `using`
+                // here disposed the response on the very return that handed it
+                // over, and every read afterwards died with "Cannot access a
+                // disposed object" (HttpConnectionResponseContent): the
+                // v1.19.53 regression that killed every successful pass while
+                // every HTTP 400 still quoted itself fine.
+                HttpResponseMessage response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
                     .ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     return response;
                 }
 
-                string bodyText = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                string bodyText;
+                try
+                {
+                    bodyText = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    response.Dispose();
+                    throw;
+                }
                 if (attempt == 0 && effortSent && (int)response.StatusCode == 400 &&
                     bodyText.Contains("reasoning_effort", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1209,6 +1248,26 @@ namespace Avalanche.Features.Summary
             }
         }
 
+        /// <summary>SendGatedAsync with the pass clock translated: a cancellation the
+        /// reader did not issue becomes the honest sentence the card can quote,
+        /// instead of a bare "Stopped" for a timeout the reader never chose.
+        /// The clock token runs the send; the reader's own token decides
+        /// whether a cancellation is a user cancel.</summary>
+        private static async Task<HttpResponseMessage> SendTimedAsync(
+            AiProviderConfig config, string system, string user, int maxTokens, bool stream,
+            double? temperature, CancellationToken ct, CancellationToken passCt, string timedOutError)
+        {
+            try
+            {
+                return await SendGatedAsync(config, system, user, maxTokens, stream, temperature, passCt)
+                    .ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new HttpRequestException(timedOutError);
+            }
+        }
+
         /// <summary>Streams one digest pass: "delta" updates as SSE chunks arrive (or one
         /// delta when the endpoint ignored stream:true). The digest's front door - the
         /// whole range rides in this one streamed request and every delta paints as
@@ -1220,13 +1279,33 @@ namespace Avalanche.Features.Summary
             [EnumeratorCancellation] CancellationToken ct,
             int maxTokens)
         {
-            using var response = await SendGatedAsync(config, system, user, maxTokens, stream: true, null, ct)
-                .ConfigureAwait(false);
+            // The pass clock: HttpClient's auto-timeout is gone (see the
+            // field), so each pass arms its own. Armed once here and re-armed
+            // on every line below, it measures the longest silence, not the
+            // whole answer: a stream that keeps writing a long think+answer
+            // may take as long as it takes, a connection that goes quiet dies
+            // with an honest sentence instead of a disposed-response crash or
+            // an eternal hang.
+            using var passCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            passCts.CancelAfter(PassBudget);
+            CancellationToken passCt = passCts.Token;
+
+            using var response = await SendTimedAsync(config, system, user, maxTokens, stream: true,
+                    null, ct, passCt, StreamQuietError).ConfigureAwait(false);
             string mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
             if (!mediaType.Contains("event-stream", StringComparison.OrdinalIgnoreCase))
             {
                 // Endpoint ignored stream:true and answered with one JSON body.
-                string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                string json;
+                try
+                {
+                    json = await response.Content.ReadAsStringAsync(passCt).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    throw new HttpRequestException(StreamQuietError);
+                }
+
                 CollectRunUsage(json);
                 CollectRunSent(user);
                 string whole = ExtractMessageContent(json) ?? string.Empty;
@@ -1244,15 +1323,47 @@ namespace Avalanche.Features.Summary
             }
 
             CollectRunSent(user);
-            using Stream stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+            Stream stream;
+            try
+            {
+                stream = await response.Content.ReadAsStreamAsync(passCt).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new HttpRequestException(StreamQuietError);
+            }
+
+            // The reader alone closes the stream it wraps (StreamReader disposes
+            // its underlying stream), so the old explicit `using Stream` - a
+            // second hand on the same lever - is gone with the auto-timeout.
             using var reader = new StreamReader(stream);
             var reasoningBuf = new StringBuilder();   // reasoning models stream their think first
             int contentChars = 0;
             string? finish = null;
             while (true)
             {
-                ct.ThrowIfCancellationRequested();
-                string? line = await reader.ReadLineAsync(ct).ConfigureAwait(false);
+                if (passCt.IsCancellationRequested)
+                {
+                    if (ct.IsCancellationRequested)
+                    {
+                        throw new OperationCanceledException(ct);
+                    }
+
+                    // The clock expired: the provider went quiet - say so.
+                    throw new HttpRequestException(StreamQuietError);
+                }
+
+                string? line;
+                try
+                {
+                    line = await reader.ReadLineAsync(passCt).ConfigureAwait(false);
+                    passCts.CancelAfter(PassBudget);   // bytes landed - restart the silence window
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    throw new HttpRequestException(StreamQuietError);
+                }
+
                 if (line is null)
                 {
                     break;
@@ -1320,9 +1431,25 @@ namespace Avalanche.Features.Summary
         private static async Task<string> RunBufferedPassAsync(
             AiProviderConfig config, string system, string user, CancellationToken ct, int maxTokens, double? temperature = null)
         {
-            using var response = await SendGatedAsync(config, system, user, maxTokens, stream: false, temperature, ct)
-                .ConfigureAwait(false);
-            string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            // The buffered pass has no lines to re-arm the clock with, so the
+            // budget bounds the whole call - the same eight minutes the shared
+            // client used to enforce, minus the disposed-response crash.
+            using var passCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            passCts.CancelAfter(PassBudget);
+            CancellationToken passCt = passCts.Token;
+
+            using var response = await SendTimedAsync(config, system, user, maxTokens, stream: false,
+                    temperature, ct, passCt, BufferedTimeoutError).ConfigureAwait(false);
+
+            string json;
+            try
+            {
+                json = await response.Content.ReadAsStringAsync(passCt).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new HttpRequestException(BufferedTimeoutError);
+            }
             CollectRunUsage(json);
             CollectRunSent(user);
             string? content = ExtractMessageContent(json);
