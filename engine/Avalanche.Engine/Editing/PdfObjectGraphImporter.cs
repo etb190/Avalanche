@@ -9,7 +9,10 @@ namespace Avalanche.Engine.Editing;
 internal sealed class PdfObjectGraphImporter
 {
     private static readonly PdfName LengthName = new("Length"u8);
+    private static readonly PdfName ParentName = new("Parent"u8);
     private const int MaximumImportedObjects = 1_000_000;
+    private const int MaximumWalkDepth = 64;
+    private const int MaximumWalkedObjects = 10_000;
 
     private readonly PdfDocument _source;
     private readonly PdfIncrementalUpdateBuilder _update;
@@ -211,6 +214,43 @@ internal sealed class PdfObjectGraphImporter
             out PdfDictionary? replacement)
             ? replacement
             : _source.Resolve(reference);
+
+    // True when the annotation's object graph reaches a page of the source document
+    // that the import does not carry - a link to a page outside the selection. Such
+    // a reference cannot survive the import, the destination would be broken beyond
+    // repair, and a reader extracting a page range expects a link to go with the
+    // pages it pointed to - so the annotation is dropped whole. Named destinations
+    // ride as strings and stay; links between selected pages are remapped by the
+    // import and keep working. The walk skips /Parent (a widget's field hierarchy
+    // legitimately spans pages and is not a destination) and never descends into a
+    // page object: a destination names a page, its internals are not part of the link.
+    internal bool ReferencesUnselectedPage(PdfDictionary annotation)
+    {
+        var visited = new HashSet<SourceReference>();
+        int walked = 0;
+        return Walk(annotation, 0);
+
+        bool Walk(PdfObject current, int depth)
+        {
+            if (depth >= MaximumWalkDepth) return false;
+            if (current is PdfIndirectReference reference)
+            {
+                var key = new SourceReference(reference.ObjectNumber, reference.Generation);
+                if (!visited.Add(key)) return false;
+                if (_sourcePages.Contains(key)) return !_references.ContainsKey(key);
+                if (++walked > MaximumWalkedObjects) return false;
+                return Walk(ResolveSource(reference), depth + 1);
+            }
+            if (current is PdfArray array)
+                return array.Any(item => Walk(item, depth + 1));
+            if (current is PdfDictionary dictionary)
+                return dictionary.Any(entry =>
+                    !entry.Key.Equals(ParentName) && Walk(entry.Value, depth + 1));
+            if (current is PdfStream stream)
+                return Walk(stream.Dictionary, depth + 1);
+            return false;
+        }
+    }
 
     private readonly record struct SourceReference(int ObjectNumber, int Generation);
 }

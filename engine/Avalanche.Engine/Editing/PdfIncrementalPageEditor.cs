@@ -11392,9 +11392,18 @@ public sealed class PdfIncrementalPageEditor
                     ValidateFileSpecification(document, annotation,
                         "An imported page /AF entry");
                 if (key.Equals(AnnotsName))
+                {
                     ValidateImportedAnnotationActions(document, annotation, source.Reference,
                         annotationIdentities, annotationNames,
                         "An imported page /Annots entry");
+                    // A link to a page outside the selection cannot survive the import:
+                    // the graph importer refuses references to unselected pages and the
+                    // destination would be broken beyond repair, so the annotation goes
+                    // with the pages it pointed to. Malformed annotations still fail
+                    // validation first; links between selected pages are remapped by
+                    // the import and keep working.
+                    if (importer.ReferencesUnselectedPage((PdfDictionary)resolved)) continue;
+                }
                 retained.Add(importer.Import(annotation));
             }
             return retained.Count == 0 ? null

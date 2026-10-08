@@ -7199,6 +7199,35 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void ImportedPages_DropAnnotationsThatReferenceUnselectedPages()
+    {
+        PdfDocument linked = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .AddBlankPage(400, 500)
+            .AddPageLink(0, 10, 10, 40, 20, 1)
+            .Build());
+        PdfDocument empty = PdfDocument.Open(new PdfDocumentBuilder().Build());
+
+        // Extracting only the first page used to refuse: the link's destination is
+        // the second page, which was not selected. The link now goes with the page
+        // it pointed to and the extraction succeeds.
+        PdfDocument solo = PdfDocument.Open(
+            new PdfIncrementalPageEditor(empty).AddImportedPage(linked, 0).Build());
+        Assert.False(FlatPages(solo).Pages[0].ContainsKey(Name("Annots")));
+
+        // Extracting both pages keeps the link and remaps its destination.
+        PdfDocument both = PdfDocument.Open(
+            new PdfIncrementalPageEditor(empty).AddImportedDocument(linked).Build());
+        (PdfIndirectReference _, PdfIndirectReference[] bothReferences,
+            PdfDictionary[] bothPages) = FlatPages(both);
+        PdfArray retained = Assert.IsType<PdfArray>(bothPages[0][Name("Annots")]);
+        PdfDictionary keptAnnotation = ResolveDictionary(both, Assert.Single(retained));
+        PdfArray destination = Assert.IsType<PdfArray>(keptAnnotation[Name("Dest")]);
+        Assert.Equal(bothReferences[1].ObjectNumber,
+            Assert.IsType<PdfIndirectReference>(destination[0]).ObjectNumber);
+    }
+
+    [Fact]
     public void TaggedImports_MergeStructureKidsParentTreeAndPageKeys()
     {
         PdfDocument target = PdfDocument.Open(BuildTaggedDocument());
@@ -9717,7 +9746,7 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
-    public void Import_RejectsOmittedPageLinksAndPrunesSelectedFormState()
+    public void Import_DropsOmittedPageLinksAndPrunesSelectedFormState()
     {
         PdfDocument linkedPages = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage().AddBlankPage().AddPageLink(0, 0, 0, 20, 20, 1).Build());
@@ -9726,9 +9755,12 @@ public sealed class PdfIncrementalPageEditorTests
             .AddTextField(0, "name", 10, 10, 100, 20).Build());
         byte[] target = new PdfDocumentBuilder().Build();
 
-        Assert.Throws<NotSupportedException>(() =>
+        // The first page's link names the omitted second page: the link goes
+        // with the page it pointed to and the extraction succeeds without it.
+        PdfDocument soloPage = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(target))
                 .AddImportedPage(linkedPages, 0).Build());
+        Assert.False(FlatPages(soloPage).Pages[0].ContainsKey(Name("Annots")));
         PdfDocument selectedForm = PdfDocument.Open(
             new PdfIncrementalPageEditor(PdfDocument.Open(target))
                 .AddImportedPage(formPage, 0).Build());
@@ -9798,7 +9830,7 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
-    public void SelectedPageImport_RejectsOmittedDependenciesAndDuplicateSelections()
+    public void SelectedPageImport_DropsOmittedDependenciesAndRejectsDuplicateSelections()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage().AddBlankPage().AddBlankPage()
@@ -9806,10 +9838,12 @@ public sealed class PdfIncrementalPageEditorTests
             .Build());
         PdfDocument target = PdfDocument.Open(new PdfDocumentBuilder().Build());
 
-        Assert.Throws<NotSupportedException>(() =>
+        // A link naming an omitted page drops with its destination instead of
+        // refusing the import; duplicate selections are still refused.
+        PdfDocument partial = PdfDocument.Open(
             new PdfIncrementalPageEditor(target)
-                .AddImportedPages(source, [0, 1])
-                .Build());
+                .AddImportedPages(source, [0, 1]).Build());
+        Assert.False(FlatPages(partial).Pages[0].ContainsKey(Name("Annots")));
         Assert.Throws<ArgumentException>(() =>
             new PdfIncrementalPageEditor(target)
                 .AddImportedPages(source, [0, 0]));
