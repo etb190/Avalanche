@@ -1440,8 +1440,7 @@ public sealed class PdfIncrementalPageEditor
             throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
         PdfPageTreeEntry sourcePage = sourceTree.Pages[sourcePageIndex];
         ValidateImportablePage(source, sourcePage,
-            allowFormWidgets: sourceTree.Catalog.ContainsKey(AcroFormName),
-            allowTaggedPage: sourceTree.Catalog.ContainsKey(StructTreeRootName));
+            allowFormWidgets: sourceTree.Catalog.ContainsKey(AcroFormName));
         EnsurePageCapacity(1);
         int batchId = _nextImportBatchId++;
         _pages.Insert(pageIndex,
@@ -1483,8 +1482,7 @@ public sealed class PdfIncrementalPageEditor
                     nameof(sourcePageIndices));
             PdfPageTreeEntry sourcePage = sourceTree.Pages[sourcePageIndex];
             ValidateImportablePage(source, sourcePage,
-                allowFormWidgets: sourceTree.Catalog.ContainsKey(AcroFormName),
-                allowTaggedPage: sourceTree.Catalog.ContainsKey(StructTreeRootName));
+                allowFormWidgets: sourceTree.Catalog.ContainsKey(AcroFormName));
             selected.Add(sourcePage);
         }
         if (selected.Count == 0) return this;
@@ -1509,10 +1507,8 @@ public sealed class PdfIncrementalPageEditor
         EnforceSourceCopyPermission(source);
         PdfPageTree sourceTree = PdfPageTree.Read(source);
         bool hasAcroForm = sourceTree.Catalog.ContainsKey(AcroFormName);
-        bool hasStructureTree = sourceTree.Catalog.ContainsKey(StructTreeRootName);
         foreach (PdfPageTreeEntry page in sourceTree.Pages)
-            ValidateImportablePage(source, page,
-                allowFormWidgets: hasAcroForm, allowTaggedPage: hasStructureTree);
+            ValidateImportablePage(source, page, allowFormWidgets: hasAcroForm);
         if (sourceTree.Pages.Count == 0) return this;
         EnsurePageCapacity(sourceTree.Pages.Count);
         int batchId = _nextImportBatchId++;
@@ -6884,11 +6880,15 @@ public sealed class PdfIncrementalPageEditor
         Dictionary<PdfName, PdfObject> catalogReplacements,
         StructureRewriteState? rewriteState)
     {
+        // A group counts as tagged only when its source catalog actually carries a
+        // /StructTreeRoot. Pages may still arrive carrying /StructParents from a
+        // producer that lost the catalog tree - those keys answer to nothing, so
+        // BuildImportedPage drops them (the pages import as untagged) instead of
+        // refusing an import that could never preserve the structure anyway.
         PageState[][] sourceTaggedGroups = [.. importedGroups.Where(group =>
         {
             PdfPageTree sourceTree = group[0].ImportedTree!;
-            return sourceTree.Catalog.ContainsKey(StructTreeRootName)
-                || group.Any(page => page.ImportedEntry!.Dictionary.ContainsKey(StructParentsName));
+            return sourceTree.Catalog.ContainsKey(StructTreeRootName);
         })];
         PageState[][] taggedGroups = [.. sourceTaggedGroups.Where(group =>
             IsCompleteImport(group, group[0].ImportedTree!)
@@ -10973,7 +10973,12 @@ public sealed class PdfIncrementalPageEditor
         var entries = source.Dictionary
             .Where(entry => !entry.Key.Equals(ParentName)
                 && !InheritableNames.Contains(entry.Key)
-                && !(state.RemoveThumbnail && entry.Key.Equals(ThumbnailName)))
+                && !(state.RemoveThumbnail && entry.Key.Equals(ThumbnailName))
+                // An orphaned /StructParents - the page carries the key but its source
+                // catalog has no /StructTreeRoot to answer it - preserves nothing and
+                // references nothing: the page imports as untagged, the key is dropped.
+                && !(entry.Key.Equals(StructParentsName)
+                    && !state.ImportedTree!.Catalog.ContainsKey(StructTreeRootName)))
             .Select(entry => entry.Key.Equals(Name("Contents"))
                 ? new KeyValuePair<PdfName, PdfObject>(
                     entry.Key, ImportPageContents(entry.Value))
@@ -17423,12 +17428,8 @@ public sealed class PdfIncrementalPageEditor
     }
 
     private static void ValidateImportablePage(
-        PdfDocument source, PdfPageTreeEntry page,
-        bool allowFormWidgets, bool allowTaggedPage)
+        PdfDocument source, PdfPageTreeEntry page, bool allowFormWidgets)
     {
-        if (!allowTaggedPage && page.Dictionary.ContainsKey(StructParentsName))
-            throw new NotSupportedException(
-                "Tagged pages must be imported as a complete document into an empty destination.");
         if (!page.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotationsValue)) return;
         PdfObject annotations = ResolveCatalogValue(
             source, annotationsValue, "An imported page /Annots value");

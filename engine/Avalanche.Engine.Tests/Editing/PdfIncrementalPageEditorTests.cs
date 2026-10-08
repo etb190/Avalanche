@@ -7167,6 +7167,38 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void TaggedImports_OrphanedPageKeysImportAsUntagged()
+    {
+        PdfDocument tagged = PdfDocument.Open(BuildTaggedDocument());
+        PdfIndirectReference catalogReference = Assert.IsType<PdfIndirectReference>(
+            tagged.Trailer[Name("Root")]);
+        PdfDictionary catalog = ResolveDictionary(tagged, catalogReference);
+        var strip = new PdfIncrementalUpdateBuilder(tagged);
+        strip.ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(
+            catalog.Where(entry => !entry.Key.Equals(Name("StructTreeRoot"))
+                && !entry.Key.Equals(Name("MarkInfo")))));
+        PdfDocument orphaned = PdfDocument.Open(strip.Build());
+
+        // The page keys survive on the pages, but the catalog tree they answer to is
+        // gone: the import treats them as dead metadata, imports the pages untagged,
+        // and never refuses the way a genuinely tagged source would.
+        PdfDocument empty = PdfDocument.Open(new PdfDocumentBuilder().Build());
+        PdfDocument selected = PdfDocument.Open(
+            new PdfIncrementalPageEditor(empty).AddImportedPage(orphaned, 0).Build());
+        Assert.False(ResolveDictionary(selected, selected.Trailer[Name("Root")])
+            .ContainsKey(Name("StructTreeRoot")));
+        Assert.False(FlatPages(selected).Pages[0].ContainsKey(Name("StructParents")));
+
+        PdfDocument whole = PdfDocument.Open(
+            new PdfIncrementalPageEditor(empty).AddImportedDocument(orphaned).Build());
+        Assert.Equal(2, FlatPages(whole).Pages.Length);
+        Assert.False(ResolveDictionary(whole, whole.Trailer[Name("Root")])
+            .ContainsKey(Name("StructTreeRoot")));
+        Assert.All(FlatPages(whole).Pages,
+            page => Assert.False(page.ContainsKey(Name("StructParents"))));
+    }
+
+    [Fact]
     public void TaggedImports_MergeStructureKidsParentTreeAndPageKeys()
     {
         PdfDocument target = PdfDocument.Open(BuildTaggedDocument());
