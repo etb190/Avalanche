@@ -92,7 +92,9 @@ namespace Avalanche.Features.AI
         }
 
         /// <summary>Model used ONLY for the semantic retrieval layer
-        /// (Ollama /api/embed). Chat generation keeps GenModel.</summary>
+        /// (Ollama /api/embed). Chat generation keeps GenModel.
+        /// v1.19.56: no settings text box any more - the embedding dial is
+        /// the one control; this value rides from config and presets.</summary>
         public string EmbeddingModel
         {
             get => _embeddingModel;

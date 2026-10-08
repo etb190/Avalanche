@@ -3662,11 +3662,11 @@
                                 <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatModel}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
-                                <TextBlock Text="{DynamicResource Str_AiSettingsEmbModel}" Style="{StaticResource AiSettingsLabel}"/>
-                                <TextBox Text="{Binding EmbeddingModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
-                                <!-- v1.19.55: the embedding dial - the reader's own
-                                     embedding model on its own server, or Google's
-                                     gemini-embedding-2 behind the same OpenAI-compatible
+                                <!-- v1.19.56: the embedding dial is the one embedding
+                                     control - the model-name text box is gone. App
+                                     default keeps the reader's own embedding model on
+                                     its own server (config or preset), Google's
+                                     gemini-embedding-2 rides the same OpenAI-compatible
                                      door the chat guest uses. -->
                                 <TextBlock Text="{DynamicResource Str_AiEmbeddingDial}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
