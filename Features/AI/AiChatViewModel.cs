@@ -131,10 +131,13 @@ namespace Avalanche.Features.AI
             private set { _semanticStatus = value; OnPropertyChanged(); }
         }
 
-        /// <summary>Drives the research button's face: lit in the accent while
-        /// THIS document's semantic layer builds or is ready, muted while idle.
-        /// (v1.19.5) v1.19.46: the state is the document's own - the button
-        /// stays lit across switches while its background pass runs.</summary>
+        /// <summary>Drives the research button's accent: lit while THIS
+        /// document's semantic pass is IN FLIGHT, muted when idle, green via
+        /// SemanticResearchReady once the layer is built. (v1.19.5)
+        /// v1.19.46: the state is the document's own - the button stays lit
+        /// across switches while its background pass runs. v1.19.57: ready
+        /// moved to its own green face; a ready index is redoable, not
+        /// final.</summary>
         public bool SemanticResearchActive
         {
             get
@@ -142,13 +145,34 @@ namespace Avalanche.Features.AI
                 lock (_processingLock)
                 {
                     string doc = _isWebContext ? "" : _currentDocumentId;
-                    return doc.Length > 0
-                        && (doc == _semanticBuildingDoc || _semanticReadyDocs.Contains(doc));
+                    return doc.Length > 0 && doc == _semanticBuildingDoc;
                 }
             }
         }
 
-        private void OnSemanticStateChanged() => OnPropertyChanged(nameof(SemanticResearchActive));
+        /// <summary>v1.19.57: the ready seal - THIS document's semantic layer
+        /// is built, the button shows green, and one more click tears the seal
+        /// off and rebuilds (checkpoint resume keeps an unchanged rebuild
+        /// cheap; a changed embedding model or dial re-embeds fresh).</summary>
+        public bool SemanticResearchReady
+        {
+            get
+            {
+                lock (_processingLock)
+                {
+                    string doc = _isWebContext ? "" : _currentDocumentId;
+                    return doc.Length > 0
+                        && doc != _semanticBuildingDoc
+                        && _semanticReadyDocs.Contains(doc);
+                }
+            }
+        }
+
+        private void OnSemanticStateChanged()
+        {
+            OnPropertyChanged(nameof(SemanticResearchActive));
+            OnPropertyChanged(nameof(SemanticResearchReady));
+        }
 
         /// <summary>True while the chat's context is a browser tab (v1.19.22):
         /// the window switches the context whenever the browser leads.</summary>
@@ -577,6 +601,11 @@ namespace Avalanche.Features.AI
                 return;
             }
 
+            // v1.19.57: the lane was taken just now - say so at once, so the
+            // button turns the accent the moment the reader asks, not at the
+            // first batch report (the probe alone can hold 15 quiet seconds).
+            PaintSemanticStatus(docId, () => _loc("Str_AiChatSemanticBuilding"));
+
             var passCt = _semanticPassCts!.Token;
             var embeddingModel = _configProvider().EmbeddingModel;
             var documentPrefix = _configProvider().EmbeddingDocumentPrefix;
@@ -715,6 +744,12 @@ namespace Avalanche.Features.AI
                             _semanticBuildingDoc = "";
                         _semanticProgressDone = 0;
                         _semanticProgressTotal = 0;
+                        // v1.19.57: the pass is over - ready, failed or
+                        // cancelled - and its ask is consumed. A failure
+                        // resurrects nothing: the lane handover stops
+                        // hammering a dead endpoint, and the reader retries
+                        // by pressing the button, exactly like the first ask.
+                        _semanticRequestedDocs.Remove(docId);
                     }
                     try { Application.Current.Dispatcher.Invoke(OnSemanticStateChanged); }
                     catch { /* app shutting down */ }
@@ -838,9 +873,12 @@ namespace Avalanche.Features.AI
 
         /// <summary>The reader clicked the research button (v1.19.5): build the
         /// semantic layer for the current document on demand - or, while it is
-        /// building, cancel the pass. A ready index needs no second build; the
-        /// accent on the button IS the feedback. No lexical index yet (the
-        /// document is still preparing): a no-op worth one more click.
+        /// building, cancel the pass. v1.19.57: a ready index is no longer a
+        /// dead end - the same click tears the ready seal off and rebuilds
+        /// (retry after a failure is the same road), and the button's green
+        /// says the layer is built while the click says it can be redone. No
+        /// lexical index yet (the document is still preparing): a no-op worth
+        /// one more click.
         /// v1.19.46: the request survives switches - clicking research and
         /// leaving the document does NOT kill the pass; only a second click on
         /// the same document (or app shutdown) stops it. While another
@@ -863,13 +901,24 @@ namespace Avalanche.Features.AI
             lock (_processingLock)
             {
                 if (_semanticBuildingDoc == docId)
+                {
                     stopThisDoc = true;
-                else if (_semanticReadyDocs.Contains(docId))
-                    return;   // already built; the accent is the feedback
-                else if (_semanticRequestedDocs.Contains(docId) && _semanticBuildingDoc.Length > 0)
-                    queuedHere = true;   // parked behind another document's pass
+                }
                 else
-                    _semanticRequestedDocs.Add(docId);
+                {
+                    // v1.19.57: ready is a seal, not a wall - the click tears
+                    // it off and the ordinary request flow takes over: the
+                    // pass starts at once when the lane is free, or parks
+                    // behind another document's pass. Checkpoint resume keeps
+                    // an unchanged rebuild cheap, and a changed embedding
+                    // model or dial re-embeds fresh.
+                    _semanticReadyDocs.Remove(docId);
+
+                    if (_semanticRequestedDocs.Contains(docId) && _semanticBuildingDoc.Length > 0)
+                        queuedHere = true;   // parked behind another document's pass
+                    else
+                        _semanticRequestedDocs.Add(docId);
+                }
             }
 
             if (stopThisDoc)

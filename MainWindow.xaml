@@ -3155,9 +3155,10 @@
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
                             <!-- Semantic research (v1.19.5): the embedding pass is opt-in.
-                                 Muted while idle, lit in the accent while the index builds
-                                 or is ready; a click builds it for this document, a second
-                                 click mid-build cancels the pass. -->
+                                 Muted while idle, lit in the accent while the index builds,
+                                 green once it is ready (v1.19.57); a click builds it for
+                                 this document, a second click mid-build cancels the pass,
+                                 and a click on a green (ready) button rebuilds it. -->
                             <Button Grid.Column="2" x:Name="AiSemanticBtn" Content="&#xE945;"
                                     ToolTip="{DynamicResource Str_TT_AiSemanticResearch}"
                                     Click="AiSemanticBtn_Click" Width="24" Height="24" Padding="0"
@@ -3168,6 +3169,10 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding SemanticResearchActive}" Value="True">
                                                 <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                            </DataTrigger>
+                                            <!-- v1.19.57: the ready seal - built, and redoable. -->
+                                            <DataTrigger Binding="{Binding SemanticResearchReady}" Value="True">
+                                                <Setter Property="Foreground" Value="#FF27AE60"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -3663,16 +3668,21 @@
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatModel}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <!-- v1.19.56: the embedding dial is the one embedding
-                                     control - the model-name text box is gone. App
-                                     default keeps the reader's own embedding model on
-                                     its own server (config or preset), Google's
-                                     gemini-embedding-2 rides the same OpenAI-compatible
-                                     door the chat guest uses. -->
+                                     control - the model-name text box is gone. The first
+                                     item is named by the configured model itself
+                                     (v1.19.57: embeddinggemma:latest, not a marketing
+                                     word) and keeps the reader's own embedding model on
+                                     its own server; Google's gemini-embedding-2 rides
+                                     the same OpenAI-compatible door the chat guest
+                                     uses. -->
                                 <TextBlock Text="{DynamicResource Str_AiEmbeddingDial}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           SelectedValuePath="Tag"
                                           SelectedValue="{Binding EmbeddingChoice, Mode=TwoWay}">
-                                    <ComboBoxItem Content="{DynamicResource Str_AiEmbeddingDefaultItem}" Tag="default"/>
+                                    <!-- v1.19.57: the item is called what it is - the
+                                         configured model id (embeddinggemma:latest by
+                                         default), bound live from the settings VM. -->
+                                    <ComboBoxItem Content="{Binding EmbeddingModel}" Tag="default"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiEmbeddingGeminiItem}" Tag="embed-gemini"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatTemperature}" Style="{StaticResource AiSettingsLabel}"/>
