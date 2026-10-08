@@ -3555,6 +3555,11 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <!-- v1.19.55: the Flash family - same door, same key. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3569,6 +3574,11 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <!-- v1.19.55: the Flash family - same door, same key. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelWebSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3583,6 +3593,11 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <!-- v1.19.55: the Flash family - same door, same key. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelRecaller}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3597,6 +3612,11 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <!-- v1.19.55: the Flash family - same door, same key. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <!-- v1.19.34: the notes dial - the left sidebar's own
                                      voice, back under its own name. -->
@@ -3613,6 +3633,11 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <!-- v1.19.55: the Flash family - same door, same key. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelTester}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3627,6 +3652,11 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <!-- v1.19.55: the Flash family - same door, same key. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatBaseUrl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
@@ -3634,6 +3664,17 @@
                                 <TextBox Text="{Binding GenModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsEmbModel}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding EmbeddingModel, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <!-- v1.19.55: the embedding dial - the reader's own
+                                     embedding model on its own server, or Google's
+                                     gemini-embedding-2 behind the same OpenAI-compatible
+                                     door the chat guest uses. -->
+                                <TextBlock Text="{DynamicResource Str_AiEmbeddingDial}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding EmbeddingChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiEmbeddingDefaultItem}" Tag="default"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiEmbeddingGeminiItem}" Tag="embed-gemini"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatTemperature}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenTemperature, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatMaxTokens}" Style="{StaticResource AiSettingsLabel}"/>

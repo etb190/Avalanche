@@ -61,11 +61,36 @@ namespace Avalanche.Features.AI
         // copies verbatim.
         public const string GeminiChoice = "gemini";
         public const string GeminiModel = "gemini-3.8-flash";
+
+        // v1.19.55: three more Flash minds and their lite sibling - the same
+        // Google door, the same guest key, the same tuning ride; only the
+        // model id moves. Each generation is its own dial choice so a
+        // surface can pin one mind and remember it.
+        public const string Gemini37Choice = "gemini-3.7";
+        public const string Gemini36Choice = "gemini-3.6";
+        public const string Gemini35Choice = "gemini-3.5";
+        public const string Gemini35LiteChoice = "gemini-3.5-lite";
+        public const string Gemini37Model = "gemini-3.7-flash";
+        public const string Gemini36Model = "gemini-3.6-flash";
+        public const string Gemini35Model = "gemini-3.5-flash";
+        public const string Gemini35LiteModel = "gemini-3.5-flash-lite";
         // Split so GitHub's push protection does not mistake the guest's
         // own key for a leaked cloud credential; the compiler folds the
         // concatenation back into one literal at build time.
         public const string GoogleGuestApiKey =
             "AQ.Ab8RN6Kvi4sGJHzI1_Rg9u" + "rZmJ1pz6D7m1aJ4RVS5YulDJZ-EA";
+
+        // v1.19.55: the embedding dial - who turns text into vectors. The
+        // app default keeps the reader's own embedding model on its own
+        // server (resolved exactly as before); the new choice points the
+        // same batch machinery at Google's gemini-embedding-2 behind the
+        // OpenAI-compatible door, under the chat guest's key. The choice
+        // persists beside the surface dials in surface-models.json.
+        public const string EmbeddingDefaultChoice = "default";
+        public const string EmbeddingGeminiChoice = "embed-gemini";
+        public const string GeminiEmbeddingModel = "gemini-embedding-2";
+        public const string GeminiEmbeddingUrl =
+            "https://generativelanguage.googleapis.com/v1beta/openai/embeddings";
 
         private sealed class SurfaceChoices
         {
@@ -75,6 +100,7 @@ namespace Avalanche.Features.AI
             public string Recaller { get; set; } = NemotronChoice;
             public string AiTester { get; set; } = NemotronChoice;
             public string Notes { get; set; } = NemotronChoice;   // v1.19.34: the sidebar's own dial
+            public string Embedding { get; set; } = EmbeddingDefaultChoice;   // v1.19.55: who embeds
         }
 
         private static readonly SurfaceChoices _choices = new();
@@ -105,6 +131,7 @@ namespace Avalanche.Features.AI
                 _choices.Recaller = Normalize(read.Recaller);
                 _choices.AiTester = Normalize(read.AiTester);
                 _choices.Notes = Normalize(read.Notes);
+                _choices.Embedding = NormalizeEmbeddingChoice(read.Embedding);
             }
             catch
             {
@@ -139,7 +166,33 @@ namespace Avalanche.Features.AI
             if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
             if (string.Equals(value, DeepseekChoice, StringComparison.OrdinalIgnoreCase)) return DeepseekChoice;
             if (string.Equals(value, GeminiChoice, StringComparison.OrdinalIgnoreCase)) return GeminiChoice;
+            if (string.Equals(value, Gemini37Choice, StringComparison.OrdinalIgnoreCase)) return Gemini37Choice;
+            if (string.Equals(value, Gemini36Choice, StringComparison.OrdinalIgnoreCase)) return Gemini36Choice;
+            if (string.Equals(value, Gemini35Choice, StringComparison.OrdinalIgnoreCase)) return Gemini35Choice;
+            if (string.Equals(value, Gemini35LiteChoice, StringComparison.OrdinalIgnoreCase)) return Gemini35LiteChoice;
             return NemotronChoice;
+        }
+
+        /// <summary>The embedding dial reads only its two named choices:
+        /// anything else reads as the app default.</summary>
+        public static string NormalizeEmbeddingChoice(string? value)
+        {
+            if (string.Equals(value, EmbeddingGeminiChoice, StringComparison.OrdinalIgnoreCase))
+                return EmbeddingGeminiChoice;
+            return EmbeddingDefaultChoice;
+        }
+
+        public static string GetEmbeddingChoice()
+        {
+            Load();
+            return _choices.Embedding;
+        }
+
+        public static void SetEmbeddingChoice(string choice)
+        {
+            Load();
+            _choices.Embedding = NormalizeEmbeddingChoice(choice);
+            Save();
         }
 
         public static string Get(AiSurface surface)
@@ -190,7 +243,11 @@ namespace Avalanche.Features.AI
                 case KimiChoice: return NimIdentity(baseConfig, KimiModel);
                 case GlmChoice: return NimIdentity(baseConfig, GlmModel);
                 case DeepseekChoice: return OrcaIdentity(baseConfig);
-                case GeminiChoice: return GoogleIdentity(baseConfig);
+                case GeminiChoice: return GoogleIdentity(baseConfig, GeminiModel);
+                case Gemini37Choice: return GoogleIdentity(baseConfig, Gemini37Model);
+                case Gemini36Choice: return GoogleIdentity(baseConfig, Gemini36Model);
+                case Gemini35Choice: return GoogleIdentity(baseConfig, Gemini35Model);
+                case Gemini35LiteChoice: return GoogleIdentity(baseConfig, Gemini35LiteModel);
                 default:
                     return baseConfig.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase)
                         ? baseConfig
@@ -246,16 +303,18 @@ namespace Avalanche.Features.AI
         };
 
         /// <summary>The canonical Google guest (v1.19.50): Google's
-        /// OpenAI-compatible Gemini endpoint wearing the gemini model
-        /// id and the guest key. The reader's tuning (temperature,
-        /// tokens, retrieval, prefixes) copies over verbatim, the same
-        /// ride the other identities give.</summary>
-        private static AiProviderConfig GoogleIdentity(AiProviderConfig baseConfig) => new AiProviderConfig
+        /// OpenAI-compatible Gemini endpoint wearing a gemini model
+        /// id and the guest key. v1.19.55: the model id rides in -
+        /// one identity per Flash generation, everything else shared.
+        /// The reader's tuning (temperature, tokens, retrieval,
+        /// prefixes) copies over verbatim, the same ride the other
+        /// identities give.</summary>
+        private static AiProviderConfig GoogleIdentity(AiProviderConfig baseConfig, string model) => new AiProviderConfig
         {
             ProviderType = "Google Gemini",
             BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai",
             ApiKey = GoogleGuestApiKey,
-            Model = GeminiModel,
+            Model = model,
             EmbeddingModel = baseConfig.EmbeddingModel,
             TopK = baseConfig.TopK,
             EvidenceCharBudget = baseConfig.EvidenceCharBudget,

@@ -23,6 +23,13 @@ namespace Avalanche.Features.AI
     /// a short timeout whose negative result is cached (retried after a
     /// cool-down so a restarted Ollama recovers), a per-batch timeout, and
     /// batched input - one HTTP call per batch, never per chunk.
+    ///
+    /// v1.19.55: the embedding dial. The app default keeps the shape above -
+    /// the reader's own embedding model at its resolved embed root. The new
+    /// "embed-gemini" choice points the same batch machinery at Google's
+    /// OpenAI-compatible /embeddings door with gemini-embedding-2 and the
+    /// chat guest's key: same batches, same split-retry, same probe, one
+    /// different target.
     /// </summary>
     public sealed class OllamaEmbeddingClient : IDisposable
     {
@@ -163,31 +170,52 @@ namespace Avalanche.Features.AI
             }
         }
 
+        /// <summary>Where one embedding batch goes: the app default (the
+        /// reader's own embedding model at its resolved embed root) or,
+        /// when the embedding dial says so, Google's gemini-embedding-2
+        /// behind the OpenAI-compatible door (v1.19.55). The dial's URL is
+        /// carried verbatim - ResolveEmbedRoot must never see a cloud host
+        /// it would bounce to the local bridge.</summary>
+        private sealed record EmbedTarget(string Url, string Model, string? ApiKey);
+
+        private static EmbedTarget ResolveTarget(AiProviderConfig config)
+        {
+            if (AiSurfaceModels.GetEmbeddingChoice() == AiSurfaceModels.EmbeddingGeminiChoice)
+            {
+                return new EmbedTarget(AiSurfaceModels.GeminiEmbeddingUrl,
+                    AiSurfaceModels.GeminiEmbeddingModel, AiSurfaceModels.GoogleGuestApiKey);
+            }
+
+            var root = ResolveEmbedRoot(config.BaseUrl);
+            var model = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel;
+            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(root)
+                ? "ollama"
+                : config.ApiKey;
+            return new EmbedTarget(root + "/api/embed", model, apiKey);
+        }
+
         private async Task<List<float[]>> GenerateBatchAsync(List<string> batch, CancellationToken ct)
         {
             var config = _configProvider();
-            var embedRoot = ResolveEmbedRoot(config.BaseUrl);
+            var target = ResolveTarget(config);
             var body = new Dictionary<string, object>
             {
-                ["model"] = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel,
+                ["model"] = target.Model,
                 ["input"] = batch
             };
             var json = JsonSerializer.Serialize(body);
-            using var request = new HttpRequestMessage(HttpMethod.Post, embedRoot + "/api/embed")
+            using var request = new HttpRequestMessage(HttpMethod.Post, target.Url)
             {
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
-            var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(embedRoot)
-                ? "ollama"
-                : config.ApiKey;
-            if (!string.IsNullOrWhiteSpace(apiKey))
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            if (!string.IsNullOrWhiteSpace(target.ApiKey))
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", target.ApiKey);
 
             using var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
             var responseJson = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                var model = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel;
+                var model = target.Model;
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                     throw new AiProviderException(AiErrorCategory.ModelNotFound, model, response.StatusCode);
                 if (hreLike(response))
@@ -203,7 +231,8 @@ namespace Avalanche.Features.AI
         /// <summary>
         /// Parses Ollama /api/embed responses:
         ///   {"model":"embeddinggemma:latest","embeddings":[[...],[...]]}
-        /// Tolerates the single-input legacy shape {"embedding":[...]}.
+        /// Tolerates the single-input legacy shape {"embedding":[...]} and
+        /// the OpenAI-compatible shape {"data":[{"embedding":[...]}]}.
         /// Throws on malformed responses, wrong count or empty vectors -
         /// callers must never store half an embedding batch.
         /// </summary>
@@ -224,6 +253,16 @@ namespace Avalanche.Features.AI
             else if (root.TryGetProperty("embedding", out var single) && single.ValueKind == JsonValueKind.Array)
             {
                 vectors.Add(ParseVector(single));
+            }
+            else if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
+            {
+                // OpenAI-compatible shape (v1.19.55, the gemini embedding
+                // dial): {"data":[{"embedding":[...]}]} in batch order.
+                foreach (var item in data.EnumerateArray())
+                {
+                    if (item.TryGetProperty("embedding", out var vec) && vec.ValueKind == JsonValueKind.Array)
+                        vectors.Add(ParseVector(vec));
+                }
             }
             else
             {
@@ -265,7 +304,8 @@ namespace Avalanche.Features.AI
         private async Task EnsureEmbeddingsAvailableAsync(CancellationToken cancellationToken)
         {
             var config = _configProvider();
-            var key = CapabilityKey(config);
+            var target = ResolveTarget(config);
+            var key = CapabilityKey(target);
 
             lock (_stateLock)
             {
@@ -289,9 +329,8 @@ namespace Avalanche.Features.AI
                         // "run: ollama pull <model>" message, and the generic
                         // HttpRequestException used to mask it as "unavailable".
                         if (_lastCategory == AiErrorCategory.ModelNotFound)
-                            throw new AiProviderException(AiErrorCategory.ModelNotFound,
-                                string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel);
-                        throw EmbeddingsUnavailable(config);
+                            throw new AiProviderException(AiErrorCategory.ModelNotFound, target.Model);
+                        throw EmbeddingsUnavailable(target.Model);
                     }
                 }
             }
@@ -312,9 +351,8 @@ namespace Avalanche.Features.AI
                         && DateTime.UtcNow.Ticks - _unavailableAtUtcTicks < EmbeddingRetryCoolDown.Ticks)
                     {
                         if (_lastCategory == AiErrorCategory.ModelNotFound)
-                            throw new AiProviderException(AiErrorCategory.ModelNotFound,
-                                string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel);
-                        throw EmbeddingsUnavailable(config);
+                            throw new AiProviderException(AiErrorCategory.ModelNotFound, target.Model);
+                        throw EmbeddingsUnavailable(target.Model);
                     }
                 }
 
@@ -339,8 +377,8 @@ namespace Avalanche.Features.AI
                     // was a status line stuck on "building" and a semantic
                     // channel that never came back. Log the reason.
                     Avalanche.Services.AiHighlightLog.Log(
-                        $"embedding probe: no answer within {ProbeTimeout.TotalSeconds:0}s ({CapabilityKey(config)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
-                    throw EmbeddingsUnavailable(config);
+                        $"embedding probe: no answer within {ProbeTimeout.TotalSeconds:0}s ({CapabilityKey(target)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
+                    throw EmbeddingsUnavailable(target.Model);
                 }
                 catch (AiProviderException pex)
                 {
@@ -351,7 +389,7 @@ namespace Avalanche.Features.AI
                     // only ever saw "semantic search unavailable").
                     MarkUnavailable(pex.Category);
                     Avalanche.Services.AiHighlightLog.Log(
-                        $"embedding probe: {pex.Category} ({CapabilityKey(config)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
+                        $"embedding probe: {pex.Category} ({CapabilityKey(target)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
                     throw;
                 }
                 catch (Exception ex)
@@ -359,7 +397,7 @@ namespace Avalanche.Features.AI
                     MarkUnavailable(AiErrorCategory.OllamaNotRunning);
                     Avalanche.Services.AiHighlightLog.Log(
                         $"embedding probe: unavailable ({ex.GetType().Name}: {Truncate(ex.Message, 160)}) - keyword-only for {EmbeddingRetryCoolDown.TotalSeconds:0}s");
-                    throw EmbeddingsUnavailable(config, ex);
+                    throw EmbeddingsUnavailable(target.Model, ex);
                 }
             }
             finally
@@ -378,19 +416,20 @@ namespace Avalanche.Features.AI
             }
         }
 
-        // Keyed on the resolved embed root - the probe verdict belongs to
+        // Keyed on the resolved embed target - the probe verdict belongs to
         // the server actually asked, not to the chat host that pointed there.
-        private static string CapabilityKey(AiProviderConfig config) =>
-            $"{ResolveEmbedRoot(config.BaseUrl)}|{config.EmbeddingModel}";
+        // The embedding dial rides inside the URL, so flipping the dial
+        // naturally invalidates every cached verdict.
+        private static string CapabilityKey(EmbedTarget target) =>
+            $"{target.Url}|{target.Model}";
 
-        private static HttpRequestException EmbeddingsUnavailable(AiProviderConfig config, Exception? inner = null)
+        private static HttpRequestException EmbeddingsUnavailable(string model, Exception? inner = null)
         {
-            var model = string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel;
             // Log/diagnostic text only - the UI shows localized strings from
             // the view model, never this message.
             return new HttpRequestException(
-                $"Embeddings are unavailable ({model} at the local Ollama bridge). " +
-                $"Search falls back to lexical (BM25) mode until Ollama serves /api/embed.", inner);
+                $"Embeddings are unavailable ({model}). " +
+                $"Search falls back to lexical (BM25) mode until the embedding endpoint answers again.", inner);
         }
 
         private static string Truncate(string s, int max) =>

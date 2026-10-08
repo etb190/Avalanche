@@ -36,6 +36,7 @@ namespace Avalanche.Features.AI
         private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
         private string _aiTesterModelChoice = AiSurfaceModels.NemotronChoice;
         private string _notesModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.34: the sidebar's notes
+        private string _embeddingChoice = AiSurfaceModels.EmbeddingDefaultChoice;   // v1.19.55: who embeds
 
         private bool _isEnabled = false;
         private string _connectionStatus = "";
@@ -157,6 +158,16 @@ namespace Avalanche.Features.AI
         {
             get => _notesModelChoice;
             set { _notesModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Notes, _notesModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.19.55: the embedding dial - the app default (the
+        /// reader's own embedding model on its own server) or Google's
+        /// gemini-embedding-2 behind the OpenAI-compatible door. Persists
+        /// beside the surface dials.</summary>
+        public string EmbeddingChoice
+        {
+            get => _embeddingChoice;
+            set { _embeddingChoice = AiSurfaceModels.NormalizeEmbeddingChoice(value); AiSurfaceModels.SetEmbeddingChoice(_embeddingChoice); OnPropertyChanged(); }
         }
 
         public string EmbeddingDocumentPrefix
@@ -419,6 +430,7 @@ namespace Avalanche.Features.AI
                 _recallerModelChoice = AiSurfaceModels.Get(AiSurface.Recaller);
                 _aiTesterModelChoice = AiSurfaceModels.Get(AiSurface.AiTester);
                 _notesModelChoice = AiSurfaceModels.Get(AiSurface.Notes);
+                _embeddingChoice = AiSurfaceModels.GetEmbeddingChoice();
                 if (config is not null)
                 {
                     LoadFromGenConfig(config);

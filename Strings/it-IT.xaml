@@ -1138,7 +1138,11 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
     <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
     <sys:String x:Key="Str_AiModelDeepseek">Deepseek</sys:String>
-    <sys:String x:Key="Str_AiModelGemini">Gemini</sys:String>
+    <sys:String x:Key="Str_AiModelGemini">Gemini 3.8 Flash</sys:String>
+    <sys:String x:Key="Str_AiModelGemini37">Gemini 3.7 Flash</sys:String>
+    <sys:String x:Key="Str_AiModelGemini36">Gemini 3.6 Flash</sys:String>
+    <sys:String x:Key="Str_AiModelGemini35">Gemini 3.5 Flash</sys:String>
+    <sys:String x:Key="Str_AiModelGemini35Lite">Gemini 3.5 Flash Lite</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
     <sys:String x:Key="Str_AiModelTester">Tester IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Note</sys:String>
@@ -1181,6 +1185,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiSettingsEmbBaseUrl">Embedding Base URL</sys:String>
     <sys:String x:Key="Str_AiSettingsEmbApiKey">Embedding API Key</sys:String>
     <sys:String x:Key="Str_AiSettingsEmbModel">Embedding Model</sys:String>
+    <sys:String x:Key="Str_AiEmbeddingDial">Provider di embedding</sys:String>
+    <sys:String x:Key="Str_AiEmbeddingDefaultItem">Predefinito</sys:String>
+    <sys:String x:Key="Str_AiEmbeddingGeminiItem">Gemini Embedding 2</sys:String>
     <sys:String x:Key="Str_AiSettingsEmbDimension">Embedding Dimension</sys:String>
     <sys:String x:Key="Str_AiSettingsEmbMaxTokens">Embedding Max Tokens</sys:String>
     <sys:String x:Key="Str_AiSettingsEmbBatchSize">Embedding Batch Size</sys:String>

@@ -53,6 +53,19 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
     }
 
     [Fact]
+    public void Parse_OpenAiDataShape_IsTolerated()
+    {
+        // v1.19.55: the gemini embedding dial answers in the OpenAI-compatible
+        // shape - batch order rides the data array's index.
+        const string json = "{\"data\":[{\"index\":0,\"embedding\":[1,0.5]},{\"index\":1,\"embedding\":[0,2]}]}";
+        var vectors = OllamaEmbeddingClient.ParseEmbeddings(json, 2);
+        Assert.Equal(2, vectors.Count);
+        Assert.Equal(1f, vectors[0][0]);
+        Assert.Equal(0.5f, vectors[0][1]);
+        Assert.Equal(2f, vectors[1][1]);
+    }
+
+    [Fact]
     public void Parse_MalformedJson_Throws()
     {
         Assert.ThrowsAny<Exception>(() => OllamaEmbeddingClient.ParseEmbeddings("{not json", 1));

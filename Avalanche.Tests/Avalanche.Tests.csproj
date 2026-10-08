@@ -97,6 +97,7 @@
     <Compile Include="..\Features\AI\AiModels.cs" Link="Features\AI\AiModels.cs" />
     <Compile Include="..\Features\AI\VectorIndex.cs" Link="Features\AI\VectorIndex.cs" />
     <Compile Include="..\Features\AI\OllamaEmbeddingClient.cs" Link="Features\AI\OllamaEmbeddingClient.cs" />
+    <Compile Include="..\Features\AI\AiSurfaceModels.cs" Link="Features\AI\AiSurfaceModels.cs" />
     <Compile Include="..\Features\AI\DocumentIndexer.cs" Link="Features\AI\DocumentIndexer.cs" />
     <Compile Include="..\Features\AI\HybridRetriever.cs" Link="Features\AI\HybridRetriever.cs" />
     <Compile Include="..\Services\AiHighlightLog.cs" Link="Services\AiHighlightLog.cs" />
