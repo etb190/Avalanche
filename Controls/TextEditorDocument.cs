@@ -12,7 +12,9 @@ namespace Avalanche.Controls
     // workspace ground, that grows as the writing does. Quill owns the document
     // model, the caret and the history; the sheet adds what Quill does not
     // ship: footnotes with a numbered, click-jumping list at the foot, a link
-    // popover, image paste and drop, and a page raster for the sidebar's rail.
+    // popover, image paste and drop, a page raster for the sidebar's rail, and
+    // an image life after insert (v1.19.76): click to select, drag to move,
+    // corner handles to resize, Delete to remove.
     // Deliberately 100% offline: Quill rides as WPF resources
     // (Resources/Scripts/quill.min.js + quill.snow.css) and is inlined into the
     // document at first use - no CDN, ever.
@@ -74,7 +76,25 @@ namespace Avalanche.Controls
                font-family:'Times New Roman',serif; font-size:12pt; line-height:1.5;
                color:#1c1c1c; padding:64px 72px 32px 72px; outline:none; }
   .ql-editor.ql-blank::before { content:none; }
-  .ql-editor img { max-width:100%; height:auto; }
+  .ql-editor img { max-width:100%; height:auto; -webkit-user-drag:none; }
+  /* An image keeps a life after it lands (v1.19.76): selected wears the
+     outline; the corner handles live in #imgui on the body, OUTSIDE the
+     contenteditable, so the model never sees the chrome; the browser's own
+     image drag is switched off because the sheet does the moving itself. */
+  .ql-editor img.az-sel { outline:2px solid #4a90d9; outline-offset:2px; }
+  #imgui { position:fixed; display:none; z-index:60; pointer-events:none; }
+  #imgui .az-h { position:absolute; width:12px; height:12px; background:#fff;
+                 border:2px solid #4a90d9; border-radius:2px; pointer-events:auto; }
+  #imgui .az-nw { left:-7px; top:-7px; cursor:nwse-resize; }
+  #imgui .az-ne { right:-7px; top:-7px; cursor:nesw-resize; }
+  #imgui .az-sw { left:-7px; bottom:-7px; cursor:nesw-resize; }
+  #imgui .az-se { right:-7px; bottom:-7px; cursor:nwse-resize; }
+  .az-bar { position:fixed; width:0; height:28px; border-left:2px solid #4a90d9;
+            display:none; z-index:61; pointer-events:none; }
+  /* The quote wears italic and bold (v1.19.76): the left bar alone read as
+     an indent, not a voice. Declared after the theme's own blockquote rule,
+     so the later declaration wins; the thumbnail's raster repeats it below. */
+  .ql-editor blockquote { font-style: italic; font-weight: bold; }
   .ql-editor a { cursor:pointer; color:#1155cc; text-decoration:underline; }
   sup.fnref { color:#1155cc; cursor:pointer; }
   /* The reader's sub-numbers wear capital letters (v1.19.73): under 1. comes
@@ -356,7 +376,15 @@ quill.root.addEventListener('mousedown', function(){ if (lpop.style.display === 
 function insertImage(src){
   if (!src) return;
   var sel = quill.getSelection(true);
-  quill.insertEmbed(sel ? sel.index : quill.getLength(), 'image', src, 'user');
+  var at = sel ? sel.index : quill.getLength();
+  quill.insertEmbed(at, 'image', src, 'user');
+  // A fresh picture arrives already selected (v1.19.76): the handles
+  // introduce themselves and Delete works before the first click.
+  try {
+    var leaf = quill.getLeaf(at);
+    if (leaf && leaf[0] && leaf[0].domNode && leaf[0].domNode.tagName === 'IMG')
+      selectImage(leaf[0].domNode);
+  } catch(e){}
 }
 function readImages(files){
   for (var i=0;i<files.length;i++){
@@ -384,6 +412,221 @@ quill.root.addEventListener('drop', function(e){
     for (var i=0;i<files.length;i++) if (/^image\//.test(files[i].type || '')) has = true;
     if (has){ e.preventDefault(); e.stopPropagation(); readImages(files); }
   }
+});
+
+// ── an image's life after insert (v1.19.76) ───────────────────────────────
+// Click a picture and it is selected: an outline plus four corner handles on
+// the body, outside Quill's contenteditable. Drag the picture and it moves,
+// a drop bar riding the caret under the mouse; pull a corner and it resizes
+// with the aspect held (height stays auto, width rides the blot's own width
+// attribute, so the Delta carries every new size home through save and
+// load); Delete or Backspace takes it away; Escape lets go; a click anywhere
+// else lets go. The width commit writes old then new through formatText, so
+// undo reads one step, not ten, and the browser's own image drag is off.
+var imgui = null, imgBar = null, imgHandles = [], selImg = null, imgDrag = null;
+
+function ensureImgUI(){
+  if (imgui) return;
+  imgui = document.createElement('div');
+  imgui.id = 'imgui';
+  var corners = ['nw','ne','sw','se'], i;
+  for (i=0;i<corners.length;i++){
+    var h = document.createElement('div');
+    h.className = 'az-h az-' + corners[i];
+    h.setAttribute('data-dir', corners[i]);
+    h.addEventListener('mousedown', startImgResize);
+    imgui.appendChild(h);
+    imgHandles.push(h);
+  }
+  imgBar = document.createElement('div');
+  imgBar.className = 'az-bar';
+  document.body.appendChild(imgui);
+  document.body.appendChild(imgBar);
+}
+
+function positionImgUI(){
+  if (selImg && !selImg.isConnected){ deselectImage(); return; }
+  if (!selImg || !imgui) return;
+  var r = selImg.getBoundingClientRect();
+  imgui.style.display = 'block';
+  imgui.style.left = r.left + 'px';
+  imgui.style.top = r.top + 'px';
+  imgui.style.width = r.width + 'px';
+  imgui.style.height = r.height + 'px';
+}
+
+function selectImage(img){
+  if (!img || !img.isConnected) return;
+  ensureImgUI();
+  if (selImg && selImg !== img) selImg.classList.remove('az-sel');
+  selImg = img;
+  img.classList.add('az-sel');
+  positionImgUI();
+}
+
+function deselectImage(){
+  if (selImg) selImg.classList.remove('az-sel');
+  selImg = null;
+  if (imgui) imgui.style.display = 'none';
+  if (imgBar) imgBar.style.display = 'none';
+}
+
+function imgIndex(){
+  if (!selImg || !selImg.isConnected) return null;
+  try { var blot = Quill.find(selImg); return blot ? quill.getIndex(blot) : null; }
+  catch(e){ return null; }
+}
+
+function imgWidthPx(){
+  if (!selImg) return 0;
+  var w = parseInt(selImg.getAttribute('width'), 10);
+  if (w > 0) return w;
+  return Math.round(parseFloat(getComputedStyle(selImg).width)) || 0;
+}
+
+function deleteSelectedImage(){
+  var at = imgIndex();
+  if (at === null) return;
+  quill.deleteText(at, 1, 'user');
+  deselectImage();
+  reportState();
+}
+
+// Where the mouse points in the MODEL: the native caret goes under the
+// cursor and Quill maps the selection back to an index.
+function indexAtPoint(x, y){
+  try {
+    var range = document.caretRangeFromPoint(x, y);
+    if (!range || !range.startContainer || !quill.root.contains(range.startContainer)) return null;
+    var s = window.getSelection();
+    s.removeAllRanges();
+    s.addRange(range);
+    var b = quill.getSelection();
+    return (b && typeof b.index === 'number') ? b.index : null;
+  } catch(e){ return null; }
+}
+
+function placeDropBar(x, y){
+  var r = null;
+  try {
+    var range = document.caretRangeFromPoint(x, y);
+    if (range){
+      var rects = range.getClientRects();
+      if (rects.length) r = rects[0];
+      else if (range.startContainer.getBoundingClientRect) r = range.startContainer.getBoundingClientRect();
+    }
+  } catch(e){}
+  if (!r || (!r.width && !r.height)){ if (imgBar) imgBar.style.display = 'none'; return; }
+  imgBar.style.display = 'block';
+  imgBar.style.left = Math.max(0, r.left - 1) + 'px';
+  imgBar.style.top = r.top + 'px';
+}
+
+function startImgResize(e){
+  if (!selImg) return;
+  e.preventDefault(); e.stopPropagation();
+  imgDrag = { mode:'size', x:e.clientX, y:e.clientY,
+              origW: imgWidthPx(), curW: 0,
+              dir: (e.currentTarget && e.currentTarget.getAttribute('data-dir')) || 'se' };
+}
+
+document.addEventListener('mousedown', function(e){
+  var t = e.target;
+  if (t && t.closest && t.closest('#imgui')) return;          // the handles
+  if (t && t.tagName === 'IMG' && quill.root.contains(t)){
+    try { quill.root.focus({ preventScroll:true }); } catch(err){}
+    if (selImg !== t) selectImage(t); else positionImgUI();
+    imgDrag = { mode:'move', x:e.clientX, y:e.clientY, moved:false };
+    e.preventDefault();   // no native image drag, no caret torn from the page
+    return;
+  }
+  if (selImg) deselectImage();
+}, true);
+
+document.addEventListener('mousemove', function(e){
+  if (!imgDrag) return;
+  var dx = e.clientX - imgDrag.x, dy = e.clientY - imgDrag.y;
+  if (imgDrag.mode === 'size'){
+    var w = imgDrag.origW + ((imgDrag.dir === 'ne' || imgDrag.dir === 'se') ? dx : -dx);
+    imgDrag.curW = Math.max(64, Math.min(672, w));
+    if (selImg) selImg.setAttribute('width', String(Math.round(imgDrag.curW)));
+    positionImgUI();
+    return;
+  }
+  if (!imgDrag.moved && Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+  if (!imgDrag.moved){
+    imgDrag.moved = true;
+    if (imgui) imgui.style.display = 'none';
+    document.body.style.cursor = 'grabbing';
+  }
+  placeDropBar(e.clientX, e.clientY);
+}, true);
+
+document.addEventListener('mouseup', function(e){
+  if (!imgDrag) return;
+  var d = imgDrag;
+  imgDrag = null;
+  document.body.style.cursor = '';
+  if (imgBar) imgBar.style.display = 'none';
+  if (d.mode === 'size'){
+    if (selImg && d.curW > 0){
+      var wNew = Math.round(d.curW), wOld = Math.round(d.origW), at = imgIndex();
+      if (at !== null && wNew !== wOld){
+        quill.formatText(at, 1, 'width', String(wOld), 'silent');
+        quill.formatText(at, 1, 'width', String(wNew), 'user');
+      }
+    }
+    if (selImg) positionImgUI();
+    reportState();
+    return;
+  }
+  if (!d.moved) return;
+  var to = indexAtPoint(e.clientX, e.clientY);
+  var from = imgIndex();
+  if (to === null || from === null || to === from || to === from + 1){
+    if (selImg) positionImgUI();
+    return;
+  }
+  var src = selImg.getAttribute('src') || '';
+  var wpx = imgWidthPx();
+  quill.deleteText(from, 1, 'user');
+  var dest = to > from ? to - 1 : to;
+  quill.insertEmbed(dest, 'image', src, 'user');
+  if (wpx > 0) quill.formatText(dest, 1, 'width', String(wpx), 'user');
+  try {
+    var leaf = quill.getLeaf(dest);
+    if (leaf && leaf[0] && leaf[0].domNode && leaf[0].domNode.tagName === 'IMG')
+      selectImage(leaf[0].domNode);
+  } catch(err){}
+  reportState();
+}, true);
+
+// The sheet's own keys: Delete and Backspace take the selected picture
+// (unless real text is selected - that deletion keeps its own laws);
+// Escape lets go. Capture on the document, above Quill's bindings.
+document.addEventListener('keydown', function(e){
+  if (!selImg) return;
+  if (e.key === 'Delete' || e.key === 'Backspace'){
+    var s = quill.getSelection();
+    if (s && s.length > 0) return;
+    e.preventDefault(); e.stopPropagation();
+    deleteSelectedImage();
+  } else if (e.key === 'Escape'){
+    deselectImage();
+  }
+}, true);
+
+// The browser's own picture drag would fight the sheet's move; it is off.
+quill.root.addEventListener('dragstart', function(e){
+  if (e.target && e.target.tagName === 'IMG') e.preventDefault();
+});
+
+window.addEventListener('scroll', function(){ if (selImg && !imgDrag) positionImgUI(); }, true);
+window.addEventListener('resize', function(){ if (selImg && !imgDrag) positionImgUI(); });
+
+// Text chosen with the mouse outranks the picture: the chrome steps aside.
+quill.on('selection-change', function(range){
+  if (range && range.length > 0 && selImg) deselectImage();
 });
 
 // ── state, save, title ────────────────────────────────────────────────────
@@ -508,6 +751,7 @@ var THUMB_CSS = '.doc{width:816px;height:1056px;background:#fff;overflow:hidden;
   '.docbody{padding:64px 72px 0 72px;}' +
   '.docbody p,.docbody ol,.docbody ul,.docbody pre,.docbody blockquote,.docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6{margin:0;padding:0}' +
   '.docbody img{max-width:100%;height:auto;}' +
+  '.docbody blockquote{font-style:italic;font-weight:bold;}' +
   '.docbody a{color:#1155cc;text-decoration:underline;}' +
   'sup.fnref{color:#1155cc;}sup.fnref::after{content:attr(data-n);}' +
   ".docfn{margin:0 72px;padding:12px 0 0 0;border-top:1px solid #d8d8d8;font-family:'Segoe UI',sans-serif;font-size:10pt;color:#333;}" +
@@ -517,8 +761,17 @@ function postThumbs(){
     // Chromium's SVG-as-image refuses subresource loads - even data: URIs -
     // so the raster wears a neutral block where an image stood; every other
     // mark (fonts, sizes, links, footnotes) paints for real.
-    var docBody = quill.root.innerHTML.replace(/<img\b[^>]*>/gi,
-      '<span style="display:inline-block;width:88px;height:22px;background:#e4e4e4;border-radius:2px;vertical-align:middle;"></span>');
+    var docBody = quill.root.innerHTML.replace(/<img\b([^>]*)>/gi, function(m, attrs){
+      // A resized picture keeps its width in the raster (v1.19.76): the
+      // width attribute (the model's own carrier) or an inline style wins,
+      // everything else wears the neutral block.
+      var a = String(attrs || ''),
+          m1 = /(?:^|\s)width="(\d+)"/i.exec(a),
+          m2 = /width:\s*(\d+(?:\.\d+)?)px/i.exec(a),
+          px = m1 ? parseFloat(m1[1]) : (m2 ? parseFloat(m2[1]) : 0),
+          w = px > 0 ? Math.max(24, Math.min(672, Math.round(px))) : 88;
+      return '<span style="display:inline-block;width:' + w + 'px;height:22px;background:#e4e4e4;border-radius:2px;vertical-align:middle;"></span>';
+    });
     var fnBody = fnote.innerHTML.replace(/<img\b[^>]*>/gi, '');
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="816" height="1056">' +
       '<foreignObject width="100%" height="100%">' +
