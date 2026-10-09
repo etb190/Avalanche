@@ -1,187 +1,171 @@
-# TASK: AI Assistant for Text Editor (Timer-Based Grammar Checker & Selection Rewriter)
+# TASK: Add Grammar/Rewrite Model Dials & Port Axo Journal Editor Engine
 
 Repository: `https://github.com/etb190/Avalanche`  
+Reference Source: `c:\Users\PC\Desktop\Coding\Axo\src\components\DailyJournal.jsx`  
 Target Files:
-- `Controls/TextEditorDocument.cs`
+- `Features/AI/AiSurfaceModels.cs`
+- `Features/AI/AiSettingsViewModel.cs`
+- `Shell/SettingsPanel.cs`
 - `Controls/TextEditorControl.xaml.cs`
 - `Controls/TextEditorControl.xaml`
-- `Features/AI/AiSurfaceModels.cs`
+- `Controls/TextEditorDocument.cs`
 - `Strings/*.xaml`
 
 ---
 
-## 1. Core Architecture & Workflow
+## PART 1: Grammar Model & Rewrite Model in AI Settings
 
-There are **two distinct operational modes**:
+In Avalanche's AI settings, replace the single `TextEditor` dial with **two independent model selection dials**:
+1. **Grammar Model** (`AiSurface.EditorGrammar`): Controls which AI model executes the automatic timer-based proofreading and grammar fixes.
+2. **Rewrite Model** (`AiSurface.EditorRewrite`): Controls which AI model executes the 7-voice rewriter (Humanize, Professional, Simple, Academic, Jargon, Lengthen, Shorten).
 
-### Mode 1: TIMER-BASED Automatic Grammar Check (Batch Scan — Never on Keystroke)
-- **NO requests while typing.** Keystrokes NEVER send API calls.
-- A **quiet idle timer** (e.g. 5 seconds after the user stops typing, or when the user pauses):
-  - Runs **only if the document was modified** since the last check.
-  - Sends the edited section in **ONE single batched API request** to preserve rate limits.
-  - When the response arrives, **all grammar and spelling issues appear across the document at once**:
-    - Problematic words are underlined in red wavy underline (`.ai-err`).
-    - Clicking any red word reveals the Grammarly-style popup directly above it:
-      - The **proper word replacement** (clicking it instantly swaps the word in Quill).
-      - An **`[✕]` ignore button** (dismisses the flag and adds the word to an ignored set so it is never flagged again).
-  - If the grammar is fine, no red underlines appear and no changes are made.
-
-### Mode 2: SELECTION-BASED Rewrite & Deep Fix (When Text Is Selected)
-- When the user selects a chunk of text (phrase, sentence, or multiple paragraphs):
-  - A floating action bar (`#ai_bubble`) appears above the selection with:
-    - **`[ 🪄 Fix Grammar ]`** (Deep multi-sentence grammatical & structural polish on the selection).
-    - **`[ ✍️ Rewrite ▾ ]`** (Dropdown with styles: Humanize, Professional, Simple, Academic, Jargon, Lengthen, Shorten).
-  - If "Fix Grammar" runs on a selection that has no errors, a subtle notification says *"Grammar looks good!"* and nothing changes.
-
-### Extra Requirement: Blockquote Quotes
-- Quotes/blockquotes in Quill (`<blockquote>`) must have styled opening and closing quotation marks encasing them (`“...”`).
+### Implementation Steps:
+1. **`Features/AI/AiSurfaceModels.cs`**:
+   - Update `AiSurface` enum:
+     ```csharp
+     internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester, Notes, EditorGrammar, EditorRewrite }
+     ```
+   - In `SurfaceChoices`, add `EditorGrammar` and `EditorRewrite` (defaulting to `NemotronChoice` or `GeminiChoice`).
+   - Add getters/setters in `AiSurfaceModels`.
+2. **`Features/AI/AiSettingsViewModel.cs`**:
+   - Expose properties `EditorGrammarModelChoice` and `EditorRewriteModelChoice`.
+   - Wire `OnPropertyChanged()` and call `AiSurfaceModels.Set(...)`.
+3. **`Shell/SettingsPanel.cs`**:
+   - Add two combo boxes in the AI settings panel for **Grammar Model** and **Rewrite Model**, populated with the same standard choices (Nemotron, Gemini Flash, DeepSeek, Kimi, GLM, Ollama).
+4. **`Controls/TextEditorControl.xaml.cs`**:
+   - Update `RunAiGrammarScanAsync`:
+     ```csharp
+     var config = Features.AI.AiSurfaceModels.Configure(_aiSettings.ToGenConfig(), Features.AI.AiSurface.EditorGrammar);
+     ```
+   - Update `RunAiSelectionAsync` (rewriter):
+     ```csharp
+     var config = Features.AI.AiSurfaceModels.Configure(_aiSettings.ToGenConfig(), Features.AI.AiSurface.EditorRewrite);
+     ```
 
 ---
 
-## 2. Timer-Based Batch Grammar Checker (`TextEditorDocument.cs`)
+## PART 2: Port Axo Journal Editor Architecture & Behaviors
 
-### A. The Idle Batch Timer (Guards Rate Limits)
+Replicate the exact rich text editor from **Axo** (`c:\Users\PC\Desktop\Coding\Axo\src\components\DailyJournal.jsx`). The editor must have all of Axo's features, typography, shortcuts, and **especially how it behaves**.
+
+### 1. Smart Typing Behaviors (From Axo's `handleTextInput`)
+
+Implement these exact live input rules in the editor's JavaScript:
+
+#### A. Autocorrect standalone 'i' to 'I'
+When the user types lowercase `i` followed by a space, automatically turn it into capitalized `I `:
 ```javascript
-var scanTimer = null;
-var isDirty = false;
-var lastScannedHash = '';
-var ignoredWords = new Set();
-var SCAN_IDLE_DELAY_MS = 5000; // 5 seconds of idle stillness after typing stops
-
-quill.on('text-change', function(delta, oldDelta, source) {
-  if (source !== 'user') return;
-  isDirty = true;
-  
-  // Reset the idle timer on every edit so typing NEVER triggers a call
-  if (scanTimer) clearTimeout(scanTimer);
-  scanTimer = setTimeout(triggerTimerScan, SCAN_IDLE_DELAY_MS);
-});
-
-function triggerTimerScan() {
-  if (!isDirty) return;
-  isDirty = false;
-  
-  var fullText = quill.getText().trim();
-  if (fullText.length < 5) return;
-  
-  var hash = hashString(fullText);
-  if (hash === lastScannedHash) return;
-  lastScannedHash = hash;
-  
-  // Single batched request for the whole document/section
-  post({
-    type: 'ai_timer_grammar_scan',
-    text: fullText,
-    ignored: Array.from(ignoredWords)
-  });
+// Autocorrect isolated 'i' to 'I' when followed by a space
+if (text === ' ' && /(^|\s)i$/.test(textBefore)) {
+    // Replace trailing 'i' with 'I '
 }
 ```
 
-### B. Prompt for Timer Grammar Scanner (`TextEditorControl.xaml.cs`)
-```text
-System: You are an expert copyeditor and proofreader.
-Scan the provided text and identify all misspelled words, poor word choices, and grammatical mistakes.
-DO NOT flag words in this ignored list: [{{ignoredWords}}].
+#### B. Auto-Capitalization of First Letter of Sentences
+Automatically capitalize the first letter:
+1. At the very start of a block (new paragraph / new line).
+2. Immediately following sentence enders (`.`, `!`, `?`) and one or more spaces:
+```javascript
+const isStartOfBlock = (caretOffset === 0);
+const isAfterSentenceEnd = /[.!?]\s+$/.test(textBefore);
 
-Output ONLY valid JSON with this exact schema (no markdown, no conversational text):
-{
-  "errors": [
-    {
-      "word": "exact misspelled/poor word in text",
-      "suggestion": "corrected replacement",
-      "reason": "Spelling|Grammar|Word Choice"
+if (isStartOfBlock || isAfterSentenceEnd) {
+    if (char >= 'a' && char <= 'z') {
+        insertChar(char.toUpperCase());
     }
-  ]
-}
-If there are no errors, return: {"errors": []}
-```
-
-### C. Client-Side Rendering of All Found Issues
-- When the batch response arrives, all flagged words are highlighted simultaneously:
-  ```css
-  .ai-err {
-    border-bottom: 2px wavy #e53e3e;
-    background: rgba(229, 62, 62, 0.08);
-    cursor: pointer;
-    transition: background 0.15s ease;
-  }
-  .ai-err:hover {
-    background: rgba(229, 62, 62, 0.18);
-  }
-  ```
-- Clicking any `.ai-err` displays a floating card directly above the word:
-  ```html
-  <div id="err_pop">
-    <button class="err-fix">the</button>
-    <button class="err-x" title="Ignore">✕</button>
-  </div>
-  ```
-- Clicking `.err-fix`:
-  - Replaces the word in Quill using `'user'` source (preserves `Ctrl+Z`).
-  - Closes popover and removes underline.
-- Clicking `.err-x`:
-  - Adds word to `ignoredWords`.
-  - Removes the `.ai-err` styling immediately.
-  - Closes popover.
-
----
-
-## 3. Selection-Based Rewriter & Styles (`#ai_bubble`)
-
-When a range is selected (`quill.getSelection().length > 3`), show `#ai_bubble` above the selection.
-
-### Style Options:
-1. **Humanize (Deep Stylometry Anti-AI Rules):**
-   - High burstiness: mix short 3-word punchy sentences with natural longer sentences.
-   - Absolutely BANNED cliché AI vocabulary: *"delve", "testament", "tapestry", "crucial", "pivotal", "foster", "intertwined", "multifaceted", "underscores", "moreover", "beacon", "furthermore", "in conclusion"*.
-   - Break 3-part parallelisms; use natural idioms and everyday contractions (*it's, don't, can't*).
-2. **Professional:** Crisp, direct, active voice, workplace-appropriate, clear and polite.
-3. **Simple:** Plain English, 8th-grade reading level (Flesch-Kincaid 60+), short words, direct active sentences.
-4. **Academic:** Disciplined, scholarly vocabulary and formal analytical framing.
-5. **Jargon:** Complicated, dense, bureaucratic, and intentionally obtuse prose aimed at making people unable to read and understand easily (heavy nominalizations, passive voice, corporate/academic buzzwords).
-6. **Lengthen:** Elaborates and expands phrasing purely to make it longer **WITHOUT** adding new facts, substance, or hallucinated ideas.
-7. **Shorten:** Ruthlessly condenses the text to its core meaning, eliminating all fluff.
-
----
-
-## 4. Blockquotes Quotation Marks (Unrelated Fix)
-
-In `Controls/TextEditorDocument.cs`, encase blockquotes in styled opening and closing quotes (`“...”`):
-```css
-.ql-editor blockquote {
-  border-left: 3px solid #7aa7d8;
-  padding-left: 14px;
-  margin: 12px 0;
-  font-style: italic;
-  color: #444;
-  position: relative;
-}
-.ql-editor blockquote::before {
-  content: "“";
-  font-family: Georgia, serif;
-  font-size: 1.5em;
-  line-height: 0.1em;
-  vertical-align: -0.2em;
-  margin-right: 4px;
-  color: #7aa7d8;
-}
-.ql-editor blockquote::after {
-  content: "”";
-  font-family: Georgia, serif;
-  font-size: 1.5em;
-  line-height: 0.1em;
-  vertical-align: -0.2em;
-  margin-left: 4px;
-  color: #7aa7d8;
 }
 ```
 
 ---
 
-## 5. Rate-Limit Safeguards Summary
+### 2. Line Spacing Modes (Compact, Normal, Relaxed)
 
-1. **NO requests while typing:** Typing constantly resets the 5-second idle timer, so typing 500 words in a row produces **zero** API requests.
-2. **Single batched scan:** Only when the user pauses for 5 seconds does a single API request fire, finding and highlighting all issues in one shot.
-3. **Content hashing:** An untouched document produces **zero** requests even after minutes or hours of sitting open.
-4. **Ignored words cache:** Dismissed words are saved in a local Set and never re-scanned.
-5. **Selection actions (Rewrite & Fix Grammar)** are strictly on-demand on explicit button click.
+Axo features a line-spacing toggle with three discrete modes:
+* **Compact:** `line-height: 1.25`, `paragraph margin-bottom: 0.15em`
+* **Normal:** `line-height: 1.6`, `paragraph margin-bottom: 0.5em`
+* **Relaxed:** `line-height: 1.8`, `paragraph margin-bottom: 1.0em`
+
+Expose a Spacing button on the toolbar that cycles: `Compact -> Normal -> Relaxed -> Compact`, updating CSS variables `--line-height` and `--p-margin`.
+
+---
+
+### 3. Complete Formatting & Shortcut Parity
+
+Port all tools and keyboard shortcuts directly from Axo:
+
+| Tool | Shortcut | Behavior |
+|------|----------|----------|
+| **Bold** | `Ctrl+B` | Toggles bold |
+| **Italic** | `Ctrl+I` | Toggles italic |
+| **Underline** | `Ctrl+U` | Toggles underline |
+| **Strikethrough** | `Ctrl+Shift+X` | Toggles strikethrough |
+| **Heading 1** | `Ctrl+Alt+1` | Large header (2em, line-height 1.2) |
+| **Heading 2** | `Ctrl+Alt+2` | Medium header (1.5em, line-height 1.3) |
+| **Bullet List** | `Ctrl+Shift+8` | Unordered list |
+| **Ordered List** | `Ctrl+Shift+7` | Numbered list |
+| **Blockquote** | `Ctrl+Shift+B` | Blockquote (with styled quotes `“...”`) |
+| **Code Block** | `Ctrl+Alt+C` | VS Code-style syntax-highlighted block |
+| **Inline Code** | `Ctrl+E` | Monospace inline pill |
+| **Align Left** | `Ctrl+Shift+L` | Left text align |
+| **Align Center** | `Ctrl+Shift+E` | Center text align |
+| **Align Right** | `Ctrl+Shift+R` | Right text align |
+
+---
+
+### 4. Axo Typography & Styling
+
+Adopt Axo's custom CSS rules:
+1. **Tight List Packing:**
+   ```css
+   ul, ol {
+     padding-left: 0 !important;
+     margin-left: 1em !important;
+     margin-top: 0 !important;
+     margin-bottom: var(--p-margin) !important;
+   }
+   li {
+     display: flex !important;
+     align-items: baseline !important;
+     gap: 0.4em !important;
+     margin-top: 0 !important;
+     margin-bottom: -0.1em !important; /* Extremely tight vertical packing */
+   }
+   p + ul, p + ol {
+     margin-top: calc(var(--p-margin) * -0.5) !important;
+   }
+   ```
+2. **VS Code Dark Code Blocks:**
+   ```css
+   pre {
+     background: #1e1e1e !important;
+     color: #d4d4d4 !important;
+     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace !important;
+     padding: 0.75rem 1rem !important;
+     border-radius: 0.5rem !important;
+     margin: 0.5rem 0 !important;
+   }
+   code {
+     background-color: rgba(110, 118, 129, 0.4);
+     padding: 0.2em 0.4em;
+     border-radius: 6px;
+     font-size: 85%;
+     font-family: Consolas, 'Courier New', monospace;
+   }
+   ```
+3. **Headings:**
+   - `h1`: `font-size: 2em; line-height: 1.2; margin: 0.5em 0 0.25em 0;`
+   - `h2`: `font-size: 1.5em; line-height: 1.3; margin: 0.5em 0 0.25em 0;`
+
+---
+
+## 5. Verification Checklist
+
+1. [ ] Settings panel shows separate dropdowns for **Grammar Model** and **Rewrite Model**.
+2. [ ] Selections for both dials persist across launches in `surface-models.json`.
+3. [ ] Automatic grammar check uses the configured Grammar model; rewriter uses the Rewrite model.
+4. [ ] Typing lowercase `i` followed by space autocorrects to uppercase `I `.
+5. [ ] Typing at the start of a paragraph or after `. ! ?` + space automatically capitalizes the first letter.
+6. [ ] Line spacing button cycles through Compact, Normal, and Relaxed.
+7. [ ] All shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`, `Ctrl+Shift+X`, `Ctrl+Alt+1`, `Ctrl+Alt+2`, `Ctrl+Shift+8`, `Ctrl+Shift+7`, `Ctrl+Shift+B`, `Ctrl+Alt+C`, `Ctrl+E`, `Ctrl+Shift+L`, `Ctrl+Shift+E`, `Ctrl+Shift+R`) work reliably.
+8. [ ] Code blocks render with dark VS Code styling.
+9. [ ] Solution builds with 0 errors and all tests pass.
