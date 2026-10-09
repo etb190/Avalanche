@@ -44,6 +44,17 @@ namespace Avalanche
                 && (e.OriginalSource is Microsoft.Web.WebView2.Wpf.WebView2
                     || WebPane.PageOwnsKeyboard()))
                 return;
+            // v1.19.73: the writing pane's page owns its chords the same way
+            // the web pane's pages own theirs. While the sheet holds the keys,
+            // Ctrl+A/C/V/X are the SHEET's select-all, copy, paste and cut -
+            // the PDF chain below read them as its own gestures (copy page
+            // text, paste an image, select annotations) and swallowed them
+            // before the engine ever saw a keystroke. The editor control
+            // forwards every chord it should answer itself.
+            if (EditorPaneHost.Visibility == Visibility.Visible
+                && e.OriginalSource is DependencyObject editorSource
+                && TextPane.IsAncestorOf(editorSource))
+                return;
             if (!KeyboardShortcutsEnabled)
             {
                 e.Handled = ShortcutTogglePolicy.SuppressWhenDisabled(

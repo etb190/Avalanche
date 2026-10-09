@@ -4,12 +4,14 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Avalanche.Services;
@@ -27,6 +29,14 @@ namespace Avalanche.Controls
     // what to save, links to open, the sheet's own raster).
     // Chromium never ships in the payload - the Evergreen runtime the browser pane
     // already rides wakes here too, lazily, and suspends when the pane hides.
+    // v1.19.73: the ribbon grew the block tools - three header levels, bullet,
+    // number, the alpha sub-number, quote, every one press-again-to-undo - and
+    // grew to hold them, twice its old size. The classic four chords (select
+    // all, copy, cut, paste) reach the sheet whichever control holds the
+    // keyboard: the window shortcut chain stands down for the writing pane the
+    // way it always has for the browser pane, paste reads the Windows clipboard
+    // here and hands the sheet its fragment, and copy and cut come back as
+    // 'clip' text on their way to the clipboard.
     public partial class TextEditorControl : UserControl
     {
         private CoreWebView2Environment? _env;
@@ -229,16 +239,41 @@ namespace Avalanche.Controls
         {
             var mods = Keyboard.Modifiers;
             if (mods.HasFlag(ModifierKeys.Alt) || !mods.HasFlag(ModifierKeys.Control)) return;
+            // A WPF text control - the size box above all - keeps its own
+            // classic chords: select-all, copy, cut and paste work on its text.
+            if (Keyboard.FocusedElement is System.Windows.Controls.TextBox) return;
             Key k = e.Key == Key.System ? e.SystemKey : e.Key;
-            if (k == Key.Z)
+            switch (k)
             {
-                e.Handled = true;
-                Post(new { cmd = mods.HasFlag(ModifierKeys.Shift) ? "redo" : "undo" });
-            }
-            else if (k == Key.Y)
-            {
-                e.Handled = true;
-                Post(new { cmd = "redo" });
+                case Key.Z:
+                    e.Handled = true;
+                    Post(new { cmd = mods.HasFlag(ModifierKeys.Shift) ? "redo" : "undo" });
+                    break;
+                case Key.Y:
+                    e.Handled = true;
+                    Post(new { cmd = "redo" });
+                    break;
+                // The four the reader reaches for without thinking (v1.19.73):
+                // select all, copy, cut and paste, routed to the sheet whichever
+                // control holds the keyboard. The window's shortcut chain stands
+                // down for this pane (KeyboardShortcuts.cs), so these arrive for
+                // every keystroke the ribbon or the sheet should answer.
+                case Key.A:
+                    e.Handled = true;
+                    Post(new { cmd = "selectAll" });
+                    break;
+                case Key.C:
+                    e.Handled = true;
+                    Post(new { cmd = "copy" });
+                    break;
+                case Key.X:
+                    e.Handled = true;
+                    Post(new { cmd = "cut" });
+                    break;
+                case Key.V:
+                    e.Handled = true;
+                    PasteClipboardIntoPage();
+                    break;
             }
         }
 
@@ -474,6 +509,18 @@ namespace Avalanche.Controls
                     }
                     break;
 
+                case "clip":
+                    // Copy and cut come back as text: the clipboard write
+                    // happens here, on the UI thread, where the Windows
+                    // clipboard belongs. An empty selection sent nothing.
+                    if (root.TryGetProperty("text", out var clipText)
+                        && clipText.GetString() is { Length: > 0 } clip)
+                    {
+                        try { Clipboard.SetText(clip); }
+                        catch { /* the clipboard occasionally refuses; the next copy retries */ }
+                    }
+                    break;
+
                 case "link":
                     if (root.TryGetProperty("url", out var linkUrl))
                     {
@@ -504,6 +551,19 @@ namespace Avalanche.Controls
             SetToggle(ItalicBtn, Prop(r, "i"));
             SetToggle(UnderlineBtn, Prop(r, "u"));
             SetToggle(StrikeBtn, Prop(r, "s"));
+            // The block layer (v1.19.73): the header level, the list kind,
+            // the nesting depth and the quote - the lights show what the
+            // caret is actually wearing, page's word is final.
+            int header = r.TryGetProperty("h", out var hv) && hv.ValueKind == JsonValueKind.Number ? hv.GetInt32() : 0;
+            SetToggle(HeaderBtn, header == 1);
+            SetToggle(H1Btn, header == 2);
+            SetToggle(H2Btn, header == 3);
+            string listState = r.TryGetProperty("list", out var lsv) ? lsv.GetString() ?? string.Empty : string.Empty;
+            int sub = r.TryGetProperty("sub", out var sv) && sv.ValueKind == JsonValueKind.Number ? sv.GetInt32() : 0;
+            SetToggle(BulletBtn, listState == "bullet");
+            SetToggle(NumBtn, listState == "ordered");
+            SetToggle(SubNumBtn, listState == "ordered" && sub > 0);
+            SetToggle(QuoteBtn, Prop(r, "quote"));
             if (r.TryGetProperty("page", out var pg))
             {
                 int p = pg.GetInt32();
@@ -551,6 +611,15 @@ namespace Avalanche.Controls
         private void ItalicBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "italic" }); RefocusEditor(); }
         private void UnderlineBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "underline" }); RefocusEditor(); }
         private void StrikeBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "strike" }); RefocusEditor(); }
+        // The block tools (v1.19.73): the page owns every toggle decision -
+        // the ribbon only speaks the chord and relights off the state report.
+        private void HeaderBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 1 }); RefocusEditor(); }
+        private void H1Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 2 }); RefocusEditor(); }
+        private void H2Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 3 }); RefocusEditor(); }
+        private void BulletBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "bullet" }); RefocusEditor(); }
+        private void NumBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "number" }); RefocusEditor(); }
+        private void SubNumBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "subnumber" }); RefocusEditor(); }
+        private void QuoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "quote" }); RefocusEditor(); }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
         private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
 
@@ -570,6 +639,21 @@ namespace Avalanche.Controls
         }
 
         private void SizeBox_GotFocus(object sender, RoutedEventArgs e) => SizeBox.SelectAll();
+
+        // A click lands the caret where it hit - which unselected the
+        // GotFocus select-all and left the reader typing INTO the old value
+        // (v1.19.73). The first click focuses and selects everything instead,
+        // so typing replaces the number the way Tab-focus always did; further
+        // clicks place the caret like any text box.
+        private void SizeBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!SizeBox.IsKeyboardFocusWithin)
+            {
+                e.Handled = true;
+                SizeBox.Focus();
+                SizeBox.SelectAll();
+            }
+        }
 
         private void SizeBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -609,6 +693,69 @@ namespace Avalanche.Controls
         // the selection - or, with the caret resting, to what gets typed next.
         private void FontGrowBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "sizeStep", dir = 1 }); RefocusEditor(); }
         private void FontShrinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "sizeStep", dir = -1 }); RefocusEditor(); }
+
+        // -- The clipboard, ribbon to sheet ---------------------------------------
+
+        // Paste reads the Windows clipboard ONCE here - the WebView2 page
+        // cannot read the system clipboard on its own - and hands the sheet
+        // whatever it holds: the source app's rich HTML fragment first, then
+        // plain text, then an image as the data URL the sheet already knows
+        // how to wear. Nothing held means nothing pastes.
+        private void PasteClipboardIntoPage()
+        {
+            string? html = ClipboardHtmlFragment();
+            if (html is not null) { Post(new { cmd = "paste", html }); return; }
+            string text = string.Empty;
+            try { if (Clipboard.ContainsText()) text = Clipboard.GetText(); }
+            catch { /* a locked clipboard owes nobody a paste */ }
+            if (text.Length > 0) { Post(new { cmd = "paste", text }); return; }
+            try
+            {
+                if (Clipboard.ContainsImage())
+                {
+                    var source = Clipboard.GetImage();
+                    if (source is not null)
+                    {
+                        var encoder = new PngBitmapEncoder();
+                        encoder.Frames.Add(BitmapFrame.Create(source));
+                        using var ms = new MemoryStream();
+                        encoder.Save(ms);
+                        Post(new { cmd = "pasteImage", src = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray()) });
+                    }
+                }
+            }
+            catch { /* no image survives encoding: nothing pastes */ }
+        }
+
+        // CF_HTML carries BYTE offsets into a UTF-8 payload: slice the bytes,
+        // never the decoded string, or the fragment lands mid-character the
+        // first time a pasted page used a non-ASCII letter before the marker.
+        private static string? ClipboardHtmlFragment()
+        {
+            try
+            {
+                if (!Clipboard.ContainsText(TextDataFormat.Html)) return null;
+                string raw = Clipboard.GetText(TextDataFormat.Html);
+                int start = -1, end = -1;
+                foreach (string line in raw.Split('\n'))
+                {
+                    string head = line.TrimEnd('\r');
+                    if (head.StartsWith("StartFragment:", StringComparison.OrdinalIgnoreCase)
+                        && int.TryParse(head.Substring(14).Trim(), out int s)) start = s;
+                    else if (head.StartsWith("EndFragment:", StringComparison.OrdinalIgnoreCase)
+                        && int.TryParse(head.Substring(12).Trim(), out int en)) end = en;
+                }
+                if (start < 0 || end <= start) return null;
+                byte[] bytes = Encoding.UTF8.GetBytes(raw);
+                if (start >= bytes.Length || end > bytes.Length) return null;
+                string fragment = Encoding.UTF8.GetString(bytes, start, end - start);
+                return fragment.Trim().Length > 0 ? fragment : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
         private void HighlightCurrentFont()
         {

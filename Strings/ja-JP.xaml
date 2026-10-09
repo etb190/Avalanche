@@ -1383,6 +1383,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_EditorItalic">斜体 (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">下線 (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">取り消し線</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">見出し</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">見出し 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">見出し 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">箇条書き</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">番号付きリスト</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">副番号リスト（A、B、C）</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">引用</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">リンクの挿入または編集</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">脚注の挿入</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">テキストの背後に画像を挿入(自由に移動できます)</sys:String>

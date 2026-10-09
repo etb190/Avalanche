@@ -1382,6 +1382,13 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_EditorItalic">Курсив (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Асты сызылған (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Сызылған</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Тақырып</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Тақырып 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Тақырып 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Таңбалы тізім</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Нөмірленген тізім</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Ішкі тізім (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Дәйексөз</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Сілтеме қоу немесе өңдеу</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Түбәтпе ескертпе қою</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Мөтіннің артына сүрет қою (еркін жылжытады)</sys:String>

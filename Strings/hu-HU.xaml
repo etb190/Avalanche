@@ -1370,6 +1370,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_EditorItalic">Dőlt (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Aláhúzott (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Áthúzott</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Fejléc</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Fejléc 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Fejléc 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Felsorolás</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Számozott lista</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Al-lista (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Idézet</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Hivatkozás beszúrása vagy szerkesztése</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Lábjegyzet beszúrása</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Kép beszúrása a szöveg mögé (szabadon mozgatható)</sys:String>

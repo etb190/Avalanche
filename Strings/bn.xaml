@@ -1363,6 +1363,13 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_EditorItalic">ইটালিক (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">আন্ডারলাইন (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">স্ট্রাইকথ্রু</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">হেডার</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">হেডার ১</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">হেডার ২</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">বুলেট তালিকা</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">সংখ্যাযুক্ত তালিকা</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">সাব-নম্বর তালিকা (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">উদ্ধৃতি</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">লিক যোগ করুন বা সম্পাদনা করুন</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">ফুটনোট যোগ করুন</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">লেখার পেছনে ছবি যোগ করুন (স্বাধীনভাবে সরানো যায়)</sys:String>

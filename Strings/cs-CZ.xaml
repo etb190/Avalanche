@@ -1368,6 +1368,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_TT_EditorItalic">Kurzíva (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Podtržení (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Přeškrtnuté</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Nadpis</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Nadpis 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Nadpis 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Odrážky</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Číslovaný seznam</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Podřazený seznam (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Citace</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Vložit nebo upravit odkaz</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Vložit poznámku pod čarou</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Vložit obrázek za text (volně přesouvatelný)</sys:String>

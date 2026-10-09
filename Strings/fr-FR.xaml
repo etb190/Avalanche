@@ -1383,6 +1383,13 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_TT_EditorItalic">Italique (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Souligné (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Barré</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Titre</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Titre 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Titre 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Liste à puces</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Liste numérotée</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Sous-liste (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Citation</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Insérer ou modifier un lien</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Insérer une note de bas de page</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Insérer une image derrière le texte (déplaçable librement)</sys:String>

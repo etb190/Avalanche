@@ -1383,6 +1383,13 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_TT_EditorItalic">Курсив (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Подчёркнутый (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Зачёркнутый</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Заголовок</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Заголовок 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Заголовок 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Маркированный список</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Нумерованный список</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Вложенный список (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Цитата</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Вставить или изменить ссылку</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Вставить сноску</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Вставить изображение за текстом (свободно перемещается)</sys:String>

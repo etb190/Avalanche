@@ -1363,6 +1363,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_TT_EditorItalic">İtalik (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Altı çizili (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Üstü çizili</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Başlık</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Başlık 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Başlık 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Madde işareti listesi</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Numaralı liste</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Alt liste (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Alıntı</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Bağlantı ekle veya düzenle</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Dipnot ekle</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Metnin arkasına resim ekle (serbestçe taşınır)</sys:String>

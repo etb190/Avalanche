@@ -18,8 +18,10 @@ namespace Avalanche.Controls
     // document at first use - no CDN, ever.
     // Communication contract with the ribbon:
     //   in  {cmd:...}  bold|italic|underline|strike|font|size|sizeStep|linkui|
-    //                  footnote|image|undo|redo|load|dump|scroll|focus|i18n
-    //   out {type:...} ready|state|save|link|title|pages|thumbs
+    //                  footnote|image|undo|redo|load|dump|scroll|focus|i18n|
+    //                  header|bullet|number|subnumber|quote|selectAll|copy|
+    //                  cut|paste|pasteImage
+    //   out {type:...} ready|state|save|link|title|pages|thumbs|clip
     public static class TextEditorDocument
     {
         private static string? _assembled;
@@ -75,6 +77,12 @@ namespace Avalanche.Controls
   .ql-editor img { max-width:100%; height:auto; }
   .ql-editor a { cursor:pointer; color:#1155cc; text-decoration:underline; }
   sup.fnref { color:#1155cc; cursor:pointer; }
+  /* The reader's sub-numbers wear capital letters (v1.19.73): under 1. comes
+     A. B. C. and the ladder starts over under every parent - Quill's own
+     counter reset per top-level item does the restarting, this recases the
+     face. Same selector shape as the engine's own rule, declared after it,
+     so the later declaration wins. */
+  .ql-editor li[data-list=ordered].ql-indent-1:not(.ql-direction-rtl) > .ql-ui:before { content: counter(list-1, upper-alpha) '. '; }
   sup.fnref::after { content:attr(data-n); }
   sup.fnref.flash { background:#fff3c4; border-radius:2px; }
   /* The footnote list lives under the document, inside the sheet, outside
@@ -185,6 +193,13 @@ try { window.__az = quill; } catch(e){}
 quill.keyboard.addBinding({ key: 'Z', shortKey: true }, function(){ quill.history.undo(); });
 quill.keyboard.addBinding({ key: 'Y', shortKey: true }, function(){ quill.history.redo(); });
 quill.keyboard.addBinding({ key: 'Z', shortKey: true, shiftKey: true }, function(){ quill.history.redo(); });
+
+// Select-all answers from the page's own keys too (v1.19.73): the host
+// forwards the chord when a ribbon control holds the keyboard, and this
+// binding is the sheet's own answer when the chord lands here directly.
+quill.keyboard.addBinding({ key: 'A', shortKey: true }, function(){
+  quill.setSelection(0, quill.getLength(), 'user');
+});
 
 // ── footnotes ─────────────────────────────────────────────────────────────
 function nextFnId(){
@@ -405,8 +420,13 @@ function reportState(){
   var sel = quill.getSelection();
   if (!sel) return;
   var f = quill.getFormat();
+  // The block layer rides along (v1.19.73): which header the line wears,
+  // what list it stands in, how deep it is nested, whether it is a quote -
+  // the ribbon's toggle lights read these and nothing else.
   post({ type:'state', edit:true, font: effFont(), size: effSize(),
-         b: !!f.bold, i: !!f.italic, u: !!f.underline, s: !!f.strike, page: 1 });
+         b: !!f.bold, i: !!f.italic, u: !!f.underline, s: !!f.strike,
+         h: f.header || 0, list: f.list || '', sub: f.indent || 0,
+         quote: !!f.blockquote, page: 1 });
 }
 quill.on('selection-change', function(){ reportState(); });
 
@@ -543,6 +563,73 @@ function sizeStep(dir){
   quill.format('size', next + 'pt', 'user');
   reportState();
 }
+
+// -- blocks: headers, lists, the alpha sub-numbers, the quote -------------
+// Every one of these is a TOGGLE (v1.19.73): the same button that dresses a
+// line undresses it again - the header returns to body text, the list
+// dissolves, the quote comes out of its block, the sub-number walks back
+// one level. The reader's own law: press once for on, again for off.
+function header(level){
+  var f = quill.getFormat();
+  quill.format('header', f.header === level ? false : level, 'user');
+  reportState();
+}
+function bullet(){
+  var f = quill.getFormat();
+  quill.format('list', f.list === 'bullet' ? false : 'bullet', 'user');
+  reportState();
+}
+function number(){
+  var f = quill.getFormat();
+  quill.format('list', f.list === 'ordered' ? false : 'ordered', 'user');
+  reportState();
+}
+function subnumber(){
+  var f = quill.getFormat();
+  if (f.list){
+    // Already in a list: one press nests the line (the alpha ladder from
+    // the CSS counter), another press walks it back out.
+    quill.format('indent', (f.indent|0) > 0 ? '-1' : '+1', 'user');
+  } else {
+    // Not in a list yet: start one, already one level deep.
+    quill.format('list', 'ordered', 'user');
+    quill.format('indent', '+1', 'user');
+  }
+  reportState();
+}
+function quote(){
+  var f = quill.getFormat();
+  quill.format('blockquote', !f.blockquote, 'user');
+  reportState();
+}
+
+// -- the clipboard the host forwards --------------------------------------
+// The Windows clipboard belongs to the host: copy and cut hand the
+// selection's text UP (type 'clip') and cut takes it out of the document;
+// paste wears whatever came DOWN - a rich HTML fragment first, plain text
+// as the fallback. A copy with nothing selected touches nothing.
+function copySelection(cut){
+  var sel = quill.getSelection();
+  if (!sel || !sel.length){ if (cut) reportState(); return; }
+  var text = quill.getText(sel.index, sel.length);
+  if (cut){
+    quill.deleteText(sel.index, sel.length, 'user');
+    reportState();
+  }
+  post({ type:'clip', kind: cut ? 'cut' : 'copy', text: text });
+}
+function pasteFromHost(msg){
+  var sel = quill.getSelection(true);
+  var at = sel ? sel.index : quill.getLength();
+  if (msg.html && String(msg.html).length){
+    try { quill.clipboard.dangerouslyPasteHTML(at, String(msg.html), 'user'); return; } catch(e){}
+  }
+  var text = String(msg.text || '');
+  if (text){
+    quill.insertText(at, text, 'user');
+    try { quill.setSelection(at + text.length, 0, 'user'); } catch(e){}
+  }
+}
 if (window.chrome && window.chrome.webview && window.chrome.webview.addEventListener){
   window.chrome.webview.addEventListener('message', function(e){
     var msg = e && e.data;
@@ -563,6 +650,16 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'dump': saveNow(); break;
       case 'scroll': try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(err){ window.scrollTo(0, 0); } break;
       case 'focus': quill.focus(); break;
+      case 'header': header(Number(msg.level) || 1); break;
+      case 'bullet': bullet(); break;
+      case 'number': number(); break;
+      case 'subnumber': subnumber(); break;
+      case 'quote': quote(); break;
+      case 'selectAll': quill.focus(); quill.setSelection(0, quill.getLength(), 'user'); break;
+      case 'copy': copySelection(false); break;
+      case 'cut': copySelection(true); break;
+      case 'paste': pasteFromHost(msg); break;
+      case 'pasteImage': insertImage(String(msg.src || '')); break;
       case 'load': loadWorld(String(msg.html || ''), msg.seq|0); break;
       case 'i18n': i18n = { apply: String(msg.apply || 'Apply'), remove: String(msg.remove || 'Remove'),
                             linkUrl: String(msg.linkUrl || 'Link URL') };

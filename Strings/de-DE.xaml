@@ -1369,6 +1369,13 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_TT_EditorItalic">Kursiv (Strg+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Unterstrichen (Strg+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Durchgestrichen</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Überschrift</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Überschrift 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Überschrift 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Aufzählung</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Nummerierte Liste</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Unterliste (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Zitat</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Link einfügen oder bearbeiten</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Fußnote einfügen</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Bild hinter den Text einfügen (frei verschiebbar)</sys:String>

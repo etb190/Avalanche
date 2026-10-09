@@ -1367,6 +1367,13 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_TT_EditorItalic">斜体 (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">下划线 (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">删除线</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">标题</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">标题 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">标题 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">项目符号列表</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">编号列表</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">子编号列表（A、B、C）</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">引用</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">插入或编辑链接</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">插入脚注</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">在文字后面插入图片（可自由拖动）</sys:String>

@@ -1383,6 +1383,13 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_TT_EditorItalic">Corsivo (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Sottolineato (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Barrato</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Intestazione</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Intestazione 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Intestazione 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Elenco puntato</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Elenco numerato</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Sottoelenco (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Citazione</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Inserisci o modifica un collegamento</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Inserisci una nota a piè di pagina</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Inserisci un'immagine dietro il testo (trascinala liberamente)</sys:String>

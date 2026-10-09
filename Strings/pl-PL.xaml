@@ -1371,6 +1371,13 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_EditorItalic">Kursywa (Ctrl+I)</sys:String>
     <sys:String x:Key="Str_TT_EditorUnderline">Podkreślenie (Ctrl+U)</sys:String>
     <sys:String x:Key="Str_TT_EditorStrike">Przekreślenie</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader">Nagłówek</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader1">Nagłówek 1</sys:String>
+    <sys:String x:Key="Str_TT_EditorHeader2">Nagłówek 2</sys:String>
+    <sys:String x:Key="Str_TT_EditorBullet">Lista punktowana</sys:String>
+    <sys:String x:Key="Str_TT_EditorNumber">Lista numerowana</sys:String>
+    <sys:String x:Key="Str_TT_EditorSubnum">Podlista (A, B, C)</sys:String>
+    <sys:String x:Key="Str_TT_EditorQuote">Cytat</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Wstaw lub edytuj link</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Wstaw przypis dolny</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Wstaw obraz za tekstem (przesuwany swobodnie)</sys:String>
