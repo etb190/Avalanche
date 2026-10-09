@@ -1373,6 +1373,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_FolderEmpty">В этой папке пока ничего нет</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Название</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Текстовый редактор</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF-редактор</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Пишите и оформляйте текстовые страницы прямо рядом с вашими книгами</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Перейти в браузер</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Перейти в редактор PDF</sys:String>

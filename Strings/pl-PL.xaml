@@ -1361,6 +1361,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_FolderEmpty">Ten folder jest jeszcze pusty</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nazwa</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Edytor tekstu</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">Edytor PDF</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Pisz i formatuj strony tekstu tuż obok swoich książek</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Przełącz na przeglądarkę</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Przełącz na edytor PDF</sys:String>

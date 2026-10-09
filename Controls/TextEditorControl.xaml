@@ -148,7 +148,11 @@
             </Setter>
         </Style>
         <Style x:Key="EditorPopupBorder" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource MenuBrush}"/>
+            <!-- MenuBackgroundBrush, not MenuBrush: no theme ever defined
+                 MenuBrush, and a DynamicResource that misses renders nothing -
+                 the reader saw straight through both dials' dropdowns
+                 (v1.19.67). -->
+            <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>

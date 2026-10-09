@@ -1373,6 +1373,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_FolderEmpty">Ce dossier est encore vide</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nom</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Éditeur de texte</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">Éditeur PDF</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Rédigez et mettez en forme des pages de texte à côté de vos livres</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Passer au navigateur</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Passer à l'éditeur PDF</sys:String>

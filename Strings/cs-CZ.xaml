@@ -1358,6 +1358,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_FolderEmpty">V této složce ještě nic není</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Název</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Textový editor</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF editor</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Pište a formátujte stránky textu přímo vedle svých knih</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Přepnout na prohlížeč</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Přepnout na editor PDF</sys:String>

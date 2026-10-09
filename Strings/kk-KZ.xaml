@@ -1372,6 +1372,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_FolderEmpty">Бұл қалтада әзірге ештеңе жоқ</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Атауы</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Мөтіндік редактор</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF редакторы</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Қітаптарыңыздың қасында мөтін беттерін жазыңыз және пішімдеңіз</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Браузерге ауысу</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">PDF редакторына ауысу</sys:String>

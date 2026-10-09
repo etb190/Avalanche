@@ -202,7 +202,16 @@ namespace Avalanche.Controls
       pickedImage.parentNode.removeChild(pickedImage);
       deselectImage();
       afterEdit(null);
+      noteChange();
       return;
+    }
+    // The document's own memory: Ctrl+Z walks it back, Ctrl+Y or
+    // Ctrl+Shift+Z walks it forward. The link field keeps its own undo.
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.target
+        && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA'){
+      var k = (e.key || '').toLowerCase();
+      if (k === 'z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
+      if ((k === 'z' && e.shiftKey) || k === 'y'){ e.preventDefault(); redo(); return; }
     }
     if (e.altKey || e.ctrlKey || e.metaKey) return;
     var ed = e.target && editableOf(e.target);
@@ -224,12 +233,12 @@ namespace Avalanche.Controls
     var ed = editableOf(e.target); if (!ed) return;
     var page = ed.closest('.page');
     if (ed.classList.contains('txt')){
-      cleanZwsp(ed);
       afterEdit(page);
     } else {
       renumberFns();
       scheduleSave();
     }
+    noteChange();
   });
 
   // The crutch is stripped when the footnote loses focus - never mid-sentence:
@@ -242,6 +251,11 @@ namespace Avalanche.Controls
       if (t && t.nodeType === 3 && t.nodeValue.indexOf(ZWSP) === 0 && t.nodeValue.length > 1)
         t.nodeValue = t.nodeValue.split(ZWSP).join('');
     });
+    // the size-span crutch obeys the same law - stripping it while the
+    // reader types shrinks the node under the caret and the rest of the
+    // word jumps outside the size (the v1.19.67 report's 'bugs out')
+    if (e.target.classList && e.target.classList.contains('txt'))
+      cleanZwsp(e.target);
   });
 
   // A size span holds a zero-width crutch so the caret has something to stand
@@ -299,6 +313,7 @@ namespace Avalanche.Controls
     saved = { el: fn, range: br.cloneRange() };
     renumberFns();
     afterEdit(null);
+    noteChange();
   }
 
   function syncFnote(page){
@@ -376,6 +391,7 @@ namespace Avalanche.Controls
       linkTarget = null;
       refreshSaved();
       afterEdit(null);
+      noteChange();
       return;
     }
     if (!url || !saved) return;
@@ -395,6 +411,7 @@ namespace Avalanche.Controls
     }
     refreshSaved();
     afterEdit(null);
+    noteChange();
   }
 
   function unwrap(a){
@@ -447,6 +464,7 @@ namespace Avalanche.Controls
       wrap.style.top = '170px';
       selectImage(wrap);
       scheduleSave();
+      noteChange();
     });
   }
 
@@ -456,24 +474,44 @@ namespace Avalanche.Controls
     img.classList.add('sel');
   }
 
-  docs.addEventListener('pointerdown', function(e){
-    var f = e.target.closest ? e.target.closest('.fimg') : null;
-    if (f){
-      e.preventDefault(); e.stopPropagation();
-      selectImage(f);
-      var rszHit = e.target.classList && e.target.classList.contains('rsz');
-      var pin = f.parentElement;
-      var rect = f.getBoundingClientRect(), prect = pin.getBoundingClientRect();
-      drag = { mode: rszHit ? 'size' : 'move', el: f, pin: pin,
-               startX: e.clientX, startY: e.clientY,
-               origL: rect.left - prect.left, origT: rect.top - prect.top,
-               origW: rect.width };
-      scheduleSave();
-      return;
+  // The text layer owns the paint order - images live behind it - so an
+  // event aimed at a wrapper never carries one as its target: every click
+  // landed on the text above and the reader could not select, move, resize
+  // or delete an image in any way (the v1.19.66 report). The click is
+  // aimed by hand now: the wrapper whose box holds the point answers, and
+  // the resize handle (which rides outside the box while selected) does too.
+  function imageHitAt(x, y){
+    var imgs = docs.querySelectorAll('.fimg');
+    for (var i = 0; i < imgs.length; i++){
+      var f = imgs[i];
+      var r = f.getBoundingClientRect();
+      var pad = (f === pickedImage) ? 9 : 0;
+      if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) return f;
     }
-    if (pickedImage) deselectImage();
-  });
-  docs.addEventListener('pointermove', function(e){
+    return null;
+  }
+
+  docs.addEventListener('pointerdown', function(e){
+    if (e.button !== 0) return;
+    var f = imageHitAt(e.clientX, e.clientY);
+    if (!f){ if (pickedImage) deselectImage(); return; }
+    e.preventDefault(); e.stopPropagation();
+    selectImage(f);
+    var pin = f.parentElement;
+    var rect = f.getBoundingClientRect(), prect = pin.getBoundingClientRect();
+    var rsz = f.querySelector('.rsz');
+    var rr = rsz ? rsz.getBoundingClientRect() : null;
+    var onHandle = !!rr && e.clientX >= rr.left && e.clientX <= rr.right
+                       && e.clientY >= rr.top && e.clientY <= rr.bottom;
+    drag = { mode: onHandle ? 'size' : 'move', el: f, pin: pin,
+             startX: e.clientX, startY: e.clientY,
+             origL: rect.left - prect.left, origT: rect.top - prect.top,
+             origW: rect.width };
+    scheduleSave();
+  }, true);
+  // The move and the release ride the window, so a drag that leaves the
+  // page box keeps going until the hand lifts.
+  window.addEventListener('pointermove', function(e){
     if (!drag) return;
     var dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
     if (drag.mode === 'move'){
@@ -485,7 +523,121 @@ namespace Avalanche.Controls
       drag.el.style.width = Math.max(60, drag.origW + dx) + 'px';
     }
   });
-  docs.addEventListener('pointerup', function(){ if (drag){ drag = null; scheduleSave(); } });
+  window.addEventListener('pointerup', function(){
+    if (drag){ drag = null; scheduleSave(); noteChange(); }
+  });
+
+  // -- undo: the document's own memory -----------------------------------------
+  // The page reflows itself, plants caret crutches, dresses selections and
+  // moves whole blocks between pages by hand - none of that rides the
+  // engine's native editing stack. The memory is kept here: a settled
+  // snapshot of the whole document after every pause and every ribbon
+  // command, and Ctrl+Z / Ctrl+Y walk it, caret going home with the world
+  // it knew. Data-URI images dominate the budget, so a count and a
+  // character ceiling prune the oldest steps first.
+  var undoStack = [], undoPtr = -1, undoChars = 0, undoTimer = null;
+  var lastSnap = '';
+  var UNDO_STEPS = 100, UNDO_CHARS = 30000000;
+
+  function selPaths(){
+    try {
+      var sel = document.getSelection();
+      if (!sel || !sel.rangeCount) return null;
+      var r = sel.getRangeAt(0);
+      var a = pathOf(r.startContainer), b = pathOf(r.endContainer);
+      if (!a || !b) return null;
+      return { a: a, ao: r.startOffset, b: b, bo: r.endOffset };
+    } catch(e){ return null; }
+  }
+  function pathOf(node){
+    var p = [];
+    while (node && node !== docs){
+      var par = node.parentNode;
+      if (!par) return null;
+      p.unshift(Array.prototype.indexOf.call(par.childNodes, node));
+      node = par;
+    }
+    return node === docs ? p : null;
+  }
+  function nodeAt(p){
+    var n = docs;
+    for (var i = 0; i < p.length; i++){ n = n.childNodes[p[i]]; if (!n) return null; }
+    return n;
+  }
+
+  function pushUndo(){
+    undoTimer = null;
+    var html = docs.innerHTML;
+    if (html === lastSnap) return;
+    if (undoPtr < undoStack.length - 1){
+      for (var i = undoPtr + 1; i < undoStack.length; i++) undoChars -= undoStack[i].html.length;
+      undoStack.length = undoPtr + 1;    // the abandoned future is gone
+    }
+    undoStack.push({ html: html, sel: selPaths() });
+    undoChars += html.length;
+    undoPtr = undoStack.length - 1;
+    lastSnap = html;
+    while (undoStack.length > 1 && (undoStack.length > UNDO_STEPS || undoChars > UNDO_CHARS)){
+      undoChars -= undoStack[0].html.length;
+      undoStack.shift();
+      undoPtr--;
+    }
+  }
+
+  function noteChange(){ if (undoTimer) clearTimeout(undoTimer); undoTimer = setTimeout(pushUndo, 350); }
+  function flushUndo(){ if (undoTimer){ clearTimeout(undoTimer); pushUndo(); } }
+
+  function undo(){
+    flushUndo();
+    if (undoPtr <= 0) return;
+    undoPtr--;
+    restoreSnap(undoStack[undoPtr]);
+  }
+
+  function redo(){
+    flushUndo();
+    if (undoPtr >= undoStack.length - 1) return;
+    undoPtr++;
+    restoreSnap(undoStack[undoPtr]);
+  }
+
+  function restoreSnap(snap){
+    docs.innerHTML = snap.html;
+    if (!docs.children.length) makePage();
+    FNID = 0;
+    docs.querySelectorAll('[data-fn]').forEach(function(el){
+      var m = /^(fn)(\d+)$/.exec(el.dataset.fn || '');
+      if (m) FNID = Math.max(FNID, parseInt(m[2], 10));
+    });
+    renumberFns();
+    reportPages();
+    lastSnap = snap.html;
+    var placed = false;
+    if (snap.sel){
+      try {
+        var sn = nodeAt(snap.sel.a), en = nodeAt(snap.sel.b);
+        if (sn && en){
+          var r = document.createRange();
+          r.setStart(sn, Math.min(snap.sel.ao, sn.nodeType === 3 ? sn.nodeValue.length : sn.childNodes.length));
+          r.setEnd(en, Math.min(snap.sel.bo, en.nodeType === 3 ? en.nodeValue.length : en.childNodes.length));
+          var ed = editableOf(r.startContainer);
+          if (ed){
+            ed.focus();
+            var sel = document.getSelection();
+            sel.removeAllRanges(); sel.addRange(r);
+            saved = { el: ed, range: r.cloneRange() };
+            placed = true;
+          }
+        }
+      } catch(err){ placed = false; }
+    }
+    if (!placed){
+      var t = txtOf(docs.children[0]);
+      if (t) placeCaret(t, true);
+    }
+    scheduleSave();
+    scheduleState();
+  }
 
   // -- ribbon commands -------------------------------------------------------------
   // A command that mutates the DOM can invalidate the saved range's bounds;
@@ -502,35 +654,198 @@ namespace Avalanche.Controls
     document.execCommand(cmd, false, val || null);
     refreshSaved();
     afterEdit(s.el.closest('.page'));
+    noteChange();
     scheduleState();
   }
 
   function applySize(pt){
     var s = restoreSelection(); if (!s) return;
-    if (s.range.collapsed){
-      var span = document.createElement('span');
-      span.style.fontSize = pt + 'pt';
-      span.appendChild(document.createTextNode(ZWSP));
-      s.range.insertNode(span);
-      var r = document.createRange(); r.setStart(span.firstChild, 1); r.collapse(true);
-      var sel = document.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      saved = { el: s.el, range: r.cloneRange() };
-      afterEdit(s.el.closest('.page'));
-    } else {
-      document.execCommand('fontSize', false, '7');
-      var fonts = s.el.querySelectorAll('font[size="7"]');
-      for (var i = 0; i < fonts.length; i++){
-        var f = fonts[i];
-        var sp = document.createElement('span');
-        sp.style.fontSize = pt + 'pt';
-        if (f.face) sp.style.fontFamily = f.face;   // the face the selection wore
-        while (f.firstChild) sp.appendChild(f.firstChild);
-        f.parentNode.replaceChild(sp, f);
+    var sel = document.getSelection();
+    if (!sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    if (range.collapsed){
+      // Resting caret: what gets typed next wears the size. A crutch span
+      // already under the caret is restyled, never stacked - nested
+      // crutches kept every past size's line box alive at once.
+      var host = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+      var crutch = host ? host.closest('span') : null;
+      if (crutch && docs.contains(crutch) && isCrutchSpan(crutch)){
+        crutch.style.fontSize = pt + 'pt';
+      } else {
+        var span = document.createElement('span');
+        span.style.fontSize = pt + 'pt';
+        span.appendChild(document.createTextNode(ZWSP));
+        range.insertNode(span);
+        var r = document.createRange(); r.setStart(span.firstChild, 1); r.collapse(true);
+        sel.removeAllRanges(); sel.addRange(r);
+        saved = { el: s.el, range: r.cloneRange() };
       }
       afterEdit(s.el.closest('.page'));
+      refreshSaved();
+      noteChange();
+      scheduleState();
+      return;
     }
+    // A selection covers real text, so the size is dressed onto every text
+    // node the range touches. No execCommand('fontSize'): the modern engine
+    // no longer writes the font tag the old rewrite looked for, and its
+    // one-size span could never be reduced again - sizes landed wrong and
+    // the lines stayed as tall as the first size the reader tried.
+    dressRange(range, 'font-size', pt + 'pt', s.el);
+    afterEdit(s.el.closest('.page'));
     refreshSaved();
+    noteChange();
     scheduleState();
+  }
+
+  // -- inline dressing: a style laid onto the selection's own text -------------
+  // The caret's crutch (an empty span holding only the zero-width space)
+  // keeps its line box as tall as the size it was planted with, so leftover
+  // crutches are stripped before anything is dressed - the selection that
+  // stayed 20pt tall after the text went to 5 lived exactly there.
+  function isCrutchSpan(sp){
+    if (!sp || sp.nodeType !== 1 || sp.tagName !== 'SPAN') return false;
+    if (sp.querySelector('*')) return false;
+    var text = '';
+    sp.childNodes.forEach(function(n){ if (n.nodeType === 3) text += n.nodeValue; });
+    return text.split(ZWSP).join('').length === 0;
+  }
+
+  function stripEmptyStyledSpans(root){
+    if (!root || !root.querySelectorAll) return;
+    var caretRange = null;
+    var sel = document.getSelection();
+    if (sel && sel.rangeCount) caretRange = sel.getRangeAt(0);
+    var spans = root.querySelectorAll('span');
+    for (var i = spans.length - 1; i >= 0; i--){
+      var sp = spans[i];
+      if (!sp.style || (!sp.style.fontSize && !sp.style.fontFamily)) continue;
+      if (!isCrutchSpan(sp)) continue;
+      // the span the caret stands inside keeps standing - stripping it
+      // would swallow the very next key (the v1.19.66 lesson)
+      if (caretRange && sp.contains(caretRange.startContainer)) continue;
+      if (sp.parentNode) sp.parentNode.removeChild(sp);
+    }
+  }
+
+  function collectTextNodes(range, root){
+    var out = [];
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    var tn;
+    while ((tn = w.nextNode())){
+      if (!tn.nodeValue.length) continue;
+      if (tn.parentElement && tn.parentElement.closest('.fnmark')) continue;
+      try { if (!range.intersectsNode(tn)) continue; } catch(e){ continue; }
+      out.push(tn);
+    }
+    return out;
+  }
+
+  function alreadyDressed(tn, prop, value){
+    var el = tn.parentElement;
+    while (el && el !== docs){
+      if (el.nodeType === 1 && el.style){
+        var cur = el.style.getPropertyValue(prop);
+        if (cur) return cur.toLowerCase() === value.toLowerCase();
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  function dressRange(range, prop, value, rootEl){
+    var root = range.commonAncestorContainer;
+    root = root.nodeType === 1 ? root : root.parentElement;
+    // strip + normalize sweep the WHOLE editable: a dead wrapper at the
+    // selection's own edge would otherwise never scan itself
+    var scope = (rootEl && docs.contains(rootEl)) ? rootEl : docs;
+    stripEmptyStyledSpans(scope);
+    var nodes = collectTextNodes(range, root);
+    var segs = [];
+    for (var i = 0; i < nodes.length; i++){
+      var tn = nodes[i];
+      var sOff = (tn === range.startContainer) ? range.startOffset : 0;
+      var eOff = (tn === range.endContainer) ? range.endOffset : tn.nodeValue.length;
+      if (eOff <= sOff) continue;
+      if (alreadyDressed(tn, prop, value)){
+        segs.push({ node: tn, s: sOff, e: eOff });
+        continue;
+      }
+      if (eOff < tn.nodeValue.length) tn.splitText(eOff);
+      var target = sOff > 0 ? tn.splitText(sOff) : tn;
+      var sp = document.createElement('span');
+      sp.style.setProperty(prop, value);
+      target.parentNode.insertBefore(sp, target);
+      sp.appendChild(target);
+      segs.push({ node: target, s: 0, e: target.nodeValue.length });
+    }
+    if (!segs.length) return;
+    normalizeSpans(scope);
+    // the reader's selection survives the surgery - it covers the same words
+    var r = document.createRange();
+    r.setStart(segs[0].node, segs[0].s);
+    var last = segs[segs.length - 1];
+    r.setEnd(last.node, last.e);
+    var sel = document.getSelection();
+    sel.removeAllRanges(); sel.addRange(r);
+  }
+
+  // The single-declaration wrapper one of whose own children re-declares
+  // the same property: dead for the text - the child's value wins - but
+  // alive as a strut, still holding the line box as tall as the old size.
+  // Returns that child when the wrapper may step aside for it.
+  function deadWrapper(sp){
+    if (sp.style.length !== 1) return null;
+    var kid = null;
+    for (var i = 0; i < sp.childNodes.length; i++){
+      var n = sp.childNodes[i];
+      if (n.nodeType === 1){
+        if (kid) return null;
+        kid = n;
+      } else if (n.nodeType === 3 && n.nodeValue.trim() !== ''){
+        return null;
+      }
+    }
+    if (!kid || kid.tagName !== 'SPAN' || !kid.style) return null;
+    if (!kid.style.getPropertyValue(sp.style.item(0))) return null;
+    return kid;
+  }
+
+  // Spans carrying the identical inline style merge outward and sideways,
+  // so dressing the same words again never builds a tower of wrappers.
+  function normalizeSpans(root){
+    for (var pass = 0; pass < 3; pass++){
+      var spans = root.querySelectorAll('span');
+      var merged = false;
+      for (var i = 0; i < spans.length; i++){
+        var sp = spans[i];
+        if (!sp.style || !sp.style.cssText) continue;
+        if (sp.querySelector('.fnmark')) continue;
+        var kid = deadWrapper(sp);
+        if (kid){
+          sp.parentNode.replaceChild(kid, sp);
+          merged = true;
+          break;
+        }
+        var parent = sp.parentElement;
+        if (parent && parent !== docs && parent.tagName === 'SPAN' && parent.style
+            && parent.style.cssText === sp.style.cssText){
+          while (sp.firstChild) parent.insertBefore(sp.firstChild, sp);
+          parent.removeChild(sp);
+          merged = true;
+          break;
+        }
+        var prev = sp.previousSibling;
+        if (prev && prev.nodeType === 1 && prev.tagName === 'SPAN' && prev.style
+            && prev.style.cssText === sp.style.cssText && !prev.querySelector('.fnmark')){
+          while (sp.firstChild) prev.appendChild(sp.firstChild);
+          sp.parentNode.removeChild(sp);
+          merged = true;
+          break;
+        }
+      }
+      if (!merged) return;
+    }
   }
 
   // -- state report: what the caret is wearing, where it stands -------------------
@@ -597,6 +912,10 @@ namespace Avalanche.Controls
         });
         renumberFns();
         reportPages();
+        // a loaded world is step zero: the reader undoes from here
+        undoStack = []; undoPtr = -1; undoChars = 0; lastSnap = '';
+        if (undoTimer){ clearTimeout(undoTimer); undoTimer = null; }
+        pushUndo();
         scheduleSave();
         break;
       }
@@ -620,6 +939,7 @@ namespace Avalanche.Controls
   // -- boot ----------------------------------------------------------------------------
   makePage();
   reportPages();
+  pushUndo();
   post({ type:'ready' });
 })();
 </script>

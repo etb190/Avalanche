@@ -2545,6 +2545,7 @@ namespace Avalanche
             TextPane.OnPaneShown();
             EnterEditorSidebarMode();
             RefreshWebSaveButton(_originalFile ?? _currentFile);
+            ApplyEditorToolbarFace(leads: true);
         }
 
         private void HideEditorPane()
@@ -2553,6 +2554,7 @@ namespace Avalanche
             EditorPaneHost.Visibility = Visibility.Collapsed;
             TextPane.OnPaneHidden();
             ExitEditorSidebarMode();
+            ApplyEditorToolbarFace(leads: false);
             // The editor stepped aside and the book's windows come back - the
             // same welcome the browser's hide offers (recap first, then the
             // navigator whose per-book wish survived the switch-away close).
@@ -2714,6 +2716,18 @@ namespace Avalanche
         /// every other outward link in the app travels.</summary>
         private void OpenEditorLink(string url)
         {
+            // The app's own browser answers a link (v1.19.67), not the system's:
+            // the pane comes forward and the link rides a tab of its own - the
+            // same bargain the navigator's word search struck in v1.19.25. A
+            // non-web scheme (mailto:, file:) still goes to the system, which
+            // alone knows how to keep such promises.
+            if (Uri.TryCreate(url, UriKind.Absolute, out Uri? u)
+                && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps))
+            {
+                ShowWebPane();
+                WebPane.OpenLinkInNewTab(url);
+                return;
+            }
             try
             {
                 System.Diagnostics.Process.Start(

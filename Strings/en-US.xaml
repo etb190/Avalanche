@@ -1373,6 +1373,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_FolderEmpty">Nothing in this folder yet</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Name</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Text Editor</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF Editor</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Write and format pages of text right beside your books</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Switch to the browser</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Switch to the PDF editor</sys:String>

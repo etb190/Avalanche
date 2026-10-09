@@ -1353,6 +1353,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_FolderEmpty">এই ফোল্ডারে এখনো কিছু নেই</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">নাম</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">টেক্সট এডিটর</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">পিডিএফ সম্পাদক</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">আপনার বইয়ের পাশেই টেক্সটের পৃষ্ঠা লিখুন ও ফরম্যাট করুন</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">ব্রাউজারে যান</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">পিডিএফ এডিটরে যান</sys:String>

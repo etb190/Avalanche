@@ -1357,6 +1357,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">此文件夹中还没有内容</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">名称</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">文本编辑器</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF 编辑器</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">就在书籍旁边编写并排版文本页面</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">切换到浏览器</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">切换到 PDF 编辑器</sys:String>

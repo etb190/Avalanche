@@ -1360,6 +1360,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_FolderEmpty">Ebben a mappában még nincs semmi</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Név</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Szövegszerkesztő</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF-szerkesztő</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Írjon és formázzon szöveges oldalakat a könyvei mellett</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Váltás a böngészőre</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Váltás a PDF-szerkesztőre</sys:String>

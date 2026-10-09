@@ -1373,6 +1373,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_FolderEmpty">Thư mục này chưa có gì</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Tên</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Trình soạn thảo văn bản</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">Trình soạn thảo PDF</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Viết và định dạng các trang văn bản ngay bên cạnh sách của bạn</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Chuyển sang trình duyệt</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Chuyển sang trình soạn thảo PDF</sys:String>

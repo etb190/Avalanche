@@ -1353,6 +1353,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Aún no hay nada en esta carpeta</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nombre</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Editor de texto</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">Editor PDF</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Escribe y formatea páginas de texto junto a tus libros</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Cambiar al navegador</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Cambiar al editor de PDF</sys:String>

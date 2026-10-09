@@ -1353,6 +1353,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_FolderEmpty">Bu klasörde henüz bir şey yok</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Ad</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Metin Düzenleyici</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF Düzenleyici</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Kitaplarınızın yanında metin sayfaları yazın ve biçimlendirin</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Tarayıcıya geç</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">PDF düzenleyiciye geç</sys:String>

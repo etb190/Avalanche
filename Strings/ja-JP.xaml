@@ -1373,6 +1373,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">このフォルダーにはまだ何もありません</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">名前</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">テキストエディター</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDFエディター</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">本のそばでテキストのページを書き、書式を整える</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">ブラウザーに切り替える</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">PDFエディターに切り替える</sys:String>

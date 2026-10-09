@@ -297,12 +297,30 @@ namespace Avalanche.Controls
             catch { /* a closed engine eats the message; the next one retries */ }
         }
 
-        private void BoldBtn_Click(object sender, RoutedEventArgs e) => Post(new { cmd = "bold" });
-        private void ItalicBtn_Click(object sender, RoutedEventArgs e) => Post(new { cmd = "italic" });
-        private void UnderlineBtn_Click(object sender, RoutedEventArgs e) => Post(new { cmd = "underline" });
-        private void StrikeBtn_Click(object sender, RoutedEventArgs e) => Post(new { cmd = "strike" });
-        private void LinkBtn_Click(object sender, RoutedEventArgs e) => Post(new { cmd = "linkui" });
-        private void FootnoteBtn_Click(object sender, RoutedEventArgs e) => Post(new { cmd = "footnote" });
+        // The click that opened a ribbon control took the keyboard with it;
+        // hand it back so writing continues where the caret was - the reader
+        // never has to click the page again just to keep typing.
+        private void RefocusEditor()
+        {
+            var web = _web;
+            if (web is null) return;
+            _ = Dispatcher.BeginInvoke(() =>
+            {
+                try { web.Focus(); }   // the WPF wrapper's Focus lands in the browser
+                catch { /* a pane on its way out owes nobody focus */ }
+            }, System.Windows.Threading.DispatcherPriority.Input);
+        }
+
+        // Every command hands the keyboard back to the page: the click that
+        // summoned the button took it, and without the hand-back the reader
+        // had to click the text again before typing went anywhere - and the
+        // stray clicks kept landing wherever the caret used to be (v1.19.67).
+        private void BoldBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "bold" }); RefocusEditor(); }
+        private void ItalicBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "italic" }); RefocusEditor(); }
+        private void UnderlineBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "underline" }); RefocusEditor(); }
+        private void StrikeBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "strike" }); RefocusEditor(); }
+        private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
+        private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
 
         private void FontBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -341,6 +359,7 @@ namespace Avalanche.Controls
                 Post(new { cmd = "font", name = font });
                 FontText.Text = font;
                 FontPopup.IsOpen = false;
+                RefocusEditor();
                 // Reset so picking the same font again still fires next time.
                 Dispatcher.BeginInvoke(() => FontList.SelectedIndex = -1,
                     System.Windows.Threading.DispatcherPriority.Background);
@@ -354,6 +373,7 @@ namespace Avalanche.Controls
                 Post(new { cmd = "size", pt = size });
                 SizeText.Text = size;
                 SizePopup.IsOpen = false;
+                RefocusEditor();
                 Dispatcher.BeginInvoke(() => SizeList.SelectedIndex = -1,
                     System.Windows.Threading.DispatcherPriority.Background);
             }
@@ -401,6 +421,7 @@ namespace Avalanche.Controls
                 byte[] bytes = File.ReadAllBytes(dlg.FileName);
                 string src = "data:" + mime + ";base64," + Convert.ToBase64String(bytes);
                 Post(new { cmd = "image", src });
+                RefocusEditor();   // Delete removes the newborn image right away
             }
             catch (Exception ex)
             {

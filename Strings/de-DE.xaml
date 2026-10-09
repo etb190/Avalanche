@@ -1359,6 +1359,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_FolderEmpty">Dieser Ordner ist noch leer</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Name</sys:String>
     <sys:String x:Key="Str_Lbl_TextEditor">Texteditor</sys:String>
+    <sys:String x:Key="Str_Lbl_PdfEditor">PDF-Editor</sys:String>
     <sys:String x:Key="Str_TT_TextEditor">Seiten mit Text direkt neben Ihren Büchern schreiben und formatieren</sys:String>
     <sys:String x:Key="Str_TT_EditorBrowser">Zum Browser wechseln</sys:String>
     <sys:String x:Key="Str_TT_EditorPdf">Zum PDF-Editor wechseln</sys:String>

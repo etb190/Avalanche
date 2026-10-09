@@ -774,7 +774,11 @@ namespace Avalanche
                     else if (ReferenceEquals(btn, ToolFormFieldBtn))
                         _toolbarButtons.Add((btn, FormFieldGlyph, "Str_Lbl_FormField"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
+                    {
+                        // the pane toggle reads its destination while the editor leads
+                        if (ReferenceEquals(btn, TextEditorBtn)) key = _editorToggleLabelKey;
                         _toolbarButtons.Add((btn, g, key));
+                    }
             }
         }
 
@@ -1194,7 +1198,10 @@ namespace Avalanche
 
         // The visibility law of the bar: in default mode the extended set is off
         // it, in Tools mode the default set is - one set on the bar, never two.
+        // While the text editor leads, EVERY viewer group stands down: the
+        // reflow's reset pass keeps them off the bar and out of the overflow.
         private bool IsModeHidden(UIElement bar) =>
+            _editorLeads ||
             (!_toolsMode && IsToolsGroup(bar)) || (_toolsMode && IsDefaultGroup(bar));
 
         private void ToolsBtn_Click(object sender, RoutedEventArgs e)
@@ -1232,6 +1239,53 @@ namespace Avalanche
                     el.Visibility = _toolsMode ? Visibility.Collapsed : Visibility.Visible;
                 }
             }
+        }
+
+        // ── The editor's toolbar face (v1.19.67) ──────────────────────────────
+        // While the text editor leads, the bar shows the writer's minimum: New,
+        // the browser switch, and the pane toggle - which reads its DESTINATION
+        // ("PDF editor" - it used to say Text Editor while the reader was
+        // already there) - and nothing else. IsModeHidden folds the viewer
+        // groups away for the reflow; the restore re-runs the ordinary law.
+        private bool _editorLeads;
+        private string _editorToggleLabelKey = "Str_Lbl_TextEditor";
+
+        private static readonly string[] EditorHiddenElements =
+        {
+            "CloseFileBtn", "OpenFileBtn", "OpenRecentBtn", "SaveAsBtn", "SaveMenuBtn",
+            "OcrBtn", "OcrMenuBtn", "SaveFlattenedBtn", "PrintBtn",
+            "WebSavePdfBtn", "ToolsBtn",
+        };
+
+        private void ApplyEditorToolbarFace(bool leads)
+        {
+            _editorLeads = leads;
+            _editorToggleLabelKey = leads ? "Str_Lbl_PdfEditor" : "Str_Lbl_TextEditor";
+            if (leads)
+            {
+                foreach (string name in EditorHiddenElements)
+                    if (FindName(name) is FrameworkElement el)
+                        el.Visibility = Visibility.Collapsed;
+                NewFileBtn.Visibility = Visibility.Visible;
+                RightContainer.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                ApplyToolsMode();                        // the ordinary law returns
+                ToolsBtn.Visibility = Visibility.Visible;
+                RightContainer.Visibility = Visibility.Visible;
+                RefreshWebSaveButton(_originalFile ?? _currentFile);
+            }
+            // The toggle wears its destination: caption and tooltip both speak
+            // the pane the reader would reach by pressing it.
+            for (int i = 0; i < _toolbarButtons.Count; i++)
+                if (ReferenceEquals(_toolbarButtons[i].btn, TextEditorBtn))
+                    _toolbarButtons[i] = (TextEditorBtn, "\uE70B", _editorToggleLabelKey);
+            TextEditorBtn.ToolTip = Loc(leads ? "Str_TT_EditorPdf" : "Str_TT_TextEditor");
+            SetToolbarButton(TextEditorBtn, "\uE70B", _editorToggleLabelKey,
+                withLabel: _toolbarLabelMode is ToolbarLabelMode.Beside or ToolbarLabelMode.Under);
+            InvalidateToolbarReflow();
+            QueueReflowToolbar();
         }
 
         private void QueueReflowToolbar()
