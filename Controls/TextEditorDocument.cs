@@ -111,8 +111,24 @@ namespace Avalanche.Controls
   // scrolls nearest, so the words the reader is typing are the words on
   // screen. Without this, typing at the end of a full page left the caret
   // behind on the old page while the words landed on the new one.
+  function comfortScroll(){
+    var sel = document.getSelection();
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
+    var rect = sel.getRangeAt(0).getBoundingClientRect();
+    var vh = window.innerHeight || 800;
+    if (!rect || (rect.top === 0 && rect.bottom === 0)) return;
+    // The caret's line sits in the fold - a sliver of the next page the
+    // reader cannot type into with confidence. Bring the line a third of
+    // the way down the view, so the words being typed are the words on
+    // screen, mid-page, not pinned to an edge.
+    if (rect.top < 60 || rect.bottom > vh - 60){
+      window.scrollTo(0, window.pageYOffset + rect.top - Math.round(vh / 3));
+    }
+  }
+
   function restoreCaretAfterReflow(mark, splits){
     var sel = document.getSelection();
+    var done = null;
     for (var i = 0; i < splits.length; i++){
       if (splits[i].node === mark.node && mark.off > splits[i].cut){
         var t = splits[i].tail;
@@ -120,22 +136,23 @@ namespace Avalanche.Controls
         r.setStart(t, Math.min(mark.off - splits[i].cut, t.nodeValue.length));
         r.collapse(true);
         sel.removeAllRanges(); sel.addRange(r);
-        var pg = t.parentElement ? t.parentElement.closest('.page') : null;
-        if (pg) pg.scrollIntoView({ block: 'nearest' });
-        return;
+        done = r;
+        break;
       }
     }
-    if (mark.node && mark.node.isConnected){
+    if (!done && mark.node && mark.node.isConnected){
       var n = mark.node, o = mark.off;
       if (n.nodeType === 3) o = Math.min(o, n.nodeValue.length);
       else o = Math.min(o, n.childNodes.length);
       var r2 = document.createRange();
       r2.setStart(n, o); r2.collapse(true);
       sel.removeAllRanges(); sel.addRange(r2);
-      var pg2 = n.nodeType === 1 ? n : n.parentElement;
-      pg2 = pg2 ? pg2.closest('.page') : null;
-      if (pg2) pg2.scrollIntoView({ block: 'nearest' });
+      done = r2;
     }
+    if (!done) return;
+    var el = done.startContainer.nodeType === 3 ? done.startContainer.parentElement : done.startContainer;
+    var pg = el && el.closest ? el.closest('.page') : null;
+    if (pg && pg !== mark.pg) comfortScroll();   // the words changed pages: the view goes with them
   }
 
   // Text that no longer fits walks forward, whole block by whole block, until
@@ -149,7 +166,9 @@ namespace Avalanche.Controls
     var sel0 = document.getSelection();
     var mark = null;
     if (sel0 && sel0.rangeCount && sel0.isCollapsed && docs.contains(sel0.anchorNode)){
-      mark = { node: sel0.anchorNode, off: sel0.anchorOffset };
+      var pg0 = sel0.anchorNode.nodeType === 3 ? sel0.anchorNode.parentElement : sel0.anchorNode;
+      mark = { node: sel0.anchorNode, off: sel0.anchorOffset,
+               pg: pg0 && pg0.closest ? pg0.closest('.page') : null };
     }
     var splits = [];
     var guard = 0;
@@ -225,12 +244,87 @@ namespace Avalanche.Controls
       var p = docs.children[docs.children.length - 1];
       var t = txtOf(p), f = fnOf(p);
       var sel = document.getSelection();
-      var caretInside = sel && sel.anchorNode && p.contains(sel.anchorNode);
+      var caretInside = sel && sel.rangeCount && sel.isCollapsed && sel.anchorNode && p.contains(sel.anchorNode);
       var hasImg = p.querySelector('.fimg');
-      if (!caretInside && !hasImg && !t.querySelector('img')
-          && t.textContent.split(ZWSP).join('').trim() === '' && f.dataset.empty === '1'){
-        p.parentNode.removeChild(p);
-      } else break;
+      var empty = t.textContent.split(ZWSP).join('').trim() === '' && f.dataset.empty === '1' && !t.querySelector('img');
+      if (!empty || hasImg) break;
+      if (caretInside){
+        // The empty page the reader is parked on steps off the stage, and
+        // the caret moves to the continuation point - the end of the page
+        // before. A blank page is not a place to keep typing (v1.19.71).
+        placeCaret(txtOf(p.previousElementSibling), false);
+      }
+      p.parentNode.removeChild(p);
+    }
+  }
+
+  // Pages are a continuation of each other, and the law runs BOTH ways
+  // (v1.19.71): the overflow walk pushes content forward when a page is
+  // full, and this walk pulls the next page's first content back the moment
+  // a page has room. After a deletion the reader never keeps a half-empty
+  // page in front of a full one; a page only holds text when the page
+  // before it cannot take it - no more, no less.
+  function pullFromNext(){
+    var guard = 0;
+    for (var i = 0; i < docs.children.length - 1 && guard < 400; i++){
+      var t = txtOf(docs.children[i]);
+      var nt = txtOf(docs.children[i + 1]);
+      if (!t || !nt) continue;
+      while (nt.firstChild && guard++ < 400){
+        if (overflow(t)) break;   // this page is full: the law stops here
+        var pin2 = t.parentElement, cs2 = getComputedStyle(pin2);
+        var avail2 = pin2.clientHeight - parseFloat(cs2.paddingTop) - parseFloat(cs2.paddingBottom);
+        // Less than a line of room: nothing honest fits, and touching the
+        // caret's own node just to hand it back empties the keyboard - the
+        // churn leaves the selection dead and every later keystroke falls
+        // silent. The law stops while the page still holds its line.
+        if (t.offsetHeight > avail2 - 12) break;
+        var first = nt.firstChild;
+        if (first.nodeType === 3){
+          var v = first.nodeValue;
+          if (!v){ nt.removeChild(first); continue; }
+          var selx = document.getSelection();
+          var caretIn = selx && selx.rangeCount && selx.isCollapsed &&
+                        (selx.anchorNode === first ||
+                         (first.nodeType === 1 && first.contains(selx.anchorNode)));
+          t.appendChild(first);
+          if (overflow(t)){
+            var lo = 0, hi = v.length;
+            while (lo < hi){
+              var mid = (lo + hi + 1) >> 1;
+              first.nodeValue = v.slice(0, mid);
+              if (overflow(t)) hi = mid - 1; else lo = mid;
+            }
+            first.nodeValue = v.slice(0, lo);
+            if (lo === 0){
+              first.nodeValue = v;                     // hand it back WHOLE - the search had emptied it
+              nt.insertBefore(first, nt.firstChild);   // not one character fits: hand it back
+              break;
+            }
+            var rest = document.createTextNode(v.slice(lo));
+            nt.insertBefore(rest, nt.firstChild);
+            if (caretIn && selx.anchorNode === first && selx.anchorOffset > lo){
+              var r3 = document.createRange();
+              r3.setStart(rest, Math.min(selx.anchorOffset - lo, rest.nodeValue.length));
+              r3.collapse(true);
+              selx.removeAllRanges(); selx.addRange(r3);
+              comfortScroll();
+            }
+          } else if (caretIn){
+            comfortScroll();   // the caret's text walked back a page with the pull
+          }
+        } else {
+          var selb = document.getSelection();
+          var caretInB = selb && selb.rangeCount && selb.isCollapsed &&
+                         (selb.anchorNode === first || first.contains(selb.anchorNode));
+          t.appendChild(first);
+          if (overflow(t)){
+            nt.insertBefore(first, nt.firstChild);   // the block does not fit: hand it back
+            break;
+          }
+          if (caretInB) comfortScroll();
+        }
+      }
     }
   }
 
@@ -239,6 +333,8 @@ namespace Avalanche.Controls
   function afterEdit(page){
     if (page) reflowFrom(page);
     trimTrailing();
+    pullFromNext();
+    trimTrailing();   // the pull may have emptied the tail: it steps off
     renumberFns();
     reportPages();
     scheduleSave();

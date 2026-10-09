@@ -143,6 +143,12 @@ namespace Avalanche.Controls
         }
 
         private readonly ObservableCollection<EditorTab> _tabs = [];
+
+        // One raster per tab (v1.19.71): the last pictures each document drew
+        // of itself. A tab switch paints the cache the instant the tab lands,
+        // so the rail never flashes down to bare labels while the fresh raster
+        // is 900ms away - the pictures simply stay where the reader left them.
+        private readonly System.Collections.Generic.Dictionary<EditorTab, string[]> _thumbCache = [];
         private int _activeTab;
         private int? _pendingSwitchTo;   // a tab click waiting for the page's dump
         private int _worldSeq;           // which loaded world the page is showing
@@ -384,7 +390,7 @@ namespace Avalanche.Controls
                         remove = Loc("Str_Editor_Remove"),
                         linkUrl = Loc("Str_Editor_LinkUrl"),
                     });
-                    ThumbsChanged?.Invoke(null);   // the incoming world's pages have not been rasterized yet
+                    ThumbsChanged?.Invoke(CachedThumbs());   // the tab's own last raster paints now; a fresh one follows
                     var html = _pendingLoadHtml;
                     _pendingLoadHtml = null;
                     if (!string.IsNullOrEmpty(html))
@@ -461,6 +467,8 @@ namespace Avalanche.Controls
                         if (root.TryGetProperty("thumbs", out var arr) && arr.ValueKind == JsonValueKind.Array)
                             foreach (var el in arr.EnumerateArray())
                                 thumbs.Add(el.ValueKind == JsonValueKind.String ? (el.GetString() ?? "") : "");
+                        if (_activeTab >= 0 && _activeTab < _tabs.Count)
+                            _thumbCache[_tabs[_activeTab]] = thumbs.ToArray();
                         ThumbsChanged?.Invoke(thumbs.ToArray());
                     }
                     break;
@@ -779,6 +787,13 @@ namespace Avalanche.Controls
             }
         }
 
+        /// <summary>The active tab's last known raster, or null when this tab
+        /// has never drawn itself - the rail keeps still across switches
+        /// instead of flashing empty on every landing (v1.19.71).</summary>
+        private string[]? CachedThumbs()
+            => _activeTab >= 0 && _activeTab < _tabs.Count
+               && _thumbCache.TryGetValue(_tabs[_activeTab], out var cached) ? cached : null;
+
         /// <summary>Bind the strip to the editor's tabs. Called once, from the
         /// constructor - the ItemsControl repaints itself off the collection</summary>
         private void InitTabStrip() => EditorTabStrip.ItemsSource = _tabs;
@@ -952,7 +967,7 @@ namespace Avalanche.Controls
             if (to < 0 || to >= _tabs.Count) return;
             _activeTab = to;
             RebuildTabStrip();
-            ThumbsChanged?.Invoke(null);   // the incoming world's pages have not been rasterized yet
+            ThumbsChanged?.Invoke(CachedThumbs());   // the tab's own last raster paints now; a fresh one follows
             if (_pageReady)
             {
                 _worldSeq++;
@@ -982,6 +997,7 @@ namespace Avalanche.Controls
             if (index < 0) return;
             bool closingActive = index == _activeTab;
             _tabs.RemoveAt(index);
+            _thumbCache.Remove(s);   // a closed document's pictures leave with it
             if (_tabs.Count == 0)
                 _tabs.Add(new EditorTab("", "", _untitledLabel));
             if (closingActive)
