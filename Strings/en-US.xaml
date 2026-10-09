@@ -1372,4 +1372,24 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_NewFolderName">Folder name</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Nothing in this folder yet</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Name</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Text Editor</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Write and format pages of text right beside your books</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Switch to the browser</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Switch to the PDF editor</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Font</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Font size</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Bold (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Italic (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Underline (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Strikethrough</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Insert or edit a link</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Insert a footnote</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Insert an image behind the text (drag it freely)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Link address</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Apply</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Remove</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">That image is too large - keep it under 10 MB.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Page {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Pages you write appear here.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">The WebView2 runtime was not found. Install the Evergreen Runtime from Microsoft, then reopen the text editor.</sys:String>
 </ResourceDictionary>

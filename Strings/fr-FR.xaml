@@ -1372,4 +1372,24 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_NewFolderName">Nom du dossier</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Ce dossier est encore vide</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nom</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Éditeur de texte</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Rédigez et mettez en forme des pages de texte à côté de vos livres</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Passer au navigateur</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Passer à l'éditeur PDF</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Police</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Taille de police</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Gras (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Italique (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Souligné (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Barré</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Insérer ou modifier un lien</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Insérer une note de bas de page</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Insérer une image derrière le texte (déplaçable librement)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Adresse du lien</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Appliquer</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Supprimer</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Cette image est trop grande - gardez-la sous 10 Mo.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Page {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Les pages que vous rédigez apparaissent ici.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">Le runtime WebView2 est introuvable. Installez Evergreen Runtime de Microsoft, puis rouvrez l'éditeur de texte.</sys:String>
 </ResourceDictionary>

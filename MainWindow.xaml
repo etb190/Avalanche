@@ -1528,6 +1528,13 @@
                              extended set came up. The caption map dresses it like every
                              other button in every label mode. -->
                         <Button x:Name="WebBrowserBtn" Content="&#xE774;" Style="{StaticResource ToolbarButton}" Click="WebBrowserBtn_Click" ToolTip="{DynamicResource Str_TT_WebBrowser}"/>
+                        <!-- The text editor (v1.19.64): a pencil sitting immediately right of
+                             the globe - the reader asked for it beside the browser icon. The
+                             document area's third face: real Letter pages that grow on their
+                             own, fonts, sizes, links, footnotes, and images that live behind
+                             the text and move freely. Living in GrpToolsToggle keeps it on
+                             the bar in BOTH modes, exactly like the globe it leans on. -->
+                        <Button x:Name="TextEditorBtn" Content="&#xE70B;" Style="{StaticResource ToolbarButton}" Click="TextEditorBtn_Click" ToolTip="{DynamicResource Str_TT_TextEditor}"/>
                         <!-- Save Web PDF (v1.19.5): a book the browser downloaded lives in
                              the reader's temp area - this is the one-glance way to keep it.
                              Visible only while the active document IS a web download; the
@@ -2020,6 +2027,23 @@
                                     </ItemsControl>
                                 </StackPanel>
                             </ScrollViewer>
+                        <!-- The text editor's page rail (v1.19.64): while the editor
+                             leads, the PAGES face of the rail lists the editor's own
+                             pages - one card each, in order, the active one bold - and
+                             a click scrolls the editor to that page. The editor's grown
+                             pages report themselves; the rail just mirrors them. -->
+                        <ScrollViewer x:Name="EditorPagesPanel" Visibility="Collapsed"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Focusable="False" Margin="4,2,2,2">
+                            <StackPanel>
+                                <TextBlock x:Name="EditorPagesHost"
+                                           Text="{DynamicResource Str_Editor_TabsEmpty}"
+                                           FontSize="11" TextWrapping="Wrap" Margin="8,10,8,10"
+                                           Foreground="{DynamicResource MutedTextBrush}"/>
+                                <StackPanel x:Name="EditorPagesList"/>
+                            </StackPanel>
+                        </ScrollViewer>
                         <!-- Notes panel (visible when the NOTES tab is active). The
                              controls header is pinned outside the ScrollViewer: one
                              [start]-[end] range field speaking the AI tester's dialect
@@ -2981,6 +3005,19 @@
                             <ctrl:WebBrowserControl x:Name="WebPane"/>
                         </Border>
                     </Grid>
+                </Grid>
+
+                <!-- The text editor pane (v1.19.64): the document area's third face,
+                     toggled by the toolbar pencil. One host, one control - the control
+                     carries its own ribbon (browser / PDF editor switches first, then
+                     the writing tools) and its own WebView2 running the embedded
+                     editor document: real pages, behind-text images, links, footnotes.
+                     Lazy - no editor engine until the first open - and suspended again
+                     whenever the pane hides. ZIndex sits above the browser pane so a
+                     handover never paints the old face for a frame. -->
+                <Grid x:Name="EditorPaneHost" Grid.Row="0" Grid.RowSpan="2" Grid.ColumnSpan="3"
+                      Panel.ZIndex="91" Visibility="Collapsed">
+                    <ctrl:TextEditorControl x:Name="TextPane"/>
                 </Grid>
 
                 <Border x:Name="ComparisonBar" Grid.Row="1" Grid.ColumnSpan="3" Panel.ZIndex="100"

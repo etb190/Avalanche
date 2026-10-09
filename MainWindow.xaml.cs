@@ -447,6 +447,7 @@ namespace Avalanche
             Loaded += (_, _) => AdjustZoomBoxWidth();   // fit the zoom box to the longest localized term
             IndexToolbarButtons();
             WireWebPane();
+            WireEditorPane();
             LoadSignatures();
             BuildContextMenu();
             SetTool(EditTool.Select);
@@ -454,7 +455,7 @@ namespace Avalanche
             ApplyToolNumberTooltips();   // append the 1-9 toolbar positions to the tool tooltips
             BuildShortcutsOverlay();     // generate the shortcuts card from the single-source table (ShortcutsOverlay.cs)
             SourceInitialized += MainWindow_SourceInitialized;
-            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseEngineDocumentSession(); App.CleanupSessionTemps(); WebPane.ShutdownForExit(); };
+            Closed += (_, _) => { _continuousRenderCts?.Cancel(); _doc?.Close(); CloseEngineDocumentSession(); App.CleanupSessionTemps(); WebPane.ShutdownForExit(); TextPane.ShutdownForExit(); };
 
             // Open a file passed via command-line / file association (e.g. double-clicking a .pdf)
             // Also show the portable badge when running outside the install location.
@@ -2403,6 +2404,9 @@ namespace Avalanche
 
         private void ShowWebPane()
         {
+            // v1.19.64: one interface leads at a time - the editor steps aside
+            // before the browser takes the floor.
+            if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
             // v1.19.32: the browser takes the floor - the navigator and the
             // recap companion step out with it. The navigator's close wears
             // the switch-away face (the book keeps its wish, the reader's
@@ -2493,6 +2497,234 @@ namespace Avalanche
             }
             _summaryParkedScrollOffset = 0.0;
         }
+
+        // ── The text editor pane (v1.19.64) ─────────────────────────────────────
+        // The document area's third face, built the browser pane's way: a host
+        // that overlays the viewers, a pencil on the toolbar that toggles it, a
+        // sidebar rail that mirrors the editor's own pages, and one interface
+        // leading at a time - opening one face steps the others aside without
+        // disturbing their state, so every return lands where the reader left.
+
+        private bool _editorSidebarWasNotes;   // the sidebar mode the reader left behind
+        private readonly List<System.Windows.Controls.Button> _editorPageCards = [];
+
+        private void TextEditorBtn_Click(object sender, RoutedEventArgs e) => ToggleEditorPane();
+
+        private int _editorActivePage;
+
+        private void ToggleEditorPane()
+        {
+            if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
+            else ShowEditorPane();
+        }
+
+        private void ShowEditorPane()
+        {
+            // One interface leads at a time: the browser steps aside first - its
+            // hide may bring the navigator back, so the navigator parking below
+            // runs after it and closes it with the switch-away face preserved.
+            if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
+            // The editor takes the floor - the navigator and the recap companion
+            // step out with it, exactly the bargain the browser struck in
+            // v1.19.32, and a showing recap parks the same flag HideEditorPane
+            // spends to bring it back.
+            if (_summaryWindow is { } navigator && _currentFile is not null
+                && navigator.DocumentPathEquals(_currentFile))
+            {
+                _summaryParkedScrollOffset = navigator.DigestScrollOffset;
+                _summarySwitchAway = navigator;     // a switch, never the reader's hand
+                navigator.Close();
+                _summarySwitchAway = null;
+            }
+            if (Features.Summary.RecapController.HasOpenWindow)
+            {
+                _recapHiddenForBrowser = true;
+                Features.Summary.RecapController.Dismiss();
+            }
+            EditorPaneHost.Visibility = Visibility.Visible;
+            TextPane.OnPaneShown();
+            EnterEditorSidebarMode();
+            RefreshWebSaveButton(_originalFile ?? _currentFile);
+        }
+
+        private void HideEditorPane()
+        {
+            if (EditorPaneHost.Visibility != Visibility.Visible) return;
+            EditorPaneHost.Visibility = Visibility.Collapsed;
+            TextPane.OnPaneHidden();
+            ExitEditorSidebarMode();
+            // The editor stepped aside and the book's windows come back - the
+            // same welcome the browser's hide offers (recap first, then the
+            // navigator whose per-book wish survived the switch-away close).
+            if (_recapHiddenForBrowser)
+            {
+                _recapHiddenForBrowser = false;
+                if (_doc is not null && !string.IsNullOrEmpty(_currentFile))
+                {
+                    ToggleRecapCompanion();
+                }
+            }
+            if (_summaryWindow is null && _doc is not null
+                && !string.IsNullOrEmpty(_currentFile)
+                && _summaryOpenByDoc.TryGetValue(_currentFile, out bool editorWanted) && editorWanted)
+            {
+                OpenSummaryWindow();
+                if (_summaryWindow is { } returned)
+                {
+                    returned.RestoreDigestScroll(_summaryParkedScrollOffset);
+                }
+            }
+            _summaryParkedScrollOffset = 0.0;
+        }
+
+        // ── The sidebar's editor-page rail ──────────────────────────────────────
+
+        private void EnterEditorSidebarMode()
+        {
+            _editorSidebarWasNotes = _sidebarShowingNotes;
+            PageList.Visibility = Visibility.Collapsed;
+            NotesPanel.Visibility = Visibility.Collapsed;
+            PageControlsRow.Visibility = Visibility.Collapsed;
+            WebTabsPanel.Visibility = Visibility.Collapsed;
+            WebPane.TabCardsVisible = false;   // nobody is watching the web previews
+            EditorPagesPanel.Visibility = Visibility.Visible;
+            SidebarPagesTab.Tag = null;
+            SidebarNotesTab.Tag = null;
+            RebuildEditorPageCards();
+        }
+
+        private void ExitEditorSidebarMode()
+        {
+            if (EditorPagesPanel.Visibility != Visibility.Visible) return;
+            EditorPagesPanel.Visibility = Visibility.Collapsed;
+            if (_editorSidebarWasNotes) SwitchSidebarToNotesTab();
+            else SwitchSidebarToPagesTab();
+        }
+
+        private void WireEditorPane()
+        {
+            TextPane.PageCountChanged += _ => RebuildEditorPageCards();
+            TextPane.ActivePageChanged += HighlightEditorPage;
+            TextPane.LinkOpenRequested += OpenEditorLink;
+            TextPane.BrowserRequested += () => { HideEditorPane(); ShowWebPane(); };
+            TextPane.PdfRequested += () => HideEditorPane();
+        }
+
+        /// <summary>The editor's page count moved: the rail mirrors it - one card
+        /// per page, the way the PDF list wears one thumbnail per page. Cards are
+        /// built in code because their count is the editor's own fact, not the
+        /// document's; the active page wears a bold face and a click scrolls.</summary>
+        private void RebuildEditorPageCards()
+        {
+            EditorPagesList.Children.Clear();
+            _editorPageCards.Clear();
+            int n = TextPane.PageCount;
+            EditorPagesHost.Visibility = n == 0 ? Visibility.Visible : Visibility.Collapsed;
+            for (int i = 1; i <= n; i++)
+            {
+                var card = BuildEditorPageCard(i);
+                _editorPageCards.Add(card);
+                EditorPagesList.Children.Add(card);
+            }
+            HighlightEditorPage(_editorActivePage);
+        }
+
+        private System.Windows.Controls.Button BuildEditorPageCard(int index)
+        {
+            var stack = new System.Windows.Controls.StackPanel();
+            var icon = new System.Windows.Controls.TextBlock
+            {
+                Text = "\uE8A5",
+                FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+                FontSize = 20,
+                Margin = new Thickness(0, 4, 0, 2),
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            icon.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "MutedTextBrush");
+            var label = new System.Windows.Controls.TextBlock
+            {
+                FontSize = 11,
+                Text = string.Format(TryFindResource("Str_Editor_PageCard") as string ?? "Page {0}", index),
+                HorizontalAlignment = HorizontalAlignment.Center,
+            };
+            label.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextBrush");
+            label.SetResourceReference(System.Windows.Controls.TextBlock.FontFamilyProperty, "UiFont");
+            stack.Children.Add(icon);
+            stack.Children.Add(label);
+
+            var card = new System.Windows.Controls.Button
+            {
+                Content = stack,
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FocusVisualStyle = null,
+                Margin = new Thickness(0, 0, 0, 6),
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            };
+            card.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "PaneBrush");
+            card.Template = EditorCardTemplate();
+            card.Click += (_, _) => TextPane.ScrollToPage(index);
+            return card;
+        }
+
+        /// <summary>The card's face: the web-tab card's anatomy in miniature -
+        /// PaneBrush fill, CardBorderBrush ring, themed corner radius, hover to
+        /// the accent - all through DynamicResource, so every theme draws it right.</summary>
+        private static System.Windows.Controls.ControlTemplate EditorCardTemplate()
+        {
+            var face = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border), "face");
+            face.SetValue(System.Windows.Controls.Border.BackgroundProperty,
+                new System.Windows.DynamicResourceExtension("PaneBrush"));
+            face.SetValue(System.Windows.Controls.Border.BorderBrushProperty,
+                new System.Windows.DynamicResourceExtension("CardBorderBrush"));
+            face.SetValue(System.Windows.Controls.Border.BorderThicknessProperty, new Thickness(1));
+            face.SetValue(System.Windows.Controls.Border.CornerRadiusProperty,
+                new System.Windows.DynamicResourceExtension("ControlCornerRadius"));
+            face.SetValue(System.Windows.Controls.Border.PaddingProperty, new Thickness(6));
+            face.AppendChild(new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.ContentPresenter)));
+            var tpl = new System.Windows.Controls.ControlTemplate(typeof(System.Windows.Controls.Button))
+            {
+                VisualTree = face,
+            };
+            var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            hover.Setters.Add(new System.Windows.Setter(
+                System.Windows.Controls.Border.BorderBrushProperty,
+                new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
+            tpl.Triggers.Add(hover);
+            return tpl;
+        }
+
+        private void HighlightEditorPage(int page)
+        {
+            _editorActivePage = page;
+            for (int i = 0; i < _editorPageCards.Count; i++)
+            {
+                if (_editorPageCards[i].Content is System.Windows.Controls.StackPanel sp
+                    && sp.Children.Count > 1
+                    && sp.Children[1] is System.Windows.Controls.TextBlock tb)
+                {
+                    tb.FontWeight = (i + 1 == page)
+                        ? System.Windows.FontWeights.Bold
+                        : System.Windows.FontWeights.Normal;
+                }
+            }
+        }
+
+        /// <summary>A link the editor handed over (Ctrl+click, or a page that asked
+        /// for a window): it leaves the document for the system browser, the way
+        /// every other outward link in the app travels.</summary>
+        private void OpenEditorLink(string url)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            catch
+            {
+                // A link that refuses to open never takes the editor down.
+            }
+        }
+
 
         // ── The sidebar's web-tabs gallery (v1.19.5) ────────────────────────────────────
         // While the browser is up, the left rail shows its open views instead of the

@@ -1,0 +1,327 @@
+<UserControl x:Class="Avalanche.Controls.TextEditorControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The lightweight text editor (v1.19.64): the document area's third face,
+         next to the PDF editor and the browser. One ribbon of real editor
+         controls - the mode switches the reader asked to see first, then font,
+         size, bold / italic / underline / strikethrough, hyperlink, footnote
+         and a behind-text image - and one WebView2 host running an embedded
+         editor document: real Letter pages that grow on their own, text that
+         flows onto a fresh page when a page is full, and images that live
+         behind the text and move freely. Chromium never ships in the payload -
+         the same Evergreen runtime the browser pane already rides - so this
+         control is a few KB of chrome around one embedded HTML string. -->
+    <UserControl.Resources>
+        <Style x:Key="EditorBtn" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="face" Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource PaneBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- The format toggles share the button's face and add a checked state:
+             the pressed face comes from the page's own report (the JS side is
+             the single source of truth for what the caret is wearing). -->
+        <Style x:Key="EditorToggle" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="face" Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource PaneBrush}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource PaneBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EditorPopupItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="face" Background="Transparent"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowSelectedBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- The face of the font / size dials: a wide flat chip carrying the
+             current value and a drop caret, opening a themed popup list. -->
+        <Style x:Key="EditorDial" TargetType="ToggleButton">
+            <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="face" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                <Setter TargetName="face" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EditorPopupBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource MenuBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.35"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- The ribbon. It wears the tab band's face - the window surface with
+             the shared grain and the bottom fade - so the editor reads as a
+             peer of the browser's band, and its mode switches sit exactly
+             where the reader asked for them: first browser, then PDF editor,
+             then the writing tools. -->
+        <Border Grid.Row="0" Background="{DynamicResource BackgroundBrush}"
+                Height="{DynamicResource TabBandHeight}">
+            <Grid>
+                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
+                        Background="{StaticResource GrainBrushShared}"/>
+                <Border IsHitTestVisible="False" Opacity="{DynamicResource BarShadowOpacity}">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00000000" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.45"/>
+                            <GradientStop Color="#59000000" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,8,0">
+                    <!-- The two switches: where the reader goes next. The browser
+                         globe and the PDF editor's document, wearing the same
+                         glyphs they wear on the main toolbar. -->
+                    <Button x:Name="EditorBrowserBtn" Content="&#xE774;" Style="{StaticResource EditorBtn}"
+                            Click="EditorBrowserBtn_Click" ToolTip="{DynamicResource Str_TT_EditorBrowser}"/>
+                    <Button x:Name="EditorPdfBtn" Content="&#xE8A5;" Style="{StaticResource EditorBtn}"
+                            Click="EditorPdfBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="5,6"/>
+                    <!-- Font dial: shows the font the caret is wearing right now;
+                         choosing one applies it to the selection, or - with the
+                         caret resting - to what gets typed next. -->
+                    <ToggleButton x:Name="FontBtn" Style="{StaticResource EditorDial}"
+                                  MinWidth="150" MaxWidth="200" Click="FontBtn_Click"
+                                  ToolTip="{DynamicResource Str_TT_EditorFont}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="FontText" Text="Segoe UI" FontSize="12"
+                                       FontFamily="{DynamicResource UiFont}"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="8" Margin="6,0,0,0"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </ToggleButton>
+                    <!-- Size dial: same bargain - the caret's size in the chip,
+                         selection-aware when something is selected. -->
+                    <ToggleButton x:Name="SizeBtn" Style="{StaticResource EditorDial}"
+                                  Width="64" Margin="4,0,0,0" Click="SizeBtn_Click"
+                                  ToolTip="{DynamicResource Str_TT_EditorFontSize}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="SizeText" Text="12" FontSize="12"
+                                       FontFamily="{DynamicResource UiFont}"
+                                       Foreground="{DynamicResource TextBrush}"
+                                       VerticalAlignment="Center" TextAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="8" Margin="5,0,0,0"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </ToggleButton>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="5,6"/>
+                    <!-- The classic four. Letters, not glyphs - the way every
+                         writing app has drawn them since forever. -->
+                    <ToggleButton x:Name="BoldBtn" Style="{StaticResource EditorToggle}"
+                                  Click="BoldBtn_Click" ToolTip="{DynamicResource Str_TT_EditorBold}">
+                        <TextBlock Text="B" FontWeight="Bold" FontSize="13" FontFamily="Georgia"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="ItalicBtn" Style="{StaticResource EditorToggle}"
+                                  Click="ItalicBtn_Click" ToolTip="{DynamicResource Str_TT_EditorItalic}">
+                        <TextBlock Text="I" FontStyle="Italic" FontSize="13" FontFamily="Georgia"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="UnderlineBtn" Style="{StaticResource EditorToggle}"
+                                  Click="UnderlineBtn_Click" ToolTip="{DynamicResource Str_TT_EditorUnderline}">
+                        <TextBlock Text="U" FontSize="13" FontFamily="Georgia" TextDecorations="Underline"/>
+                    </ToggleButton>
+                    <ToggleButton x:Name="StrikeBtn" Style="{StaticResource EditorToggle}"
+                                  Click="StrikeBtn_Click" ToolTip="{DynamicResource Str_TT_EditorStrike}">
+                        <TextBlock Text="S" FontSize="13" FontFamily="Georgia" TextDecorations="Strikethrough"/>
+                    </ToggleButton>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="5,6"/>
+                    <!-- Link, footnote, and the behind-text image. -->
+                    <Button x:Name="LinkBtn" Content="&#xE71B;" Style="{StaticResource EditorBtn}"
+                            Click="LinkBtn_Click" ToolTip="{DynamicResource Str_TT_EditorLink}"/>
+                    <Button x:Name="FootnoteBtn" Style="{StaticResource EditorBtn}"
+                            Click="FootnoteBtn_Click" ToolTip="{DynamicResource Str_TT_EditorFootnote}">
+                        <TextBlock Text="&#x2020;" FontSize="14" FontFamily="Georgia"/>
+                    </Button>
+                    <Button x:Name="ImageBtn" Content="&#xEB9F;" Style="{StaticResource EditorBtn}"
+                            Click="ImageBtn_Click" ToolTip="{DynamicResource Str_TT_EditorImage}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- The card: the PDF card's own anatomy - shadow caster, BgCanvas face,
+             pane ring, RadCard corners - so the editor reads as the document
+             surface it is replacing, in the exact same footprint. The -1 top
+             margin is the same tuck the browser's card takes under its band. -->
+        <Grid Grid.Row="1" Margin="0,-1,0,0">
+            <Border IsHitTestVisible="False" Margin="0,1,0,0"
+                    Background="{DynamicResource BgCanvas}"
+                    CornerRadius="{DynamicResource RadCard}"
+                    Effect="{DynamicResource PaneShadowEffect}"/>
+            <Border Panel.ZIndex="6"
+                    Background="{DynamicResource BgCanvas}"
+                    BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1"
+                    CornerRadius="{DynamicResource RadCard}"
+                    ClipToBounds="True">
+                <Grid>
+                    <Grid x:Name="WebHost" Background="{DynamicResource BgCanvas}"/>
+                    <!-- The engine veil: the reader-facing face while WebView2
+                         wakes up, and the honest message if the runtime is not
+                         there. Hidden the moment the editor document is live. -->
+                    <Border x:Name="EngineVeil" Background="{DynamicResource BgCanvas}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="34"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                            <TextBlock x:Name="EngineStatus" FontSize="12"
+                                       FontFamily="{DynamicResource UiFont}"
+                                       Foreground="{DynamicResource MutedTextBrush}"
+                                       TextWrapping="Wrap" MaxWidth="340"
+                                       TextAlignment="Center" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- The two dials' popups live at the control's root so their placement
+             targets never leave the ribbon. -->
+        <Popup x:Name="FontPopup" PlacementTarget="{Binding ElementName=FontBtn}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Style="{StaticResource EditorPopupBorder}" Width="210">
+                <ListBox x:Name="FontList" BorderThickness="0" Background="Transparent"
+                         MaxHeight="330" VirtualizingPanel.IsVirtualizing="False"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         SelectionChanged="FontList_SelectionChanged"/>
+            </Border>
+        </Popup>
+        <Popup x:Name="SizePopup" PlacementTarget="{Binding ElementName=SizeBtn}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Style="{StaticResource EditorPopupBorder}" Width="76">
+                <ListBox x:Name="SizeList" BorderThickness="0" Background="Transparent"
+                         MaxHeight="330" VirtualizingPanel.IsVirtualizing="False"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         SelectionChanged="SizeList_SelectionChanged"/>
+            </Border>
+        </Popup>
+    </Grid>
+</UserControl>

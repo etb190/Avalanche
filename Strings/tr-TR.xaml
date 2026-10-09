@@ -1352,4 +1352,24 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_NewFolderName">Klasör adı</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Bu klasörde henüz bir şey yok</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Ad</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Metin Düzenleyici</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Kitaplarınızın yanında metin sayfaları yazın ve biçimlendirin</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Tarayıcıya geç</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">PDF düzenleyiciye geç</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Yazı tipi</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Yazı tipi boyutu</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Kalın (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">İtalik (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Altı çizili (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Üstü çizili</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Bağlantı ekle veya düzenle</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Dipnot ekle</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Metnin arkasına resim ekle (serbestçe taşınır)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Bağlantı adresi</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Uygula</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Kaldır</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Bu resim çok büyük - 10 MB altında tutun.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Sayfa {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Yazdığınız sayfalar burada görünür.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 çalışma zamanı bulunamadı. Microsoft'un Evergreen Runtime'ını yükleyin, sonra metin düzenleyiciyi yeniden açın.</sys:String>
 </ResourceDictionary>

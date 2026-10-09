@@ -1372,4 +1372,24 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_NewFolderName">Имя папки</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">В этой папке пока ничего нет</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Название</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Текстовый редактор</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Пишите и оформляйте текстовые страницы прямо рядом с вашими книгами</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Перейти в браузер</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Перейти в редактор PDF</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Шрифт</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Размер шрифта</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Полужирный (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Курсив (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Подчёркнутый (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Зачёркнутый</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Вставить или изменить ссылку</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Вставить сноску</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Вставить изображение за текстом (свободно перемещается)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Адрес ссылки</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Применить</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Удалить</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Это изображение слишком велико - держите его меньше 10 МБ.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Страница {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Здесь появляются страницы, которые вы пишете.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">Среда выполнения WebView2 не найдена. Установите Evergreen Runtime от Microsoft и снова откройте текстовый редактор.</sys:String>
 </ResourceDictionary>

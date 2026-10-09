@@ -1359,4 +1359,24 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_NewFolderName">Mappa neve</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Ebben a mappában még nincs semmi</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Név</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Szövegszerkesztő</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Írjon és formázzon szöveges oldalakat a könyvei mellett</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Váltás a böngészőre</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Váltás a PDF-szerkesztőre</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Betűtípus</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Betűméret</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Félkövér (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Dőlt (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Aláhúzott (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Áthúzott</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Hivatkozás beszúrása vagy szerkesztése</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Lábjegyzet beszúrása</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Kép beszúrása a szöveg mögé (szabadon mozgatható)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Hivatkozás címe</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Alkalmaz</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Eltávolítás</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Ez a kép túl nagy - legfeljebb 10 MB lehet.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">{0}. oldal</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Az Ön által írt oldalak itt jelennek meg.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">A WebView2 futtatókörnyezet nem található. Telepítse a Microsoft Evergreen Runtime-ját, majd nyissa meg újra a szövegszerkesztőt.</sys:String>
 </ResourceDictionary>

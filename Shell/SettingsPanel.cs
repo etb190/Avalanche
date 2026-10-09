@@ -756,6 +756,7 @@ namespace Avalanche
             ["\uE9D9"] = "Str_Lbl_AiTest",            // probe glyph - AI test
             ["\uE774"] = "Str_Lbl_WebBrowser",        // globe - the web browser pane
             ["\uE792"] = "Str_Lbl_WebSavePdf",        // floppy - save a web-downloaded PDF to disk
+            ["\uE70B"] = "Str_Lbl_TextEditor",        // pencil - the text editor pane
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.

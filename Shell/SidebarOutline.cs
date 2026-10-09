@@ -21,7 +21,10 @@ namespace Avalanche
         {
             // v1.19.5: the page list belongs to the reader - opening it while the
             // browser pane is up steps the browser aside first.
+            // v1.19.64: the editor too - PAGES closes it and returns the reader
+            // to the book's own pages.
             HideWebPane();
+            HideEditorPane();
             SwitchSidebarToPagesTab();
         }
 
@@ -34,6 +37,7 @@ namespace Avalanche
             PageList.Visibility = Visibility.Visible;
             NotesPanel.Visibility = Visibility.Collapsed;
             PageControlsRow.Visibility = _doc != null ? Visibility.Visible : Visibility.Collapsed;   // no empty box when nothing is open
+            EditorPagesPanel.Visibility = Visibility.Collapsed;   // v1.19.64: the editor's rail never lingers behind a switch
             SidebarPagesTab.Tag = "on";     // the segmented style paints the active face
             SidebarNotesTab.Tag = null;
             // Save current notes width before snapping back to pages.

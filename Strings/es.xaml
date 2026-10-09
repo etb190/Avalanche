@@ -1352,4 +1352,24 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_NewFolderName">Nombre de la carpeta</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Aún no hay nada en esta carpeta</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nombre</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Editor de texto</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Escribe y formatea páginas de texto junto a tus libros</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Cambiar al navegador</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Cambiar al editor de PDF</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Fuente</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Tamaño de fuente</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Negrita (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Cursiva (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Subrayado (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Tachado</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Insertar o editar un enlace</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Insertar una nota al pie</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Insertar una imagen detrás del texto (arrástrala libremente)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Dirección del enlace</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Aplicar</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Quitar</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Esa imagen es demasiado grande - mantenla por debajo de 10 MB.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Página {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Aquí aparecen las páginas que escribes.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">No se encontró el runtime de WebView2. Instala Evergreen Runtime de Microsoft y vuelve a abrir el editor de texto.</sys:String>
 </ResourceDictionary>

@@ -50,6 +50,14 @@ namespace Avalanche
                 WebPane.TabCardsVisible = false;   // v1.19.43: the pulse stands down with the gallery
                 _webSidebarWasNotes = true;
             }
+            // v1.19.64: the notes cards outrank the editor's page rail the same
+            // way, and the editor itself stays up - closing it later returns to
+            // these notes.
+            if (EditorPagesPanel.Visibility == Visibility.Visible)
+            {
+                EditorPagesPanel.Visibility = Visibility.Collapsed;
+                _editorSidebarWasNotes = true;
+            }
             SwitchSidebarToNotesTab();
         }
 
@@ -64,6 +72,7 @@ namespace Avalanche
             PageList.Visibility = Visibility.Collapsed;
             NotesPanel.Visibility = Visibility.Visible;
             PageControlsRow.Visibility = Visibility.Collapsed;
+            EditorPagesPanel.Visibility = Visibility.Collapsed;   // v1.19.64: the editor's rail never lingers behind a switch
             SidebarPagesTab.Tag = null;
             SidebarNotesTab.Tag = "on";     // the segmented style paints the active face
             SidebarSplitter.IsEnabled = true;

@@ -1352,4 +1352,24 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_NewFolderName">ফোল্ডারের নাম</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">এই ফোল্ডারে এখনো কিছু নেই</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">নাম</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">টেক্সট এডিটর</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">আপনার বইয়ের পাশেই টেক্সটের পৃষ্ঠা লিখুন ও ফরম্যাট করুন</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">ব্রাউজারে যান</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">পিডিএফ এডিটরে যান</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">ফন্ট</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">ফন্ট সাইজ</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">বোল্ড (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">ইটালিক (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">আন্ডারলাইন (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">স্ট্রাইকথ্রু</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">লিক যোগ করুন বা সম্পাদনা করুন</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">ফুটনোট যোগ করুন</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">লেখার পেছনে ছবি যোগ করুন (স্বাধীনভাবে সরানো যায়)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">লিকের ঠিকানা</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">প্রয়োগ করুন</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">সরান</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">এই ছবিটি খুব বড় - 10 MB এর নিচে রাখুন।</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">পৃষ্ঠা {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">আপনি যে পৃষ্ঠাগুলি লিখবেন সেগুলি এখানে দেখা যাবে।</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 রানটাইম পাওয়া যায়নি। Microsoft-এর Evergreen Runtime ইনস্টল করুন, তারপর টেক্সট এডিটর আবার খুলুন।</sys:String>
 </ResourceDictionary>

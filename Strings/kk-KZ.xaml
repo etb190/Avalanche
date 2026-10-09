@@ -1371,4 +1371,24 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_NewFolderName">Қалта атауы</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Бұл қалтада әзірге ештеңе жоқ</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Атауы</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Мөтіндік редактор</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Қітаптарыңыздың қасында мөтін беттерін жазыңыз және пішімдеңіз</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Браузерге ауысу</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">PDF редакторына ауысу</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Қаріп</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Қаріп өлшемі</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Қалың (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Курсив (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Асты сызылған (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Сызылған</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Сілтеме қоу немесе өңдеу</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Түбәтпе ескертпе қою</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Мөтіннің артына сүрет қою (еркін жылжытады)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Сілтеме адресі</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Қолдану</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Алып тастау</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Бұл сүрет тым үлкен - 10 МБ-тан аз ұстаңыз.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">{0}-бет</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Жазған беттеріңіз осында пайда болады.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 жүйесі табылмады. Microsoft Evergreen Runtime орнатыңыз, содан кеін мөтіндік редакторды қайта ашыңыз.</sys:String>
 </ResourceDictionary>

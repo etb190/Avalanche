@@ -1354,4 +1354,24 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Web_NewFolderName">資料夾名稱</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">此資料夾中還沒有內容</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">名稱</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">文字編輯器</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">就在書籍旁邊撰寫並排版文字頁面</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">切換到瀏覽器</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">切換到 PDF 編輯器</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">字型</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">字型大小</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">粗體 (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">斜體 (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">底線 (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">刪除線</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">插入或編輯連結</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">插入腳註</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">在文字後面插入圖片（可自由拖曳）</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">連結位址</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">套用</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">移除</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">圖片太大 - 請保持在 10 MB 以內。</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">第 {0} 頁</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">您撰寫的頁面會顯示在這裡。</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">找不到 WebView2 執行階段。請安裝 Microsoft 的 Evergreen Runtime，然後重新開啟文字編輯器。</sys:String>
 </ResourceDictionary>

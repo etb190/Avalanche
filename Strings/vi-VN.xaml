@@ -1372,4 +1372,24 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_NewFolderName">Tên thư mục</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Thư mục này chưa có gì</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Tên</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Trình soạn thảo văn bản</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Viết và định dạng các trang văn bản ngay bên cạnh sách của bạn</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Chuyển sang trình duyệt</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Chuyển sang trình soạn thảo PDF</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Phông chữ</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Cỡ phông</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Đậm (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Nghiêng (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Gạch chân (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Gạch ngang</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Chèn hoặc sửa liên kết</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Chèn chú thích cuối trang</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Chèn ảnh phía sau văn bản (kéo thoải mái)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Địa chỉ liên kết</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Áp dụng</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Gỡ bỏ</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Ảnh này quá lớn - hãy giữ dưới 10 MB.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Trang {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Các trang bạn viết sẽ xuất hiện ở đây.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">Không tìm thấy WebView2 runtime. Hãy cài đặt Evergreen Runtime của Microsoft rồi mở lại trình soạn thảo văn bản.</sys:String>
 </ResourceDictionary>

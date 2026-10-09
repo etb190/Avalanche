@@ -1358,4 +1358,24 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_NewFolderName">Ordnername</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Dieser Ordner ist noch leer</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Name</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Texteditor</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Seiten mit Text direkt neben Ihren Büchern schreiben und formatieren</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Zum Browser wechseln</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Zum PDF-Editor wechseln</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Schriftart</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Schriftgröße</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Fett (Strg+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Kursiv (Strg+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Unterstrichen (Strg+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Durchgestrichen</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Link einfügen oder bearbeiten</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Fußnote einfügen</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Bild hinter den Text einfügen (frei verschiebbar)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Linkadresse</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Übernehmen</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Entfernen</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Dieses Bild ist zu groß - bitte unter 10 MB halten.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Seite {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Hier erscheinen die Seiten, die Sie schreiben.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">Die WebView2-Laufzeit wurde nicht gefunden. Installieren Sie die Evergreen Runtime von Microsoft und öffnen Sie den Texteditor erneut.</sys:String>
 </ResourceDictionary>

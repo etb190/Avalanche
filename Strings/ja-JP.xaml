@@ -1372,4 +1372,24 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_NewFolderName">フォルダー名</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">このフォルダーにはまだ何もありません</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">名前</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">テキストエディター</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">本のそばでテキストのページを書き、書式を整える</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">ブラウザーに切り替える</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">PDFエディターに切り替える</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">フォント</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">フォントサイズ</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">太字 (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">斜体 (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">下線 (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">取り消し線</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">リンクの挿入または編集</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">脚注の挿入</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">テキストの背後に画像を挿入(自由に移動できます)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">リンク先のアドレス</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">適用</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">削除</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">画像が大きすぎます - 10 MB 未満にしてください。</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">{0} ページ</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">書いたページがここに表示されます。</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 ランタイムが見つかりません。Microsoft の Evergreen Runtime をインストールしてから、テキストエディターをもう一度開いてください。</sys:String>
 </ResourceDictionary>

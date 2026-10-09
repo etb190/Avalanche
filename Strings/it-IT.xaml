@@ -1372,4 +1372,24 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_NewFolderName">Nome cartella</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Ancora nulla in questa cartella</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nome</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Editor di testo</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Scrivi e formatta pagine di testo accanto ai tuoi libri</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Passa al browser</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Passa all'editor PDF</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Carattere</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Dimensione carattere</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Grassetto (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Corsivo (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Sottolineato (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Barrato</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Inserisci o modifica un collegamento</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Inserisci una nota a piè di pagina</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Inserisci un'immagine dietro il testo (trascinala liberamente)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Indirizzo del collegamento</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Applica</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Rimuovi</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">L'immagine è troppo grande - tienila sotto i 10 MB.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Pagina {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Qui compaiono le pagine che scrivi.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">Runtime WebView2 non trovato. Installa Evergreen Runtime di Microsoft, quindi riapri l'editor di testo.</sys:String>
 </ResourceDictionary>

@@ -1360,4 +1360,24 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_NewFolderName">Nazwa folderu</sys:String>
     <sys:String x:Key="Str_Web_FolderEmpty">Ten folder jest jeszcze pusty</sys:String>
     <sys:String x:Key="Str_Web_BookmarkName">Nazwa</sys:String>
+    <sys:String x:Key="Str_Lbl_TextEditor">Edytor tekstu</sys:String>
+    <sys:String x:Key="Str_TT_TextEditor">Pisz i formatuj strony tekstu tuż obok swoich książek</sys:String>
+    <sys:String x:Key="Str_TT_EditorBrowser">Przełącz na przeglądarkę</sys:String>
+    <sys:String x:Key="Str_TT_EditorPdf">Przełącz na edytor PDF</sys:String>
+    <sys:String x:Key="Str_TT_EditorFont">Czcionka</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontSize">Rozmiar czcionki</sys:String>
+    <sys:String x:Key="Str_TT_EditorBold">Pogrubienie (Ctrl+B)</sys:String>
+    <sys:String x:Key="Str_TT_EditorItalic">Kursywa (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_EditorUnderline">Podkreślenie (Ctrl+U)</sys:String>
+    <sys:String x:Key="Str_TT_EditorStrike">Przekreślenie</sys:String>
+    <sys:String x:Key="Str_TT_EditorLink">Wstaw lub edytuj link</sys:String>
+    <sys:String x:Key="Str_TT_EditorFootnote">Wstaw przypis dolny</sys:String>
+    <sys:String x:Key="Str_TT_EditorImage">Wstaw obraz za tekstem (przesuwany swobodnie)</sys:String>
+    <sys:String x:Key="Str_Editor_LinkUrl">Adres linku</sys:String>
+    <sys:String x:Key="Str_Editor_Apply">Zastosuj</sys:String>
+    <sys:String x:Key="Str_Editor_Remove">Usuń</sys:String>
+    <sys:String x:Key="Str_Editor_ImageTooLarge">Ten obraz jest za duży - niech ma mniej niż 10 MB.</sys:String>
+    <sys:String x:Key="Str_Editor_PageCard">Strona {0}</sys:String>
+    <sys:String x:Key="Str_Editor_TabsEmpty">Tu pojawiają się strony, które piszesz.</sys:String>
+    <sys:String x:Key="Str_Editor_RuntimeMissing">Nie znaleziono środowiska WebView2. Zainstaluj Evergreen Runtime od Microsoftu, a następnie otwórz edytor tekstu ponownie.</sys:String>
 </ResourceDictionary>
