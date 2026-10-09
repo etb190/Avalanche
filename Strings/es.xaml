@@ -1374,6 +1374,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">Aquí aparecen las páginas que escribes.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">No se encontró el runtime de WebView2. Instala Evergreen Runtime de Microsoft y vuelve a abrir el editor de texto.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Sin título</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Nueva pestaña</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Aumentar el tamaño de la fuente</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Reducir el tamaño de la fuente</sys:String>
 </ResourceDictionary>

@@ -1394,6 +1394,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Editor_TabsEmpty">Các trang bạn viết sẽ xuất hiện ở đây.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Không tìm thấy WebView2 runtime. Hãy cài đặt Evergreen Runtime của Microsoft rồi mở lại trình soạn thảo văn bản.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Không tên</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Tab mới</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Tăng cỡ chữ</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Giảm cỡ chữ</sys:String>
 </ResourceDictionary>

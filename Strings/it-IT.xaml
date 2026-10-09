@@ -1394,6 +1394,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Editor_TabsEmpty">Qui compaiono le pagine che scrivi.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Runtime WebView2 non trovato. Installa Evergreen Runtime di Microsoft, quindi riapri l'editor di testo.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Senza titolo</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Nuova scheda</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Aumenta la dimensione del carattere</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Riduci la dimensione del carattere</sys:String>
 </ResourceDictionary>

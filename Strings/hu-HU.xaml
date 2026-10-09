@@ -1381,6 +1381,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Editor_TabsEmpty">Az Ön által írt oldalak itt jelennek meg.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">A WebView2 futtatókörnyezet nem található. Telepítse a Microsoft Evergreen Runtime-ját, majd nyissa meg újra a szövegszerkesztőt.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Névtelen</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Új lap</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Betűméret növelése</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Betűméret csökkentése</sys:String>
 </ResourceDictionary>

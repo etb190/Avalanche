@@ -1374,6 +1374,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Editor_TabsEmpty">Yazdığınız sayfalar burada görünür.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 çalışma zamanı bulunamadı. Microsoft'un Evergreen Runtime'ını yükleyin, sonra metin düzenleyiciyi yeniden açın.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Başlıksız</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Yeni sekme</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Yazı tipi boyutunu büyüt</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Yazı tipi boyutunu küçült</sys:String>
 </ResourceDictionary>

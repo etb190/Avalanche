@@ -1374,6 +1374,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Editor_TabsEmpty">আপনি যে পৃষ্ঠাগুলি লিখবেন সেগুলি এখানে দেখা যাবে।</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 রানটাইম পাওয়া যায়নি। Microsoft-এর Evergreen Runtime ইনস্টল করুন, তারপর টেক্সট এডিটর আবার খুলুন।</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">শিরোনামহীন</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">নতুন ট্যাব</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">ফন্ট সাইজ বাড়ান</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">ফন্ট সাইজ কমান</sys:String>
 </ResourceDictionary>

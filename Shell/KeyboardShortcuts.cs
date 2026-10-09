@@ -314,6 +314,28 @@ namespace Avalanche
                     RotatePages_Click(Keyboard.Modifiers == ModifierKeys.Control ? 90 : -90);
                 e.Handled = true;
             }
+            // The text editor's undo is the page's own snapshot memory: while the
+            // editor leads, the chord is the page's, never the PDF viewer's
+            // annotation memory - routing it there read the PDF's own empty stack
+            // out loud as "Nothing to undo" (v1.19.69). OnPreviewKeyDown tunnels
+            // before anything inside the pane sees the key, so THIS is where the
+            // editor's answer has to live; consuming the accelerator here also
+            // keeps the page's own keydown from firing a second undo for the
+            // one press. (When the browser leads, the fall-through above already
+            // gives the chord to the web page that owns the keyboard.)
+            else if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control
+                     && EditorPaneHost.Visibility == Visibility.Visible)
+            {
+                if (!e.IsRepeat) TextPane.UndoExt();   // one press = one undo, the same law
+                e.Handled = true;
+            }
+            else if (EditorPaneHost.Visibility == Visibility.Visible
+                     && ((e.Key == Key.Z && Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift))
+                         || (e.Key == Key.Y && Keyboard.Modifiers == ModifierKeys.Control)))
+            {
+                if (!e.IsRepeat) TextPane.RedoExt();
+                e.Handled = true;
+            }
             else if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 if (!e.IsRepeat) Undo_Click(this, e);   // ignore key auto-repeat so one press = one undo

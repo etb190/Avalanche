@@ -1376,6 +1376,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">您撰寫的頁面會顯示在這裡。</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">找不到 WebView2 執行階段。請安裝 Microsoft 的 Evergreen Runtime，然後重新開啟文字編輯器。</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">無標題</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">新增索引標籤</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">放大字級</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">縮小字級</sys:String>
 </ResourceDictionary>

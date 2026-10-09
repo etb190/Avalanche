@@ -117,12 +117,56 @@ namespace Avalanche.Controls
       if (!next) next = makePage();
       var nt = txtOf(next);
       var last = t.lastElementChild || t.lastChild;   // blocks, or a typed line's bare text node
-      if (last) nt.insertBefore(last, nt.firstChild);
+      if (!last) break;
+      // A bare text node too big for ANY page cannot walk whole: moved
+      // intact it overflows the next page too, and the cascade leaves a
+      // trail of empty pages behind it - a 5KB plain-text paste grew 400
+      // of them (v1.19.69). Split it at the character that fits instead,
+      // and only the remainder walks. Blocks keep walking whole: their
+      // own law is what keeps a paragraph unbroken across pages.
+      if (last.nodeType === 3 && nodeOverflowsAPage(last)){
+        var full = last.nodeValue;
+        var lo = 0, hi = full.length;
+        while (lo < hi){
+          var mid = (lo + hi + 1) >> 1;
+          last.nodeValue = full.slice(0, mid);
+          // overflow is monotone in the prefix length: too tall shrinks the
+          // candidate, fitting grows it - the search lands on the largest
+          // prefix the page can honestly hold.
+          if (overflow(t)) hi = mid - 1; else lo = mid;
+        }
+        last.nodeValue = full.slice(0, lo);
+        nt.insertBefore(document.createTextNode(full.slice(lo)), nt.firstChild);
+        page = next;
+        continue;
+      }
+      nt.insertBefore(last, nt.firstChild);
       // Stay on the same page until it is honest again, then let the cascade
       // continue from the neighbor we just fed - a large paste walks forward
       // page by page in one pass.
       page = overflow(t) ? page : next;
     }
+  }
+
+  // Answers whether a bare text node could overflow a page at all: it is
+  // measured on a detached page wearing the same pin, so the split test
+  // above pays one layout read for the whole node, and blocks pay none.
+  var probePage = null, probeTxt = null;
+  function nodeOverflowsAPage(node){
+    if (!probePage){
+      probePage = document.createElement('div'); probePage.className = 'page';
+      probePage.style.position = 'absolute';
+      probePage.style.left = '-10000px';
+      probePage.style.visibility = 'hidden';
+      var pin = document.createElement('div'); pin.className = 'pin';
+      probeTxt = document.createElement('div'); probeTxt.className = 'txt';
+      pin.appendChild(probeTxt); probePage.appendChild(pin);
+      document.body.appendChild(probePage);
+    }
+    probeTxt.textContent = node.nodeValue;
+    var over = overflow(probeTxt);
+    probeTxt.textContent = '';   // the probe never holds a page's text a moment longer than the measure
+    return over;
   }
 
   // A trailing page whose text, images and footnotes all emptied steps back
@@ -150,6 +194,7 @@ namespace Avalanche.Controls
     renumberFns();
     reportPages();
     scheduleSave();
+    scheduleThumbs();
   }
 
   // -- caret bookkeeping -----------------------------------------------------
@@ -483,6 +528,7 @@ namespace Avalanche.Controls
       selectImage(wrap);
       scheduleSave();
       noteChange();
+      scheduleThumbs();
     });
   }
 
@@ -533,7 +579,26 @@ namespace Avalanche.Controls
   // The move and the release ride the window, so a drag that leaves the
   // page box keeps going until the hand lifts.
   window.addEventListener('pointermove', function(e){
-    if (!drag) return;
+    if (!drag){
+      // The cursor answers HOVER alone, never the press: over a picture
+      // the grab hand, over the selected picture's corner the resize
+      // arrows (v1.19.69). The text layer paints above the images, so a
+      // CSS :hover on the wrapper never fires - the point is aimed by
+      // hand here, the same way the click is. A drag keeps its own
+      // forced cursor; the moment the hand lifts, hover rules again.
+      var hover = imageHitAt(e.clientX, e.clientY);
+      if (hover){
+        var hrsz = hover.querySelector('.rsz');
+        var hrr = (hover === pickedImage && hrsz) ? hrsz.getBoundingClientRect() : null;
+        var onHandle = !!hrr && hrr.width > 0 && hrr.height > 0 &&
+                       e.clientX >= hrr.left && e.clientX <= hrr.right &&
+                       e.clientY >= hrr.top && e.clientY <= hrr.bottom;
+        document.body.style.cursor = onHandle ? 'nwse-resize' : 'grab';
+      } else if (document.body.style.cursor){
+        document.body.style.cursor = '';
+      }
+      return;
+    }
     var dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
     if (drag.mode === 'move'){
       var maxL = drag.pin.clientWidth - drag.el.offsetWidth;
@@ -545,7 +610,7 @@ namespace Avalanche.Controls
     }
   });
   window.addEventListener('pointerup', function(){
-    if (drag){ drag = null; document.body.style.cursor = ''; scheduleSave(); noteChange(); }
+    if (drag){ drag = null; document.body.style.cursor = ''; scheduleSave(); noteChange(); scheduleThumbs(); }
   });
 
   // -- undo: the document's own memory -----------------------------------------
@@ -660,6 +725,68 @@ namespace Avalanche.Controls
     }
     scheduleSave();
     scheduleState();
+    scheduleThumbs();
+  }
+
+  // -- thumbnails: the page draws itself for the sidebar's rail ---------------
+  // The rail's cards show each page the way the PDF list shows a page and
+  // the browser's gallery shows a view: as a picture. A page is rasterized
+  // by cloning it into an SVG foreignObject - the page's own CSS rides
+  // inside, the selection ring does not - drawing that onto a canvas, and
+  // exporting a PNG data URL. Images are data URLs already, so the canvas
+  // stays clean and the export is allowed; a page whose export refuses
+  // ships empty and the rail keeps its icon card for it. The whole set
+  // travels to the host debounced, tagged with the world it describes.
+  var thumbTimer = null;
+  function scheduleThumbs(){ if (thumbTimer) clearTimeout(thumbTimer); thumbTimer = setTimeout(postThumbs, 900); }
+  function pageCss(){
+    var css = '';
+    try {
+      for (var s = 0; s < document.styleSheets.length; s++){
+        var rules = document.styleSheets[s].cssRules;
+        for (var r = 0; r < rules.length; r++) css += rules[r].cssText + '\n';
+      }
+    } catch(e){}
+    return css;
+  }
+  var THUMB_CSS = null;
+  function postThumbs(){
+    thumbTimer = null;
+    var pages = Array.prototype.slice.call(docs.querySelectorAll('.page'));
+    var out = new Array(pages.length).fill('');
+    var left = pages.length;
+    if (!left){ post({ type:'thumbs', seq: worldSeq, thumbs: out }); return; }
+    var done = function(){ if (--left === 0) post({ type:'thumbs', seq: worldSeq, thumbs: out }); };
+    for (var i = 0; i < pages.length; i++) rasterPage(pages[i], i, out, done);
+  }
+  function rasterPage(page, idx, out, done){
+    try {
+      var clone = page.cloneNode(true);
+      var selImg = clone.querySelector('.fimg.sel');
+      if (selImg) selImg.classList.remove('sel');
+      clone.style.margin = '0';
+      clone.style.borderRadius = '0';
+      if (THUMB_CSS === null) THUMB_CSS = pageCss();
+      var wrap = '<div xmlns="http://www.w3.org/1999/xhtml" style="width:816px;height:1056px;overflow:hidden;">'
+               + '<style>' + THUMB_CSS + '</style>'
+               + new XMLSerializer().serializeToString(clone) + '</div>';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="816" height="1056">'
+              + '<foreignObject width="816" height="1056">' + wrap + '</foreignObject></svg>';
+      var img = new Image();
+      img.onload = function(){
+        try {
+          var c = document.createElement('canvas');
+          c.width = 168; c.height = 217;
+          var ctx = c.getContext('2d');
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          out[idx] = c.toDataURL('image/png');
+        } catch(e){ out[idx] = ''; }
+        done();
+      };
+      img.onerror = function(){ out[idx] = ''; done(); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    } catch(e){ out[idx] = ''; done(); }
   }
 
   // -- ribbon commands -------------------------------------------------------------
@@ -974,6 +1101,7 @@ namespace Avalanche.Controls
         if (undoTimer){ clearTimeout(undoTimer); undoTimer = null; }
         pushUndo();
         scheduleSave();
+        scheduleThumbs();
         post({ type:'title', seq: worldSeq, title: docTitle() });
         break;
       }

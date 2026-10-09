@@ -1380,6 +1380,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Editor_TabsEmpty">Hier erscheinen die Seiten, die Sie schreiben.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Die WebView2-Laufzeit wurde nicht gefunden. Installieren Sie die Evergreen Runtime von Microsoft und öffnen Sie den Texteditor erneut.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Unbenannt</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Neuer Tab</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Schriftgröße vergrößern</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Schriftgröße verkleinern</sys:String>
 </ResourceDictionary>

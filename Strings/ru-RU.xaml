@@ -1394,6 +1394,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Editor_TabsEmpty">Здесь появляются страницы, которые вы пишете.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Среда выполнения WebView2 не найдена. Установите Evergreen Runtime от Microsoft и снова откройте текстовый редактор.</sys:String>
     <sys:String x:Key="Str_Editor_Untitled">Без названия</sys:String>
+    <sys:String x:Key="Str_TT_EditorNewTab">Новая вкладка</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Увеличить размер шрифта</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Уменьшить размер шрифта</sys:String>
 </ResourceDictionary>

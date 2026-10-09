@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -34,11 +36,98 @@ namespace Avalanche.Controls
         private int _pageCount;
         private int _activePage = 1;
 
-        // ── Tabs (v1.19.68): one document per tab ─────────────────────────
-        private sealed class EditorTab
+        // ── Tabs (v1.19.69): the PDF editor's own model, not a lookalike ────
+        // The reader asked for the SAME tabs the PDF editor and browser wear
+        // and meant the machinery too: every visual decision below is a
+        // NOTIFYING FLAG the strip's template triggers read - never a property
+        // painted onto a code-built card. One session, one truth, and the
+        // ItemsControl repaints itself.
+        private sealed class EditorTab : INotifyPropertyChanged
         {
-            public string Title = "";
             public string Html = "";
+            private readonly string _untitled;
+
+            public EditorTab(string title, string html, string untitled)
+            {
+                _untitled = untitled;
+                _title = title;
+                Html = html;
+                _tabLabel = _title.Length > 0 ? _title : _untitled;
+                _tabTip = _tabLabel;
+            }
+
+            private string _title;
+            public string Title
+            {
+                get => _title;
+                set
+                {
+                    if (_title == value) return;
+                    _title = value;
+                    TabLabel = _title.Length > 0 ? _title : _untitled;
+                }
+            }
+
+            private string _tabLabel;
+            /// <summary>The strip's face: the document's name, or Untitled -
+            /// repainted with the title, never by a full rebuild.</summary>
+            public string TabLabel
+            {
+                get => _tabLabel;
+                private set { _tabLabel = value; TabTip = value; Fire(); }
+            }
+
+            private string _tabTip;
+            public string TabTip
+            {
+                get => _tabTip;
+                private set { _tabTip = value; Fire(); }
+            }
+
+            private bool _isActive;
+            /// <summary>The tab on screen - the accent ring's paint flag.</summary>
+            public bool IsActive
+            {
+                get => _isActive;
+                set { if (_isActive == value) return; _isActive = value; Fire(); }
+            }
+
+            private bool _isStripVisible = true;
+            /// <summary>Windowed into the strip (ApplyTabWindow); the rest live
+            /// in the chevron. Collapsed, not removed - UniformGrid does not
+            /// count a collapsed child, so the survivors fill the band.</summary>
+            public bool IsStripVisible
+            {
+                get => _isStripVisible;
+                set { if (_isStripVisible == value) return; _isStripVisible = value; Fire(); }
+            }
+
+            private bool _isFirst;
+            public bool IsFirst
+            {
+                get => _isFirst;
+                set { if (_isFirst == value) return; _isFirst = value; Fire(); }
+            }
+
+            private bool _isLast;
+            public bool IsLast
+            {
+                get => _isLast;
+                set { if (_isLast == value) return; _isLast = value; Fire(); }
+            }
+
+            private bool _useRetroTabChrome;
+            /// <summary>The classic theme's own tab chrome; modern themes
+            /// resolve every retro token to nothing.</summary>
+            public bool UseRetroTabChrome
+            {
+                get => _useRetroTabChrome;
+                set { if (_useRetroTabChrome == value) return; _useRetroTabChrome = value; Fire(); }
+            }
+
+            public event PropertyChangedEventHandler? PropertyChanged;
+            private void Fire([System.Runtime.CompilerServices.CallerMemberName] string? name = null)
+                => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name!));
         }
 
         private sealed class SessionData
@@ -53,11 +142,27 @@ namespace Avalanche.Controls
             public string? Html { get; set; }
         }
 
-        private readonly List<EditorTab> _tabs = [];
+        private readonly ObservableCollection<EditorTab> _tabs = [];
         private int _activeTab;
         private int? _pendingSwitchTo;   // a tab click waiting for the page's dump
         private int _worldSeq;           // which loaded world the page is showing
         private bool _syncingLists;      // a dial highlighting itself must not apply
+        private string _untitledLabel = "Untitled";
+        private string _lastAppliedSize = "12";   // what the size input reverts to
+
+        // ── The strip's windowing: as many tabs as fit at the floor width stay
+        // in the band, the rest live in the chevron - the reader's own cap,
+        // ported with the constants that make it honest.
+        private const double TabFloorWidth = 120;
+        private const double TabCeilingWidth = 240;
+        private const double TabChevronWidth = 26;
+        private const double TabNewWidth = 28;   // the + shares the band
+        private int _tabWindow;                  // leftmost tab currently in the strip
+        private bool _inTabResize;               // the SizeChanged reentrancy guard
+        private EditorTab? _tabDragSession;
+        private Point _tabDragStart;
+        private double _tabGrabDX;
+        private bool _tabDragging;
 
         /// <summary>The page count moved: the sidebar's page rail rebuilds.</summary>
         public event Action<int>? PageCountChanged;
@@ -74,6 +179,13 @@ namespace Avalanche.Controls
 
         /// <summary>The ribbon's PDF editor switch: the host swaps interfaces.</summary>
         public event Action? PdfRequested;
+
+        /// <summary>The page rasterized itself for the sidebar's rail: one PNG
+        /// data URL per page (empty where a page refused), the way the PDF list
+        /// wears one thumbnail per page and the browser's gallery wears one
+        /// captured preview per tab. null means the world changed and the
+        /// rail's cache is stale.</summary>
+        public event Action<string[]?>? ThumbsChanged;
 
         public int PageCount => _pageCount;
 
@@ -95,9 +207,10 @@ namespace Avalanche.Controls
             FontList.ItemsSource = FontChoices;
             SizeList.ItemsSource = SizeChoices;
             FontPopup.Closed += (_, _) => FontBtn.IsChecked = false;
-            SizePopup.Closed += (_, _) => SizeBtn.IsChecked = false;
+            _untitledLabel = Loc("Str_Editor_Untitled");
             LoadEditorTabs();
-            RebuildEditorTabs();
+            InitTabStrip();
+            RebuildTabStrip();
             // Ctrl+Z / Ctrl+Y must answer from the ribbon too: while a WPF
             // control held the keyboard the page never saw the keys, and the
             // reader read the silence as "nothing to undo" (v1.19.68). The
@@ -271,6 +384,7 @@ namespace Avalanche.Controls
                         remove = Loc("Str_Editor_Remove"),
                         linkUrl = Loc("Str_Editor_LinkUrl"),
                     });
+                    ThumbsChanged?.Invoke(null);   // the incoming world's pages have not been rasterized yet
                     var html = _pendingLoadHtml;
                     _pendingLoadHtml = null;
                     if (!string.IsNullOrEmpty(html))
@@ -329,9 +443,25 @@ namespace Avalanche.Controls
                             && _activeTab >= 0 && _activeTab < _tabs.Count
                             && !string.Equals(_tabs[_activeTab].Title, title, StringComparison.Ordinal))
                         {
+                            // The tab's own label repaints off the flag - the strip
+                            // never rebuilds for a name.
                             _tabs[_activeTab].Title = title;
-                            RebuildEditorTabs();
                         }
+                    }
+                    break;
+
+                case "thumbs":
+                    {
+                        // The page's rasterized pages, one data URL per page, tagged
+                        // with the world they describe: a stale answer never paints
+                        // the rail of a tab that took the floor meanwhile.
+                        int seq = root.TryGetProperty("seq", out var thseq) ? thseq.GetInt32() : _worldSeq;
+                        if (seq != _worldSeq) break;
+                        var thumbs = new List<string>();
+                        if (root.TryGetProperty("thumbs", out var arr) && arr.ValueKind == JsonValueKind.Array)
+                            foreach (var el in arr.EnumerateArray())
+                                thumbs.Add(el.ValueKind == JsonValueKind.String ? (el.GetString() ?? "") : "");
+                        ThumbsChanged?.Invoke(thumbs.ToArray());
                     }
                     break;
 
@@ -354,8 +484,12 @@ namespace Avalanche.Controls
                     && !string.Equals(FontText.Text, font, StringComparison.Ordinal))
                     FontText.Text = font;
                 if (r.TryGetProperty("size", out var sz) && sz.GetString() is { Length: > 0 } size
-                    && !string.Equals(SizeText.Text, size, StringComparison.Ordinal))
-                    SizeText.Text = size;
+                    && !string.Equals(SizeBox.Text, size, StringComparison.Ordinal)
+                    && !SizeBox.IsFocused)   // the reader is typing a value - the report never stomps it
+                {
+                    SizeBox.Text = size;
+                    _lastAppliedSize = size;
+                }
             }
             SetToggle(BoldBtn, Prop(r, "b"));
             SetToggle(ItalicBtn, Prop(r, "i"));
@@ -418,19 +552,48 @@ namespace Avalanche.Controls
             FontPopup.IsOpen = true;
         }
 
-        private void SizeBtn_Click(object sender, RoutedEventArgs e)
-        {
-            if (SizeBtn.IsChecked != true) return;
-            HighlightCurrentSize();
-            SizePopup.IsOpen = true;
-        }
-
-        // The caret button opens the same list - the chip and the caret are two
-        // separate doors to one dropdown, and neither applies a size (v1.19.68).
+        // The caret button is now the ONE door to the size list: the input
+        // beside it types, and nothing in it can open a dropdown (v1.19.69).
         private void SizeDropBtn_Click(object sender, RoutedEventArgs e)
         {
             HighlightCurrentSize();
             SizePopup.IsOpen = true;
+        }
+
+        private void SizeBox_GotFocus(object sender, RoutedEventArgs e) => SizeBox.SelectAll();
+
+        private void SizeBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                ApplyTypedSize();
+                RefocusEditor();
+            }
+            else if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                SizeBox.Text = _lastAppliedSize;
+                SizeBox.SelectAll();
+            }
+        }
+
+        // A value leaves the box only through Enter. Blur is not a commit -
+        // the reader clicked away, not typed a size - so the field reverts.
+        private void SizeBox_LostFocus(object sender, RoutedEventArgs e) => SizeBox.Text = _lastAppliedSize;
+
+        // The typed value lands exactly where a picked size would: on the
+        // selection, or - with the caret resting - on what gets typed next.
+        // Junk reverts; the field is never a gate.
+        private void ApplyTypedSize()
+        {
+            string raw = SizeBox.Text.Trim();
+            if (!int.TryParse(raw, out int pt)) { SizeBox.Text = _lastAppliedSize; return; }
+            pt = Math.Clamp(pt, 1, 999);
+            string norm = pt.ToString();
+            Post(new { cmd = "size", pt = norm });
+            _lastAppliedSize = norm;
+            SizeBox.Text = norm;
         }
 
         // One step up or down the same ladder the size list offers, applied to
@@ -456,7 +619,7 @@ namespace Avalanche.Controls
 
         private void HighlightCurrentSize()
         {
-            string cur = SizeText.Text;
+            string cur = SizeBox.Text;
             int idx = Array.FindIndex(SizeChoices, s => string.Equals(s, cur, StringComparison.Ordinal));
             // Same law as the font dial: the highlight is not an application.
             _syncingLists = true;
@@ -489,7 +652,8 @@ namespace Avalanche.Controls
             if (SizeList.SelectedItem is string size)
             {
                 Post(new { cmd = "size", pt = size });
-                SizeText.Text = size;
+                SizeBox.Text = size;
+                _lastAppliedSize = size;
                 SizePopup.IsOpen = false;
                 RefocusEditor();
                 Dispatcher.BeginInvoke(() => SizeList.SelectedIndex = -1,
@@ -573,7 +737,7 @@ namespace Avalanche.Controls
                     if (data?.Tabs is { Count: > 0 })
                     {
                         foreach (var t in data.Tabs)
-                            _tabs.Add(new EditorTab { Title = t.Title ?? "", Html = t.Html ?? "" });
+                            _tabs.Add(new EditorTab(t.Title ?? "", t.Html ?? "", _untitledLabel));
                         _activeTab = Math.Clamp(data.Active, 0, _tabs.Count - 1);
                         return;
                     }
@@ -581,14 +745,14 @@ namespace Avalanche.Controls
                 // The v1.19.67 single-document cache migrates as the first tab.
                 string old = Path.Combine(AppDataPaths.UserRoot, "texteditor", "session.html");
                 if (File.Exists(old))
-                    _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = File.ReadAllText(old) });
+                    _tabs.Add(new EditorTab("", File.ReadAllText(old), _untitledLabel));
             }
             catch
             {
                 // The session cache never takes the editor down.
             }
             if (_tabs.Count == 0)
-                _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = "" });
+                _tabs.Add(new EditorTab("", "", _untitledLabel));
         }
 
         private void SaveSession()
@@ -615,104 +779,158 @@ namespace Avalanche.Controls
             }
         }
 
-        private void RebuildEditorTabs()
+        /// <summary>Bind the strip to the editor's tabs. Called once, from the
+        /// constructor - the ItemsControl repaints itself off the collection</summary>
+        private void InitTabStrip() => EditorTabStrip.ItemsSource = _tabs;
+
+        /// <summary>
+        /// The one funnel. Every add, close, switch, drag-reorder and resize ends
+        /// here, and it is the only thing that writes the strip's state - the
+        /// reader's own RebuildTabStrip law, still called RebuildTabStrip.
+        /// </summary>
+        private void RebuildTabStrip()
         {
-            EditorTabsPanel.Children.Clear();
-            for (int i = 0; i < _tabs.Count; i++)
-                EditorTabsPanel.Children.Add(BuildEditorTabButton(i));
+            if (EditorTabStrip == null || EditorTabBand == null) return;
+
+            // Only show the band when two or more documents are open - a single
+            // open document never grows a bar, and the card keeps the eight
+            // points of air the reader asked for (v1.19.68). With the band up,
+            // the -1 tucks the card's top border into it so the active tab and
+            // the card read as one surface, the reader's own join.
+            bool show = _tabs.Count > 1;
+            EditorTabBand.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+            if (CardRow != null)
+                CardRow.Margin = new Thickness(0, show ? -1 : 8, 0, 0);
+
+            // Which tabs fit at this width, before anything reads an edge.
+            ApplyTabWindow();
+
+            // First and last VISIBLE, not first and last in the list - with tabs
+            // windowed out, the tab sitting on an edge is not the one at the end.
+            bool chevron = EditorTabOverflowBtn.Visibility == Visibility.Visible;
+            bool retro = show && Services.ThemeManager.Current == Services.Theme.SE98;
+            var strip = _tabs.Where(t => t.IsStripVisible).ToList();
+            foreach (var t in _tabs)
+            {
+                t.IsFirst = false;
+                t.IsLast = false;
+                t.UseRetroTabChrome = retro;
+            }
+            if (strip.Count > 0)
+            {
+                strip[0].IsFirst = true;
+                bool hostFills = EditorTabStripHost.Width >=
+                    Math.Max(0, EditorTabBand.ActualWidth - (chevron ? TabChevronWidth : 0) - TabNewWidth) - 0.5;
+                strip[^1].IsLast = !chevron && hostFills;
+            }
         }
 
-        private System.Windows.Controls.Button BuildEditorTabButton(int index)
+        /// <summary>Decide which tabs are in the strip at the band's current
+        /// width, and show or hide the chevron. The window is a contiguous RUN,
+        /// not a set, and it shifts the least it can to keep the active tab on
+        /// screen - the one invariant that matters.</summary>
+        private void ApplyTabWindow()
         {
-            var tab = _tabs[index];
-            bool active = index == _activeTab;
-
-            var title = new TextBlock
+            int n = _tabs.Count;
+            if (n == 0)
             {
-                Text = string.IsNullOrEmpty(tab.Title) ? Loc("Str_Editor_Untitled") : tab.Title,
-                FontSize = 11.5,
-                Margin = new Thickness(2, 0, 4, 0),
-                VerticalAlignment = VerticalAlignment.Center,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal,
-            };
-            title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-            title.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
+                foreach (var t in _tabs) t.IsStripVisible = false;
+                EditorTabOverflowBtn.Visibility = Visibility.Collapsed;
+                EditorTabStripHost.Width = 0;
+                return;
+            }
 
-            var close = new System.Windows.Controls.Button
+            // ActualWidth is 0 until the band has been measured once; falling back
+            // to the control's own width keeps the answer sane until it is.
+            double avail = EditorTabBand.ActualWidth > 0 ? EditorTabBand.ActualWidth : ActualWidth;
+
+            // Two passes, because the chevron's width changes the answer that
+            // decides whether there is a chevron. The + is always in the band.
+            int cap = (int)(avail / TabFloorWidth);
+            bool overflow = cap < n;
+            if (overflow)
             {
-                Content = "\uE711",
-                FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
-                FontSize = 8.5,
-                Width = 18,
-                Height = 18,
-                Padding = new Thickness(0),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-                Background = System.Windows.Media.Brushes.Transparent,
-                BorderThickness = new Thickness(0),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                FocusVisualStyle = null,
-            };
-            close.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "MutedTextBrush");
-            close.Click += (_, _) => CloseEditorTab(index);
+                cap = Math.Max(1, (int)((avail - TabChevronWidth - TabNewWidth) / TabFloorWidth));
+                if (cap >= n) overflow = false;
+            }
 
-            var host = new Grid();
-            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            host.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(title, 0);
-            Grid.SetColumn(close, 1);
-            host.Children.Add(title);
-            host.Children.Add(close);
+            EditorTabOverflowBtn.Visibility = overflow ? Visibility.Visible : Visibility.Collapsed;
 
-            var btn = new System.Windows.Controls.Button
+            double stripAvail = Math.Max(0, avail - (overflow ? TabChevronWidth : 0) - TabNewWidth);
+            int visibleCount = overflow ? cap : n;
+            EditorTabStripHost.Width = Math.Max(TabFloorWidth, Math.Min(stripAvail, visibleCount * TabCeilingWidth));
+
+            int start = 0;
+            if (overflow)
             {
-                Content = host,
-                Padding = new Thickness(10, 2, 4, 2),
-                Margin = new Thickness(0, 0, 6, 0),
-                MinWidth = 120,
-                MaxWidth = 230,
-                BorderThickness = new Thickness(1),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                FocusVisualStyle = null,
-            };
-            btn.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty,
-                active ? "PaneBrush" : "BgCanvas");
-            btn.SetResourceReference(System.Windows.Controls.Control.BorderBrushProperty,
-                active ? "PrimaryBrush" : "CardBorderBrush");
-            btn.SetResourceReference(System.Windows.Controls.Control.FontFamilyProperty, "UiFont");
-            btn.Template = EditorTabTemplate();
-            btn.Click += (_, _) => RequestEditorTabSwitch(index);
-            return btn;
+                start = Math.Max(0, Math.Min(_tabWindow, n - cap));
+                int active = (_activeTab >= 0 && _activeTab < n) ? _activeTab : -1;
+                if (active >= 0 && active < start) start = active;
+                else if (active >= 0 && active > start + cap - 1) start = active - cap + 1;
+                _tabWindow = start;
+            }
+            else
+            {
+                _tabWindow = 0;
+                cap = n;
+            }
+
+            for (int i = 0; i < n; i++)
+                _tabs[i].IsStripVisible = i >= start && i < start + cap;
         }
 
-        // The tab's face: one rounded card whose ring warms to the accent on
-        // hover - the page-card template the sidebar rail already wears.
-        private static System.Windows.Controls.ControlTemplate EditorTabTemplate()
+        /// <summary>The band was resized, so the strip may hold a different number
+        /// of tabs. The reentrancy guard is not an optimization: RebuildTabStrip
+        /// writes the card's margin and the band's visibility, either of which
+        /// can raise SizeChanged again from inside this call.</summary>
+        private void EditorTabBand_SizeChanged(object sender, SizeChangedEventArgs e) => TabBarResized();
+
+        private void TabBarResized()
         {
-            var face = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border), "face");
-            face.SetValue(System.Windows.Controls.Border.BackgroundProperty,
-                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.BackgroundProperty));
-            face.SetValue(System.Windows.Controls.Border.BorderBrushProperty,
-                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.BorderBrushProperty));
-            face.SetValue(System.Windows.Controls.Border.BorderThicknessProperty,
-                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.BorderThicknessProperty));
-            face.SetValue(System.Windows.Controls.Border.CornerRadiusProperty,
-                new System.Windows.DynamicResourceExtension("ControlCornerRadius"));
-            face.SetValue(System.Windows.Controls.Border.PaddingProperty,
-                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.PaddingProperty));
-            face.AppendChild(new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.ContentPresenter)));
-            var tpl = new System.Windows.Controls.ControlTemplate(typeof(System.Windows.Controls.Button))
+            if (_tabs.Count == 0 || _inTabResize) return;
+            _inTabResize = true;
+            try { RebuildTabStrip(); }
+            finally { _inTabResize = false; }
+        }
+
+        /// <summary>The chevron lists only tabs windowed out of the strip, the
+        /// active one bold - built on each open, because titles move.</summary>
+        private void EditorTabOverflow_Click(object sender, RoutedEventArgs e)
+        {
+            var menu = MakeEditorMenu();
+            foreach (var t in _tabs)
             {
-                VisualTree = face,
-            };
-            var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
-            hover.Setters.Add(new System.Windows.Setter(
-                System.Windows.Controls.Border.BorderBrushProperty,
-                new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
-            tpl.Triggers.Add(hover);
-            return tpl;
+                if (t.IsStripVisible) continue;
+                var tab = t;
+                // Doubled, because a lone underscore in a MenuItem header is an
+                // access-key marker - document names carry underscores all the time.
+                var item = MakeEditorMenuItem(tab.TabLabel.Replace("_", "__"),
+                    (_, _) => RequestEditorTabSwitch(_tabs.IndexOf(tab)));
+                if (tab.IsActive) item.FontWeight = FontWeights.Bold;
+                menu.Items.Add(item);
+            }
+            menu.PlacementTarget = EditorTabOverflowBtn;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.IsOpen = true;
+        }
+
+        // Code-created ContextMenus are popup roots and can miss the hosting
+        // window's implicit style - the reader's own MakeThemedMenu law.
+        private System.Windows.Controls.ContextMenu MakeEditorMenu()
+        {
+            var menu = new System.Windows.Controls.ContextMenu();
+            if (TryFindResource(typeof(System.Windows.Controls.ContextMenu)) is Style style)
+                menu.Style = style;
+            System.Windows.Media.TextOptions.SetTextFormattingMode(menu, System.Windows.Media.TextFormattingMode.Display);
+            System.Windows.Media.TextOptions.SetTextRenderingMode(menu, System.Windows.Media.TextRenderingMode.Grayscale);
+            return menu;
+        }
+
+        private System.Windows.Controls.MenuItem MakeEditorMenuItem(string header, RoutedEventHandler onClick)
+        {
+            var item = new System.Windows.Controls.MenuItem { Header = header };
+            item.Click += onClick;
+            return item;
         }
 
         /// <summary>The reader clicked a tab: the live world is asked for one
@@ -730,7 +948,8 @@ namespace Avalanche.Controls
         {
             if (to < 0 || to >= _tabs.Count) return;
             _activeTab = to;
-            RebuildEditorTabs();
+            RebuildTabStrip();
+            ThumbsChanged?.Invoke(null);   // the incoming world's pages have not been rasterized yet
             if (_pageReady)
             {
                 _worldSeq++;
@@ -746,20 +965,22 @@ namespace Avalanche.Controls
         /// New button while the editor leads (v1.19.68).</summary>
         public void OpenNewTab()
         {
-            _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = "" });
+            _tabs.Add(new EditorTab("", "", _untitledLabel));
+            RebuildTabStrip();
             int to = _tabs.Count - 1;
             if (!_pageReady) { ActivateEditorTabNow(to); SaveSession(); return; }
             _pendingSwitchTo = to;
             Post(new { cmd = "dump" });   // the current world saves first; the switch completes on its answer
         }
 
-        private void CloseEditorTab(int index)
+        private void CloseTab(EditorTab s)
         {
-            if (index < 0 || index >= _tabs.Count) return;
+            int index = _tabs.IndexOf(s);
+            if (index < 0) return;
             bool closingActive = index == _activeTab;
             _tabs.RemoveAt(index);
             if (_tabs.Count == 0)
-                _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = "" });
+                _tabs.Add(new EditorTab("", "", _untitledLabel));
             if (closingActive)
             {
                 _activeTab = -1;                      // the outgoing world's save has no home - drop it
@@ -777,14 +998,222 @@ namespace Avalanche.Controls
             else
             {
                 if (index < _activeTab) _activeTab--;
-                RebuildEditorTabs();
+                RebuildTabStrip();
             }
             SaveSession();
+        }
+
+        private void CloseOtherTabs(EditorTab keep)
+        {
+            // Backward, so a close never shifts the index of a tab still waiting.
+            for (int i = _tabs.Count - 1; i >= 0; i--)
+                if (!ReferenceEquals(_tabs[i], keep)) CloseTab(_tabs[i]);
+        }
+
+        // ── Tab gestures: the reader's own laws ──────────────────────────────
+        // Left-click switches on mouse-UP, so a press can begin a drag without
+        // switching first; the middle button closes; the right button names the
+        // two closes every document strip offers.
+
+        private void EditorTab_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.DataContext is not EditorTab s) return;
+            if (e.ChangedButton == MouseButton.Middle) { e.Handled = true; CloseTab(s); }
+        }
+
+        private void EditorTab_RightClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.DataContext is not EditorTab s) return;
+            var menu = MakeEditorMenu();
+            menu.Items.Add(MakeEditorMenuItem(Loc("Str_Ctx_CloseTab"), (_, _) => CloseTab(s)));
+            var others = MakeEditorMenuItem(Loc("Str_Ctx_CloseOthers"), (_, _) => CloseOtherTabs(s));
+            others.IsEnabled = _tabs.Count > 1;
+            menu.Items.Add(others);
+            menu.PlacementTarget = fe;
+            menu.IsOpen = true;
+            e.Handled = true;
+        }
+
+        private void EditorTabClose_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.Button b && b.Tag is EditorTab s) CloseTab(s);
+        }
+
+        private void EditorTabNewBtn_Click(object sender, RoutedEventArgs e) => OpenNewTab();
+
+        // ── Drag: reorder within the strip ───────────────────────────────────
+        // Arm on press; past the threshold the grabbed tab glues to the cursor
+        // and its neighbors glide aside as it crosses their layout-slot
+        // midpoints. A plain click still switches on release.
+
+        private FrameworkElement? TabContainer(EditorTab s)
+            => EditorTabStrip?.ItemContainerGenerator.ContainerFromItem(s) as FrameworkElement;
+
+        /// <summary>Did the press land on the close chip rather than the tab?</summary>
+        private static bool InsideButton(object src)
+        {
+            var d = src as System.Windows.DependencyObject;
+            while (d != null && d is not System.Windows.Controls.Button && d is not Window)
+                d = System.Windows.Media.VisualTreeHelper.GetParent(d);
+            return d is System.Windows.Controls.Button;
+        }
+
+        /// <summary>Midpoint X of a tab's LAYOUT slot (ignores any in-flight slide).</summary>
+        private static double LayoutMidX(FrameworkElement fe)
+        {
+            var slot = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(fe);
+            return slot.X + slot.Width / 2;
+        }
+
+        private static void SetTabOffsetX(FrameworkElement tab, double x)
+        {
+            if (tab.RenderTransform is not System.Windows.Media.TranslateTransform tt)
+            {
+                tt = new System.Windows.Media.TranslateTransform();
+                tab.RenderTransform = tt;
+            }
+            tt.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null);
+            tt.X = x;
+        }
+
+        private static void AnimateTabSlide(FrameworkElement? tab, double fromX)
+        {
+            if (tab == null) return;
+            if (tab.RenderTransform is not System.Windows.Media.TranslateTransform tt)
+            {
+                tt = new System.Windows.Media.TranslateTransform();
+                tab.RenderTransform = tt;
+            }
+            tt.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, null);
+            var anim = new System.Windows.Media.Animation.DoubleAnimation(fromX, 0,
+                new Duration(TimeSpan.FromMilliseconds(140)))
+            {
+                EasingFunction = new System.Windows.Media.Animation.CubicEase
+                    { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut },
+            };
+            tt.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, anim);
+        }
+
+        private void CleanupTabTransforms()
+        {
+            foreach (var s in _tabs)
+                if (TabContainer(s) is { } c)
+                {
+                    c.RenderTransform = null;
+                    Panel.SetZIndex(c, 0);
+                }
+        }
+
+        private void EditorTab_DragDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement bd || bd.DataContext is not EditorTab s) return;
+            if (InsideButton(e.OriginalSource)) return;   // the close chip handles its own click
+            _tabDragSession = s;
+            _tabDragStart = e.GetPosition(EditorTabStrip);
+            _tabGrabDX = e.GetPosition(bd).X;
+            _tabDragging = false;
+            bd.CaptureMouse();
+            // Own the press entirely so the capture, not the caption hit-test,
+            // drives the drag - which is what makes it Y-independent.
+            e.Handled = true;
+        }
+
+        private void EditorTab_DragMove(object sender, MouseEventArgs e)
+        {
+            if (sender is not FrameworkElement bd || !bd.IsMouseCaptured || _tabDragSession is null) return;
+            var cont = TabContainer(_tabDragSession);
+            if (cont == null) return;
+
+            double x = e.GetPosition(EditorTabStrip).X;
+            if (!_tabDragging && Math.Abs(x - _tabDragStart.X) < SystemParameters.MinimumHorizontalDragDistance) return;
+            _tabDragging = true;
+            Panel.SetZIndex(cont, 3);   // the grabbed tab rides above its neighbors
+
+            int cur = _tabs.IndexOf(_tabDragSession);
+            if (cur < 0) return;
+            double slide = cont.ActualWidth;
+            double rawLeft = x - _tabGrabDX;
+            double leftEdge = rawLeft;
+            double rightEdge = rawLeft + cont.ActualWidth;
+            double maxLeft = Math.Max(0, EditorTabStrip.ActualWidth - slide);
+            double renderLeft = Math.Min(Math.Max(0, rawLeft), maxLeft);
+
+            // Swap when the ADVANCING edge crosses a neighbor's layout-slot
+            // midpoint - edge against midpoint gives natural hysteresis.
+            bool swapped = false;
+            if (cur + 1 < _tabs.Count && TabContainer(_tabs[cur + 1]) is { } right && rightEdge > LayoutMidX(right))
+            {
+                _tabs.Move(cur + 1, cur);
+                AnimateTabSlide(TabContainer(_tabs[cur]), slide);    // it jumped left; glide it in
+                swapped = true;
+            }
+            else if (cur - 1 >= 0 && TabContainer(_tabs[cur - 1]) is { } left && leftEdge < LayoutMidX(left))
+            {
+                _tabs.Move(cur - 1, cur);
+                AnimateTabSlide(TabContainer(_tabs[cur]), -slide);   // it jumped right; glide it in
+                swapped = true;
+            }
+
+            if (swapped) EditorTabStrip.UpdateLayout();
+            var dragged = TabContainer(_tabDragSession);
+            if (dragged == null) return;
+            var slot = System.Windows.Controls.Primitives.LayoutInformation.GetLayoutSlot(dragged);
+            SetTabOffsetX(dragged, renderLeft - slot.X);
+        }
+
+        private void EditorTab_DragUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement bd || !bd.IsMouseCaptured) return;
+            bd.ReleaseMouseCapture();
+            bool wasDragging = _tabDragging;
+            var s = _tabDragSession;
+            _tabDragSession = null;
+            _tabDragging = false;
+
+            if (!wasDragging)
+            {
+                if (s != null) RequestEditorTabSwitch(_tabs.IndexOf(s));
+                return;
+            }
+
+            RebuildTabStrip();   // a reorder may have moved the active tab on or off an edge
+            SaveSession();
+
+            // Settle the grabbed tab from its dragged offset into its final slot.
+            var cont = s != null ? TabContainer(s) : null;
+            if (cont?.RenderTransform is System.Windows.Media.TranslateTransform tt && Math.Abs(tt.X) > 0.5)
+            {
+                var settle = new System.Windows.Media.Animation.DoubleAnimation(0,
+                    new Duration(TimeSpan.FromMilliseconds(120)))
+                {
+                    EasingFunction = new System.Windows.Media.Animation.CubicEase
+                        { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut },
+                };
+                settle.Completed += (_, _) => CleanupTabTransforms();
+                tt.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, settle);
+            }
+            else CleanupTabTransforms();
         }
 
         // ── Host-facing surface ──────────────────────────────────────────────────
 
         /// <summary>The sidebar asked for a page: the editor scrolls to it.</summary>
         public void ScrollToPage(int pageNumber) => Post(new { cmd = "scroll", n = pageNumber });
+
+        /// <summary>
+        /// Ctrl+Z answered from the host. The window's OnPreviewKeyDown tunnels
+        /// FIRST - before this control's own PreviewKeyDown and before the page's
+        /// own keydown ever sees the key - and while the editor leads it used to
+        /// hand the chord to the PDF viewer's annotation undo, whose empty stack
+        /// answered "Nothing to undo" (v1.19.69). The window routes the chord
+        /// here now, and it rides the bridge like every ribbon command. The
+        /// accelerator is consumed by the route, so the page's own keydown -
+        /// which also answers Ctrl+Z when the page itself sees it first - never
+        /// fires twice for one press.
+        /// </summary>
+        public void UndoExt() { Post(new { cmd = "undo" }); RefocusEditor(); }
+
+        /// <summary>Ctrl+Shift+Z / Ctrl+Y, the same route, the same single fire.</summary>
+        public void RedoExt() { Post(new { cmd = "redo" }); RefocusEditor(); }
     }
 }

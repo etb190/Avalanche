@@ -2614,6 +2614,8 @@ namespace Avalanche
             else SwitchSidebarToPagesTab();
         }
 
+        private string[]? _editorThumbs;   // one PNG data URL per editor page
+
         private void WireEditorPane()
         {
             TextPane.PageCountChanged += _ => RebuildEditorPageCards();
@@ -2621,6 +2623,17 @@ namespace Avalanche
             TextPane.LinkOpenRequested += OpenEditorLink;
             TextPane.BrowserRequested += () => { HideEditorPane(); ShowWebPane(); };
             TextPane.PdfRequested += () => HideEditorPane();
+            // The page's own raster of each document page (v1.19.69): the rail's
+            // cards wear it the way the PDF list wears its page thumbnails and
+            // the browser's gallery wears its captured previews. A null set means
+            // the world changed - the cache steps aside until the new world's
+            // pictures arrive.
+            TextPane.ThumbsChanged += thumbs =>
+            {
+                _editorThumbs = thumbs;
+                if (EditorPagesPanel.Visibility == Visibility.Visible)
+                    RebuildEditorPageCards();
+            };
         }
 
         /// <summary>The editor's page count moved: the rail mirrors it - one card
@@ -2635,25 +2648,55 @@ namespace Avalanche
             EditorPagesHost.Visibility = n == 0 ? Visibility.Visible : Visibility.Collapsed;
             for (int i = 1; i <= n; i++)
             {
-                var card = BuildEditorPageCard(i);
+                string? thumb = (_editorThumbs != null && i - 1 < _editorThumbs.Length)
+                    ? _editorThumbs[i - 1] : null;
+                var card = BuildEditorPageCard(i, thumb);
                 _editorPageCards.Add(card);
                 EditorPagesList.Children.Add(card);
             }
             HighlightEditorPage(_editorActivePage);
         }
 
-        private System.Windows.Controls.Button BuildEditorPageCard(int index)
+        private System.Windows.Controls.Button BuildEditorPageCard(int index, string? thumb)
         {
             var stack = new System.Windows.Controls.StackPanel();
-            var icon = new System.Windows.Controls.TextBlock
+            var preview = string.IsNullOrEmpty(thumb) ? null : EditorThumbImage(thumb);
+            if (preview is not null)
             {
-                Text = "\uE8A5",
-                FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
-                FontSize = 20,
-                Margin = new Thickness(0, 4, 0, 2),
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-            icon.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "MutedTextBrush");
+                // The page's own face (v1.19.69): the raster the editor posted,
+                // on white like every page, fitted whole the way the PDF list
+                // fits a page thumbnail.
+                var img = new System.Windows.Controls.Image
+                {
+                    Source = preview,
+                    Stretch = System.Windows.Media.Stretch.Uniform,
+                    Margin = new Thickness(2),
+                };
+                System.Windows.Media.RenderOptions.SetBitmapScalingMode(img,
+                    System.Windows.Media.BitmapScalingMode.HighQuality);
+                var holder = new System.Windows.Controls.Border
+                {
+                    Background = System.Windows.Media.Brushes.White,
+                    CornerRadius = new CornerRadius(2),
+                    ClipToBounds = true,
+                    Height = 84,
+                    Child = img,
+                };
+                stack.Children.Add(holder);
+            }
+            else
+            {
+                var icon = new System.Windows.Controls.TextBlock
+                {
+                    Text = "\uE8A5",
+                    FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+                    FontSize = 20,
+                    Margin = new Thickness(0, 4, 0, 2),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                };
+                icon.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "MutedTextBrush");
+                stack.Children.Add(icon);
+            }
             var label = new System.Windows.Controls.TextBlock
             {
                 FontSize = 11,
@@ -2662,7 +2705,6 @@ namespace Avalanche
             };
             label.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextBrush");
             label.SetResourceReference(System.Windows.Controls.TextBlock.FontFamilyProperty, "UiFont");
-            stack.Children.Add(icon);
             stack.Children.Add(label);
 
             var card = new System.Windows.Controls.Button
@@ -2677,6 +2719,28 @@ namespace Avalanche
             card.Template = EditorCardTemplate();
             card.Click += (_, _) => TextPane.ScrollToPage(index);
             return card;
+        }
+
+        /// <summary>Decode one of the editor's PNG data URLs. A thumb that will
+        /// not decode keeps the card's icon face - the rail never blocks on it.</summary>
+        private static System.Windows.Media.ImageSource? EditorThumbImage(string? dataUrl)
+        {
+            const string mark = "base64,";
+            int at = dataUrl?.IndexOf(mark, System.StringComparison.Ordinal) ?? -1;
+            if (at < 0) return null;
+            try
+            {
+                byte[] bytes = System.Convert.FromBase64String(dataUrl![(at + mark.Length)..]);
+                var img = new System.Windows.Media.Imaging.BitmapImage();
+                using var ms = new System.IO.MemoryStream(bytes);
+                img.BeginInit();
+                img.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                img.StreamSource = ms;
+                img.EndInit();
+                img.Freeze();
+                return img;
+            }
+            catch { return null; }
         }
 
         /// <summary>The card's face: the web-tab card's anatomy in miniature -
@@ -2703,6 +2767,15 @@ namespace Avalanche
                 System.Windows.Controls.Border.BorderBrushProperty,
                 new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
             tpl.Triggers.Add(hover);
+            // The active page's ring, read off the card's own Tag - the same
+            // accent the browser's gallery wears for the view on screen.
+            var activeRing = new Trigger { Property = System.Windows.Controls.Control.TagProperty, Value = "Active" };
+            activeRing.Setters.Add(new System.Windows.Setter(
+                System.Windows.Controls.Border.BorderBrushProperty,
+                new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
+            activeRing.Setters.Add(new System.Windows.Setter(
+                System.Windows.Controls.Border.BorderThicknessProperty, new Thickness(1.5)) { TargetName = "face" });
+            tpl.Triggers.Add(activeRing);
             return tpl;
         }
 
@@ -2711,6 +2784,10 @@ namespace Avalanche
             _editorActivePage = page;
             for (int i = 0; i < _editorPageCards.Count; i++)
             {
+                // The active card wears the accent ring, the way the browser's
+                // gallery marks the view on screen (v1.19.69) - the template
+                // reads the tag; the label keeps its bold face.
+                _editorPageCards[i].Tag = (i + 1 == page) ? "Active" : null;
                 if (_editorPageCards[i].Content is System.Windows.Controls.StackPanel sp
                     && sp.Children.Count > 1
                     && sp.Children[1] is System.Windows.Controls.TextBlock tb)
