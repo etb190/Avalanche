@@ -256,10 +256,15 @@
              where the reader asked for them: first browser, then PDF editor,
              then the writing tools. -->
         <!-- MinHeight, not Height (v1.19.73): the ribbon's controls doubled
-             and the band grows to hold them - the tab band's height stays the
-             floor it has always been. -->
+             and the band grows to hold them. v1.19.74: the floor is a literal
+             28, no DynamicResource - TabBandHeight only exists in the 98 theme,
+             and on every other floor the lookup comes back empty and WPF hands
+             the property NaN. Height reads NaN as Auto and shrugs; MinHeight
+             throws, and the app died at startup reading exactly this line.
+             The doubled controls set the real height; 28 is only the floor
+             the band never dips under, whatever the theme. -->
         <Border Grid.Row="0" Background="{DynamicResource BackgroundBrush}"
-                MinHeight="{DynamicResource TabBandHeight}">
+                MinHeight="28">
             <Grid>
                 <!-- DynamicResource, not Static: GrainBrushShared lives at MainWindow
                      scope by law (App scope freezes an ImageBrush solid - see
