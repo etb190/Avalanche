@@ -533,6 +533,18 @@ namespace Avalanche.Controls
                         if (url.Length > 0) LinkOpenRequested?.Invoke(url);
                     }
                     break;
+
+                case "ai_timer_grammar_scan":
+                    RunAiGrammarScan(root);
+                    break;
+
+                case "ai_fix_selection":
+                    RunAiSelection(root, "fix");
+                    break;
+
+                case "ai_rewrite":
+                    RunAiSelection(root, "rewrite");
+                    break;
             }
         }
 
@@ -1486,6 +1498,283 @@ namespace Avalanche.Controls
                 tt.BeginAnimation(System.Windows.Media.TranslateTransform.XProperty, settle);
             }
             else CleanupTabTransforms();
+        }
+
+        // ── The editor's second brain (v1.19.77) ─────────────────────────────
+        // Two doors, both opened by the page, both answered through the
+        // sheet's own dial (AiSurface.TextEditor). The quiet door: five
+        // seconds after the reader stops typing, the page sends ONE batched
+        // scan of the whole document - never a keystroke, an untouched
+        // document never asks twice - and the answer dresses every stumble
+        // in wavy red at once. The loud door: a selection longer than three
+        // characters raises the bubble, and a button click is the only thing
+        // that ever bills a rewrite. Both answers ride back tagged with the
+        // world they were asked in; a stale answer never dresses the wrong
+        // tab, and a failed scan answers empty rather than loud.
+
+        private Features.AI.AiSettingsViewModel? _aiSettings;
+
+        /// <summary>The text editor's own dial, resolved fresh every call:
+        /// the settings panel stays the single source of the base config,
+        /// the surface dial owns only who answers - the same law every other
+        /// surface lives by.</summary>
+        private Features.AI.AiProviderConfig AiConfig()
+        {
+            _aiSettings ??= new Features.AI.AiSettingsViewModel();
+            _aiSettings.Load();
+            return Features.AI.AiSurfaceModels.Configure(
+                _aiSettings.ToGenConfig(), Features.AI.AiSurface.TextEditor);
+        }
+
+        private void RunAiGrammarScan(JsonElement root)
+        {
+            int seq = root.TryGetProperty("seq", out var sq) ? sq.GetInt32() : -1;
+            string text = root.TryGetProperty("text", out var tx)
+                ? tx.GetString() ?? string.Empty : string.Empty;
+            var ignored = new List<string>();
+            if (root.TryGetProperty("ignored", out var ig) && ig.ValueKind == JsonValueKind.Array)
+                foreach (var el in ig.EnumerateArray())
+                {
+                    string w = el.ValueKind == JsonValueKind.String
+                        ? el.GetString() ?? string.Empty : string.Empty;
+                    if (w.Length > 0) ignored.Add(w);
+                }
+            _ = RunAiGrammarScanAsync(seq, text, ignored);
+        }
+
+        private async System.Threading.Tasks.Task RunAiGrammarScanAsync(
+            int seq, string text, List<string> ignored)
+        {
+            try
+            {
+                // A document past the cap scans its opening stretch: one
+                // batched request stays one batched request, whatever the
+                // document grew to.
+                if (text.Length > 24000) text = text[..24000];
+                string ignoredList = ignored.Count == 0
+                    ? "(none)"
+                    : string.Join(", ", ignored.Take(200));
+                string system =
+                    "You are an expert copyeditor and proofreader.\n" +
+                    "Scan the provided text and identify all misspelled words, poor word choices, and grammatical mistakes.\n" +
+                    "DO NOT flag words in this ignored list: [" + ignoredList + "].\n" +
+                    "\n" +
+                    "Output ONLY valid JSON with this exact schema (no markdown, no conversational text):\n" +
+                    "{\n" +
+                    "  \"errors\": [\n" +
+                    "    {\n" +
+                    "      \"word\": \"exact misspelled/poor word in text\",\n" +
+                    "      \"suggestion\": \"corrected replacement\",\n" +
+                    "      \"reason\": \"Spelling|Grammar|Word Choice\"\n" +
+                    "    }\n" +
+                    "  ]\n" +
+                    "}\n" +
+                    "If there are no errors, return: {\"errors\": []}";
+                var config = AiConfig();
+                var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
+                    .GetChatCompletionAsync(
+                        system,
+                        new List<Features.AI.ChatMessage>
+                        {
+                            new Features.AI.ChatMessage
+                            {
+                                MessageRole = Features.AI.ChatMessage.Role.User,
+                                Content = text
+                            }
+                        },
+                        new List<Features.AI.DocumentChunk>(),
+                        "",
+                        config,
+                        System.Threading.CancellationToken.None);
+                var errors = ParseAiErrors(answer.Answer);
+                Post(new
+                {
+                    cmd = "aiScanResult",
+                    seq,
+                    errors = errors.Select(e => new
+                    {
+                        word = e.Word,
+                        suggestion = e.Suggestion,
+                        reason = e.Reason
+                    }).ToList()
+                });
+            }
+            catch
+            {
+                // A scan that dies answers empty: the sheet keeps its prose
+                // undressed, and the next idle pause asks again.
+                Post(new { cmd = "aiScanResult", seq, errors = Array.Empty<object>() });
+            }
+        }
+
+        private sealed class AiGrammarError
+        {
+            public string Word { get; set; } = string.Empty;
+            public string Suggestion { get; set; } = string.Empty;
+            public string Reason { get; set; } = string.Empty;
+        }
+
+        /// <summary>The model's answer wears markdown fences some days and
+        /// commentary on others; the JSON is wherever its outermost braces
+        /// are. Words without a suggestion, or longer than a phrase, never
+        /// dress the page.</summary>
+        private static List<AiGrammarError> ParseAiErrors(string raw)
+        {
+            var errors = new List<AiGrammarError>();
+            if (string.IsNullOrWhiteSpace(raw)) return errors;
+            string s = raw.Trim();
+            int a = s.IndexOf('{');
+            int b = s.LastIndexOf('}');
+            if (a < 0 || b <= a) return errors;
+            try
+            {
+                using var doc = JsonDocument.Parse(s[a..(b + 1)]);
+                if (doc.RootElement.TryGetProperty("errors", out var arr)
+                    && arr.ValueKind == JsonValueKind.Array)
+                    foreach (var el in arr.EnumerateArray())
+                    {
+                        string word = el.TryGetProperty("word", out var wv)
+                            ? wv.GetString() ?? string.Empty : string.Empty;
+                        string sug = el.TryGetProperty("suggestion", out var sv)
+                            ? sv.GetString() ?? string.Empty : string.Empty;
+                        string reason = el.TryGetProperty("reason", out var rv)
+                            ? rv.GetString() ?? string.Empty : string.Empty;
+                        if (word.Length > 0 && sug.Length > 0 && word.Length < 80)
+                            errors.Add(new AiGrammarError
+                            {
+                                Word = word,
+                                Suggestion = sug,
+                                Reason = reason
+                            });
+                    }
+            }
+            catch
+            {
+                // an answer that will not parse dresses nothing
+            }
+            return errors;
+        }
+
+        private void RunAiSelection(JsonElement root, string kind)
+        {
+            int seq = root.TryGetProperty("seq", out var sq) ? sq.GetInt32() : -1;
+            string text = root.TryGetProperty("text", out var tx)
+                ? tx.GetString() ?? string.Empty : string.Empty;
+            string style = root.TryGetProperty("style", out var st)
+                ? st.GetString() ?? string.Empty : string.Empty;
+            _ = RunAiSelectionAsync(seq, text, style, kind);
+        }
+
+        private static string AiRewriteSystem(string style) => style switch
+        {
+            "professional" =>
+                "You are a professional rewriter. Rewrite the provided text crisp, " +
+                "direct and active-voiced, workplace-appropriate, clear and polite. " +
+                "Keep the meaning exactly. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+            "simple" =>
+                "You are a plain-language rewriter. Rewrite the provided text in plain " +
+                "English at an 8th-grade reading level (Flesch-Kincaid 60 or higher): " +
+                "short words, direct active sentences, no jargon. Keep the meaning " +
+                "exactly - do not add or drop facts. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+            "academic" =>
+                "You are an academic rewriter. Rewrite the provided text with disciplined, " +
+                "scholarly vocabulary and formal analytical framing. Keep the meaning " +
+                "exactly. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+            "jargon" =>
+                "You are a jargon rewriter. Rewrite the provided text as deliberately " +
+                "dense, bureaucratic prose - heavy nominalizations, passive voice, " +
+                "corporate and academic buzzwords - so that it becomes harder to read " +
+                "and understand. Do not change the underlying claims. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+            "lengthen" =>
+                "You are a lengthening rewriter. Elaborate and expand the phrasing of " +
+                "the provided text purely to make it longer - richer transitions, " +
+                "fuller sentences, more restatement - WITHOUT adding any new facts, " +
+                "substance, examples or ideas that are not already there. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+            "shorten" =>
+                "You are a condensing rewriter. Rewrite the provided text ruthlessly " +
+                "condensed to its core meaning - eliminate every trace of fluff, filler " +
+                "and repetition. Keep every surviving claim accurate. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+            _ =>
+                "You are a humanizing rewriter. Rewrite the provided text so it reads as " +
+                "naturally, quietly human prose. Vary sentence length hard - mix short " +
+                "three-word punches with longer, unhurried sentences (high burstiness). " +
+                "These words and phrases are BANNED: delve, testament, tapestry, crucial, " +
+                "pivotal, foster, intertwined, multifaceted, underscores, moreover, beacon, " +
+                "furthermore, in conclusion. Break up three-part parallelisms. Prefer " +
+                "natural idioms and everyday contractions (it's, don't, can't). Keep the " +
+                "meaning exactly. " +
+                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
+        };
+
+        private async System.Threading.Tasks.Task RunAiSelectionAsync(
+            int seq, string text, string style, string kind)
+        {
+            try
+            {
+                if (text.Length > 16000) text = text[..16000];
+                string system = kind == "rewrite"
+                    ? AiRewriteSystem(string.IsNullOrWhiteSpace(style) ? "humanize" : style)
+                    : "You are an expert copyeditor. Fix every grammar, spelling and " +
+                      "punctuation mistake in the provided text and polish multi-sentence " +
+                      "structure and flow. Preserve the author's meaning and voice. " +
+                      "If the text is already correct, return it unchanged. " +
+                      "Return ONLY the corrected text - no quotes, no explanations, no markdown fences.";
+                var config = AiConfig();
+                var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
+                    .GetChatCompletionAsync(
+                        system,
+                        new List<Features.AI.ChatMessage>
+                        {
+                            new Features.AI.ChatMessage
+                            {
+                                MessageRole = Features.AI.ChatMessage.Role.User,
+                                Content = text
+                            }
+                        },
+                        new List<Features.AI.DocumentChunk>(),
+                        "",
+                        config,
+                        System.Threading.CancellationToken.None);
+                string outText = (answer.Answer ?? string.Empty).Trim();
+                // Some days the model wraps anyway; the fences come off.
+                if (outText.StartsWith("```", StringComparison.Ordinal))
+                {
+                    int firstLine = outText.IndexOf('\n');
+                    if (firstLine >= 0) outText = outText[(firstLine + 1)..].Trim();
+                    if (outText.EndsWith("```", StringComparison.Ordinal))
+                        outText = outText[..^3].Trim();
+                }
+                if (kind == "fix" && string.Equals(outText, text.Trim(), StringComparison.Ordinal))
+                {
+                    // Nothing came back but the same words: the grammar was
+                    // fine, and the page whispers so instead of changing.
+                    Post(new { cmd = "aiResult", seq, kind, ok = true,
+                               text = (string?)null, message = "Grammar looks good!" });
+                }
+                else if (outText.Length == 0)
+                {
+                    Post(new { cmd = "aiResult", seq, kind, ok = false,
+                               text = (string?)null,
+                               message = "The model came back empty - nothing changed." });
+                }
+                else
+                {
+                    Post(new { cmd = "aiResult", seq, kind, ok = true,
+                               text = outText, message = (string?)null });
+                }
+            }
+            catch (Exception ex)
+            {
+                Post(new { cmd = "aiResult", seq, kind, ok = false,
+                           text = (string?)null,
+                           message = "AI request failed: " + ex.Message });
+            }
         }
 
         // ── Host-facing surface ──────────────────────────────────────────────────

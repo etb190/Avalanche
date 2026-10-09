@@ -94,7 +94,56 @@ namespace Avalanche.Controls
   /* The quote wears italic and bold (v1.19.76): the left bar alone read as
      an indent, not a voice. Declared after the theme's own blockquote rule,
      so the later declaration wins; the thumbnail's raster repeats it below. */
-  .ql-editor blockquote { font-style: italic; font-weight: bold; }
+  /* The quote wears italic and bold (v1.19.76) and, since v1.19.77, the
+     reader's own quotation marks: the left bar names the block, the two
+     Georgia faces quote it. Declared after the theme's own blockquote rule,
+     so the later declaration wins; the thumbnail's raster repeats it below. */
+  .ql-editor blockquote { border-left: 3px solid #7aa7d8; padding-left: 14px;
+               margin: 12px 0; font-style: italic; font-weight: bold; color: #444;
+               position: relative; }
+  .ql-editor blockquote::before { content: "\201C"; font-family: Georgia, serif;
+               font-size: 1.5em; line-height: 0.1em; vertical-align: -0.2em;
+               margin-right: 4px; color: #7aa7d8; }
+  .ql-editor blockquote::after { content: "\201D"; font-family: Georgia, serif;
+               font-size: 1.5em; line-height: 0.1em; vertical-align: -0.2em;
+               margin-left: 4px; color: #7aa7d8; }
+  /* The proofreader's marks and chrome (v1.19.77): a flagged word wears the
+     wavy red the eye already knows, the card above it offers the fix or the
+     forget, the bubble rides a selection longer than three characters, and
+     the note whispers what the document did not need. Every piece of this
+     chrome lives on the body, outside the contenteditable, so the document
+     model and the saved world see only what the reader wrote. */
+  .ql-editor span.ai-err { text-decoration: underline wavy #e53e3e;
+               text-decoration-thickness: 2px; text-underline-offset: 3px;
+               background: rgba(229,62,62,0.08); cursor: pointer;
+               transition: background 0.15s ease; }
+  .ql-editor span.ai-err:hover { background: rgba(229,62,62,0.18); }
+  #err_pop { position:fixed; display:none; z-index:70; background:#ffffff;
+             border:1px solid #c7c7c7; border-radius:6px;
+             box-shadow:0 6px 22px rgba(0,0,0,0.35); padding:6px; }
+  #err_pop .err-fix { padding:5px 10px; border:1px solid #b7d3b7; background:#f0f9f0;
+             color:#1e5c1e; border-radius:4px; cursor:pointer;
+             font:12px 'Segoe UI',sans-serif; margin-right:4px; }
+  #err_pop .err-fix:hover { background:#dff2df; }
+  #err_pop .err-x { padding:5px 9px; border:1px solid #c9c9c9; background:#f4f4f4;
+             border-radius:4px; cursor:pointer; font:12px 'Segoe UI',sans-serif; }
+  #err_pop .err-x:hover { background:#e8e8e8; }
+  #ai_bubble { position:fixed; display:none; z-index:65; background:#2b2f36;
+             border-radius:8px; box-shadow:0 6px 22px rgba(0,0,0,0.4); padding:5px; }
+  #ai_bubble button { padding:6px 12px; border:none; border-radius:5px;
+             background:transparent; color:#e8e8e8; cursor:pointer;
+             font:12px 'Segoe UI',sans-serif; }
+  #ai_bubble button:hover { background:#3d434d; }
+  #ai_menu { position:fixed; display:none; z-index:66; background:#2b2f36;
+             border-radius:8px; box-shadow:0 6px 22px rgba(0,0,0,0.4); padding:4px; }
+  #ai_menu button { display:block; width:100%; text-align:left; padding:6px 12px;
+             border:none; border-radius:5px; background:transparent; color:#e8e8e8;
+             cursor:pointer; font:12px 'Segoe UI',sans-serif; white-space:nowrap; }
+  #ai_menu button:hover { background:#3d434d; }
+  #ai_note { position:fixed; display:none; z-index:71; top:18px; left:50%;
+             transform:translateX(-50%); background:#2b2f36; color:#d9e8d9;
+             border-radius:6px; padding:8px 16px; font:12px 'Segoe UI',sans-serif;
+             box-shadow:0 6px 22px rgba(0,0,0,0.4); }
   .ql-editor a { cursor:pointer; color:#1155cc; text-decoration:underline; }
   sup.fnref { color:#1155cc; cursor:pointer; }
   /* The reader's sub-numbers wear capital letters (v1.19.73): under 1. comes
@@ -687,8 +736,8 @@ function docTitle(){
 // list. A world without a Delta section - a legacy session from the old
 // pages world - falls back to the clipboard converter and keeps its text.
 function docHtml(){
-  var delta = JSON.stringify(quill.getContents()).replace(/</g, '\\u003c');
-  return '<section data-az="doc">' + quill.root.innerHTML + '</section>' +
+  var delta = stripFlagsFromDelta();
+  return '<section data-az="doc">' + aiStripHtml(quill.root.innerHTML) + '</section>' +
          '<section data-az="fn">' + fnote.innerHTML + '</section>' +
          '<section data-az="delta">' + delta + '</section>';
 }
@@ -735,6 +784,8 @@ function loadWorld(html, seq){
     } catch(e){ try { quill.setText('', 'silent'); } catch(e2){} }
   }
   quill.history.clear();
+  aiReset();   // a new world starts clean: no flags, no remembered hash,
+               // no popup chrome and no scan left over from the old one
   renumber();
   try { window.scrollTo(0, 0); } catch(e){}
   post({ type:'pages', count: 1 });
@@ -751,7 +802,12 @@ var THUMB_CSS = '.doc{width:816px;height:1056px;background:#fff;overflow:hidden;
   '.docbody{padding:64px 72px 0 72px;}' +
   '.docbody p,.docbody ol,.docbody ul,.docbody pre,.docbody blockquote,.docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6{margin:0;padding:0}' +
   '.docbody img{max-width:100%;height:auto;}' +
-  '.docbody blockquote{font-style:italic;font-weight:bold;}' +
+  '.docbody blockquote{border-left:3px solid #7aa7d8;padding-left:14px;margin:12px 0;' +
+  'font-style:italic;font-weight:bold;color:#444;position:relative;}' +
+  '.docbody blockquote:before{content:"\\201C";font-family:Georgia,serif;font-size:1.5em;' +
+  'line-height:0.1em;vertical-align:-0.2em;margin-right:4px;color:#7aa7d8;}' +
+  '.docbody blockquote:after{content:"\\201D";font-family:Georgia,serif;font-size:1.5em;' +
+  'line-height:0.1em;vertical-align:-0.2em;margin-left:4px;color:#7aa7d8;}' +
   '.docbody a{color:#1155cc;text-decoration:underline;}' +
   'sup.fnref{color:#1155cc;}sup.fnref::after{content:attr(data-n);}' +
   ".docfn{margin:0 72px;padding:12px 0 0 0;border-top:1px solid #d8d8d8;font-family:'Segoe UI',sans-serif;font-size:10pt;color:#333;}" +
@@ -761,7 +817,7 @@ function postThumbs(){
     // Chromium's SVG-as-image refuses subresource loads - even data: URIs -
     // so the raster wears a neutral block where an image stood; every other
     // mark (fonts, sizes, links, footnotes) paints for real.
-    var docBody = quill.root.innerHTML.replace(/<img\b([^>]*)>/gi, function(m, attrs){
+    var docBody = aiStripHtml(quill.root.innerHTML).replace(/<img\b([^>]*)>/gi, function(m, attrs){
       // A resized picture keeps its width in the raster (v1.19.76): the
       // width attribute (the model's own carrier) or an inline style wins,
       // everything else wears the neutral block.
@@ -797,6 +853,406 @@ function postThumbs(){
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   } catch(e){ post({ type:'thumbs', seq: worldSeq, thumbs: [''] }); }
 }
+
+// ── the editor's second brain (v1.19.77) ──────────────────────────────────
+// Two doors, both opened here, both answered by the host's own dial. The
+// quiet door: five seconds after the typing stops, ONE batched scan of the
+// whole document goes out - never a keystroke, an untouched document never
+// asks twice - and the answer dresses every stumble in wavy red at once.
+// The loud door: a selection longer than three characters raises the
+// bubble, and only a button click ever bills a rewrite. The flags ride the
+// model as a silent format so minor edits around them keep them, and the
+// save, the load and the thumbnail all strip them again: they are chrome
+// for the reading eye, not content.
+
+var Delta = Quill.import('delta');
+var InlineBase = Quill.import('blots/inline');
+class AiErrBlot extends InlineBase {}
+AiErrBlot.blotName = 'ai-err';
+AiErrBlot.tagName = 'SPAN';
+AiErrBlot.className = 'ai-err';
+Quill.register(AiErrBlot);
+
+var SCAN_IDLE_DELAY_MS = 5000;
+var scanTimer = null, isDirty = false, lastScannedHash = '', scanInFlight = false;
+var ignoredWords = new Set();
+var activeFlags = [];      // { index, length, word, suggestion }
+var errPop = null, aiBubble = null, aiMenu = null, aiNote = null;
+var aiNoteTimer = null, aiBubbleRect = null, aiInFlight = false, aiPending = null;
+
+function hashString(s){
+  var h = 5381, i;
+  for (i=0;i<s.length;i++){ h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
+  return String(h < 0 ? -h : h);
+}
+
+function aiStripHtml(html){
+  return String(html || '')
+    .replace(/ class="ai-err"/g, '')
+    .replace(/ data-sug="[^"]*"/g, '');
+}
+
+// The proofreader's marks are stripped from the Delta before the world is
+// saved: an attribute walk over the ops that drops every ai-err and keeps
+// everything else - font, size, width, link, footnote - exactly as it was.
+function stripFlagsFromDelta(){
+  try {
+    var ops = quill.getContents().ops || [], clean = [], i, k;
+    for (i=0;i<ops.length;i++){
+      var op = ops[i];
+      if (op.attributes && op.attributes['ai-err'] !== undefined){
+        var a = {}, c = {};
+        for (k in op.attributes) if (k !== 'ai-err') a[k] = op.attributes[k];
+        if (op.insert !== undefined) c.insert = op.insert;
+        if (op.retain !== undefined) c.retain = op.retain;
+        if (op.delete !== undefined) c.delete = op.delete;
+        for (k in a){ if (!c.attributes) c.attributes = {}; c.attributes[k] = a[k]; }
+        clean.push(c);
+      } else clean.push(op);
+    }
+    return JSON.stringify({ ops: clean }).replace(/</g, '\\u003c');
+  } catch(e){
+    return JSON.stringify(quill.getContents()).replace(/</g, '\\u003c');
+  }
+}
+
+function aiReset(){
+  isDirty = false;
+  lastScannedHash = '';
+  scanInFlight = false;
+  aiInFlight = false;
+  aiPending = null;
+  if (scanTimer){ clearTimeout(scanTimer); scanTimer = null; }
+  clearGrammarFlags();
+  hideErrPop(); hideAiBubble(); hideAiNote();
+}
+
+// ── the quiet door: the idle batch scan ───────────────────────────────────
+// Typing resets the timer every keystroke; only five full seconds of
+// stillness open the door, and the document's hash keeps an untouched or
+// already-scanned text from asking again.
+quill.on('text-change', function(delta, oldDelta, source){
+  if (source !== 'user') return;
+  isDirty = true;
+  if (scanTimer) clearTimeout(scanTimer);
+  scanTimer = setTimeout(triggerTimerScan, SCAN_IDLE_DELAY_MS);
+});
+
+function triggerTimerScan(){
+  if (!isDirty) return;
+  isDirty = false;
+  var fullText = quill.getText().trim();
+  if (fullText.length < 5) return;
+  fullText = fullText.slice(0, 24000);
+  var hash = hashString(fullText);
+  if (hash === lastScannedHash) return;
+  if (scanInFlight){ scanTimer = setTimeout(triggerTimerScan, SCAN_IDLE_DELAY_MS); return; }
+  lastScannedHash = hash;
+  scanInFlight = true;
+  post({ type:'ai_timer_grammar_scan', text: fullText, ignored: Array.from(ignoredWords), seq: worldSeq });
+}
+
+function clearGrammarFlags(){
+  var spans = [];
+  try { spans = Array.prototype.slice.call(quill.root.querySelectorAll('span.ai-err')); } catch(e){}
+  for (var i=0;i<spans.length;i++){
+    try {
+      var blot = Quill.find(spans[i]);
+      if (!blot) continue;
+      var at = quill.getIndex(blot), len = blot.length();
+      if (len > 0) quill.formatText(at, len, 'ai-err', false, 'silent');
+    } catch(e){}
+  }
+  activeFlags = [];
+}
+
+function escRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// One answer dresses the whole document at once: every flagged word that is
+// still in the text (and not ignored) gets its silent format, the flags
+// list remembers where each one landed, and the counts keep a runaway
+// model from painting the page red.
+function applyScanResult(msg){
+  scanInFlight = false;
+  var seq = (msg && typeof msg.seq === 'number') ? msg.seq|0 : worldSeq;
+  if (seq !== worldSeq) return;   // a stale world's answer dresses nobody
+  var errors = (msg && msg.errors) || [];
+  if (!errors.length) return;
+  clearGrammarFlags();
+  var text = quill.getText(), dressed = 0;
+  for (var i=0;i<errors.length && dressed < 300;i++){
+    var word = String((errors[i] && errors[i].word) || '').trim();
+    var sug = String((errors[i] && errors[i].suggestion) || '').trim();
+    if (!word || word.length > 60 || !sug) continue;
+    if (ignoredWords.has(word.toLowerCase())) continue;
+    var re;
+    try { re = new RegExp('\\b' + escRe(word) + '\\b', 'gi'); } catch(e){ continue; }
+    var m, hits = 0;
+    while ((m = re.exec(text)) && hits < 40 && dressed < 300){
+      quill.formatText(m.index, m[0].length, 'ai-err', true, 'silent');
+      activeFlags.push({ index: m.index, length: m[0].length, word: word, suggestion: sug });
+      dressed++; hits++;
+    }
+  }
+}
+
+// ── the red word's little card ────────────────────────────────────────────
+function ensureErrPop(){
+  if (errPop) return;
+  errPop = document.createElement('div');
+  errPop.id = 'err_pop';
+  var fix = document.createElement('button');
+  fix.className = 'err-fix'; fix.type = 'button';
+  var no = document.createElement('button');
+  no.className = 'err-x'; no.type = 'button';
+  no.textContent = '\u2715'; no.title = 'Ignore';
+  fix.addEventListener('click', function(){ fixErrWord(); });
+  no.addEventListener('click', function(){ ignoreErrWord(); });
+  errPop.appendChild(fix); errPop.appendChild(no);
+  document.body.appendChild(errPop);
+}
+
+function openErrPop(span){
+  ensureErrPop();
+  var at = null, len = 0;
+  try {
+    var blot = Quill.find(span);
+    if (blot){ at = quill.getIndex(blot); len = blot.length(); }
+  } catch(e){}
+  var word = String(span.textContent || '').trim();
+  var flag = null, i;
+  for (i=0;i<activeFlags.length;i++)
+    if (at !== null && activeFlags[i].index === at && activeFlags[i].length === len){ flag = activeFlags[i]; break; }
+  if (!flag)
+    for (i=0;i<activeFlags.length;i++)
+      if (activeFlags[i].length === word.length && activeFlags[i].word.toLowerCase() === word.toLowerCase()){ flag = activeFlags[i]; break; }
+  errPop.setAttribute('data-word', word);
+  errPop.setAttribute('data-sug', flag ? flag.suggestion : '');
+  errPop.setAttribute('data-at', at === null ? '' : String(at));
+  errPop.setAttribute('data-len', String(len));
+  var fixBtn = errPop.querySelector('.err-fix');
+  fixBtn.textContent = flag ? flag.suggestion : word;
+  fixBtn.style.display = flag ? 'inline-block' : 'none';
+  errPop.style.display = 'block';
+  var r = span.getBoundingClientRect();
+  var top = r.top - errPop.offsetHeight - 8;
+  if (top < 8) top = r.bottom + 8;
+  var left = Math.max(8, Math.min(r.left, window.innerWidth - errPop.offsetWidth - 8));
+  errPop.style.left = left + 'px';
+  errPop.style.top = top + 'px';
+}
+
+function hideErrPop(){ if (errPop) errPop.style.display = 'none'; }
+
+// The swap rides one updateContents, so undo reads it as one step.
+function fixErrWord(){
+  if (!errPop) return;
+  var at = parseInt(errPop.getAttribute('data-at'), 10);
+  var len = parseInt(errPop.getAttribute('data-len'), 10);
+  var sug = errPop.getAttribute('data-sug') || '';
+  hideErrPop();
+  if (!(at >= 0) || !(len > 0) || !sug) return;
+  try { quill.updateContents(new Delta().retain(at).delete(len).insert(sug), 'user'); } catch(e){ return; }
+  var shift = sug.length - len;
+  activeFlags = activeFlags
+    .filter(function(f){ return !(f.index === at && f.length === len); })
+    .map(function(f){ return f.index > at
+      ? { index: f.index + shift, length: f.length, word: f.word, suggestion: f.suggestion }
+      : f; });
+}
+
+function ignoreErrWord(){
+  if (!errPop) return;
+  var word = (errPop.getAttribute('data-word') || '').toLowerCase();
+  hideErrPop();
+  if (!word) return;
+  ignoredWords.add(word);
+  for (var i=activeFlags.length-1;i>=0;i--){
+    if (activeFlags[i].word.toLowerCase() !== word) continue;
+    try { quill.formatText(activeFlags[i].index, activeFlags[i].length, 'ai-err', false, 'silent'); } catch(e){}
+    activeFlags.splice(i,1);
+  }
+}
+
+quill.root.addEventListener('click', function(e){
+  var t = e.target;
+  if (t && t.closest && t.closest('span.ai-err')){
+    e.preventDefault(); e.stopPropagation();
+    openErrPop(t.closest('span.ai-err'));
+    return;
+  }
+  hideErrPop();
+});
+document.addEventListener('mousedown', function(e){
+  if (errPop && errPop.style.display === 'block' &&
+      !(e.target && e.target.closest && e.target.closest('#err_pop'))) hideErrPop();
+  if (aiMenu && aiMenu.style.display === 'block' &&
+      !(e.target && e.target.closest && e.target.closest('#ai_menu')) &&
+      !(e.target && e.target.closest && e.target.closest('#ai_bubble'))) hideAiMenu();
+}, true);
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ hideErrPop(); hideAiMenu(); hideAiNote(); }
+}, true);
+
+// ── the loud door: the selection bubble ───────────────────────────────────
+function ensureAiBubble(){
+  if (aiBubble) return;
+  aiBubble = document.createElement('div');
+  aiBubble.id = 'ai_bubble';
+  var fix = document.createElement('button');
+  fix.type = 'button'; fix.id = 'ai_fix_btn';
+  fix.textContent = '\uD83E\uDE84 Fix Grammar';
+  fix.addEventListener('click', function(){ requestAi('fix'); });
+  var rw = document.createElement('button');
+  rw.type = 'button'; rw.id = 'ai_rw_btn';
+  rw.textContent = '\u270D Rewrite \u25BE';
+  rw.addEventListener('click', function(e){
+    e.stopPropagation();
+    if (aiInFlight) return;
+    if (aiMenu && aiMenu.style.display === 'block'){ hideAiMenu(); return; }
+    showAiMenu();
+  });
+  aiBubble.appendChild(fix); aiBubble.appendChild(rw);
+  aiMenu = document.createElement('div');
+  aiMenu.id = 'ai_menu';
+  var styles = [['humanize','Humanize'],['professional','Professional'],['simple','Simple'],
+                ['academic','Academic'],['jargon','Jargon'],['lengthen','Lengthen'],['shorten','Shorten']];
+  for (var i=0;i<styles.length;i++){
+    (function(pair){
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = pair[1];
+      b.addEventListener('click', function(){ hideAiMenu(); requestAi('rewrite', pair[0]); });
+      aiMenu.appendChild(b);
+    })(styles[i]);
+  }
+  document.body.appendChild(aiBubble);
+  document.body.appendChild(aiMenu);
+}
+
+function showAiBubble(){
+  if (selImg) return;   // a selected picture outranks the bubble
+  ensureAiBubble();
+  if (aiInFlight){ aiBubble.style.display = 'block'; return; }
+  var rect = null;
+  try {
+    var dsel = document.getSelection();
+    if (dsel && dsel.rangeCount && dsel.anchorNode && quill.root.contains(dsel.anchorNode))
+      rect = dsel.getRangeAt(0).getBoundingClientRect();
+  } catch(e){}
+  if (!rect || (!rect.width && !rect.height)){ hideAiBubble(); return; }
+  aiBubbleRect = { left: rect.left, top: rect.top, bottom: rect.bottom, width: rect.width };
+  positionAiBubble();
+  aiBubble.style.display = 'block';
+}
+
+function positionAiBubble(){
+  if (!aiBubble || !aiBubbleRect) return;
+  var x = aiBubbleRect.left + aiBubbleRect.width / 2 - aiBubble.offsetWidth / 2;
+  var y = aiBubbleRect.top - aiBubble.offsetHeight - 8;
+  if (y < 8) y = aiBubbleRect.bottom + 8;
+  x = Math.max(8, Math.min(x, window.innerWidth - aiBubble.offsetWidth - 8));
+  aiBubble.style.left = x + 'px';
+  aiBubble.style.top = y + 'px';
+}
+
+function hideAiBubble(){ if (aiBubble) aiBubble.style.display = 'none'; hideAiMenu(); }
+
+function showAiMenu(){
+  ensureAiBubble();
+  aiMenu.style.display = 'block';
+  var r = aiBubble.getBoundingClientRect();
+  var x = Math.max(8, Math.min(r.left, window.innerWidth - aiMenu.offsetWidth - 8));
+  var y = r.top - aiMenu.offsetHeight - 6;
+  if (y < 8) y = r.bottom + 6;
+  aiMenu.style.left = x + 'px';
+  aiMenu.style.top = y + 'px';
+}
+function hideAiMenu(){ if (aiMenu) aiMenu.style.display = 'none'; }
+
+function requestAi(kind, style){
+  var sel = quill.getSelection();
+  if (!sel || sel.length <= 3) return;
+  if (aiInFlight) return;
+  var text = quill.getText(sel.index, sel.length).trim();
+  if (!text) return;
+  if (text.length > 16000) text = text.slice(0, 16000);
+  aiInFlight = true;
+  aiPending = { index: sel.index, length: sel.length, kind: kind };
+  setAiBusy(true);
+  if (kind === 'rewrite') post({ type:'ai_rewrite', text: text, style: String(style || 'humanize'), seq: worldSeq });
+  else post({ type:'ai_fix_selection', text: text, seq: worldSeq });
+}
+
+function setAiBusy(busy){
+  if (!aiBubble) return;
+  var f = aiBubble.querySelector('#ai_fix_btn'), r = aiBubble.querySelector('#ai_rw_btn');
+  if (f) f.style.opacity = busy ? '0.5' : '1';
+  if (r) r.style.opacity = busy ? '0.5' : '1';
+  if (busy){ aiBubble.style.display = 'block'; hideAiMenu(); }
+}
+
+// One answer, one range: the rewrite lands as a single updateContents, so
+// undo reads it as one step - and the note whispers when nothing was needed.
+function applyAiResult(msg){
+  aiInFlight = false;
+  setAiBusy(false);
+  var seq = (msg && typeof msg.seq === 'number') ? msg.seq|0 : -1;
+  if (seq !== worldSeq || !aiPending){ aiPending = null; return; }
+  var p = aiPending; aiPending = null;
+  if (!msg || !msg.ok){
+    showAiNote((msg && msg.message) || 'The request failed - nothing changed.');
+    return;
+  }
+  var text = typeof msg.text === 'string' ? msg.text : '';
+  if (!text){
+    showAiNote(msg.message || 'Grammar looks good!');
+    return;
+  }
+  if (text.length > 16000) text = text.slice(0, 16000);
+  try { quill.updateContents(new Delta().retain(p.index).delete(p.length).insert(text), 'user'); } catch(e){}
+}
+
+function showAiNote(message){
+  if (!aiNote){
+    aiNote = document.createElement('div');
+    aiNote.id = 'ai_note';
+    document.body.appendChild(aiNote);
+  }
+  aiNote.textContent = String(message || '');
+  aiNote.style.display = 'block';
+  if (aiNoteTimer) clearTimeout(aiNoteTimer);
+  aiNoteTimer = setTimeout(hideAiNote, 2600);
+}
+function hideAiNote(){ if (aiNote) aiNote.style.display = 'none'; }
+
+quill.on('selection-change', function(range){
+  if (aiInFlight) return;
+  if (range && range.length > 3 && !selImg) showAiBubble();
+  else hideAiBubble();
+});
+
+// The bubble follows its selection across scrolls and leaves on resize; the
+// card above a red word steps aside on either - the next click re-opens it.
+window.addEventListener('scroll', function(){
+  if (aiBubble && aiBubble.style.display === 'block' && !aiInFlight){
+    try {
+      var sel = quill.getSelection();
+      var dsel = document.getSelection();
+      if (sel && sel.length > 3 && dsel && dsel.rangeCount && dsel.anchorNode && quill.root.contains(dsel.anchorNode)){
+        var rect = dsel.getRangeAt(0).getBoundingClientRect();
+        if (rect && (rect.width || rect.height)){
+          aiBubbleRect = { left: rect.left, top: rect.top, bottom: rect.bottom, width: rect.width };
+          positionAiBubble();
+        }
+      } else hideAiBubble();
+    } catch(e){ hideAiBubble(); }
+  }
+  if (errPop && errPop.style.display === 'block') hideErrPop();
+}, true);
+window.addEventListener('resize', function(){
+  if (aiBubble && aiBubble.style.display === 'block' && !aiInFlight) hideAiBubble();
+  if (errPop && errPop.style.display === 'block') hideErrPop();
+});
 
 // ── the ribbon's commands ─────────────────────────────────────────────────
 function toggle(name){
@@ -913,6 +1369,8 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'cut': copySelection(true); break;
       case 'paste': pasteFromHost(msg); break;
       case 'pasteImage': insertImage(String(msg.src || '')); break;
+      case 'aiScanResult': applyScanResult(msg); break;
+      case 'aiResult': applyAiResult(msg); break;
       case 'load': loadWorld(String(msg.html || ''), msg.seq|0); break;
       case 'i18n': i18n = { apply: String(msg.apply || 'Apply'), remove: String(msg.remove || 'Remove'),
                             linkUrl: String(msg.linkUrl || 'Link URL') };

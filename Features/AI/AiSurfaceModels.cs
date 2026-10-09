@@ -3,7 +3,8 @@ using System.IO;
 
 namespace Avalanche.Features.AI
 {
-    /// <summary>Which model answers each surface. Six dials - the summary,
+    /// <summary>Which model answers each surface. Seven dials (v1.19.77
+    /// seated the text editor's sheet at the table) - the summary,
     /// the sidechat, the browser sidechat, the recaller (the recap), the
     /// AI tester and the notes (the left sidebar) - each wearing Nemotron by
     /// default, each one dropdown away
@@ -22,7 +23,7 @@ namespace Avalanche.Features.AI
     /// survive); anything else gets the canonical nemotron - NVIDIA's NIM
     /// API, the app's first brain - the same way the gpt choice always
     /// summoned its own gpt-oss.
-    internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester, Notes }
+    internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester, Notes, TextEditor }
 
     internal static class AiSurfaceModels
     {
@@ -100,6 +101,7 @@ namespace Avalanche.Features.AI
             public string Recaller { get; set; } = NemotronChoice;
             public string AiTester { get; set; } = NemotronChoice;
             public string Notes { get; set; } = NemotronChoice;   // v1.19.34: the sidebar's own dial
+            public string TextEditor { get; set; } = NemotronChoice;   // v1.19.77: the sheet's own dial
             public string Embedding { get; set; } = EmbeddingDefaultChoice;   // v1.19.55: who embeds
         }
 
@@ -131,6 +133,7 @@ namespace Avalanche.Features.AI
                 _choices.Recaller = Normalize(read.Recaller);
                 _choices.AiTester = Normalize(read.AiTester);
                 _choices.Notes = Normalize(read.Notes);
+                _choices.TextEditor = Normalize(read.TextEditor);
                 _choices.Embedding = NormalizeEmbeddingChoice(read.Embedding);
             }
             catch
@@ -205,6 +208,7 @@ namespace Avalanche.Features.AI
                 AiSurface.Recaller => _choices.Recaller,
                 AiSurface.AiTester => _choices.AiTester,
                 AiSurface.Notes => _choices.Notes,
+                AiSurface.TextEditor => _choices.TextEditor,
                 _ => _choices.Sidechat,
             };
         }
@@ -220,6 +224,7 @@ namespace Avalanche.Features.AI
                 case AiSurface.Recaller: _choices.Recaller = clean; break;
                 case AiSurface.AiTester: _choices.AiTester = clean; break;
                 case AiSurface.Notes: _choices.Notes = clean; break;
+                case AiSurface.TextEditor: _choices.TextEditor = clean; break;
                 default: _choices.Sidechat = clean; break;
             }
             Save();
