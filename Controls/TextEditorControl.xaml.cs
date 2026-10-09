@@ -183,54 +183,76 @@ namespace Avalanche.Controls
         {
             try
             {
+                // The page may post a JS object or a JSON.stringify'd string;
+                // WebMessageAsJson is the message "converted to a JSON string",
+                // so a string message arrives QUOTED and parses to a String
+                // root. Unwrap that one extra layer before reading - posting
+                // style is the page's business, both are welcome here.
                 using var doc = JsonDocument.Parse(e.WebMessageAsJson);
                 var root = doc.RootElement;
-                switch (root.GetProperty("type").GetString())
+                if (root.ValueKind == JsonValueKind.String)
                 {
-                    case "ready":
-                        _pageReady = true;
-                        Post(new
-                        {
-                            cmd = "i18n",
-                            apply = Loc("Str_Editor_Apply"),
-                            remove = Loc("Str_Editor_Remove"),
-                            linkUrl = Loc("Str_Editor_LinkUrl"),
-                        });
-                        var html = _pendingLoadHtml;
-                        _pendingLoadHtml = null;
-                        if (!string.IsNullOrEmpty(html))
-                            Post(new { cmd = "load", html });
-                        else
-                            Post(new { cmd = "focus" });
-                        EngineVeil.Visibility = Visibility.Collapsed;
-                        break;
-
-                    case "pages":
-                        int n = root.GetProperty("count").GetInt32();
-                        if (n != _pageCount)
-                        {
-                            _pageCount = n;
-                            PageCountChanged?.Invoke(n);
-                        }
-                        break;
-
-                    case "state":
-                        ApplyState(root);
-                        break;
-
-                    case "save":
-                        SaveSession(root.GetProperty("html").GetString() ?? string.Empty);
-                        break;
-
-                    case "link":
-                        string url = root.GetProperty("url").GetString() ?? string.Empty;
-                        if (url.Length > 0) LinkOpenRequested?.Invoke(url);
-                        break;
+                    using var inner = JsonDocument.Parse(root.GetString() ?? "{}");
+                    HandlePageMessage(inner.RootElement);
+                }
+                else
+                {
+                    HandlePageMessage(root);
                 }
             }
             catch
             {
                 // A malformed message never takes the editor down.
+            }
+        }
+
+        private void HandlePageMessage(JsonElement root)
+        {
+            switch (root.TryGetProperty("type", out var type) ? type.GetString() : null)
+            {
+                case "ready":
+                    _pageReady = true;
+                    Post(new
+                    {
+                        cmd = "i18n",
+                        apply = Loc("Str_Editor_Apply"),
+                        remove = Loc("Str_Editor_Remove"),
+                        linkUrl = Loc("Str_Editor_LinkUrl"),
+                    });
+                    var html = _pendingLoadHtml;
+                    _pendingLoadHtml = null;
+                    if (!string.IsNullOrEmpty(html))
+                        Post(new { cmd = "load", html });
+                    else
+                        Post(new { cmd = "focus" });
+                    EngineVeil.Visibility = Visibility.Collapsed;
+                    break;
+
+                case "pages":
+                    if (root.TryGetProperty("count", out var count) && count.TryGetInt32(out int n)
+                        && n != _pageCount)
+                    {
+                        _pageCount = n;
+                        PageCountChanged?.Invoke(n);
+                    }
+                    break;
+
+                case "state":
+                    ApplyState(root);
+                    break;
+
+                case "save":
+                    if (root.TryGetProperty("html", out var savedHtml))
+                        SaveSession(savedHtml.GetString() ?? string.Empty);
+                    break;
+
+                case "link":
+                    if (root.TryGetProperty("url", out var linkUrl))
+                    {
+                        string url = linkUrl.GetString() ?? string.Empty;
+                        if (url.Length > 0) LinkOpenRequested?.Invoke(url);
+                    }
+                    break;
             }
         }
 

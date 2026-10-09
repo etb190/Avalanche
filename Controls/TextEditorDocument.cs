@@ -73,7 +73,10 @@ namespace Avalanche.Controls
   var saveTimer = null, stateTimer = null;
   var i18n = { apply:'Apply', remove:'Remove', linkUrl:'' };
 
-  function post(o){ try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch(e){} }
+  // The object itself, not JSON.stringify(o): PostWebMessageAsJson-style
+  // messages are the host's object lane - posting a string would make the
+  // host see a quoted string where it expects the message's fields.
+  function post(o){ try { window.chrome.webview.postMessage(o); } catch(e){} }
 
   // -- pages ---------------------------------------------------------------
   function makePage(){
@@ -90,7 +93,15 @@ namespace Avalanche.Controls
   function txtOf(p){ return p.querySelector('.txt'); }
   function fnOf(p){ return p.querySelector('.fnnote'); }
   function pageAt(n){ return docs.children[n] || null; }
-  function overflow(t){ return t.scrollHeight > t.clientHeight + 1; }
+  // The text layer grows with its content - the pin does the clipping - so
+  // its own scrollHeight never betrays it. Fullness is measured against the
+  // pin's available inner height: the page box minus its paddings.
+  function overflow(t){
+    var pin = t.parentElement;
+    var cs = getComputedStyle(pin);
+    var avail = pin.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    return t.offsetHeight > avail + 1;
+  }
 
   // Text that no longer fits walks forward, whole block by whole block, until
   // every page is honest about what it holds. A fresh page is born when the
@@ -104,9 +115,8 @@ namespace Avalanche.Controls
       var next = page.nextElementSibling;
       if (!next) next = makePage();
       var nt = txtOf(next);
-      var last = t.lastElementChild;
-      if (last){ nt.insertBefore(last, nt.firstChild); }
-      else { while (t.firstChild) nt.insertBefore(t.firstChild, nt.firstChild); }
+      var last = t.lastElementChild || t.lastChild;   // blocks, or a typed line's bare text node
+      if (last) nt.insertBefore(last, nt.firstChild);
       // Stay on the same page until it is honest again, then let the cascade
       // continue from the neighbor we just fed - a large paste walks forward
       // page by page in one pass.
@@ -222,6 +232,18 @@ namespace Avalanche.Controls
     }
   });
 
+  // The crutch is stripped when the footnote loses focus - never mid-sentence:
+  // stripping inside the input event shrank the node under the caret and every
+  // key after the first was swallowed by the degenerate selection.
+  docs.addEventListener('focusout', function(e){
+    if (!e.target || !e.target.querySelectorAll) return;
+    e.target.querySelectorAll('.fnbody').forEach(function(b){
+      var t = b.firstChild;
+      if (t && t.nodeType === 3 && t.nodeValue.indexOf(ZWSP) === 0 && t.nodeValue.length > 1)
+        t.nodeValue = t.nodeValue.split(ZWSP).join('');
+    });
+  });
+
   // A size span holds a zero-width crutch so the caret has something to stand
   // on before any text arrives; the crutch leaves the moment real text lands.
   function cleanZwsp(root){
@@ -249,6 +271,8 @@ namespace Avalanche.Controls
     var mark = document.createElement('sup');
     mark.className = 'fnmark'; mark.contentEditable = 'false'; mark.dataset.fn = id;
     mark.textContent = '?';
+    // The reference mark belongs after the selection - Word's own bargain.
+    if (!s.range.collapsed) s.range.collapse(false);
     s.range.insertNode(mark);
     var nr = document.createRange(); nr.setStartAfter(mark); nr.collapse(true);
     var sel = document.getSelection(); sel.removeAllRanges(); sel.addRange(nr);
@@ -258,12 +282,22 @@ namespace Avalanche.Controls
     var entry = document.createElement('div'); entry.className = 'fnentry'; entry.dataset.fn = id;
     var num = document.createElement('span'); num.className = 'fnnum';
     var body = document.createElement('span'); body.className = 'fnbody';
+    // The body opens with a zero-width crutch so the caret stands on a TEXT
+    // node that already holds something: on the bare boundary of an empty
+    // inline span - or of an empty text node - typed keys land nowhere at all
+    // (beforeinput fires, nothing inserts), and the reader's first words in a
+    // newborn footnote were swallowed whole. The size span's own trick.
+    body.appendChild(document.createTextNode(ZWSP));
     entry.appendChild(num); entry.appendChild(body); fn.appendChild(entry);
     syncFnote(page);
-    renumberFns();
-    var br = document.createRange(); br.selectNodeContents(body); br.collapse(true);
+    // The caret moves into the entry BEFORE the renumber sweep: the sweep's
+    // own law removes any entry whose body is empty and not under the caret,
+    // so a newborn entry left outside the hand deletes itself the instant it
+    // is born (the v1.19.66 report: no footnote ever appeared).
+    var br = document.createRange(); br.setStart(body.firstChild, 1); br.collapse(true);
     fn.focus(); sel.removeAllRanges(); sel.addRange(br);
     saved = { el: fn, range: br.cloneRange() };
+    renumberFns();
     afterEdit(null);
   }
 
@@ -283,7 +317,7 @@ namespace Avalanche.Controls
     docs.querySelectorAll('.fnentry').forEach(function(en){
       var bodyEl = en.querySelector('.fnbody');
       var caretIn = sel && sel.anchorNode && en.contains(sel.anchorNode);
-      if (!caretIn && bodyEl && bodyEl.textContent.trim() === ''){
+      if (!caretIn && bodyEl && bodyEl.textContent.split(ZWSP).join('').trim() === ''){
         var mk = docs.querySelector('.fnmark[data-fn="' + en.dataset.fn + '"]');
         if (mk) mk.parentNode.removeChild(mk);
         en.parentNode.removeChild(en);
@@ -340,6 +374,7 @@ namespace Avalanche.Controls
       if (!url){ unwrap(linkTarget); }
       else { linkTarget.setAttribute('href', url); }
       linkTarget = null;
+      refreshSaved();
       afterEdit(null);
       return;
     }
@@ -358,6 +393,7 @@ namespace Avalanche.Controls
     } else {
       document.execCommand('createLink', false, url);
     }
+    refreshSaved();
     afterEdit(null);
   }
 
@@ -452,9 +488,19 @@ namespace Avalanche.Controls
   docs.addEventListener('pointerup', function(){ if (drag){ drag = null; scheduleSave(); } });
 
   // -- ribbon commands -------------------------------------------------------------
+  // A command that mutates the DOM can invalidate the saved range's bounds;
+  // the live selection is what the reader's next command should act on, so
+  // every command re-anchors the resting place from it before returning.
+  function refreshSaved(){
+    var sel = document.getSelection();
+    var ed = sel && sel.rangeCount ? editableOf(sel.anchorNode) : null;
+    if (ed) saved = { el: ed, range: sel.getRangeAt(0).cloneRange() };
+  }
+
   function exec(cmd, val){
     var s = restoreSelection(); if (!s) return;
     document.execCommand(cmd, false, val || null);
+    refreshSaved();
     afterEdit(s.el.closest('.page'));
     scheduleState();
   }
@@ -477,11 +523,13 @@ namespace Avalanche.Controls
         var f = fonts[i];
         var sp = document.createElement('span');
         sp.style.fontSize = pt + 'pt';
+        if (f.face) sp.style.fontFamily = f.face;   // the face the selection wore
         while (f.firstChild) sp.appendChild(f.firstChild);
         f.parentNode.replaceChild(sp, f);
       }
       afterEdit(s.el.closest('.page'));
     }
+    refreshSaved();
     scheduleState();
   }
 
