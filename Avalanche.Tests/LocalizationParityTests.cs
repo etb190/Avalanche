@@ -118,6 +118,102 @@ public sealed class LocalizationParityTests
         Assert.True(offenders.Count == 0,
             "Hardcoded UI text bypasses Strings resources:\n" + string.Join("\n", offenders));
     }
+    [Fact]
+    public void EveryStaticResourceReferenceResolves()
+    {
+        // The GrainBrushShared lesson (v1.19.64): a UserControl's own BAML parse
+        // sees only its own dictionaries plus Application.Resources - never the
+        // host window's Resources. A StaticResource that lives in another window's
+        // dictionary compiles clean and crashes the app on first paint. This guard
+        // walks every UI xaml file and demands each StaticResource key resolve
+        // against (a) an earlier key in the same file, (b) the file's merged
+        // dictionaries (recursively), or (c) Application.Resources (recursively).
+        string root = Directory.GetParent(StringsDirectory)!.FullName;
+        var appKeys = new HashSet<string>(StringComparer.Ordinal);
+        CollectDictionaryKeys(Path.Combine(root, "App.xaml"), appKeys,
+            new HashSet<string>(StringComparer.Ordinal), root);
+
+        var offenders = new List<string>();
+        foreach (string file in Directory.GetFiles(root, "*.xaml", SearchOption.AllDirectories)
+                     .Where(path => !ExcludedSourcePath(root, path))
+                     .Where(path => !Path.GetRelativePath(root, path).Replace('\\', '/')
+                         .StartsWith("Themes/Accents/", StringComparison.OrdinalIgnoreCase)))
+        {
+            string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
+            var merged = new HashSet<string>(StringComparer.Ordinal);
+            CollectMergedDictionaryKeys(file, merged,
+                new HashSet<string>(StringComparer.Ordinal), root);
+
+            var anchorAt = new Dictionary<string, int>(StringComparer.Ordinal);
+            int position = 0;
+            foreach (var element in XDocument.Load(file).Root!.DescendantsAndSelf())
+            {
+                string? key = element.Attribute(Xaml + "Key")?.Value;
+                if (key is not null && !anchorAt.ContainsKey(key))
+                    anchorAt[key] = position;
+                foreach (var attribute in element.Attributes())
+                {
+                    if (attribute.IsNamespaceDeclaration) continue;
+                    foreach (Match match in Regex.Matches(attribute.Value, @"\{StaticResource ([^{}]+)\}"))
+                    {
+                        string name = match.Groups[1].Value.Trim();
+                        bool resolves = (anchorAt.TryGetValue(name, out int at) && at < position)
+                            || merged.Contains(name) || appKeys.Contains(name);
+                        if (!resolves)
+                            offenders.Add($"{relative}: {attribute.Name.LocalName} ref '{name}'");
+                    }
+                }
+                position++;
+            }
+        }
+
+        Assert.True(offenders.Count == 0,
+            "StaticResource references that cannot resolve at parse time:\n" + string.Join("\n", offenders));
+    }
+
+    private static void CollectDictionaryKeys(string path, HashSet<string> acc,
+        HashSet<string> seen, string root)
+    {
+        string full = Path.GetFullPath(path);
+        if (!File.Exists(full) || !seen.Add(full)) return;
+        foreach (var element in XDocument.Load(full).Root!.DescendantsAndSelf())
+        {
+            string? key = element.Attribute(Xaml + "Key")?.Value;
+            if (key is not null) acc.Add(key);
+            string? source = element.Attribute("Source")?.Value;
+            if (source is not null && element.Name.LocalName == "ResourceDictionary")
+                CollectDictionaryKeys(ResolveSource(source, Path.GetDirectoryName(full)!, root),
+                    acc, seen, root);
+        }
+    }
+
+    private static void CollectMergedDictionaryKeys(string path, HashSet<string> acc,
+        HashSet<string> seen, string root)
+    {
+        // keys the file's own parse can reach through ResourceDictionary.Source merges
+        string full = Path.GetFullPath(path);
+        if (!File.Exists(full) || !seen.Add(full)) return;
+        foreach (var element in XDocument.Load(full).Root!.DescendantsAndSelf())
+        {
+            string? source = element.Attribute("Source")?.Value;
+            if (source is not null && element.Name.LocalName == "ResourceDictionary")
+                CollectDictionaryKeys(ResolveSource(source, Path.GetDirectoryName(full)!, root),
+                    acc, seen, root);
+        }
+    }
+
+    private static string ResolveSource(string source, string baseDirectory, string root)
+    {
+        // pack URIs and root-relative paths live at the assembly root; plain
+        // relative paths live next to the file that declares them.
+        const string pack = "pack://application:,,,/";
+        if (source.StartsWith(pack, StringComparison.Ordinal))
+            return Path.Combine(root, source[pack.Length..]);
+        if (source.StartsWith("/", StringComparison.Ordinal))
+            return Path.Combine(root, source.TrimStart('/'));
+        return Path.GetFullPath(Path.Combine(baseDirectory, source));
+    }
+
 
     [Fact]
     public void Issue227ReportedEnglishIsNotHardcodedInItsUiPaths()

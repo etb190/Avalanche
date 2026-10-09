@@ -174,8 +174,14 @@
         <Border Grid.Row="0" Background="{DynamicResource BackgroundBrush}"
                 Height="{DynamicResource TabBandHeight}">
             <Grid>
+                <!-- DynamicResource, not Static: GrainBrushShared lives at MainWindow
+                     scope by law (App scope freezes an ImageBrush solid - see
+                     MainWindow.Resources), and a UserControl's own parse never sees
+                     another window's dictionary. The deferred lookup walks the live
+                     tree and finds it once hosted, the same bargain PdfViewer's grain
+                     layer strikes; a Static here would crash the app on first paint. -->
                 <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}"
-                        Background="{StaticResource GrainBrushShared}"/>
+                        Background="{DynamicResource GrainBrushShared}"/>
                 <Border IsHitTestVisible="False" Opacity="{DynamicResource BarShadowOpacity}">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
