@@ -2352,6 +2352,15 @@ namespace Avalanche
 
         private void WebBrowserBtn_Click(object sender, RoutedEventArgs e) => ToggleWebPane();
 
+        /// <summary>The browser's PDF Editor switch (v1.19.68): both document
+        /// faces answer from the browser's toolbar - this one steps the browser
+        /// aside and hands the floor back to the reader's PDF.</summary>
+        private void PdfEditorBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
+            if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
+        }
+
         /// <summary>A strip tab was clicked: the browser switches to that view,
         /// exactly as a gallery card click does. v1.19.13: the click speaks in
         /// cards - a tab's address follows its page now, so the card itself is
@@ -2430,6 +2439,7 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Visible;
             WebPane.OnPaneShown();
             EnterWebSidebarMode();
+            ApplyBrowserToolbarFace(leads: true);
             // v1.19.22: the browser leads now - an open chat re-binds to the
             // active tab's own session. (A first pane with no tab yet binds
             // when the first view lands, via ActiveTabChanged.)
@@ -2447,6 +2457,7 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Collapsed;
             WebPane.OnPaneHidden();
             ExitWebSidebarMode();
+            ApplyBrowserToolbarFace(leads: false);
             // v1.19.22: the browser stepped aside - park the page's transcript
             // and hand the chat back to the active book.
             if (_aiChatViewModel is { } chat && chat.IsWebContext)
@@ -3052,6 +3063,14 @@ namespace Avalanche
         /// function, so the button always says what it does.</summary>
         private void RefreshWebSaveButton(string? path)
         {
+            // While the browser leads, the toolbar keeps exactly three buttons -
+            // New, Text Editor, PDF Editor - so the save/chat button never
+            // resurrects itself onto it (v1.19.68).
+            if (_browserLeads)
+            {
+                WebSavePdfBtn.Visibility = Visibility.Collapsed;
+                return;
+            }
             if (WebPaneHost.Visibility == Visibility.Visible && WebPane.ActiveTabId is not null)
             {
                 WebSavePdfBtn.Visibility = Visibility.Visible;

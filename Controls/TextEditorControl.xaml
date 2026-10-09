@@ -163,6 +163,42 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- The size dial's separate caret button (v1.19.68): the dial's own
+             face, narrowed to a square - it opens the list, nothing more. -->
+        <Style x:Key="EditorDialChevron" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="face" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="{DynamicResource ControlCornerRadius}"
+                                Padding="0">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                <Setter TargetName="face" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="face" Property="Background" Value="{DynamicResource PaneBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -195,7 +231,9 @@
                         </LinearGradientBrush>
                     </Border.Background>
                 </Border>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,8,0">
+                <!-- The reader asked for the controls to live in the middle of
+                     the band, not pressed against its left edge (v1.19.68). -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="8,0,8,0">
                     <!-- The two switches: where the reader goes next. The browser
                          globe and the PDF editor's document, wearing the same
                          glyphs they wear on the main toolbar. -->
@@ -225,26 +263,33 @@
                                        VerticalAlignment="Center"/>
                         </Grid>
                     </ToggleButton>
-                    <!-- Size dial: same bargain - the caret's size in the chip,
-                         selection-aware when something is selected. -->
+                    <!-- Size dial, split in two (v1.19.68): the chip shows the
+                         caret's size and the caret button opens the list - two
+                         separate buttons, and NEITHER applies a size. Opening the
+                         old combined dial fired the list's SelectionChanged while
+                         it highlighted the current size, dressing the chip's size
+                         onto whatever the reader had selected. A size changes when
+                         the list picks one, and only then. -->
                     <ToggleButton x:Name="SizeBtn" Style="{StaticResource EditorDial}"
-                                  Width="64" Margin="4,0,0,0" Click="SizeBtn_Click"
+                                  Width="40" Margin="4,0,0,0" Click="SizeBtn_Click"
                                   ToolTip="{DynamicResource Str_TT_EditorFontSize}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="SizeText" Text="12" FontSize="12"
-                                       FontFamily="{DynamicResource UiFont}"
-                                       Foreground="{DynamicResource TextBrush}"
-                                       VerticalAlignment="Center" TextAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="8" Margin="5,0,0,0"
-                                       Foreground="{DynamicResource MutedTextBrush}"
-                                       VerticalAlignment="Center"/>
-                        </Grid>
+                        <TextBlock x:Name="SizeText" Text="12" FontSize="12"
+                                   FontFamily="{DynamicResource UiFont}"
+                                   Foreground="{DynamicResource TextBrush}"
+                                   VerticalAlignment="Center" TextAlignment="Center"/>
                     </ToggleButton>
+                    <Button x:Name="SizeDropBtn" Style="{StaticResource EditorDialChevron}"
+                            Content="&#xE70D;" Click="SizeDropBtn_Click" Margin="2,0,0,0"
+                            ToolTip="{DynamicResource Str_TT_EditorFontSize}"/>
+                    <!-- Size steppers: one step up or down the same ladder the
+                         size list offers, on the selection or on what gets typed
+                         next - the dials' own bargain, one click at a time. -->
+                    <Button x:Name="FontGrowBtn" Content="&#xE8E9;" Style="{StaticResource EditorBtn}"
+                            Click="FontGrowBtn_Click" Margin="6,0,0,0"
+                            ToolTip="{DynamicResource Str_TT_EditorFontGrow}"/>
+                    <Button x:Name="FontShrinkBtn" Content="&#xE8E8;" Style="{StaticResource EditorBtn}"
+                            Click="FontShrinkBtn_Click"
+                            ToolTip="{DynamicResource Str_TT_EditorFontShrink}"/>
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="5,6"/>
                     <!-- The classic four. Letters, not glyphs - the way every
                          writing app has drawn them since forever. -->
@@ -282,7 +327,10 @@
              pane ring, RadCard corners - so the editor reads as the document
              surface it is replacing, in the exact same footprint. The -1 top
              margin is the same tuck the browser's card takes under its band. -->
-        <Grid Grid.Row="1" Margin="0,-1,0,0">
+        <!-- The old -1 tucked the card under the band the browser's way;
+             the reader asked for visible padding between the ribbon and the
+             page container instead (v1.19.68) - eight points of air. -->
+        <Grid Grid.Row="1" Margin="0,8,0,0">
             <Border IsHitTestVisible="False" Margin="0,1,0,0"
                     Background="{DynamicResource BgCanvas}"
                     CornerRadius="{DynamicResource RadCard}"
@@ -293,11 +341,19 @@
                     CornerRadius="{DynamicResource RadCard}"
                     ClipToBounds="True">
                 <Grid>
-                    <Grid x:Name="WebHost" Background="{DynamicResource BgCanvas}"/>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <!-- One tab per document, the PDF editor's bargain (v1.19.68):
+                         the strip is code-built, one card per tab, the active one
+                         wearing the accent ring. New in the main toolbar mints one. -->
+                    <StackPanel x:Name="EditorTabsPanel" Orientation="Horizontal" Margin="10,6,10,4"/>
+                    <Grid Grid.Row="1" x:Name="WebHost" Background="{DynamicResource BgCanvas}"/>
                     <!-- The engine veil: the reader-facing face while WebView2
                          wakes up, and the honest message if the runtime is not
                          there. Hidden the moment the editor document is live. -->
-                    <Border x:Name="EngineVeil" Background="{DynamicResource BgCanvas}">
+                    <Border x:Name="EngineVeil" Grid.Row="1" Background="{DynamicResource BgCanvas}">
                         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                             <TextBlock Text="&#xE70B;" FontFamily="Segoe MDL2 Assets" FontSize="34"
                                        Foreground="{DynamicResource MutedTextBrush}"

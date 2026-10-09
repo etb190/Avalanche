@@ -31,14 +31,14 @@ namespace Avalanche.Controls
   .txt  { min-height:100%; position:relative; z-index:2; outline:none; color:#1c1c1c;
           font-family:'Times New Roman',serif; font-size:12pt; line-height:1.5;
           user-select:text; -webkit-user-select:text; caret-color:#1c1c1c; }
-  .txt a { color:#2b6cb0; }
+  .txt a { color:#2b6cb0; cursor:pointer; }
   .fnnote { position:absolute; left:72px; right:72px; bottom:26px; z-index:2; outline:none;
             border-top:1px solid #c9c9c9; padding-top:5px; color:#333333;
             font-family:'Times New Roman',serif; font-size:9.5pt; line-height:1.45;
             user-select:text; -webkit-user-select:text; caret-color:#333333; display:none; }
   .fnmark { vertical-align:super; font-size:0.68em; color:#4a90d9; cursor:default; }
   .fnnum  { color:#4a90d9; margin-right:4px; }
-  .fimg { position:absolute; z-index:1; cursor:move; user-select:none; -webkit-user-drag:none; touch-action:none; }
+  .fimg { position:absolute; z-index:1; cursor:grab; user-select:none; -webkit-user-drag:none; touch-action:none; }
   .fimg img { width:100%; height:auto; display:block; pointer-events:none; }
   .fimg.sel { outline:2px solid #4a90d9; outline-offset:2px; }
   .rsz { position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; background:#4a90d9;
@@ -71,6 +71,7 @@ namespace Avalanche.Controls
   var linkRange = null;      // the range a new link will own
   var FNID = 0;
   var saveTimer = null, stateTimer = null;
+  var worldSeq = 0;          // which loaded world the page is showing; saves carry it
   var i18n = { apply:'Apply', remove:'Remove', linkUrl:'' };
 
   // The object itself, not JSON.stringify(o): PostWebMessageAsJson-style
@@ -227,7 +228,24 @@ namespace Avalanche.Controls
   // -- saving (debounced; the host writes the session cache) ------------------
   function scheduleSave(){ if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 700); }
   function scheduleState(){ if (stateTimer) clearTimeout(stateTimer); stateTimer = setTimeout(reportState, 50); }
-  function saveNow(){ saveTimer = null; post({ type:'save', html: docs.innerHTML }); }
+  function saveNow(){
+    saveTimer = null;
+    post({ type:'save', html: docs.innerHTML, seq: worldSeq, title: docTitle() });
+  }
+
+  // The tab's face: the document's first non-empty line of text, trimmed to
+  // a name - an empty world earns no name, and the tab keeps what it had.
+  function docTitle(){
+    var txts = docs.querySelectorAll('.txt');
+    for (var i = 0; i < txts.length; i++){
+      var lines = txts[i].textContent.split(ZWSP).join('').split('\n');
+      for (var j = 0; j < lines.length; j++){
+        var s = lines[j].replace(/\s+/g, ' ').trim();
+        if (s) return s.length > 40 ? s.slice(0, 40) + '...' : s;
+      }
+    }
+    return '';
+  }
 
   document.addEventListener('input', function(e){
     var ed = editableOf(e.target); if (!ed) return;
@@ -507,6 +525,9 @@ namespace Avalanche.Controls
              startX: e.clientX, startY: e.clientY,
              origL: rect.left - prect.left, origT: rect.top - prect.top,
              origW: rect.width };
+    // The hand's promise: the cursor follows the job for the whole drag,
+    // even when the pointer slips off the handle or the picture (v1.19.68).
+    document.body.style.cursor = onHandle ? 'nwse-resize' : 'grabbing';
     scheduleSave();
   }, true);
   // The move and the release ride the window, so a drag that leaves the
@@ -524,7 +545,7 @@ namespace Avalanche.Controls
     }
   });
   window.addEventListener('pointerup', function(){
-    if (drag){ drag = null; scheduleSave(); noteChange(); }
+    if (drag){ drag = null; document.body.style.cursor = ''; scheduleSave(); noteChange(); }
   });
 
   // -- undo: the document's own memory -----------------------------------------
@@ -602,6 +623,8 @@ namespace Avalanche.Controls
   }
 
   function restoreSnap(snap){
+    // the restored world is a different world: the picked wrapper is gone
+    pickedImage = null; drag = null;
     docs.innerHTML = snap.html;
     if (!docs.children.length) makePage();
     FNID = 0;
@@ -696,6 +719,35 @@ namespace Avalanche.Controls
     refreshSaved();
     noteChange();
     scheduleState();
+  }
+
+  // -- size steps: the +/- buttons walk the same ladder the size list offers ---
+  // The caret's size is measured where it stands - a selection reports its
+  // anchor, a resting caret its crutch or host - and the step lands exactly
+  // where a picked size would: on the selection, or on what gets typed next.
+  var SIZE_LADDER = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
+  function currentSizePt(){
+    var sel = document.getSelection();
+    var el = (sel && sel.rangeCount)
+      ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement) : null;
+    if (!el && saved) el = saved.el;
+    if (!el) return 12;
+    var px = parseFloat(getComputedStyle(el).fontSize);
+    return isFinite(px) && px > 0 ? Math.round(px * 3 / 4) : 12;
+  }
+  function sizeStep(dir){
+    if (!dir) return;
+    var cur = currentSizePt();
+    var next = cur;
+    var i;
+    if (dir > 0){
+      for (i = 0; i < SIZE_LADDER.length; i++)
+        if (SIZE_LADDER[i] > cur){ next = SIZE_LADDER[i]; break; }
+    } else {
+      for (i = SIZE_LADDER.length - 1; i >= 0; i--)
+        if (SIZE_LADDER[i] < cur){ next = SIZE_LADDER[i]; break; }
+    }
+    if (next !== cur) applySize(String(next));
   }
 
   // -- inline dressing: a style laid onto the selection's own text -------------
@@ -887,9 +939,13 @@ namespace Avalanche.Controls
       case 'strike': exec('strikeThrough'); break;
       case 'font': if (msg.name) exec('fontName', String(msg.name)); break;
       case 'size': applySize(String(msg.pt || '12')); break;
+      case 'sizeStep': sizeStep(Number(msg.dir) || 0); break;
+      case 'undo': undo(); break;
+      case 'redo': redo(); break;
       case 'linkui': linkUi(); break;
       case 'footnote': insertFootnote(); break;
       case 'image': insertImage(String(msg.src || '')); break;
+      case 'dump': saveNow(); break;   // the host switches tabs on this answer
       case 'scroll': {
         var p = pageAt((msg.n | 0) - 1);
         if (p) p.scrollIntoView({ behavior:'smooth', block:'start' });
@@ -903,6 +959,7 @@ namespace Avalanche.Controls
         break;
       }
       case 'load': {
+        worldSeq = (msg.seq | 0) || 0;
         docs.innerHTML = String(msg.html || '');
         if (!docs.children.length) makePage();
         FNID = 0;
@@ -917,6 +974,7 @@ namespace Avalanche.Controls
         if (undoTimer){ clearTimeout(undoTimer); undoTimer = null; }
         pushUndo();
         scheduleSave();
+        post({ type:'title', seq: worldSeq, title: docTitle() });
         break;
       }
       case 'i18n': {

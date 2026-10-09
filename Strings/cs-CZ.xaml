@@ -1378,4 +1378,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Editor_PageCard">Strana {0}</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">Zde se zobrazují stránky, které píšete.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Runtime WebView2 nebyl nalezen. Nainstalujte Evergreen Runtime od Microsoftu a znovu otevřete textový editor.</sys:String>
+    <sys:String x:Key="Str_Editor_Untitled">Bez názvu</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontGrow">Zvětšit velikost písma</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontShrink">Zmenšit velikost písma</sys:String>
 </ResourceDictionary>

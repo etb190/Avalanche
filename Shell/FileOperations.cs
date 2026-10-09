@@ -435,7 +435,15 @@ namespace Avalanche
         // File toolbar handlers
         // ============================================================
 
-        private void New_Click(object sender, RoutedEventArgs e) => NewDocument();
+        private void New_Click(object sender, RoutedEventArgs e)
+        {
+            // New follows the face that leads (v1.19.68): the browser opens a
+            // tab, the text editor opens an empty page in its own tab, and the
+            // ordinary reader mints a blank PDF as always.
+            if (WebPaneHost.Visibility == Visibility.Visible) { WebPane.OpenNewTab(); return; }
+            if (EditorPaneHost.Visibility == Visibility.Visible) { TextPane.OpenNewTab(); return; }
+            NewDocument();
+        }
 
         private void NewDocument()
         {

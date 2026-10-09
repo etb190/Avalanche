@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.Wpf;
 using Avalanche.Services;
@@ -30,6 +33,31 @@ namespace Avalanche.Controls
         private string? _pendingLoadHtml;
         private int _pageCount;
         private int _activePage = 1;
+
+        // ── Tabs (v1.19.68): one document per tab ─────────────────────────
+        private sealed class EditorTab
+        {
+            public string Title = "";
+            public string Html = "";
+        }
+
+        private sealed class SessionData
+        {
+            public List<SessionTab>? Tabs { get; set; }
+            public int Active { get; set; }
+        }
+
+        private sealed class SessionTab
+        {
+            public string? Title { get; set; }
+            public string? Html { get; set; }
+        }
+
+        private readonly List<EditorTab> _tabs = [];
+        private int _activeTab;
+        private int? _pendingSwitchTo;   // a tab click waiting for the page's dump
+        private int _worldSeq;           // which loaded world the page is showing
+        private bool _syncingLists;      // a dial highlighting itself must not apply
 
         /// <summary>The page count moved: the sidebar's page rail rebuilds.</summary>
         public event Action<int>? PageCountChanged;
@@ -68,6 +96,30 @@ namespace Avalanche.Controls
             SizeList.ItemsSource = SizeChoices;
             FontPopup.Closed += (_, _) => FontBtn.IsChecked = false;
             SizePopup.Closed += (_, _) => SizeBtn.IsChecked = false;
+            LoadEditorTabs();
+            RebuildEditorTabs();
+            // Ctrl+Z / Ctrl+Y must answer from the ribbon too: while a WPF
+            // control held the keyboard the page never saw the keys, and the
+            // reader read the silence as "nothing to undo" (v1.19.68). The
+            // page keeps its own path for when the caret stands in it.
+            PreviewKeyDown += EditorPane_PreviewKeyDown;
+        }
+
+        private void EditorPane_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            var mods = Keyboard.Modifiers;
+            if (mods.HasFlag(ModifierKeys.Alt) || !mods.HasFlag(ModifierKeys.Control)) return;
+            Key k = e.Key == Key.System ? e.SystemKey : e.Key;
+            if (k == Key.Z)
+            {
+                e.Handled = true;
+                Post(new { cmd = mods.HasFlag(ModifierKeys.Shift) ? "redo" : "undo" });
+            }
+            else if (k == Key.Y)
+            {
+                e.Handled = true;
+                Post(new { cmd = "redo" });
+            }
         }
 
         private string Loc(string key)
@@ -159,7 +211,7 @@ namespace Avalanche.Controls
                         e.Handled = true;
                         if (!string.IsNullOrEmpty(e.Uri)) LinkOpenRequested?.Invoke(e.Uri);
                     };
-                    _pendingLoadHtml ??= LoadSession();
+                    _pendingLoadHtml ??= ActiveTabHtml();
                     _web.NavigateToString(TextEditorDocument.Html);
                 }
             }
@@ -222,7 +274,10 @@ namespace Avalanche.Controls
                     var html = _pendingLoadHtml;
                     _pendingLoadHtml = null;
                     if (!string.IsNullOrEmpty(html))
-                        Post(new { cmd = "load", html });
+                    {
+                        _worldSeq++;
+                        Post(new { cmd = "load", html, seq = _worldSeq });
+                    }
                     else
                         Post(new { cmd = "focus" });
                     EngineVeil.Visibility = Visibility.Collapsed;
@@ -242,8 +297,42 @@ namespace Avalanche.Controls
                     break;
 
                 case "save":
-                    if (root.TryGetProperty("html", out var savedHtml))
-                        SaveSession(savedHtml.GetString() ?? string.Empty);
+                    {
+                        // The save carries the world it was written in: a stale
+                        // answer (the page answered a dump after the load already
+                        // swapped worlds) never lands in the wrong tab.
+                        string saved = root.TryGetProperty("html", out var savedHtml)
+                            ? savedHtml.GetString() ?? string.Empty : string.Empty;
+                        int seq = root.TryGetProperty("seq", out var sq) ? sq.GetInt32() : _worldSeq;
+                        string title = root.TryGetProperty("title", out var ti)
+                            ? ti.GetString() ?? string.Empty : string.Empty;
+                        if (seq == _worldSeq && _activeTab >= 0 && _activeTab < _tabs.Count)
+                        {
+                            _tabs[_activeTab].Html = saved;
+                            if (title.Length > 0) _tabs[_activeTab].Title = title;
+                        }
+                        if (_pendingSwitchTo is int to && to >= 0 && to < _tabs.Count)
+                        {
+                            _pendingSwitchTo = null;
+                            ActivateEditorTabNow(to);
+                        }
+                        SaveSession();
+                    }
+                    break;
+
+                case "title":
+                    {
+                        int seq = root.TryGetProperty("seq", out var tseq) ? tseq.GetInt32() : _worldSeq;
+                        string title = root.TryGetProperty("title", out var tti)
+                            ? tti.GetString() ?? string.Empty : string.Empty;
+                        if (seq == _worldSeq && title.Length > 0
+                            && _activeTab >= 0 && _activeTab < _tabs.Count
+                            && !string.Equals(_tabs[_activeTab].Title, title, StringComparison.Ordinal))
+                        {
+                            _tabs[_activeTab].Title = title;
+                            RebuildEditorTabs();
+                        }
+                    }
                     break;
 
                 case "link":
@@ -336,24 +425,52 @@ namespace Avalanche.Controls
             SizePopup.IsOpen = true;
         }
 
+        // The caret button opens the same list - the chip and the caret are two
+        // separate doors to one dropdown, and neither applies a size (v1.19.68).
+        private void SizeDropBtn_Click(object sender, RoutedEventArgs e)
+        {
+            HighlightCurrentSize();
+            SizePopup.IsOpen = true;
+        }
+
+        // One step up or down the same ladder the size list offers, applied to
+        // the selection - or, with the caret resting, to what gets typed next.
+        private void FontGrowBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "sizeStep", dir = 1 }); RefocusEditor(); }
+        private void FontShrinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "sizeStep", dir = -1 }); RefocusEditor(); }
+
         private void HighlightCurrentFont()
         {
             string cur = FontText.Text;
             int idx = Array.FindIndex(FontChoices, f => string.Equals(f, cur, StringComparison.OrdinalIgnoreCase));
-            FontList.SelectedIndex = idx;
-            if (idx >= 0) FontList.ScrollIntoView(FontList.Items[idx]);
+            // Highlighting the dial's own face must never APPLY anything: setting
+            // the index fired SelectionChanged, and merely opening the size list
+            // dressed the chip's size onto the reader's selection (v1.19.68).
+            _syncingLists = true;
+            try
+            {
+                FontList.SelectedIndex = idx;
+                if (idx >= 0) FontList.ScrollIntoView(FontList.Items[idx]);
+            }
+            finally { _syncingLists = false; }
         }
 
         private void HighlightCurrentSize()
         {
             string cur = SizeText.Text;
             int idx = Array.FindIndex(SizeChoices, s => string.Equals(s, cur, StringComparison.Ordinal));
-            SizeList.SelectedIndex = idx;
-            if (idx >= 0) SizeList.ScrollIntoView(SizeList.Items[idx]);
+            // Same law as the font dial: the highlight is not an application.
+            _syncingLists = true;
+            try
+            {
+                SizeList.SelectedIndex = idx;
+                if (idx >= 0) SizeList.ScrollIntoView(SizeList.Items[idx]);
+            }
+            finally { _syncingLists = false; }
         }
 
         private void FontList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_syncingLists) return;   // the dial's own highlight never applies
             if (FontList.SelectedItem is string font)
             {
                 Post(new { cmd = "font", name = font });
@@ -368,6 +485,7 @@ namespace Avalanche.Controls
 
         private void SizeList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (_syncingLists) return;   // the dial's own highlight never applies
             if (SizeList.SelectedItem is string size)
             {
                 Post(new { cmd = "size", pt = size });
@@ -430,31 +548,63 @@ namespace Avalanche.Controls
             }
         }
 
-        // ── Session persistence: a courtesy cache, never a requirement ──────────
+        // ── Tabs: every document its own tab, the PDF editor's bargain ──────────
+        // The page shows one world at a time; a switch asks the live world for
+        // one last snapshot (a dump) and completes on its answer, so the last
+        // keystrokes before a click are never lost. Saves carry the world
+        // sequence they were written in, and a stale answer can never land in
+        // the tab that took the floor meanwhile.
 
-        private static string? LoadSession()
+        private string ActiveTabHtml()
+            => _activeTab >= 0 && _activeTab < _tabs.Count ? _tabs[_activeTab].Html : string.Empty;
+
+        private void LoadEditorTabs()
         {
+            _tabs.Clear();
+            _activeTab = 0;
+            _worldSeq = 0;
+            _pendingSwitchTo = null;
             try
             {
-                string p = Path.Combine(AppDataPaths.UserRoot, "texteditor", "session.html");
-                return File.Exists(p) ? File.ReadAllText(p) : null;
+                string p = Path.Combine(AppDataPaths.UserRoot, "texteditor", "session.json");
+                if (File.Exists(p))
+                {
+                    var data = JsonSerializer.Deserialize<SessionData>(File.ReadAllText(p));
+                    if (data?.Tabs is { Count: > 0 })
+                    {
+                        foreach (var t in data.Tabs)
+                            _tabs.Add(new EditorTab { Title = t.Title ?? "", Html = t.Html ?? "" });
+                        _activeTab = Math.Clamp(data.Active, 0, _tabs.Count - 1);
+                        return;
+                    }
+                }
+                // The v1.19.67 single-document cache migrates as the first tab.
+                string old = Path.Combine(AppDataPaths.UserRoot, "texteditor", "session.html");
+                if (File.Exists(old))
+                    _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = File.ReadAllText(old) });
             }
             catch
             {
-                return null;
+                // The session cache never takes the editor down.
             }
+            if (_tabs.Count == 0)
+                _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = "" });
         }
 
-        private void SaveSession(string html)
+        private void SaveSession()
         {
-            if (string.IsNullOrEmpty(html)) return;
             try
             {
+                var data = new SessionData
+                {
+                    Tabs = _tabs.Select(t => new SessionTab { Title = t.Title, Html = t.Html }).ToList(),
+                    Active = Math.Clamp(_activeTab, 0, Math.Max(0, _tabs.Count - 1)),
+                };
                 string dir = Path.Combine(AppDataPaths.UserRoot, "texteditor");
                 Directory.CreateDirectory(dir);
                 string tmp = Path.Combine(dir, "session.tmp");
-                string dst = Path.Combine(dir, "session.html");
-                File.WriteAllText(tmp, html);
+                string dst = Path.Combine(dir, "session.json");
+                File.WriteAllText(tmp, JsonSerializer.Serialize(data));
                 try { File.Move(tmp, dst, true); }
                 catch (IOException) { return; }                        // a busy target: the next save retries
                 catch (UnauthorizedAccessException) { return; }        // the disk said no: the cache is a courtesy
@@ -463,6 +613,173 @@ namespace Avalanche.Controls
             {
                 // The session cache never takes the editor down.
             }
+        }
+
+        private void RebuildEditorTabs()
+        {
+            EditorTabsPanel.Children.Clear();
+            for (int i = 0; i < _tabs.Count; i++)
+                EditorTabsPanel.Children.Add(BuildEditorTabButton(i));
+        }
+
+        private System.Windows.Controls.Button BuildEditorTabButton(int index)
+        {
+            var tab = _tabs[index];
+            bool active = index == _activeTab;
+
+            var title = new TextBlock
+            {
+                Text = string.IsNullOrEmpty(tab.Title) ? Loc("Str_Editor_Untitled") : tab.Title,
+                FontSize = 11.5,
+                Margin = new Thickness(2, 0, 4, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal,
+            };
+            title.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            title.SetResourceReference(TextBlock.FontFamilyProperty, "UiFont");
+
+            var close = new System.Windows.Controls.Button
+            {
+                Content = "\uE711",
+                FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
+                FontSize = 8.5,
+                Width = 18,
+                Height = 18,
+                Padding = new Thickness(0),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = System.Windows.Media.Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FocusVisualStyle = null,
+            };
+            close.SetResourceReference(System.Windows.Controls.Control.ForegroundProperty, "MutedTextBrush");
+            close.Click += (_, _) => CloseEditorTab(index);
+
+            var host = new Grid();
+            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            host.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(title, 0);
+            Grid.SetColumn(close, 1);
+            host.Children.Add(title);
+            host.Children.Add(close);
+
+            var btn = new System.Windows.Controls.Button
+            {
+                Content = host,
+                Padding = new Thickness(10, 2, 4, 2),
+                Margin = new Thickness(0, 0, 6, 0),
+                MinWidth = 120,
+                MaxWidth = 230,
+                BorderThickness = new Thickness(1),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                FocusVisualStyle = null,
+            };
+            btn.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty,
+                active ? "PaneBrush" : "BgCanvas");
+            btn.SetResourceReference(System.Windows.Controls.Control.BorderBrushProperty,
+                active ? "PrimaryBrush" : "CardBorderBrush");
+            btn.SetResourceReference(System.Windows.Controls.Control.FontFamilyProperty, "UiFont");
+            btn.Template = EditorTabTemplate();
+            btn.Click += (_, _) => RequestEditorTabSwitch(index);
+            return btn;
+        }
+
+        // The tab's face: one rounded card whose ring warms to the accent on
+        // hover - the page-card template the sidebar rail already wears.
+        private static System.Windows.Controls.ControlTemplate EditorTabTemplate()
+        {
+            var face = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border), "face");
+            face.SetValue(System.Windows.Controls.Border.BackgroundProperty,
+                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.BackgroundProperty));
+            face.SetValue(System.Windows.Controls.Border.BorderBrushProperty,
+                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.BorderBrushProperty));
+            face.SetValue(System.Windows.Controls.Border.BorderThicknessProperty,
+                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.BorderThicknessProperty));
+            face.SetValue(System.Windows.Controls.Border.CornerRadiusProperty,
+                new System.Windows.DynamicResourceExtension("ControlCornerRadius"));
+            face.SetValue(System.Windows.Controls.Border.PaddingProperty,
+                new System.Windows.TemplateBindingExtension(System.Windows.Controls.Control.PaddingProperty));
+            face.AppendChild(new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.ContentPresenter)));
+            var tpl = new System.Windows.Controls.ControlTemplate(typeof(System.Windows.Controls.Button))
+            {
+                VisualTree = face,
+            };
+            var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
+            hover.Setters.Add(new System.Windows.Setter(
+                System.Windows.Controls.Border.BorderBrushProperty,
+                new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
+            tpl.Triggers.Add(hover);
+            return tpl;
+        }
+
+        /// <summary>The reader clicked a tab: the live world is asked for one
+        /// last snapshot before the next world loads - the page answers with
+        /// its save, and the switch completes there.</summary>
+        public void RequestEditorTabSwitch(int to)
+        {
+            if (to < 0 || to >= _tabs.Count || to == _activeTab) return;
+            if (!_pageReady) { ActivateEditorTabNow(to); return; }
+            _pendingSwitchTo = to;
+            Post(new { cmd = "dump" });
+        }
+
+        private void ActivateEditorTabNow(int to)
+        {
+            if (to < 0 || to >= _tabs.Count) return;
+            _activeTab = to;
+            RebuildEditorTabs();
+            if (_pageReady)
+            {
+                _worldSeq++;
+                Post(new { cmd = "load", html = _tabs[to].Html, seq = _worldSeq });
+            }
+            else
+            {
+                _pendingLoadHtml = _tabs[to].Html;
+            }
+        }
+
+        /// <summary>New: an empty document in its own tab - the main toolbar's
+        /// New button while the editor leads (v1.19.68).</summary>
+        public void OpenNewTab()
+        {
+            _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = "" });
+            int to = _tabs.Count - 1;
+            if (!_pageReady) { ActivateEditorTabNow(to); SaveSession(); return; }
+            _pendingSwitchTo = to;
+            Post(new { cmd = "dump" });   // the current world saves first; the switch completes on its answer
+        }
+
+        private void CloseEditorTab(int index)
+        {
+            if (index < 0 || index >= _tabs.Count) return;
+            bool closingActive = index == _activeTab;
+            _tabs.RemoveAt(index);
+            if (_tabs.Count == 0)
+                _tabs.Add(new EditorTab { Title = Loc("Str_Editor_Untitled"), Html = "" });
+            if (closingActive)
+            {
+                _activeTab = -1;                      // the outgoing world's save has no home - drop it
+                int to = Math.Min(index, _tabs.Count - 1);
+                if (_pageReady)
+                {
+                    _pendingSwitchTo = to;
+                    Post(new { cmd = "dump" });       // a courtesy: nothing left to save, but the flow is one
+                }
+                else
+                {
+                    ActivateEditorTabNow(to);
+                }
+            }
+            else
+            {
+                if (index < _activeTab) _activeTab--;
+                RebuildEditorTabs();
+            }
+            SaveSession();
         }
 
         // ── Host-facing surface ──────────────────────────────────────────────────

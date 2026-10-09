@@ -1393,4 +1393,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Editor_PageCard">Page {0}</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">Les pages que vous rédigez apparaissent ici.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Le runtime WebView2 est introuvable. Installez Evergreen Runtime de Microsoft, puis rouvrez l'éditeur de texte.</sys:String>
+    <sys:String x:Key="Str_Editor_Untitled">Sans titre</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontGrow">Augmenter la taille de la police</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontShrink">Réduire la taille de la police</sys:String>
 </ResourceDictionary>

@@ -1381,4 +1381,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Editor_PageCard">Strona {0}</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">Tu pojawiają się strony, które piszesz.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">Nie znaleziono środowiska WebView2. Zainstaluj Evergreen Runtime od Microsoftu, a następnie otwórz edytor tekstu ponownie.</sys:String>
+    <sys:String x:Key="Str_Editor_Untitled">Bez nazwy</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontGrow">Zwiększ rozmiar czcionki</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontShrink">Zmniejsz rozmiar czcionki</sys:String>
 </ResourceDictionary>

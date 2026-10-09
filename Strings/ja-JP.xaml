@@ -1393,4 +1393,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Editor_PageCard">{0} ページ</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">書いたページがここに表示されます。</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 ランタイムが見つかりません。Microsoft の Evergreen Runtime をインストールしてから、テキストエディターをもう一度開いてください。</sys:String>
+    <sys:String x:Key="Str_Editor_Untitled">無題</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontGrow">フォント サイズを大きくする</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontShrink">フォント サイズを小さくする</sys:String>
 </ResourceDictionary>

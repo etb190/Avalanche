@@ -1535,6 +1535,10 @@
                              the text and move freely. Living in GrpToolsToggle keeps it on
                              the bar in BOTH modes, exactly like the globe it leans on. -->
                         <Button x:Name="TextEditorBtn" Content="&#xE70B;" Style="{StaticResource ToolbarButton}" Click="TextEditorBtn_Click" ToolTip="{DynamicResource Str_TT_TextEditor}"/>
+                        <!-- The PDF editor switch while the browser leads (v1.19.68):
+                             the browser's toolbar keeps exactly three buttons - New,
+                             Text Editor, PDF Editor - each saying the pane it opens. -->
+                        <Button x:Name="PdfEditorBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="PdfEditorBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}" Visibility="Collapsed"/>
                         <!-- Save Web PDF (v1.19.5): a book the browser downloaded lives in
                              the reader's temp area - this is the one-glance way to keep it.
                              Visible only while the active document IS a web download; the

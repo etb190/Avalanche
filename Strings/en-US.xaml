@@ -1393,4 +1393,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Editor_PageCard">Page {0}</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">Pages you write appear here.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">The WebView2 runtime was not found. Install the Evergreen Runtime from Microsoft, then reopen the text editor.</sys:String>
+    <sys:String x:Key="Str_Editor_Untitled">Untitled</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontGrow">Increase the font size</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontShrink">Decrease the font size</sys:String>
 </ResourceDictionary>

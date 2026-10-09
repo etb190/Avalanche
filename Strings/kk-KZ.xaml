@@ -1392,4 +1392,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Editor_PageCard">{0}-бет</sys:String>
     <sys:String x:Key="Str_Editor_TabsEmpty">Жазған беттеріңіз осында пайда болады.</sys:String>
     <sys:String x:Key="Str_Editor_RuntimeMissing">WebView2 жүйесі табылмады. Microsoft Evergreen Runtime орнатыңыз, содан кеін мөтіндік редакторды қайта ашыңыз.</sys:String>
+    <sys:String x:Key="Str_Editor_Untitled">Атауы жоқ</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontGrow">Қаріп өлшемін үлкейту</sys:String>
+    <sys:String x:Key="Str_TT_EditorFontShrink">Қаріп өлшемін кішірейту</sys:String>
 </ResourceDictionary>

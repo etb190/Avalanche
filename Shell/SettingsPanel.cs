@@ -773,6 +773,8 @@ namespace Avalanche
                         _toolbarButtons.Add((btn, CompareGlyph, "Str_TT_ComparePDFs"));
                     else if (ReferenceEquals(btn, ToolFormFieldBtn))
                         _toolbarButtons.Add((btn, FormFieldGlyph, "Str_Lbl_FormField"));
+                    else if (ReferenceEquals(btn, PdfEditorBtn))
+                        _toolbarButtons.Add((btn, "\uE8A5", "Str_Lbl_PdfEditor"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
                     {
                         // the pane toggle reads its destination while the editor leads
@@ -1201,7 +1203,7 @@ namespace Avalanche
         // While the text editor leads, EVERY viewer group stands down: the
         // reflow's reset pass keeps them off the bar and out of the overflow.
         private bool IsModeHidden(UIElement bar) =>
-            _editorLeads ||
+            _editorLeads || _browserLeads ||
             (!_toolsMode && IsToolsGroup(bar)) || (_toolsMode && IsDefaultGroup(bar));
 
         private void ToolsBtn_Click(object sender, RoutedEventArgs e)
@@ -1284,6 +1286,48 @@ namespace Avalanche
             TextEditorBtn.ToolTip = Loc(leads ? "Str_TT_EditorPdf" : "Str_TT_TextEditor");
             SetToolbarButton(TextEditorBtn, "\uE70B", _editorToggleLabelKey,
                 withLabel: _toolbarLabelMode is ToolbarLabelMode.Beside or ToolbarLabelMode.Under);
+            InvalidateToolbarReflow();
+            QueueReflowToolbar();
+        }
+
+        // ── The browser's toolbar face (v1.19.68) ─────────────────────────────
+        // While the browser leads, the bar keeps exactly three buttons: New,
+        // Text Editor, PDF Editor - each speaking the pane it opens - and not
+        // one button more. The globe stands down (the reader is already
+        // there), the viewer groups fold away for the reflow, and the
+        // save/chat button's refresh is held off for as long as the face lasts.
+        private bool _browserLeads;
+
+        private void ApplyBrowserToolbarFace(bool leads)
+        {
+            _browserLeads = leads;
+            if (leads)
+            {
+                foreach (string name in EditorHiddenElements)
+                    if (FindName(name) is FrameworkElement el)
+                        el.Visibility = Visibility.Collapsed;
+                WebBrowserBtn.Visibility = Visibility.Collapsed;
+                NewFileBtn.Visibility = Visibility.Visible;
+                RightContainer.Visibility = Visibility.Collapsed;
+                PdfEditorBtn.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ApplyToolsMode();                        // the ordinary law returns
+                ToolsBtn.Visibility = Visibility.Visible;
+                RightContainer.Visibility = Visibility.Visible;
+                WebBrowserBtn.Visibility = Visibility.Visible;
+                PdfEditorBtn.Visibility = Visibility.Collapsed;
+                RefreshWebSaveButton(_originalFile ?? _currentFile);
+            }
+            // From the browser, both document faces answer by name: the pencil
+            // reads "Text Editor" and its neighbor reads "PDF Editor".
+            for (int i = 0; i < _toolbarButtons.Count; i++)
+                if (ReferenceEquals(_toolbarButtons[i].btn, TextEditorBtn))
+                    _toolbarButtons[i] = (TextEditorBtn, "\uE70B", "Str_Lbl_TextEditor");
+            SetToolbarButton(TextEditorBtn, "\uE70B", "Str_Lbl_TextEditor",
+                withLabel: _toolbarLabelMode is ToolbarLabelMode.Beside or ToolbarLabelMode.Under);
+            TextEditorBtn.ToolTip = Loc("Str_TT_TextEditor");
             InvalidateToolbarReflow();
             QueueReflowToolbar();
         }
