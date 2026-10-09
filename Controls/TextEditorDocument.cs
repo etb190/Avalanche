@@ -1,1276 +1,582 @@
 using System;
+using System.IO;
+using System.Windows;
 
 namespace Avalanche.Controls
 {
-    // The text editor's page (v1.19.64): one embedded HTML document carrying the
-    // whole writing surface. Real Letter-sized pages that grow on their own - text
-    // that overflows a page walks to the next one, and a trailing empty page steps
-    // back off the stage - text that lives on its own layer above images that are
-    // dragged freely behind it, footnotes that anchor to the page they are written
-    // on, hyperlinks that hand themselves to the host, and a caret whose font and
-    // size report home so the ribbon always shows what the reader is wearing.
-    // Deliberately dependency-free: no editor framework, no CDN, just the platform
-    // the browser pane already ships. Communication contract with the ribbon:
-    //   in  {cmd:...}  bold|italic|underline|strike|font|size|linkui|footnote|image|scroll|focus|load|i18n
-    //   out {type:...} ready|pages|state|save|link
+    // The text editor's page (v1.19.72): one embedded HTML document carrying a
+    // standalone Quill.js v2 writing surface. The handwritten pagination engine
+    // is gone - makePage, overflow, reflowFrom, pullFromNext, trimTrailing, the
+    // zero-width caret crutches, the snapshot undo, the DOM span surgery - and
+    // the sheet is pageless now: one white Letter canvas, centered on the
+    // workspace ground, that grows as the writing does. Quill owns the document
+    // model, the caret and the history; the sheet adds what Quill does not
+    // ship: footnotes with a numbered, click-jumping list at the foot, a link
+    // popover, image paste and drop, and a page raster for the sidebar's rail.
+    // Deliberately 100% offline: Quill rides as WPF resources
+    // (Resources/Scripts/quill.min.js + quill.snow.css) and is inlined into the
+    // document at first use - no CDN, ever.
+    // Communication contract with the ribbon:
+    //   in  {cmd:...}  bold|italic|underline|strike|font|size|sizeStep|linkui|
+    //                  footnote|image|undo|redo|load|dump|scroll|focus|i18n
+    //   out {type:...} ready|state|save|link|title|pages|thumbs
     public static class TextEditorDocument
     {
-        public const string Html = """
+        private static string? _assembled;
+
+        /// <summary>The embedded editor document: the template below with
+        /// Quill's engine and theme inlined from their WPF resources.</summary>
+        public static string Html => _assembled ??= Assemble();
+
+        private static string Assemble()
+        {
+            string js = ReadResource("Resources/Scripts/quill.min.js");
+            string css = ReadResource("Resources/Scripts/quill.snow.css");
+            return Template.Replace("__QUILL_CSS__", css).Replace("__QUILL_JS__", js);
+        }
+
+        // The same ride Readability takes (WebBrowserControl): a WPF <Resource>
+        // read through the pack URI at first use, empty when the resource is
+        // missing so a packaging slip degrades to a blank sheet, never a crash.
+        private static string ReadResource(string path)
+        {
+            try
+            {
+                var info = Application.GetResourceStream(new Uri("pack://application:,,,/" + path));
+                if (info?.Stream is null) return string.Empty;
+                using var reader = new StreamReader(info.Stream, System.Text.Encoding.UTF8);
+                return reader.ReadToEnd();
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        public const string Template = """
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
+<style>__QUILL_CSS__</style>
 <style>
   html, body { margin:0; padding:0; }
   body { background:#3d4046; overflow-x:hidden; font-family:'Segoe UI',sans-serif; }
-  #docs { padding:16px 0 42px 0; }
-  .page { width:816px; height:1056px; margin:0 auto 18px auto; background:#ffffff;
-          box-shadow:0 2px 10px rgba(0,0,0,0.45); position:relative; border-radius:2px; }
-  .pin  { position:absolute; left:0; top:0; right:0; bottom:0; box-sizing:border-box;
-          padding:64px 72px 78px 72px; overflow:hidden; }
-  .txt  { min-height:100%; position:relative; z-index:2; outline:none; color:#1c1c1c;
-          font-family:'Times New Roman',serif; font-size:12pt; line-height:1.5;
-          user-select:text; -webkit-user-select:text; caret-color:#1c1c1c; }
-  .txt a { color:#2b6cb0; cursor:pointer; }
-  .fnnote { position:absolute; left:72px; right:72px; bottom:26px; z-index:2; outline:none;
-            border-top:1px solid #c9c9c9; padding-top:5px; color:#333333;
-            font-family:'Times New Roman',serif; font-size:9.5pt; line-height:1.45;
-            user-select:text; -webkit-user-select:text; caret-color:#333333; display:none; }
-  .fnmark { vertical-align:super; font-size:0.68em; color:#4a90d9; cursor:default; }
-  .fnnum  { color:#4a90d9; margin-right:4px; }
-  .fimg { position:absolute; z-index:1; cursor:grab; user-select:none; -webkit-user-drag:none; touch-action:none; }
-  .fimg img { width:100%; height:auto; display:block; pointer-events:none; }
-  .fimg.sel { outline:2px solid #4a90d9; outline-offset:2px; }
-  .rsz { position:absolute; right:-7px; bottom:-7px; width:14px; height:14px; background:#4a90d9;
-         border:2px solid #ffffff; border-radius:2px; cursor:nwse-resize; display:none; }
-  .fimg.sel .rsz { display:block; }
-  #linkpop { position:fixed; display:none; z-index:50; background:#ffffff; border:1px solid #c9c9c9;
-             border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.3); padding:8px; }
-  #linkpop input { width:250px; padding:5px 8px; border:1px solid #c9c9c9; border-radius:4px;
-                   font-size:12px; outline:none; font-family:'Segoe UI',sans-serif; }
-  #linkpop button { padding:5px 12px; margin-left:6px; border:1px solid #c9c9c9; background:#f4f4f4;
-                    border-radius:4px; font-size:12px; cursor:pointer; font-family:'Segoe UI',sans-serif; }
+  #canvas { width:816px; min-height:1056px; margin:24px auto 48px auto; background:#ffffff;
+            box-shadow:0 2px 10px rgba(0,0,0,0.45); border-radius:2px; box-sizing:border-box; }
+  /* The snow theme pins the container to height:100% and gives the editor its
+     own scrollbar - a pageless sheet wants the opposite: the canvas grows,
+     the window scrolls, one unbroken ride. */
+  .ql-container { height:auto; font-family:'Times New Roman',serif; }
+  .ql-editor { height:auto; min-height:1056px; overflow-y:visible;
+               font-family:'Times New Roman',serif; font-size:12pt; line-height:1.5;
+               color:#1c1c1c; padding:64px 72px 32px 72px; outline:none; }
+  .ql-editor.ql-blank::before { content:none; }
+  .ql-editor img { max-width:100%; height:auto; }
+  .ql-editor a { cursor:pointer; color:#1155cc; text-decoration:underline; }
+  sup.fnref { color:#1155cc; cursor:pointer; }
+  sup.fnref::after { content:attr(data-n); }
+  sup.fnref.flash { background:#fff3c4; border-radius:2px; }
+  /* The footnote list lives under the document, inside the sheet, outside
+     Quill's model - the entries are editable on their own recognizance. */
+  #fnote { margin:0 72px; padding:0 0 44px 0; }
+  #fnote:empty { display:none; }
+  #fnote.has { border-top:1px solid #d8d8d8; }
+  .fnitem { font-family:'Segoe UI',sans-serif; font-size:10pt; color:#333;
+            line-height:1.45; margin:7px 0; outline:none; }
+  .fnitem .fnnum { font-weight:bold; color:#1155cc; cursor:pointer; margin-right:7px; }
+  .fnitem.flash { background:#fff3c4; border-radius:2px; }
+  .fnitem.flash .fnnum { color:#7a5c00; }
+  /* The link popover: the ribbon's linkui lands here, near the selection. */
+  #linkpop { position:fixed; display:none; z-index:50; background:#ffffff;
+             border:1px solid #c7c7c7; border-radius:6px;
+             box-shadow:0 6px 22px rgba(0,0,0,0.35); padding:10px; width:300px; }
+  #linkpop input { width:100%; box-sizing:border-box; margin:4px 0; padding:6px 8px;
+                   border:1px solid #c9c9c9; border-radius:4px;
+                   font:12px 'Segoe UI',sans-serif; outline:none; }
+  #linkpop input:focus { border-color:#7aa7d8; }
+  #linkpop .row { display:flex; gap:6px; margin-top:6px; }
+  #linkpop button { flex:1; padding:6px 0; border:1px solid #c9c9c9; border-radius:4px;
+                    background:#f4f4f4; cursor:pointer; font:12px 'Segoe UI',sans-serif; }
+  #linkpop button:hover { background:#e8e8e8; }
+  /* The font dial's thirteen faces - the class attributor's whitelist. */
+  .ql-font-segoe-ui { font-family:'Segoe UI',sans-serif; }
+  .ql-font-arial { font-family:Arial,sans-serif; }
+  .ql-font-calibri { font-family:Calibri,sans-serif; }
+  .ql-font-cambria { font-family:Cambria,serif; }
+  .ql-font-consolas { font-family:Consolas,monospace; }
+  .ql-font-courier-new { font-family:'Courier New',monospace; }
+  .ql-font-georgia { font-family:Georgia,serif; }
+  .ql-font-impact { font-family:Impact,sans-serif; }
+  .ql-font-palatino-linotype { font-family:'Palatino Linotype',serif; }
+  .ql-font-tahoma { font-family:Tahoma,sans-serif; }
+  .ql-font-times-new-roman { font-family:'Times New Roman',serif; }
+  .ql-font-trebuchet-ms { font-family:'Trebuchet MS',sans-serif; }
+  .ql-font-verdana { font-family:Verdana,sans-serif; }
 </style>
 </head>
 <body>
-<div id="docs"></div>
-<div id="linkpop">
-  <input id="linkurl" type="text" spellcheck="false">
-  <button id="linkok" type="button"></button>
-  <button id="linkrm" type="button"></button>
+<div id="canvas">
+  <div id="editor"></div>
+  <div id="fnote"></div>
 </div>
+<div id="linkpop">
+  <input id="lp_text" type="text" autocomplete="off">
+  <input id="lp_url" type="text" autocomplete="off">
+  <div class="row"><button id="lp_ok" type="button"></button><button id="lp_no" type="button"></button></div>
+</div>
+<script>__QUILL_JS__</script>
 <script>
 (function(){
-  'use strict';
-  var docs = document.getElementById('docs');
-  var ZWSP = '\u200B';
-  var saved = null;          // {el, range} - the caret's last known resting place
-  var pickedImage = null;    // the selected image wrapper
-  var drag = null;           // an active image move / resize
-  var linkTarget = null;     // the <a> being edited, or null for an insert
-  var linkRange = null;      // the range a new link will own
-  var FNID = 0;
-  var saveTimer = null, stateTimer = null;
-  var worldSeq = 0;          // which loaded world the page is showing; saves carry it
-  var i18n = { apply:'Apply', remove:'Remove', linkUrl:'' };
+'use strict';
+function post(o){ try { window.chrome.webview.postMessage(o); } catch(e){} }
 
-  // The object itself, not JSON.stringify(o): PostWebMessageAsJson-style
-  // messages are the host's object lane - posting a string would make the
-  // host see a quoted string where it expects the message's fields.
-  function post(o){ try { window.chrome.webview.postMessage(o); } catch(e){} }
+// ── fonts & sizes ─────────────────────────────────────────────────────────
+var FONTS = ['Segoe UI','Arial','Calibri','Cambria','Consolas','Courier New','Georgia',
+             'Impact','Palatino Linotype','Tahoma','Times New Roman','Trebuchet MS','Verdana'];
+var LADDER = [8,9,10,11,12,14,16,18,20,24,28,32,36,48,72];
+function slug(n){ return String(n).toLowerCase().replace(/\s+/g,'-'); }
+function pretty(s){ for (var i=0;i<FONTS.length;i++) if (slug(FONTS[i])===s) return FONTS[i]; return s||''; }
 
-  // -- pages ---------------------------------------------------------------
-  function makePage(){
-    var page = document.createElement('div'); page.className = 'page';
-    var pin  = document.createElement('div'); pin.className  = 'pin';
-    var txt  = document.createElement('div'); txt.className  = 'txt';
-    txt.contentEditable = 'true'; txt.spellcheck = false;
-    var fn   = document.createElement('div'); fn.className   = 'fnnote';
-    fn.contentEditable = 'true'; fn.spellcheck = false; fn.dataset.empty = '1';
-    pin.appendChild(txt); pin.appendChild(fn); page.appendChild(pin);
-    docs.appendChild(page);
-    return page;
+// The size format is a STYLE attributor, not a class one: any point size the
+// reader types lands exactly - the ladder is only a stepping stone. The
+// engine ships the instance (px-whitelisted for its paste matcher); the
+// whitelist opens and the command layer speaks plain points ('13' -> '13pt').
+var SizeStyle = Quill.import('attributors/style/size');
+SizeStyle.whitelist = null;
+Quill.register(SizeStyle, true);
+function pt(value){ return /^\d+(\.\d+)?$/.test(String(value)) ? value + 'pt' : value; }
+
+var FontBlot = Quill.import('formats/font');
+FontBlot.whitelist = FONTS.map(slug);
+Quill.register(FontBlot, true);
+
+// The footnote anchor: an ATOMIC sup embed - the caret can never fall inside
+// it, backspace takes the whole anchor, and the visible number rides the
+// data-n attribute the renumber pass keeps honest.
+var Embed = Quill.import('blots/embed');
+class FnRef extends Embed {
+  static create(value) {
+    var node = super.create(value);
+    node.setAttribute('data-fn', String(value));
+    return node;
   }
-  function txtOf(p){ return p.querySelector('.txt'); }
-  function fnOf(p){ return p.querySelector('.fnnote'); }
-  function pageAt(n){ return docs.children[n] || null; }
-  // The text layer grows with its content - the pin does the clipping - so
-  // its own scrollHeight never betrays it. Fullness is measured against the
-  // pin's available inner height: the page box minus its paddings.
-  function overflow(t){
-    var pin = t.parentElement;
-    var cs = getComputedStyle(pin);
-    var avail = pin.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    return t.offsetHeight > avail + 1;
-  }
+  static value(node) { return node.getAttribute('data-fn') || ''; }
+  value() { return { fnref: this.domNode.getAttribute('data-fn') || '' }; }
+}
+FnRef.blotName = 'fnref';
+FnRef.tagName = 'SUP';
+FnRef.className = 'fnref';
+Quill.register(FnRef);
 
-  // Puts the caret back where its text landed (v1.19.70): a split bare text
-  // node is answered by the tail that now holds the typed half - the caret
-  // follows it by offset - and any other anchor that survived the walk keeps
-  // its place, which is now the page the text moved to. The caret's page
-  // scrolls nearest, so the words the reader is typing are the words on
-  // screen. Without this, typing at the end of a full page left the caret
-  // behind on the old page while the words landed on the new one.
-  function comfortScroll(){
-    var sel = document.getSelection();
-    if (!sel || !sel.rangeCount || !sel.isCollapsed) return;
-    var rect = sel.getRangeAt(0).getBoundingClientRect();
-    var vh = window.innerHeight || 800;
-    if (!rect || (rect.top === 0 && rect.bottom === 0)) return;
-    // The caret's line sits in the fold - a sliver of the next page the
-    // reader cannot type into with confidence. Bring the line a third of
-    // the way down the view, so the words being typed are the words on
-    // screen, mid-page, not pinned to an edge.
-    if (rect.top < 60 || rect.bottom > vh - 60){
-      window.scrollTo(0, window.pageYOffset + rect.top - Math.round(vh / 3));
+// ── the editor ────────────────────────────────────────────────────────────
+var fnote = document.getElementById('fnote');
+var quill = new Quill('#editor', {
+  theme: 'snow',
+  placeholder: '',
+  modules: {
+    toolbar: false,
+    history: { delay: 400, maxStack: 500, userOnly: true }
+  }
+});
+try { window.__az = quill; } catch(e){}
+
+// Undo and redo answer from the page's own keys as well as the ribbon's.
+quill.keyboard.addBinding({ key: 'Z', shortKey: true }, function(){ quill.history.undo(); });
+quill.keyboard.addBinding({ key: 'Y', shortKey: true }, function(){ quill.history.redo(); });
+quill.keyboard.addBinding({ key: 'Z', shortKey: true, shiftKey: true }, function(){ quill.history.redo(); });
+
+// ── footnotes ─────────────────────────────────────────────────────────────
+function nextFnId(){
+  var max = 0, m, i;
+  var pool = quill.root.querySelectorAll('sup.fnref[data-fn]');
+  for (i=0;i<pool.length;i++){ m = /fn(\d+)/.exec(pool[i].getAttribute('data-fn')||''); if (m) max = Math.max(max, +m[1]); }
+  pool = fnote.querySelectorAll('.fnitem[data-fn]');
+  for (i=0;i<pool.length;i++){ m = /fn(\d+)/.exec(pool[i].getAttribute('data-fn')||''); if (m) max = Math.max(max, +m[1]); }
+  return 'fn' + (max + 1);
+}
+
+// One law for the whole list: anchors renumber by document order, every
+// anchor owns exactly one entry, entries follow anchor order, orphans die.
+function renumber(){
+  var refs = quill.root.querySelectorAll('sup.fnref');
+  var seen = [], i, id;
+  for (i=0;i<refs.length;i++){
+    id = refs[i].getAttribute('data-fn') || ('fn' + (i+1));
+    refs[i].setAttribute('data-n', String(i+1));
+    seen.push(id);
+    var it = fnote.querySelector('.fnitem[data-fn="' + id + '"]');
+    if (!it){
+      it = document.createElement('div');
+      it.className = 'fnitem';
+      it.setAttribute('data-fn', id);
+      it.setAttribute('contenteditable', 'true');
+      var num = document.createElement('span'); num.className = 'fnnum'; num.setAttribute('contenteditable','false');
+      var txt = document.createElement('span'); txt.className = 'fntxt';
+      it.appendChild(num); it.appendChild(txt);
+    }
+    var n = it.querySelector('.fnnum'); if (n) n.textContent = (i+1) + '.';
+    fnote.appendChild(it);   // an appendChild of a live child is a move
+  }
+  var items = fnote.querySelectorAll('.fnitem');
+  for (var j=items.length-1;j>=0;j--)
+    if (seen.indexOf(items[j].getAttribute('data-fn')) < 0) items[j].parentNode.removeChild(items[j]);
+  fnote.className = refs.length ? 'has' : '';
+}
+
+function insertFootnote(){
+  var sel = quill.getSelection(true);
+  if (!sel) return;
+  var id = nextFnId();
+  quill.insertEmbed(sel.index, 'fnref', id, 'user');
+  quill.setSelection(sel.index + 1);
+  renumber();
+}
+
+function jumpToEntry(id){
+  var it = fnote.querySelector('.fnitem[data-fn="' + id + '"]');
+  if (it){ it.scrollIntoView({ behavior:'smooth', block:'center' }); flash(it); }
+}
+function jumpToRef(id){
+  var sup = quill.root.querySelector('sup.fnref[data-fn="' + id + '"]');
+  if (sup){ sup.scrollIntoView({ behavior:'smooth', block:'center' }); flash(sup); }
+}
+function flash(el){ el.classList.add('flash'); setTimeout(function(){ el.classList.remove('flash'); }, 900); }
+
+quill.root.addEventListener('click', function(e){
+  var t = e.target;
+  if (t && t.closest){
+    var sup = t.closest('sup.fnref');
+    if (sup){ e.preventDefault(); jumpToEntry(sup.getAttribute('data-fn')); return; }
+    var a = t.closest('a[href]');
+    if (a){ e.preventDefault(); post({ type:'link', url: a.getAttribute('href') || '' }); }
+  }
+});
+fnote.addEventListener('click', function(e){
+  var t = e.target;
+  if (t && t.classList && t.classList.contains('fnnum')){
+    var it = t.closest ? t.closest('.fnitem') : null;
+    if (it) jumpToRef(it.getAttribute('data-fn'));
+  }
+});
+
+// ── the link popover ──────────────────────────────────────────────────────
+var lpop = document.getElementById('linkpop'),
+    lpText = document.getElementById('lp_text'),
+    lpUrl = document.getElementById('lp_url'),
+    lpOk = document.getElementById('lp_ok'),
+    lpNo = document.getElementById('lp_no');
+var i18n = { apply:'Apply', remove:'Remove', linkUrl:'Link URL' };
+
+function closeLinkPop(){ lpop.style.display = 'none'; }
+function openLinkPop(){
+  var sel = quill.getSelection();
+  var hasSel = !!(sel && sel.length > 0);
+  var f = quill.getFormat();
+  lpText.style.display = hasSel ? 'none' : 'block';
+  lpText.value = '';
+  lpUrl.value = hasSel && f.link ? String(f.link) : '';
+  lpOk.textContent = i18n.apply;
+  lpNo.textContent = i18n.remove;
+  lpUrl.placeholder = i18n.linkUrl;
+  lpop.style.display = 'block';
+  var rect = null;
+  try {
+    var dsel = document.getSelection();
+    if (dsel && dsel.rangeCount && dsel.anchorNode && quill.root.contains(dsel.anchorNode))
+      rect = dsel.getRangeAt(0).getBoundingClientRect();
+  } catch(e){}
+  var x, y;
+  if (rect && (rect.top || rect.bottom)){ x = rect.left; y = rect.bottom + 8; }
+  else { x = (window.innerWidth - 320) / 2; y = 120; }
+  x = Math.max(8, Math.min(x, window.innerWidth - 320));
+  y = Math.max(8, y);
+  lpop.style.left = x + 'px';
+  lpop.style.top = y + 'px';
+  lpUrl.focus();
+}
+function applyLink(){
+  var url = lpUrl.value.trim();
+  if (!url){ closeLinkPop(); return; }
+  var sel = quill.getSelection(true);
+  if (sel && sel.length > 0){
+    quill.formatText(sel.index, sel.length, 'link', url, 'user');
+  } else {
+    var txt = lpText.value.trim() || url;
+    quill.insertText(sel.index, txt, 'link', url, 'user');
+  }
+  closeLinkPop();
+  reportState();
+}
+function removeLink(){
+  var sel = quill.getSelection(true);
+  if (sel && sel.length > 0){
+    if (quill.getFormat().link) quill.formatText(sel.index, sel.length, 'link', false, 'user');
+  } else {
+    var el = caretEl();
+    var a = el && el.closest ? el.closest('a[href]') : null;
+    if (a){
+      var blot = Quill.find(a);
+      if (blot){ var at = quill.getIndex(blot); quill.formatText(at, blot.length(), 'link', false, 'user'); }
     }
   }
+  closeLinkPop();
+  reportState();
+}
+lpOk.addEventListener('click', applyLink);
+lpNo.addEventListener('click', removeLink);
+lpUrl.addEventListener('keydown', function(e){
+  if (e.key === 'Enter'){ e.preventDefault(); applyLink(); }
+  else if (e.key === 'Escape'){ e.preventDefault(); closeLinkPop(); }
+});
+lpText.addEventListener('keydown', function(e){
+  if (e.key === 'Enter'){ e.preventDefault(); lpUrl.focus(); }
+  else if (e.key === 'Escape'){ e.preventDefault(); closeLinkPop(); }
+});
+// A click inside the text moves the caret; a popover holding a stale
+// selection would then dress the wrong words. Close it first.
+quill.root.addEventListener('mousedown', function(){ if (lpop.style.display === 'block') closeLinkPop(); });
 
-  function restoreCaretAfterReflow(mark, splits){
-    var sel = document.getSelection();
-    var done = null;
-    for (var i = 0; i < splits.length; i++){
-      if (splits[i].node === mark.node && mark.off > splits[i].cut){
-        var t = splits[i].tail;
-        var r = document.createRange();
-        r.setStart(t, Math.min(mark.off - splits[i].cut, t.nodeValue.length));
-        r.collapse(true);
-        sel.removeAllRanges(); sel.addRange(r);
-        done = r;
-        break;
-      }
-    }
-    if (!done && mark.node && mark.node.isConnected){
-      var n = mark.node, o = mark.off;
-      if (n.nodeType === 3) o = Math.min(o, n.nodeValue.length);
-      else o = Math.min(o, n.childNodes.length);
-      var r2 = document.createRange();
-      r2.setStart(n, o); r2.collapse(true);
-      sel.removeAllRanges(); sel.addRange(r2);
-      done = r2;
-    }
-    if (!done) return;
-    var el = done.startContainer.nodeType === 3 ? done.startContainer.parentElement : done.startContainer;
-    var pg = el && el.closest ? el.closest('.page') : null;
-    if (pg && pg !== mark.pg) comfortScroll();   // the words changed pages: the view goes with them
-  }
-
-  // Text that no longer fits walks forward, whole block by whole block, until
-  // every page is honest about what it holds. A fresh page is born when the
-  // last one is full; the cascade moves page by page so a mid-document edit
-  // pushes everything after it down the stack.
-  function reflowFrom(page){
-    // The caret's anchor is read before the walk and restored after it -
-    // collapsed selections only, for a range spanning the split has no
-    // honest home anyway.
-    var sel0 = document.getSelection();
-    var mark = null;
-    if (sel0 && sel0.rangeCount && sel0.isCollapsed && docs.contains(sel0.anchorNode)){
-      var pg0 = sel0.anchorNode.nodeType === 3 ? sel0.anchorNode.parentElement : sel0.anchorNode;
-      mark = { node: sel0.anchorNode, off: sel0.anchorOffset,
-               pg: pg0 && pg0.closest ? pg0.closest('.page') : null };
-    }
-    var splits = [];
-    var guard = 0;
-    while (page && guard++ < 400){
-      var t = txtOf(page);
-      if (!overflow(t)) break;
-      var next = page.nextElementSibling;
-      if (!next) next = makePage();
-      var nt = txtOf(next);
-      var last = t.lastElementChild || t.lastChild;   // blocks, or a typed line's bare text node
-      if (!last) break;
-      // A bare text node too big for ANY page cannot walk whole: moved
-      // intact it overflows the next page too, and the cascade leaves a
-      // trail of empty pages behind it - a 5KB plain-text paste grew 400
-      // of them (v1.19.69). Split it at the character that fits instead,
-      // and only the remainder walks. Blocks keep walking whole: their
-      // own law is what keeps a paragraph unbroken across pages.
-      if (last.nodeType === 3 && nodeOverflowsAPage(last)){
-        var full = last.nodeValue;
-        var lo = 0, hi = full.length;
-        while (lo < hi){
-          var mid = (lo + hi + 1) >> 1;
-          last.nodeValue = full.slice(0, mid);
-          // overflow is monotone in the prefix length: too tall shrinks the
-          // candidate, fitting grows it - the search lands on the largest
-          // prefix the page can honestly hold.
-          if (overflow(t)) hi = mid - 1; else lo = mid;
-        }
-        last.nodeValue = full.slice(0, lo);
-        var tail = document.createTextNode(full.slice(lo));
-        nt.insertBefore(tail, nt.firstChild);
-        // The typed half walked to the tail: remembered, so the caret can
-        // follow it by offset once the walk is done.
-        splits.push({ node: last, cut: lo, tail: tail });
-        page = next;
-        continue;
-      }
-      nt.insertBefore(last, nt.firstChild);
-      // Stay on the same page until it is honest again, then let the cascade
-      // continue from the neighbor we just fed - a large paste walks forward
-      // page by page in one pass.
-      page = overflow(t) ? page : next;
-    }
-    if (mark) restoreCaretAfterReflow(mark, splits);
-  }
-
-  // Answers whether a bare text node could overflow a page at all: it is
-  // measured on a detached page wearing the same pin, so the split test
-  // above pays one layout read for the whole node, and blocks pay none.
-  var probePage = null, probeTxt = null;
-  function nodeOverflowsAPage(node){
-    if (!probePage){
-      probePage = document.createElement('div'); probePage.className = 'page';
-      probePage.style.position = 'absolute';
-      probePage.style.left = '-10000px';
-      probePage.style.visibility = 'hidden';
-      var pin = document.createElement('div'); pin.className = 'pin';
-      probeTxt = document.createElement('div'); probeTxt.className = 'txt';
-      pin.appendChild(probeTxt); probePage.appendChild(pin);
-      document.body.appendChild(probePage);
-    }
-    probeTxt.textContent = node.nodeValue;
-    var over = overflow(probeTxt);
-    probeTxt.textContent = '';   // the probe never holds a page's text a moment longer than the measure
-    return over;
-  }
-
-  // A trailing page whose text, images and footnotes all emptied steps back
-  // off the stage - unless the caret is standing on it right now.
-  function trimTrailing(){
-    var guard = 0;
-    while (docs.children.length > 1 && guard++ < 50){
-      var p = docs.children[docs.children.length - 1];
-      var t = txtOf(p), f = fnOf(p);
-      var sel = document.getSelection();
-      var caretInside = sel && sel.rangeCount && sel.isCollapsed && sel.anchorNode && p.contains(sel.anchorNode);
-      var hasImg = p.querySelector('.fimg');
-      var empty = t.textContent.split(ZWSP).join('').trim() === '' && f.dataset.empty === '1' && !t.querySelector('img');
-      if (!empty || hasImg) break;
-      if (caretInside){
-        // The empty page the reader is parked on steps off the stage, and
-        // the caret moves to the continuation point - the end of the page
-        // before. A blank page is not a place to keep typing (v1.19.71).
-        placeCaret(txtOf(p.previousElementSibling), false);
-      }
-      p.parentNode.removeChild(p);
+// ── images ────────────────────────────────────────────────────────────────
+function insertImage(src){
+  if (!src) return;
+  var sel = quill.getSelection(true);
+  quill.insertEmbed(sel ? sel.index : quill.getLength(), 'image', src, 'user');
+}
+function readImages(files){
+  for (var i=0;i<files.length;i++){
+    if (/^image\//.test(files[i].type || '')){
+      (function(file){
+        var r = new FileReader();
+        r.onload = function(){ insertImage(String(r.result)); };
+        r.readAsDataURL(file);
+      })(files[i]);
     }
   }
+}
+quill.root.addEventListener('paste', function(e){
+  var files = e.clipboardData && e.clipboardData.files;
+  if (files && files.length){
+    for (var i=0;i<files.length;i++)
+      if (/^image\//.test(files[i].type || '')){ e.preventDefault(); break; }
+    readImages(files);
+  }
+});
+quill.root.addEventListener('drop', function(e){
+  var files = e.dataTransfer && e.dataTransfer.files;
+  if (files && files.length){
+    var has = false;
+    for (var i=0;i<files.length;i++) if (/^image\//.test(files[i].type || '')) has = true;
+    if (has){ e.preventDefault(); e.stopPropagation(); readImages(files); }
+  }
+});
 
-  // Pages are a continuation of each other, and the law runs BOTH ways
-  // (v1.19.71): the overflow walk pushes content forward when a page is
-  // full, and this walk pulls the next page's first content back the moment
-  // a page has room. After a deletion the reader never keeps a half-empty
-  // page in front of a full one; a page only holds text when the page
-  // before it cannot take it - no more, no less.
-  function pullFromNext(){
-    var guard = 0;
-    for (var i = 0; i < docs.children.length - 1 && guard < 400; i++){
-      var t = txtOf(docs.children[i]);
-      var nt = txtOf(docs.children[i + 1]);
-      if (!t || !nt) continue;
-      while (nt.firstChild && guard++ < 400){
-        if (overflow(t)) break;   // this page is full: the law stops here
-        var pin2 = t.parentElement, cs2 = getComputedStyle(pin2);
-        var avail2 = pin2.clientHeight - parseFloat(cs2.paddingTop) - parseFloat(cs2.paddingBottom);
-        // Less than a line of room: nothing honest fits, and touching the
-        // caret's own node just to hand it back empties the keyboard - the
-        // churn leaves the selection dead and every later keystroke falls
-        // silent. The law stops while the page still holds its line.
-        if (t.offsetHeight > avail2 - 12) break;
-        var first = nt.firstChild;
-        if (first.nodeType === 3){
-          var v = first.nodeValue;
-          if (!v){ nt.removeChild(first); continue; }
-          var selx = document.getSelection();
-          var caretIn = selx && selx.rangeCount && selx.isCollapsed &&
-                        (selx.anchorNode === first ||
-                         (first.nodeType === 1 && first.contains(selx.anchorNode)));
-          t.appendChild(first);
-          if (overflow(t)){
-            var lo = 0, hi = v.length;
-            while (lo < hi){
-              var mid = (lo + hi + 1) >> 1;
-              first.nodeValue = v.slice(0, mid);
-              if (overflow(t)) hi = mid - 1; else lo = mid;
-            }
-            first.nodeValue = v.slice(0, lo);
-            if (lo === 0){
-              first.nodeValue = v;                     // hand it back WHOLE - the search had emptied it
-              nt.insertBefore(first, nt.firstChild);   // not one character fits: hand it back
-              break;
-            }
-            var rest = document.createTextNode(v.slice(lo));
-            nt.insertBefore(rest, nt.firstChild);
-            if (caretIn && selx.anchorNode === first && selx.anchorOffset > lo){
-              var r3 = document.createRange();
-              r3.setStart(rest, Math.min(selx.anchorOffset - lo, rest.nodeValue.length));
-              r3.collapse(true);
-              selx.removeAllRanges(); selx.addRange(r3);
-              comfortScroll();
-            }
-          } else if (caretIn){
-            comfortScroll();   // the caret's text walked back a page with the pull
-          }
-        } else {
-          var selb = document.getSelection();
-          var caretInB = selb && selb.rangeCount && selb.isCollapsed &&
-                         (selb.anchorNode === first || first.contains(selb.anchorNode));
-          t.appendChild(first);
-          if (overflow(t)){
-            nt.insertBefore(first, nt.firstChild);   // the block does not fit: hand it back
-            break;
-          }
-          if (caretInB) comfortScroll();
-        }
-      }
+// ── state, save, title ────────────────────────────────────────────────────
+function caretEl(){
+  try {
+    var s = quill.getSelection();
+    if (!s) return null;
+    var leaf = quill.getLeaf(s.index);
+    if (leaf && leaf[0] && leaf[0].domNode){
+      var n = leaf[0].domNode;
+      return n.nodeType === 1 ? n : n.parentElement;
     }
+  } catch(e){}
+  return null;
+}
+function effFont(){
+  var f = quill.getFormat().font;
+  if (f) return pretty(String(f));
+  var el = caretEl();
+  if (el){
+    var fam = (getComputedStyle(el).fontFamily || '').toLowerCase();
+    for (var i=0;i<FONTS.length;i++) if (fam.indexOf(FONTS[i].toLowerCase())>=0) return FONTS[i];
   }
+  return 'Times New Roman';
+}
+function effSize(){
+  var f = quill.getFormat().size;
+  if (f){ var m = parseFloat(String(f)); if (m) return String(Math.round(m)); }
+  var el = caretEl();
+  if (el){ var px = parseFloat(getComputedStyle(el).fontSize) || 16; return String(Math.round(px * 0.75)); }
+  return '12';
+}
+function reportState(){
+  var sel = quill.getSelection();
+  if (!sel) return;
+  var f = quill.getFormat();
+  post({ type:'state', edit:true, font: effFont(), size: effSize(),
+         b: !!f.bold, i: !!f.italic, u: !!f.underline, s: !!f.strike, page: 1 });
+}
+quill.on('selection-change', function(){ reportState(); });
 
-  function reportPages(){ post({ type:'pages', count: docs.children.length }); }
-
-  function afterEdit(page){
-    if (page) reflowFrom(page);
-    trimTrailing();
-    pullFromNext();
-    trimTrailing();   // the pull may have emptied the tail: it steps off
-    renumberFns();
-    reportPages();
-    scheduleSave();
-    scheduleThumbs();
+function docTitle(){
+  var lines = quill.getText().split('\n');
+  for (var i=0;i<lines.length;i++){
+    var s = lines[i].replace(/\s+/g,' ').trim();
+    if (s) return s.length > 40 ? s.slice(0,40) + '...' : s;
   }
+  return '';
+}
+// The save payload carries the document THREE ways: the model's own Delta
+// (the exact round-trip - every font, size, anchor and link comes home),
+// the rendered HTML (thumbnails, debugging, other tools), and the footnote
+// list. A world without a Delta section - a legacy session from the old
+// pages world - falls back to the clipboard converter and keeps its text.
+function docHtml(){
+  var delta = JSON.stringify(quill.getContents()).replace(/</g, '\\u003c');
+  return '<section data-az="doc">' + quill.root.innerHTML + '</section>' +
+         '<section data-az="fn">' + fnote.innerHTML + '</section>' +
+         '<section data-az="delta">' + delta + '</section>';
+}
+var saveTimer = null, thumbTimer = null, fnTimer = null, worldSeq = 0;
+function saveNow(){
+  if (saveTimer){ clearTimeout(saveTimer); saveTimer = null; }
+  post({ type:'save', html: docHtml(), seq: worldSeq, title: docTitle() });
+}
+function scheduleSave(){
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 700);
+}
+quill.on('text-change', function(){
+  scheduleSave();
+  if (fnTimer) clearTimeout(fnTimer);
+  fnTimer = setTimeout(renumber, 120);
+  if (thumbTimer) clearTimeout(thumbTimer);
+  thumbTimer = setTimeout(postThumbs, 900);
+});
 
-  // -- caret bookkeeping -----------------------------------------------------
-  function editableOf(node){
-    if (!node) return null;
-    var el = node.nodeType === 1 ? node : node.parentElement;
-    return el ? el.closest('.txt,.fnnote') : null;
+// ── load: our own two-section format, or the legacy world's pages ─────────
+function loadWorld(html, seq){
+  worldSeq = seq|0;
+  var docPart = String(html || ''), fnPart = '', deltaPart = '';
+  if (docPart.indexOf('data-az="doc"') >= 0){
+    var t = document.createElement('div');
+    t.innerHTML = docPart;
+    var d = t.querySelector('section[data-az="doc"]');
+    var f = t.querySelector('section[data-az="fn"]');
+    var dz = t.querySelector('section[data-az="delta"]');
+    if (d) docPart = d.innerHTML;
+    if (f) fnPart = f.innerHTML;
+    if (dz) deltaPart = dz.textContent;
   }
-
-  document.addEventListener('selectionchange', function(){
-    var sel = document.getSelection();
-    if (sel && sel.rangeCount){
-      var ed = editableOf(sel.anchorNode);
-      if (ed) saved = { el: ed, range: sel.getRangeAt(0).cloneRange() };
-    }
-    scheduleState();
-  });
-
-  // The ribbon's click took the focus; the caret's place is handed back before
-  // any command runs, so the buttons act on exactly what the reader selected.
-  function restoreSelection(){
-    if (!saved) return null;
-    if (!document.body.contains(saved.el)){ saved = null; return null; }
-    var sel = document.getSelection();
-    saved.el.focus();
-    sel.removeAllRanges(); sel.addRange(saved.range);
-    return saved;
+  fnote.innerHTML = fnPart;
+  var restored = false;
+  if (deltaPart){
+    try { quill.setContents(JSON.parse(deltaPart), 'silent'); restored = true; } catch(e){}
   }
-
-  function placeCaret(t, atStart){
-    t.focus();
-    var r = document.createRange(); r.selectNodeContents(t); r.collapse(atStart);
-    var sel = document.getSelection(); sel.removeAllRanges(); sel.addRange(r);
-    saved = { el: t, range: r.cloneRange() };
-  }
-
-  function caretAtEdge(t, atEnd){
-    var sel = document.getSelection();
-    if (!sel.rangeCount) return false;
-    var r = sel.getRangeAt(0);
-    if (!r.collapsed) return false;
-    var probe = document.createRange(); probe.selectNodeContents(t);
-    if (atEnd) probe.setEnd(r.endContainer, r.endOffset);
-    else probe.setStart(r.startContainer, r.startOffset);
-    return probe.toString().split(ZWSP).join('').length === 0;
-  }
-
-  document.addEventListener('keydown', function(e){
-    if (pickedImage && (e.key === 'Delete' || e.key === 'Backspace')){
-      e.preventDefault();
-      pickedImage.parentNode.removeChild(pickedImage);
-      deselectImage();
-      afterEdit(null);
-      noteChange();
-      return;
-    }
-    // The document's own memory: Ctrl+Z walks it back, Ctrl+Y or
-    // Ctrl+Shift+Z walks it forward. The link field keeps its own undo.
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && e.target
-        && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA'){
-      var k = (e.key || '').toLowerCase();
-      if (k === 'z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
-      if ((k === 'z' && e.shiftKey) || k === 'y'){ e.preventDefault(); redo(); return; }
-    }
-    if (e.altKey || e.ctrlKey || e.metaKey) return;
-    var ed = e.target && editableOf(e.target);
-    if (!ed || !ed.classList.contains('txt')) return;
-    var page = ed.closest('.page');
-    if ((e.key === 'ArrowDown' || e.key === 'ArrowRight') && caretAtEdge(ed, true) && page.nextElementSibling){
-      e.preventDefault(); placeCaret(txtOf(page.nextElementSibling), true);
-    } else if ((e.key === 'ArrowUp' || e.key === 'ArrowLeft') && caretAtEdge(ed, false) && page.previousElementSibling){
-      e.preventDefault(); placeCaret(txtOf(page.previousElementSibling), false);
-    }
-  });
-
-  // -- saving (debounced; the host writes the session cache) ------------------
-  function scheduleSave(){ if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 700); }
-  function scheduleState(){ if (stateTimer) clearTimeout(stateTimer); stateTimer = setTimeout(reportState, 50); }
-  function saveNow(){
-    saveTimer = null;
-    post({ type:'save', html: docs.innerHTML, seq: worldSeq, title: docTitle() });
-  }
-
-  // The tab's face: the document's first non-empty line of text, trimmed to
-  // a name - an empty world earns no name, and the tab keeps what it had.
-  function docTitle(){
-    var txts = docs.querySelectorAll('.txt');
-    for (var i = 0; i < txts.length; i++){
-      var lines = txts[i].textContent.split(ZWSP).join('').split('\n');
-      for (var j = 0; j < lines.length; j++){
-        var s = lines[j].replace(/\s+/g, ' ').trim();
-        if (s) return s.length > 40 ? s.slice(0, 40) + '...' : s;
-      }
-    }
-    return '';
-  }
-
-  document.addEventListener('input', function(e){
-    var ed = editableOf(e.target); if (!ed) return;
-    var page = ed.closest('.page');
-    if (ed.classList.contains('txt')){
-      afterEdit(page);
-    } else {
-      renumberFns();
-      scheduleSave();
-    }
-    noteChange();
-  });
-
-  // The crutch is stripped when the footnote loses focus - never mid-sentence:
-  // stripping inside the input event shrank the node under the caret and every
-  // key after the first was swallowed by the degenerate selection.
-  docs.addEventListener('focusout', function(e){
-    if (!e.target || !e.target.querySelectorAll) return;
-    e.target.querySelectorAll('.fnbody').forEach(function(b){
-      var t = b.firstChild;
-      if (t && t.nodeType === 3 && t.nodeValue.indexOf(ZWSP) === 0 && t.nodeValue.length > 1)
-        t.nodeValue = t.nodeValue.split(ZWSP).join('');
-    });
-    // the size-span crutch obeys the same law - stripping it while the
-    // reader types shrinks the node under the caret and the rest of the
-    // word jumps outside the size (the v1.19.67 report's 'bugs out')
-    if (e.target.classList && e.target.classList.contains('txt'))
-      cleanZwsp(e.target);
-  });
-
-  // A size span holds a zero-width crutch so the caret has something to stand
-  // on before any text arrives; the crutch leaves the moment real text lands.
-  function cleanZwsp(root){
-    var spans = root.querySelectorAll('span');
-    for (var i = 0; i < spans.length; i++){
-      var sp = spans[i];
-      if (sp.querySelector('*')) continue;
-      var text = '';
-      sp.childNodes.forEach(function(n){ if (n.nodeType === 3) text += n.nodeValue; });
-      if (text.indexOf(ZWSP) < 0) continue;
-      var real = text.split(ZWSP).join('');
-      if (real.length > 0){
-        sp.childNodes.forEach(function(n){
-          if (n.nodeType === 3) n.nodeValue = n.nodeValue.split(ZWSP).join('');
-        });
-      }
-    }
-  }
-
-  // -- footnotes ---------------------------------------------------------------
-  function insertFootnote(){
-    var s = restoreSelection(); if (!s) return;
-    if (!s.el.classList.contains('txt')) return;
-    var id = 'fn' + (++FNID);
-    var mark = document.createElement('sup');
-    mark.className = 'fnmark'; mark.contentEditable = 'false'; mark.dataset.fn = id;
-    mark.textContent = '?';
-    // The reference mark belongs after the selection - Word's own bargain.
-    if (!s.range.collapsed) s.range.collapse(false);
-    s.range.insertNode(mark);
-    var nr = document.createRange(); nr.setStartAfter(mark); nr.collapse(true);
-    var sel = document.getSelection(); sel.removeAllRanges(); sel.addRange(nr);
-    saved = { el: s.el, range: nr.cloneRange() };
-    var page = s.el.closest('.page');
-    var fn = fnOf(page);
-    var entry = document.createElement('div'); entry.className = 'fnentry'; entry.dataset.fn = id;
-    var num = document.createElement('span'); num.className = 'fnnum';
-    var body = document.createElement('span'); body.className = 'fnbody';
-    // The body opens with a zero-width crutch so the caret stands on a TEXT
-    // node that already holds something: on the bare boundary of an empty
-    // inline span - or of an empty text node - typed keys land nowhere at all
-    // (beforeinput fires, nothing inserts), and the reader's first words in a
-    // newborn footnote were swallowed whole. The size span's own trick.
-    body.appendChild(document.createTextNode(ZWSP));
-    entry.appendChild(num); entry.appendChild(body); fn.appendChild(entry);
-    syncFnote(page);
-    // The caret moves into the entry BEFORE the renumber sweep: the sweep's
-    // own law removes any entry whose body is empty and not under the caret,
-    // so a newborn entry left outside the hand deletes itself the instant it
-    // is born (the v1.19.66 report: no footnote ever appeared).
-    var br = document.createRange(); br.setStart(body.firstChild, 1); br.collapse(true);
-    fn.focus(); sel.removeAllRanges(); sel.addRange(br);
-    saved = { el: fn, range: br.cloneRange() };
-    renumberFns();
-    afterEdit(null);
-    noteChange();
-  }
-
-  function syncFnote(page){
-    var fn = fnOf(page); if (!fn) return;
-    var has = fn.querySelector('.fnentry');
-    fn.style.display = has ? 'block' : 'none';
-    fn.dataset.empty = has ? '0' : '1';
-  }
-
-  // Every footnote in the document gets its place in reading order; an entry
-  // whose marker was deleted walks off with its number, and an entry emptied
-  // of text (by anything but the hand currently typing in it) takes its marker
-  // with it.
-  function renumberFns(){
-    var sel = document.getSelection();
-    docs.querySelectorAll('.fnentry').forEach(function(en){
-      var bodyEl = en.querySelector('.fnbody');
-      var caretIn = sel && sel.anchorNode && en.contains(sel.anchorNode);
-      if (!caretIn && bodyEl && bodyEl.textContent.split(ZWSP).join('').trim() === ''){
-        var mk = docs.querySelector('.fnmark[data-fn="' + en.dataset.fn + '"]');
-        if (mk) mk.parentNode.removeChild(mk);
-        en.parentNode.removeChild(en);
-      }
-    });
-    var marks = {};
-    var idx = 0;
-    docs.querySelectorAll('.fnmark').forEach(function(m){
-      idx++;
-      var id = m.dataset.fn || ('fn' + (++FNID));
-      m.dataset.fn = id;
-      m.textContent = String(idx);
-      marks[id] = idx;
-    });
-    docs.querySelectorAll('.fnentry').forEach(function(en){
-      var id = en.dataset.fn;
-      if (marks[id] === undefined){ en.parentNode.removeChild(en); return; }
-      var num = en.querySelector('.fnnum');
-      if (num) num.textContent = marks[id] + '.';
-    });
-    for (var i = 0; i < docs.children.length; i++) syncFnote(docs.children[i]);
-  }
-
-  // -- hyperlinks ---------------------------------------------------------------
-  function linkUi(){
-    var s = restoreSelection(); if (!s) return;
-    var node = s.range.startContainer;
-    var el = node.nodeType === 1 ? node : node.parentElement;
-    var a = el ? el.closest('a') : null;
-    linkTarget = a;
-    linkRange = a ? null : s.range.cloneRange();
-    var pop = document.getElementById('linkpop');
-    var inp = document.getElementById('linkurl');
-    inp.value = a ? (a.getAttribute('href') || '') : '';
-    var rect = null;
-    try { rect = s.range.getBoundingClientRect(); } catch(e){}
-    if (!rect || (rect.width === 0 && rect.height === 0)){
-      var cr = s.el.getBoundingClientRect();
-      rect = { left: cr.left, top: cr.top, width: 0, height: cr.height, bottom: cr.bottom };
-    }
-    pop.style.display = 'block';
-    var pw = 400, ph = 46;
-    var x = Math.max(8, Math.min(rect.left, window.innerWidth - pw - 8));
-    var y = rect.top - ph - 8; if (y < 8) y = rect.bottom + 8;
-    pop.style.left = x + 'px'; pop.style.top = y + 'px';
-    setTimeout(function(){ inp.focus(); inp.select(); }, 30);
-  }
-
-  function applyLink(){
-    var inp = document.getElementById('linkurl');
-    var url = inp.value.trim();
-    hideLinkPop();
-    if (linkTarget){
-      if (!url){ unwrap(linkTarget); }
-      else { linkTarget.setAttribute('href', url); }
-      linkTarget = null;
-      refreshSaved();
-      afterEdit(null);
-      noteChange();
-      return;
-    }
-    if (!url || !saved) return;
-    if (!/^(https?:|mailto:|file:)/i.test(url)) url = 'https://' + url;
-    var s = saved;
-    s.el.focus();
-    var sel = document.getSelection();
-    sel.removeAllRanges(); sel.addRange(linkRange);
-    if (linkRange.collapsed){
-      var a = document.createElement('a'); a.href = url; a.textContent = url;
-      linkRange.insertNode(a);
-      var nr = document.createRange(); nr.setStartAfter(a); nr.collapse(true);
-      sel.removeAllRanges(); sel.addRange(nr);
-      saved = { el: s.el, range: nr.cloneRange() };
-    } else {
-      document.execCommand('createLink', false, url);
-    }
-    refreshSaved();
-    afterEdit(null);
-    noteChange();
-  }
-
-  function unwrap(a){
-    var parent = a.parentNode;
-    while (a.firstChild) parent.insertBefore(a.firstChild, a);
-    parent.removeChild(a);
-  }
-
-  function hideLinkPop(){ document.getElementById('linkpop').style.display = 'none'; }
-
-  document.getElementById('linkok').addEventListener('click', function(){ applyLink(); });
-  document.getElementById('linkrm').addEventListener('click', function(){
-    var t = linkTarget;
-    hideLinkPop();
-    if (t){ unwrap(t); linkTarget = null; afterEdit(null); }
-  });
-  document.getElementById('linkurl').addEventListener('keydown', function(e){
-    if (e.key === 'Enter'){ e.preventDefault(); applyLink(); }
-    else if (e.key === 'Escape'){ hideLinkPop(); }
-  });
-
-  docs.addEventListener('click', function(e){
-    var a = e.target.closest ? e.target.closest('a') : null;
-    if (!a) return;
-    e.preventDefault();
-    var href = a.getAttribute('href');
-    if (href && (e.ctrlKey || e.metaKey)) post({ type:'link', url: href });
-  });
-
-  // -- images behind the text ----------------------------------------------------
-  function deselectImage(){
-    if (pickedImage) pickedImage.classList.remove('sel');
-    pickedImage = null;
-  }
-
-  function insertImage(src){
-    var s = restoreSelection();
-    var page = s ? s.el.closest('.page') : pageAt(docs.children.length - 1);
-    if (!page) page = makePage();
-    var pin = page.querySelector('.pin');
-    var wrap = document.createElement('div'); wrap.className = 'fimg';
-    var img = document.createElement('img'); img.src = src; img.draggable = false;
-    var rsz = document.createElement('div'); rsz.className = 'rsz';
-    wrap.appendChild(img); wrap.appendChild(rsz); pin.appendChild(wrap);
-    img.addEventListener('load', function(){
-      var maxW = pin.clientWidth - 120;
-      var w = Math.min(img.naturalWidth || 320, maxW, 420);
-      wrap.style.width = w + 'px';
-      wrap.style.left = Math.round((pin.clientWidth - w) / 2) + 'px';
-      wrap.style.top = '170px';
-      selectImage(wrap);
-      scheduleSave();
-      noteChange();
-      scheduleThumbs();
-    });
-  }
-
-  function selectImage(img){
-    deselectImage();
-    pickedImage = img;
-    img.classList.add('sel');
-  }
-
-  // The text layer owns the paint order - images live behind it - so an
-  // event aimed at a wrapper never carries one as its target: every click
-  // landed on the text above and the reader could not select, move, resize
-  // or delete an image in any way (the v1.19.66 report). The click is
-  // aimed by hand now: the wrapper whose box holds the point answers, and
-  // the resize handle (which rides outside the box while selected) does too.
-  function imageHitAt(x, y){
-    var imgs = docs.querySelectorAll('.fimg');
-    for (var i = 0; i < imgs.length; i++){
-      var f = imgs[i];
-      var r = f.getBoundingClientRect();
-      var pad = (f === pickedImage) ? 9 : 0;
-      if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad) return f;
-    }
-    return null;
-  }
-
-  docs.addEventListener('pointerdown', function(e){
-    if (e.button !== 0) return;
-    var f = imageHitAt(e.clientX, e.clientY);
-    if (!f){ if (pickedImage) deselectImage(); return; }
-    e.preventDefault(); e.stopPropagation();
-    selectImage(f);
-    var pin = f.parentElement;
-    var rect = f.getBoundingClientRect(), prect = pin.getBoundingClientRect();
-    var rsz = f.querySelector('.rsz');
-    var rr = rsz ? rsz.getBoundingClientRect() : null;
-    var onHandle = !!rr && e.clientX >= rr.left && e.clientX <= rr.right
-                       && e.clientY >= rr.top && e.clientY <= rr.bottom;
-    drag = { mode: onHandle ? 'size' : 'move', el: f, pin: pin,
-             startX: e.clientX, startY: e.clientY,
-             origL: rect.left - prect.left, origT: rect.top - prect.top,
-             origW: rect.width };
-    // The hand's promise: the cursor follows the job for the whole drag,
-    // even when the pointer slips off the handle or the picture (v1.19.68).
-    document.body.style.cursor = onHandle ? 'nwse-resize' : 'grabbing';
-    scheduleSave();
-  }, true);
-  // The move and the release ride the window, so a drag that leaves the
-  // page box keeps going until the hand lifts.
-  window.addEventListener('pointermove', function(e){
-    if (!drag){
-      // The cursor answers HOVER alone, never the press: over a picture
-      // the grab hand, over the selected picture's corner the resize
-      // arrows (v1.19.69). The text layer paints above the images, so a
-      // CSS :hover on the wrapper never fires - the point is aimed by
-      // hand here, the same way the click is. A drag keeps its own
-      // forced cursor; the moment the hand lifts, hover rules again.
-      var hover = imageHitAt(e.clientX, e.clientY);
-      if (hover){
-        var hrsz = hover.querySelector('.rsz');
-        var hrr = (hover === pickedImage && hrsz) ? hrsz.getBoundingClientRect() : null;
-        var onHandle = !!hrr && hrr.width > 0 && hrr.height > 0 &&
-                       e.clientX >= hrr.left && e.clientX <= hrr.right &&
-                       e.clientY >= hrr.top && e.clientY <= hrr.bottom;
-        document.body.style.cursor = onHandle ? 'nwse-resize' : 'grab';
-      } else if (document.body.style.cursor){
-        document.body.style.cursor = '';
-      }
-      return;
-    }
-    var dx = e.clientX - drag.startX, dy = e.clientY - drag.startY;
-    if (drag.mode === 'move'){
-      var maxL = drag.pin.clientWidth - drag.el.offsetWidth;
-      var maxT = drag.pin.clientHeight - drag.el.offsetHeight;
-      drag.el.style.left = Math.max(0, Math.min(drag.origL + dx, Math.max(0, maxL))) + 'px';
-      drag.el.style.top  = Math.max(0, Math.min(drag.origT + dy, Math.max(0, maxT))) + 'px';
-    } else {
-      drag.el.style.width = Math.max(60, drag.origW + dx) + 'px';
-    }
-  });
-  window.addEventListener('pointerup', function(){
-    if (drag){ drag = null; document.body.style.cursor = ''; scheduleSave(); noteChange(); scheduleThumbs(); }
-  });
-
-  // -- undo: the document's own memory -----------------------------------------
-  // The page reflows itself, plants caret crutches, dresses selections and
-  // moves whole blocks between pages by hand - none of that rides the
-  // engine's native editing stack. The memory is kept here: a settled
-  // snapshot of the whole document after every pause and every ribbon
-  // command, and Ctrl+Z / Ctrl+Y walk it, caret going home with the world
-  // it knew. Data-URI images dominate the budget, so a count and a
-  // character ceiling prune the oldest steps first.
-  var undoStack = [], undoPtr = -1, undoChars = 0, undoTimer = null;
-  var lastSnap = '';
-  var UNDO_STEPS = 100, UNDO_CHARS = 30000000;
-
-  function selPaths(){
+  if (!restored){
     try {
-      var sel = document.getSelection();
-      if (!sel || !sel.rangeCount) return null;
-      var r = sel.getRangeAt(0);
-      var a = pathOf(r.startContainer), b = pathOf(r.endContainer);
-      if (!a || !b) return null;
-      return { a: a, ao: r.startOffset, b: b, bo: r.endOffset };
-    } catch(e){ return null; }
+      quill.deleteText(0, quill.getLength(), 'silent');
+      if (docPart) quill.clipboard.dangerouslyPasteHTML(0, docPart, 'silent');
+    } catch(e){ try { quill.setText('', 'silent'); } catch(e2){} }
   }
-  function pathOf(node){
-    var p = [];
-    while (node && node !== docs){
-      var par = node.parentNode;
-      if (!par) return null;
-      p.unshift(Array.prototype.indexOf.call(par.childNodes, node));
-      node = par;
-    }
-    return node === docs ? p : null;
-  }
-  function nodeAt(p){
-    var n = docs;
-    for (var i = 0; i < p.length; i++){ n = n.childNodes[p[i]]; if (!n) return null; }
-    return n;
-  }
+  quill.history.clear();
+  renumber();
+  try { window.scrollTo(0, 0); } catch(e){}
+  post({ type:'pages', count: 1 });
+  post({ type:'title', seq: worldSeq, title: docTitle() });
+  postThumbs();
+}
 
-  function pushUndo(){
-    undoTimer = null;
-    var html = docs.innerHTML;
-    if (html === lastSnap) return;
-    if (undoPtr < undoStack.length - 1){
-      for (var i = undoPtr + 1; i < undoStack.length; i++) undoChars -= undoStack[i].html.length;
-      undoStack.length = undoPtr + 1;    // the abandoned future is gone
-    }
-    undoStack.push({ html: html, sel: selPaths() });
-    undoChars += html.length;
-    undoPtr = undoStack.length - 1;
-    lastSnap = html;
-    while (undoStack.length > 1 && (undoStack.length > UNDO_STEPS || undoChars > UNDO_CHARS)){
-      undoChars -= undoStack[0].html.length;
-      undoStack.shift();
-      undoPtr--;
-    }
-  }
-
-  function noteChange(){ if (undoTimer) clearTimeout(undoTimer); undoTimer = setTimeout(pushUndo, 350); }
-  function flushUndo(){ if (undoTimer){ clearTimeout(undoTimer); pushUndo(); } }
-
-  function undo(){
-    flushUndo();
-    if (undoPtr <= 0) return;
-    undoPtr--;
-    restoreSnap(undoStack[undoPtr]);
-  }
-
-  function redo(){
-    flushUndo();
-    if (undoPtr >= undoStack.length - 1) return;
-    undoPtr++;
-    restoreSnap(undoStack[undoPtr]);
-  }
-
-  function restoreSnap(snap){
-    // the restored world is a different world: the picked wrapper is gone
-    pickedImage = null; drag = null;
-    docs.innerHTML = snap.html;
-    if (!docs.children.length) makePage();
-    FNID = 0;
-    docs.querySelectorAll('[data-fn]').forEach(function(el){
-      var m = /^(fn)(\d+)$/.exec(el.dataset.fn || '');
-      if (m) FNID = Math.max(FNID, parseInt(m[2], 10));
-    });
-    renumberFns();
-    reportPages();
-    lastSnap = snap.html;
-    var placed = false;
-    if (snap.sel){
+// ── the page's raster for the sidebar's rail ──────────────────────────────
+// One sheet, one picture. The SVG foreignObject paints the real document
+// (fonts, sizes, links, images) into a Letter-sized frame; a refusal
+// anywhere degrades to the empty thumb the rail already knows how to wear.
+var THUMB_CSS = '.doc{width:816px;height:1056px;background:#fff;overflow:hidden;position:relative;' +
+  "font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;color:#1c1c1c;}" +
+  '.docbody{padding:64px 72px 0 72px;}' +
+  '.docbody p,.docbody ol,.docbody ul,.docbody pre,.docbody blockquote,.docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6{margin:0;padding:0}' +
+  '.docbody img{max-width:100%;height:auto;}' +
+  '.docbody a{color:#1155cc;text-decoration:underline;}' +
+  'sup.fnref{color:#1155cc;}sup.fnref::after{content:attr(data-n);}' +
+  ".docfn{margin:0 72px;padding:12px 0 0 0;border-top:1px solid #d8d8d8;font-family:'Segoe UI',sans-serif;font-size:10pt;color:#333;}" +
+  '.docfn .fnnum{font-weight:bold;color:#1155cc;margin-right:7px;}';
+function postThumbs(){
+  try {
+    // Chromium's SVG-as-image refuses subresource loads - even data: URIs -
+    // so the raster wears a neutral block where an image stood; every other
+    // mark (fonts, sizes, links, footnotes) paints for real.
+    var docBody = quill.root.innerHTML.replace(/<img\b[^>]*>/gi,
+      '<span style="display:inline-block;width:88px;height:22px;background:#e4e4e4;border-radius:2px;vertical-align:middle;"></span>');
+    var fnBody = fnote.innerHTML.replace(/<img\b[^>]*>/gi, '');
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="816" height="1056">' +
+      '<foreignObject width="100%" height="100%">' +
+      '<div xmlns="http://www.w3.org/1999/xhtml" class="doc">' +
+      '<style>' + THUMB_CSS + '</style>' +
+      '<div class="docbody">' + docBody + '</div>' +
+      (fnBody ? '<div class="docfn">' + fnBody + '</div>' : '') +
+      '</div></foreignObject></svg>';
+    var img = new Image();
+    img.onload = function(){
       try {
-        var sn = nodeAt(snap.sel.a), en = nodeAt(snap.sel.b);
-        if (sn && en){
-          var r = document.createRange();
-          r.setStart(sn, Math.min(snap.sel.ao, sn.nodeType === 3 ? sn.nodeValue.length : sn.childNodes.length));
-          r.setEnd(en, Math.min(snap.sel.bo, en.nodeType === 3 ? en.nodeValue.length : en.childNodes.length));
-          var ed = editableOf(r.startContainer);
-          if (ed){
-            ed.focus();
-            var sel = document.getSelection();
-            sel.removeAllRanges(); sel.addRange(r);
-            saved = { el: ed, range: r.cloneRange() };
-            placed = true;
-          }
-        }
-      } catch(err){ placed = false; }
-    }
-    if (!placed){
-      var t = txtOf(docs.children[0]);
-      if (t) placeCaret(t, true);
-    }
-    scheduleSave();
-    scheduleState();
-    scheduleThumbs();
-  }
+        var c = document.createElement('canvas');
+        c.width = 408; c.height = 528;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.scale(0.5, 0.5);
+        ctx.drawImage(img, 0, 0, 816, 1056);
+        post({ type:'thumbs', seq: worldSeq, thumbs: [c.toDataURL('image/png')] });
+      } catch(e){ post({ type:'thumbs', seq: worldSeq, thumbs: [''] }); }
+    };
+    img.onerror = function(){ post({ type:'thumbs', seq: worldSeq, thumbs: [''] }); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  } catch(e){ post({ type:'thumbs', seq: worldSeq, thumbs: [''] }); }
+}
 
-  // -- thumbnails: the page draws itself for the sidebar's rail ---------------
-  // The rail's cards show each page the way the PDF list shows a page and
-  // the browser's gallery shows a view: as a picture. A page is rasterized
-  // by cloning it into an SVG foreignObject - the page's own CSS rides
-  // inside, the selection ring does not - drawing that onto a canvas, and
-  // exporting a PNG data URL. Images are data URLs already, so the canvas
-  // stays clean and the export is allowed; a page whose export refuses
-  // ships empty and the rail keeps its icon card for it. The whole set
-  // travels to the host debounced, tagged with the world it describes.
-  var thumbTimer = null;
-  function scheduleThumbs(){ if (thumbTimer) clearTimeout(thumbTimer); thumbTimer = setTimeout(postThumbs, 900); }
-  function pageCss(){
-    var css = '';
-    try {
-      for (var s = 0; s < document.styleSheets.length; s++){
-        var rules = document.styleSheets[s].cssRules;
-        for (var r = 0; r < rules.length; r++) css += rules[r].cssText + '\n';
-      }
-    } catch(e){}
-    return css;
+// ── the ribbon's commands ─────────────────────────────────────────────────
+function toggle(name){
+  var f = quill.getFormat();
+  quill.format(name, !f[name], 'user');
+  reportState();
+}
+function sizeStep(dir){
+  var cur = parseFloat(effSize()) || 12, next = null, i;
+  if (dir > 0){
+    for (i=0;i<LADDER.length;i++) if (LADDER[i] > cur + 0.01){ next = LADDER[i]; break; }
+    if (next === null) next = LADDER[LADDER.length-1];
+  } else {
+    for (i=LADDER.length-1;i>=0;i--) if (LADDER[i] < cur - 0.01){ next = LADDER[i]; break; }
+    if (next === null) next = LADDER[0];
   }
-  var THUMB_CSS = null;
-  function postThumbs(){
-    thumbTimer = null;
-    var pages = Array.prototype.slice.call(docs.querySelectorAll('.page'));
-    var out = new Array(pages.length).fill('');
-    var left = pages.length;
-    if (!left){ post({ type:'thumbs', seq: worldSeq, thumbs: out }); return; }
-    var done = function(){ if (--left === 0) post({ type:'thumbs', seq: worldSeq, thumbs: out }); };
-    for (var i = 0; i < pages.length; i++) rasterPage(pages[i], i, out, done);
-  }
-  function rasterPage(page, idx, out, done){
-    try {
-      var clone = page.cloneNode(true);
-      var selImg = clone.querySelector('.fimg.sel');
-      if (selImg) selImg.classList.remove('sel');
-      clone.style.margin = '0';
-      clone.style.borderRadius = '0';
-      if (THUMB_CSS === null) THUMB_CSS = pageCss();
-      var wrap = '<div xmlns="http://www.w3.org/1999/xhtml" style="width:816px;height:1056px;overflow:hidden;">'
-               + '<style>' + THUMB_CSS + '</style>'
-               + new XMLSerializer().serializeToString(clone) + '</div>';
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="816" height="1056">'
-              + '<foreignObject width="816" height="1056">' + wrap + '</foreignObject></svg>';
-      var img = new Image();
-      img.onload = function(){
-        try {
-          var c = document.createElement('canvas');
-          c.width = 168; c.height = 217;
-          var ctx = c.getContext('2d');
-          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
-          ctx.drawImage(img, 0, 0, c.width, c.height);
-          out[idx] = c.toDataURL('image/png');
-        } catch(e){ out[idx] = ''; }
-        done();
-      };
-      img.onerror = function(){ out[idx] = ''; done(); };
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    } catch(e){ out[idx] = ''; done(); }
-  }
-
-  // -- ribbon commands -------------------------------------------------------------
-  // A command that mutates the DOM can invalidate the saved range's bounds;
-  // the live selection is what the reader's next command should act on, so
-  // every command re-anchors the resting place from it before returning.
-  function refreshSaved(){
-    var sel = document.getSelection();
-    var ed = sel && sel.rangeCount ? editableOf(sel.anchorNode) : null;
-    if (ed) saved = { el: ed, range: sel.getRangeAt(0).cloneRange() };
-  }
-
-  function exec(cmd, val){
-    var s = restoreSelection(); if (!s) return;
-    document.execCommand(cmd, false, val || null);
-    refreshSaved();
-    afterEdit(s.el.closest('.page'));
-    noteChange();
-    scheduleState();
-  }
-
-  function applySize(pt){
-    var s = restoreSelection(); if (!s) return;
-    var sel = document.getSelection();
-    if (!sel.rangeCount) return;
-    var range = sel.getRangeAt(0);
-    if (range.collapsed){
-      // Resting caret: what gets typed next wears the size. A crutch span
-      // already under the caret is restyled, never stacked - nested
-      // crutches kept every past size's line box alive at once.
-      var host = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
-      var crutch = host ? host.closest('span') : null;
-      if (crutch && docs.contains(crutch) && isCrutchSpan(crutch)){
-        crutch.style.fontSize = pt + 'pt';
-      } else {
-        var span = document.createElement('span');
-        span.style.fontSize = pt + 'pt';
-        span.appendChild(document.createTextNode(ZWSP));
-        range.insertNode(span);
-        var r = document.createRange(); r.setStart(span.firstChild, 1); r.collapse(true);
-        sel.removeAllRanges(); sel.addRange(r);
-        saved = { el: s.el, range: r.cloneRange() };
-      }
-      afterEdit(s.el.closest('.page'));
-      refreshSaved();
-      noteChange();
-      scheduleState();
-      return;
-    }
-    // A selection covers real text, so the size is dressed onto every text
-    // node the range touches. No execCommand('fontSize'): the modern engine
-    // no longer writes the font tag the old rewrite looked for, and its
-    // one-size span could never be reduced again - sizes landed wrong and
-    // the lines stayed as tall as the first size the reader tried.
-    dressRange(range, 'font-size', pt + 'pt', s.el);
-    afterEdit(s.el.closest('.page'));
-    refreshSaved();
-    noteChange();
-    scheduleState();
-  }
-
-  // -- size steps: the +/- buttons walk the same ladder the size list offers ---
-  // The caret's size is measured where it stands - a selection reports its
-  // anchor, a resting caret its crutch or host - and the step lands exactly
-  // where a picked size would: on the selection, or on what gets typed next.
-  var SIZE_LADDER = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 48, 72];
-  function currentSizePt(){
-    var sel = document.getSelection();
-    var el = (sel && sel.rangeCount)
-      ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement) : null;
-    if (!el && saved) el = saved.el;
-    if (!el) return 12;
-    var px = parseFloat(getComputedStyle(el).fontSize);
-    return isFinite(px) && px > 0 ? Math.round(px * 3 / 4) : 12;
-  }
-  function sizeStep(dir){
-    if (!dir) return;
-    var cur = currentSizePt();
-    var next = cur;
-    var i;
-    if (dir > 0){
-      for (i = 0; i < SIZE_LADDER.length; i++)
-        if (SIZE_LADDER[i] > cur){ next = SIZE_LADDER[i]; break; }
-    } else {
-      for (i = SIZE_LADDER.length - 1; i >= 0; i--)
-        if (SIZE_LADDER[i] < cur){ next = SIZE_LADDER[i]; break; }
-    }
-    if (next !== cur) applySize(String(next));
-  }
-
-  // -- inline dressing: a style laid onto the selection's own text -------------
-  // The caret's crutch (an empty span holding only the zero-width space)
-  // keeps its line box as tall as the size it was planted with, so leftover
-  // crutches are stripped before anything is dressed - the selection that
-  // stayed 20pt tall after the text went to 5 lived exactly there.
-  function isCrutchSpan(sp){
-    if (!sp || sp.nodeType !== 1 || sp.tagName !== 'SPAN') return false;
-    if (sp.querySelector('*')) return false;
-    var text = '';
-    sp.childNodes.forEach(function(n){ if (n.nodeType === 3) text += n.nodeValue; });
-    return text.split(ZWSP).join('').length === 0;
-  }
-
-  function stripEmptyStyledSpans(root){
-    if (!root || !root.querySelectorAll) return;
-    var caretRange = null;
-    var sel = document.getSelection();
-    if (sel && sel.rangeCount) caretRange = sel.getRangeAt(0);
-    var spans = root.querySelectorAll('span');
-    for (var i = spans.length - 1; i >= 0; i--){
-      var sp = spans[i];
-      if (!sp.style || (!sp.style.fontSize && !sp.style.fontFamily)) continue;
-      if (!isCrutchSpan(sp)) continue;
-      // the span the caret stands inside keeps standing - stripping it
-      // would swallow the very next key (the v1.19.66 lesson)
-      if (caretRange && sp.contains(caretRange.startContainer)) continue;
-      if (sp.parentNode) sp.parentNode.removeChild(sp);
-    }
-  }
-
-  function collectTextNodes(range, root){
-    var out = [];
-    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    var tn;
-    while ((tn = w.nextNode())){
-      if (!tn.nodeValue.length) continue;
-      if (tn.parentElement && tn.parentElement.closest('.fnmark')) continue;
-      try { if (!range.intersectsNode(tn)) continue; } catch(e){ continue; }
-      out.push(tn);
-    }
-    return out;
-  }
-
-  function alreadyDressed(tn, prop, value){
-    var el = tn.parentElement;
-    while (el && el !== docs){
-      if (el.nodeType === 1 && el.style){
-        var cur = el.style.getPropertyValue(prop);
-        if (cur) return cur.toLowerCase() === value.toLowerCase();
-      }
-      el = el.parentElement;
-    }
-    return false;
-  }
-
-  function dressRange(range, prop, value, rootEl){
-    var root = range.commonAncestorContainer;
-    root = root.nodeType === 1 ? root : root.parentElement;
-    // strip + normalize sweep the WHOLE editable: a dead wrapper at the
-    // selection's own edge would otherwise never scan itself
-    var scope = (rootEl && docs.contains(rootEl)) ? rootEl : docs;
-    stripEmptyStyledSpans(scope);
-    var nodes = collectTextNodes(range, root);
-    var segs = [];
-    for (var i = 0; i < nodes.length; i++){
-      var tn = nodes[i];
-      var sOff = (tn === range.startContainer) ? range.startOffset : 0;
-      var eOff = (tn === range.endContainer) ? range.endOffset : tn.nodeValue.length;
-      if (eOff <= sOff) continue;
-      if (alreadyDressed(tn, prop, value)){
-        segs.push({ node: tn, s: sOff, e: eOff });
-        continue;
-      }
-      if (eOff < tn.nodeValue.length) tn.splitText(eOff);
-      var target = sOff > 0 ? tn.splitText(sOff) : tn;
-      var sp = document.createElement('span');
-      sp.style.setProperty(prop, value);
-      target.parentNode.insertBefore(sp, target);
-      sp.appendChild(target);
-      segs.push({ node: target, s: 0, e: target.nodeValue.length });
-    }
-    if (!segs.length) return;
-    normalizeSpans(scope);
-    // the reader's selection survives the surgery - it covers the same words
-    var r = document.createRange();
-    r.setStart(segs[0].node, segs[0].s);
-    var last = segs[segs.length - 1];
-    r.setEnd(last.node, last.e);
-    var sel = document.getSelection();
-    sel.removeAllRanges(); sel.addRange(r);
-  }
-
-  // The single-declaration wrapper one of whose own children re-declares
-  // the same property: dead for the text - the child's value wins - but
-  // alive as a strut, still holding the line box as tall as the old size.
-  // Returns that child when the wrapper may step aside for it.
-  function deadWrapper(sp){
-    if (sp.style.length !== 1) return null;
-    var kid = null;
-    for (var i = 0; i < sp.childNodes.length; i++){
-      var n = sp.childNodes[i];
-      if (n.nodeType === 1){
-        if (kid) return null;
-        kid = n;
-      } else if (n.nodeType === 3 && n.nodeValue.trim() !== ''){
-        return null;
-      }
-    }
-    if (!kid || kid.tagName !== 'SPAN' || !kid.style) return null;
-    if (!kid.style.getPropertyValue(sp.style.item(0))) return null;
-    return kid;
-  }
-
-  // Spans carrying the identical inline style merge outward and sideways,
-  // so dressing the same words again never builds a tower of wrappers.
-  function normalizeSpans(root){
-    for (var pass = 0; pass < 3; pass++){
-      var spans = root.querySelectorAll('span');
-      var merged = false;
-      for (var i = 0; i < spans.length; i++){
-        var sp = spans[i];
-        if (!sp.style || !sp.style.cssText) continue;
-        if (sp.querySelector('.fnmark')) continue;
-        var kid = deadWrapper(sp);
-        if (kid){
-          sp.parentNode.replaceChild(kid, sp);
-          merged = true;
-          break;
-        }
-        var parent = sp.parentElement;
-        if (parent && parent !== docs && parent.tagName === 'SPAN' && parent.style
-            && parent.style.cssText === sp.style.cssText){
-          while (sp.firstChild) parent.insertBefore(sp.firstChild, sp);
-          parent.removeChild(sp);
-          merged = true;
-          break;
-        }
-        var prev = sp.previousSibling;
-        if (prev && prev.nodeType === 1 && prev.tagName === 'SPAN' && prev.style
-            && prev.style.cssText === sp.style.cssText && !prev.querySelector('.fnmark')){
-          while (sp.firstChild) prev.appendChild(sp.firstChild);
-          sp.parentNode.removeChild(sp);
-          merged = true;
-          break;
-        }
-      }
-      if (!merged) return;
-    }
-  }
-
-  // -- state report: what the caret is wearing, where it stands -------------------
-  function firstFamily(list){
-    if (!list) return '';
-    return list.split(',')[0].replace(/["']/g, '').trim();
-  }
-
-  function reportState(){
-    var sel = document.getSelection();
-    var info = { type:'state', font:'', size:'', b:false, i:false, u:false, s:false, edit:false, page:1 };
-    var el = (sel && sel.rangeCount)
-      ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement) : null;
-    var ed = el ? el.closest('.txt,.fnnote') : null;
-    if (ed){
-      info.edit = true;
-      var cs = getComputedStyle(el);
-      info.font = firstFamily(cs.fontFamily);
-      info.size = String(Math.round(parseFloat(cs.fontSize) * 3 / 4));
-      try {
-        info.b = document.queryCommandState('bold');
-        info.i = document.queryCommandState('italic');
-        info.u = document.queryCommandState('underline');
-        info.s = document.queryCommandState('strikeThrough');
-      } catch(e){}
-    }
-    var host = ed || (saved ? saved.el : null);
-    var pg = host ? host.closest('.page') : null;
-    if (pg) info.page = Array.prototype.indexOf.call(docs.children, pg) + 1;
-    post(info);
-  }
-
-  // -- host messages -----------------------------------------------------------------
-  function handle(msg){
-    switch (msg.cmd){
-      case 'bold': exec('bold'); break;
-      case 'italic': exec('italic'); break;
-      case 'underline': exec('underline'); break;
-      case 'strike': exec('strikeThrough'); break;
-      case 'font': if (msg.name) exec('fontName', String(msg.name)); break;
-      case 'size': applySize(String(msg.pt || '12')); break;
+  quill.format('size', next + 'pt', 'user');
+  reportState();
+}
+if (window.chrome && window.chrome.webview && window.chrome.webview.addEventListener){
+  window.chrome.webview.addEventListener('message', function(e){
+    var msg = e && e.data;
+    if (!msg || !msg.cmd) return;
+    switch (msg.cmd) {
+      case 'bold': toggle('bold'); break;
+      case 'italic': toggle('italic'); break;
+      case 'underline': toggle('underline'); break;
+      case 'strike': toggle('strike'); break;
+      case 'font': if (msg.name){ quill.format('font', slug(String(msg.name)), 'user'); reportState(); } break;
+      case 'size': if (msg.pt){ quill.format('size', pt(String(msg.pt)), 'user'); reportState(); } break;
       case 'sizeStep': sizeStep(Number(msg.dir) || 0); break;
-      case 'undo': undo(); break;
-      case 'redo': redo(); break;
-      case 'linkui': linkUi(); break;
+      case 'linkui': openLinkPop(); break;
       case 'footnote': insertFootnote(); break;
       case 'image': insertImage(String(msg.src || '')); break;
-      case 'dump': saveNow(); break;   // the host switches tabs on this answer
-      case 'scroll': {
-        var p = pageAt((msg.n | 0) - 1);
-        if (p) p.scrollIntoView({ behavior:'smooth', block:'start' });
-        break;
-      }
-      case 'focus': {
-        if (!saved && docs.children.length){
-          var t = txtOf(docs.children[0]);
-          if (t) placeCaret(t, true);
-        }
-        break;
-      }
-      case 'load': {
-        worldSeq = (msg.seq | 0) || 0;
-        docs.innerHTML = String(msg.html || '');
-        if (!docs.children.length) makePage();
-        FNID = 0;
-        docs.querySelectorAll('[data-fn]').forEach(function(el){
-          var m = /^fn(\d+)$/.exec(el.dataset.fn || '');
-          if (m) FNID = Math.max(FNID, parseInt(m[1], 10));
-        });
-        renumberFns();
-        reportPages();
-        // a loaded world is step zero: the reader undoes from here
-        undoStack = []; undoPtr = -1; undoChars = 0; lastSnap = '';
-        if (undoTimer){ clearTimeout(undoTimer); undoTimer = null; }
-        pushUndo();
-        scheduleSave();
-        scheduleThumbs();
-        post({ type:'title', seq: worldSeq, title: docTitle() });
-        break;
-      }
-      case 'i18n': {
-        i18n = { apply: String(msg.apply || 'Apply'), remove: String(msg.remove || 'Remove'),
-                 linkUrl: String(msg.linkUrl || '') };
-        document.getElementById('linkurl').placeholder = i18n.linkUrl;
-        document.getElementById('linkok').textContent = i18n.apply;
-        document.getElementById('linkrm').textContent = i18n.remove;
-        break;
-      }
+      case 'undo': quill.history.undo(); reportState(); break;
+      case 'redo': quill.history.redo(); reportState(); break;
+      case 'dump': saveNow(); break;
+      case 'scroll': try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(err){ window.scrollTo(0, 0); } break;
+      case 'focus': quill.focus(); break;
+      case 'load': loadWorld(String(msg.html || ''), msg.seq|0); break;
+      case 'i18n': i18n = { apply: String(msg.apply || 'Apply'), remove: String(msg.remove || 'Remove'),
+                            linkUrl: String(msg.linkUrl || 'Link URL') };
+                    lpUrl.placeholder = i18n.linkUrl;
+                    break;
     }
-  }
-
-  window.chrome.webview.addEventListener('message', function(e){
-    var m = e.data;
-    if (typeof m === 'string'){ try { m = JSON.parse(m); } catch(err){ return; } }
-    if (m && m.cmd) handle(m);
   });
+}
 
-  // -- boot ----------------------------------------------------------------------------
-  makePage();
-  reportPages();
-  pushUndo();
-  post({ type:'ready' });
+// The stage is set the moment the sheet lands; the host answers with the
+// world to wear (load) or an empty page to start writing into (focus).
+post({ type:'pages', count: 1 });
+post({ type:'ready' });
+postThumbs();
 })();
 </script>
 </body>

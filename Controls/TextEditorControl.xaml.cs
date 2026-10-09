@@ -16,14 +16,15 @@ using Avalanche.Services;
 
 namespace Avalanche.Controls
 {
-    // The text editor's host (v1.19.64): a ribbon of real writing controls and one
+    // The text editor's host (v1.19.72): a ribbon of real writing controls and one
     // WebView2 running the embedded editor document (Controls/TextEditorDocument.cs).
     // The split is deliberate - the ribbon is WPF and speaks theme brushes like every
-    // other bar in the app, while the page itself is a plain HTML document where real
-    // pagination, behind-text images, hyperlinks and footnotes are first-class citizens
-    // instead of fights. The two halves talk over WebView2 messages: the ribbon posts
-    // commands (bold, font, size, link, footnote, image), the page posts facts back
-    // (what the caret is wearing, how many pages exist, what to save, links to open).
+    // other bar in the app, while the page itself is a standalone Quill.js v2 surface
+    // where the document model, the caret, the history, footnotes, links and images
+    // are the engine's own first-class citizens instead of fights. The two halves
+    // talk over WebView2 messages: the ribbon posts commands (bold, font, size,
+    // link, footnote, image), the page posts facts back (what the caret is wearing,
+    // what to save, links to open, the sheet's own raster).
     // Chromium never ships in the payload - the Evergreen runtime the browser pane
     // already rides wakes here too, lazily, and suspends when the pane hides.
     public partial class TextEditorControl : UserControl
