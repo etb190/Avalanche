@@ -13,17 +13,18 @@
          control is a few KB of chrome around one embedded HTML string. -->
     <UserControl.Resources>
         <Style x:Key="EditorBtn" TargetType="Button">
-            <!-- Twice as large, the reader's own measure (v1.19.73): every
-                 face on this ribbon doubles - buttons, glyphs and all. -->
+            <!-- A size the reader can hold (v1.19.75): 73's doubling read as
+                 ten times on the screen, so the ribbon settles between the old
+                 28 and the huge 56 - bigger targets, a quiet face. -->
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Padding" Value="4"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontSize" Value="16"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Width" Value="56"/>
-            <Setter Property="Height" Value="56"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
@@ -53,14 +54,14 @@
              the pressed face comes from the page's own report (the JS side is
              the single source of truth for what the caret is wearing). -->
         <Style x:Key="EditorToggle" TargetType="ToggleButton">
-            <!-- The toggles share the button's doubled face (v1.19.73). -->
+            <!-- The toggles share the button's face at the settled size (v1.19.75). -->
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Padding" Value="4"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Width" Value="56"/>
-            <Setter Property="Height" Value="56"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
@@ -91,9 +92,9 @@
             </Setter>
         </Style>
         <Style x:Key="EditorPopupItem" TargetType="ListBoxItem">
-            <!-- The lists read at the ribbon's doubled size (v1.19.73). -->
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontSize" Value="16"/>
+            <!-- The lists read at the ribbon's settled size (v1.19.75). -->
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Template">
@@ -123,10 +124,10 @@
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="14,6"/>
-            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Height" Value="52"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
@@ -175,9 +176,9 @@
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="Width" Value="40"/>
-            <Setter Property="Height" Value="52"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Width" Value="26"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
@@ -213,9 +214,9 @@
             <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
-            <Setter Property="FontSize" Value="24"/>
-            <Setter Property="Height" Value="52"/>
-            <Setter Property="Width" Value="92"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Width" Value="64"/>
             <Setter Property="MaxLength" Value="3"/>
             <Setter Property="TextAlignment" Value="Center"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -293,24 +294,24 @@
                             Click="EditorBrowserBtn_Click" ToolTip="{DynamicResource Str_TT_EditorBrowser}"/>
                     <Button x:Name="EditorPdfBtn" Content="&#xE8A5;" Style="{StaticResource EditorBtn}"
                             Click="EditorPdfBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}"/>
-                    <Rectangle Width="2" Fill="{DynamicResource CardBorderBrush}" Margin="8,12"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- Font dial: shows the font the caret is wearing right now;
                          choosing one applies it to the selection, or - with the
                          caret resting - to what gets typed next. -->
                     <ToggleButton x:Name="FontBtn" Style="{StaticResource EditorDial}"
-                                  MinWidth="260" MaxWidth="340" Click="FontBtn_Click"
+                                  MinWidth="170" MaxWidth="260" Click="FontBtn_Click"
                                   ToolTip="{DynamicResource Str_TT_EditorFont}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="FontText" Text="Segoe UI" FontSize="24"
+                            <TextBlock x:Name="FontText" Text="Segoe UI" FontSize="14"
                                        FontFamily="{DynamicResource UiFont}"
                                        Foreground="{DynamicResource TextBrush}"
                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                             <TextBlock Grid.Column="1" Text="&#xE70D;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="16" Margin="10,0,0,0"
+                                       FontSize="12" Margin="6,0,0,0"
                                        Foreground="{DynamicResource MutedTextBrush}"
                                        VerticalAlignment="Center"/>
                         </Grid>
@@ -337,74 +338,72 @@
                     <!-- The reader read the pair right-to-left and asked for the
                          increase to sit on the right (v1.19.69) - smaller first,
                          bigger last, the ladder's own direction. -->
-                    <Button x:Name="FontShrinkBtn" Content="&#xE8E8;" Style="{StaticResource EditorBtn}"
+                    <!-- Minus and plus (v1.19.75): the pair the reader asked
+                         for by name - the old glyphs read as neither. -->
+                    <Button x:Name="FontShrinkBtn" Content="&#xE738;" Style="{StaticResource EditorBtn}"
                             Click="FontShrinkBtn_Click" Margin="6,0,0,0"
                             ToolTip="{DynamicResource Str_TT_EditorFontShrink}"/>
-                    <Button x:Name="FontGrowBtn" Content="&#xE8E9;" Style="{StaticResource EditorBtn}"
+                    <Button x:Name="FontGrowBtn" Content="&#xE710;" Style="{StaticResource EditorBtn}"
                             Click="FontGrowBtn_Click"
                             ToolTip="{DynamicResource Str_TT_EditorFontGrow}"/>
-                    <Rectangle Width="2" Fill="{DynamicResource CardBorderBrush}" Margin="8,12"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- The classic four. Letters, not glyphs - the way every
                          writing app has drawn them since forever. -->
                     <ToggleButton x:Name="BoldBtn" Style="{StaticResource EditorToggle}"
                                   Click="BoldBtn_Click" ToolTip="{DynamicResource Str_TT_EditorBold}">
-                        <TextBlock Text="B" FontWeight="Bold" FontSize="26" FontFamily="Georgia"/>
+                        <TextBlock Text="B" FontWeight="Bold" FontSize="17" FontFamily="Georgia"/>
                     </ToggleButton>
                     <ToggleButton x:Name="ItalicBtn" Style="{StaticResource EditorToggle}"
                                   Click="ItalicBtn_Click" ToolTip="{DynamicResource Str_TT_EditorItalic}">
-                        <TextBlock Text="I" FontStyle="Italic" FontSize="26" FontFamily="Georgia"/>
+                        <TextBlock Text="I" FontStyle="Italic" FontSize="17" FontFamily="Georgia"/>
                     </ToggleButton>
                     <ToggleButton x:Name="UnderlineBtn" Style="{StaticResource EditorToggle}"
                                   Click="UnderlineBtn_Click" ToolTip="{DynamicResource Str_TT_EditorUnderline}">
-                        <TextBlock Text="U" FontSize="26" FontFamily="Georgia" TextDecorations="Underline"/>
+                        <TextBlock Text="U" FontSize="17" FontFamily="Georgia" TextDecorations="Underline"/>
                     </ToggleButton>
                     <ToggleButton x:Name="StrikeBtn" Style="{StaticResource EditorToggle}"
                                   Click="StrikeBtn_Click" ToolTip="{DynamicResource Str_TT_EditorStrike}">
-                        <TextBlock Text="S" FontSize="26" FontFamily="Georgia" TextDecorations="Strikethrough"/>
+                        <TextBlock Text="S" FontSize="17" FontFamily="Georgia" TextDecorations="Strikethrough"/>
                     </ToggleButton>
-                    <Rectangle Width="2" Fill="{DynamicResource CardBorderBrush}" Margin="8,12"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- The block tools (v1.19.73): three header levels, the
-                         bullet, the number, the alpha sub-number and the quote.
+                         lists dropdown (v1.19.75: bullet, number and alpha
+                         sub-number under one roof) and the quote.
                          Every one is a toggle - the same button that dresses a
                          line undresses it again - and every light rides the
                          page's own state report, never a local guess. The H
                          faces are locale-neutral marks like B / I / U / S. -->
                     <ToggleButton x:Name="HeaderBtn" Style="{StaticResource EditorToggle}"
                                   Click="HeaderBtn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader}">
-                        <TextBlock Text="&#x48;" FontWeight="Bold" FontSize="26" FontFamily="Georgia"/>
+                        <TextBlock Text="&#x48;" FontWeight="Bold" FontSize="17" FontFamily="Georgia"/>
                     </ToggleButton>
                     <ToggleButton x:Name="H1Btn" Style="{StaticResource EditorToggle}"
                                   Click="H1Btn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader1}">
-                        <TextBlock Text="&#x48;1" FontWeight="Bold" FontSize="22" FontFamily="Georgia"/>
+                        <TextBlock Text="&#x48;1" FontWeight="Bold" FontSize="15" FontFamily="Georgia"/>
                     </ToggleButton>
                     <ToggleButton x:Name="H2Btn" Style="{StaticResource EditorToggle}"
                                   Click="H2Btn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader2}">
-                        <TextBlock Text="&#x48;2" FontWeight="Bold" FontSize="18" FontFamily="Georgia"/>
+                        <TextBlock Text="&#x48;2" FontWeight="Bold" FontSize="13" FontFamily="Georgia"/>
                     </ToggleButton>
-                    <Rectangle Width="2" Fill="{DynamicResource CardBorderBrush}" Margin="8,12"/>
-                    <ToggleButton x:Name="BulletBtn" Style="{StaticResource EditorToggle}"
-                                  Click="BulletBtn_Click" ToolTip="{DynamicResource Str_TT_EditorBullet}">
-                        <TextBlock Text="&#x2022;" FontSize="34" FontFamily="Georgia"/>
-                    </ToggleButton>
-                    <ToggleButton x:Name="NumBtn" Style="{StaticResource EditorToggle}"
-                                  Click="NumBtn_Click" ToolTip="{DynamicResource Str_TT_EditorNumber}">
-                        <TextBlock Text="1." FontWeight="Bold" FontSize="20" FontFamily="Georgia"/>
-                    </ToggleButton>
-                    <ToggleButton x:Name="SubNumBtn" Style="{StaticResource EditorToggle}"
-                                  Click="SubNumBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSubnum}">
-                        <TextBlock Text="&#x41;." FontWeight="Bold" FontSize="20" FontFamily="Georgia"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
+                    <!-- The lists dropdown (v1.19.75): one door, three kinds,
+                         each a pick - the same bullet / number / sub-number
+                         chords as before, the page still owning the toggle. -->
+                    <ToggleButton x:Name="ListBtn" Style="{StaticResource EditorToggle}"
+                                  Click="ListBtn_Click" ToolTip="{DynamicResource Str_TT_EditorLists}">
+                        <TextBlock Text="&#x2022;" FontSize="20" FontFamily="Georgia"/>
                     </ToggleButton>
                     <ToggleButton x:Name="QuoteBtn" Style="{StaticResource EditorToggle}"
                                   Click="QuoteBtn_Click" ToolTip="{DynamicResource Str_TT_EditorQuote}">
-                        <TextBlock Text="&#x201C;" FontWeight="Bold" FontSize="34" FontFamily="Georgia"/>
+                        <TextBlock Text="&#x201C;" FontWeight="Bold" FontSize="20" FontFamily="Georgia"/>
                     </ToggleButton>
-                    <Rectangle Width="2" Fill="{DynamicResource CardBorderBrush}" Margin="8,12"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- Link, footnote, and the behind-text image. -->
                     <Button x:Name="LinkBtn" Content="&#xE71B;" Style="{StaticResource EditorBtn}"
                             Click="LinkBtn_Click" ToolTip="{DynamicResource Str_TT_EditorLink}"/>
                     <Button x:Name="FootnoteBtn" Style="{StaticResource EditorBtn}"
                             Click="FootnoteBtn_Click" ToolTip="{DynamicResource Str_TT_EditorFootnote}">
-                        <TextBlock Text="&#x2020;" FontSize="28" FontFamily="Georgia"/>
+                        <TextBlock Text="&#x2020;" FontSize="18" FontFamily="Georgia"/>
                     </Button>
                     <Button x:Name="ImageBtn" Content="&#xEB9F;" Style="{StaticResource EditorBtn}"
                             Click="ImageBtn_Click" ToolTip="{DynamicResource Str_TT_EditorImage}"/>
@@ -462,6 +461,22 @@
                             Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
                             FocusVisualStyle="{x:Null}"
                             ToolTip="{DynamicResource Str_TT_EditorNewTab}" Click="EditorTabNewBtn_Click"/>
+                    <!-- Save and Open (v1.19.75): the reader's own files. Save
+                         asks where with the Windows prompt and writes the sheet;
+                         Open reads an .html (or .txt) back as a document. Both
+                         wear the fresh-tab face, both sit beside the +. -->
+                    <Button x:Name="EditorTabSaveBtn" DockPanel.Dock="Right"
+                            Style="{DynamicResource TabNewButton}"
+                            Content="&#xE74E;" FontFamily="{DynamicResource IconFont}" FontSize="10"
+                            Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
+                            FocusVisualStyle="{x:Null}"
+                            ToolTip="{DynamicResource Str_Editor_SaveDoc}" Click="EditorTabSaveBtn_Click"/>
+                    <Button x:Name="EditorTabOpenBtn" DockPanel.Dock="Right"
+                            Style="{DynamicResource TabNewButton}"
+                            Content="&#xE8E5;" FontFamily="{DynamicResource IconFont}" FontSize="10"
+                            Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
+                            FocusVisualStyle="{x:Null}"
+                            ToolTip="{DynamicResource Str_Editor_OpenDoc}" Click="EditorTabOpenBtn_Click"/>
                     <!-- No side insets, horizontal scrolling DISABLED (not hidden -
                          hidden measures at infinite width and defeats the
                          UniformGrid), the PDF strip's own plumbing. -->
@@ -662,20 +677,40 @@
              targets never leave the ribbon. -->
         <Popup x:Name="FontPopup" PlacementTarget="{Binding ElementName=FontBtn}"
                Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-            <Border Style="{StaticResource EditorPopupBorder}" Width="300">
+            <Border Style="{StaticResource EditorPopupBorder}" Width="240">
                 <ListBox x:Name="FontList" BorderThickness="0" Background="Transparent"
-                         MaxHeight="460" VirtualizingPanel.IsVirtualizing="False"
+                         MaxHeight="320" VirtualizingPanel.IsVirtualizing="False"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                          SelectionChanged="FontList_SelectionChanged"/>
             </Border>
         </Popup>
         <Popup x:Name="SizePopup" PlacementTarget="{Binding ElementName=SizeDropBtn}"
                Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
-            <Border Style="{StaticResource EditorPopupBorder}" Width="110">
+            <Border Style="{StaticResource EditorPopupBorder}" Width="90">
                 <ListBox x:Name="SizeList" BorderThickness="0" Background="Transparent"
-                         MaxHeight="460" VirtualizingPanel.IsVirtualizing="False"
+                         MaxHeight="320" VirtualizingPanel.IsVirtualizing="False"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                          SelectionChanged="SizeList_SelectionChanged"/>
+            </Border>
+        </Popup>
+        <!-- The lists dropdown's popup (v1.19.75): three locale-neutral marks
+             - the bullet, the numeral, the alpha letter - the same faces the
+             old buttons wore, one roof, one pick, page's word final. -->
+        <Popup x:Name="ListPopup" PlacementTarget="{Binding ElementName=ListBtn}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Style="{StaticResource EditorPopupBorder}" Width="120">
+                <ListBox x:Name="ListKinds" BorderThickness="0" Background="Transparent"
+                         SelectionChanged="ListKinds_SelectionChanged">
+                    <ListBoxItem Style="{StaticResource EditorPopupItem}" Tag="bullet">
+                        <TextBlock Text="&#x2022;" FontSize="16" FontWeight="Bold" FontFamily="Georgia"/>
+                    </ListBoxItem>
+                    <ListBoxItem Style="{StaticResource EditorPopupItem}" Tag="number">
+                        <TextBlock Text="1." FontSize="14" FontWeight="Bold" FontFamily="Georgia"/>
+                    </ListBoxItem>
+                    <ListBoxItem Style="{StaticResource EditorPopupItem}" Tag="subnumber">
+                        <TextBlock Text="&#x41;." FontSize="14" FontWeight="Bold" FontFamily="Georgia"/>
+                    </ListBoxItem>
+                </ListBox>
             </Border>
         </Popup>
     </Grid>

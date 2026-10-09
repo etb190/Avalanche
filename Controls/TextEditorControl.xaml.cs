@@ -44,6 +44,7 @@ namespace Avalanche.Controls
         private bool _envBuilding;
         private bool _pageReady;
         private string? _pendingLoadHtml;
+        private string? _pendingSavePath;
         private int _pageCount;
         private int _activePage = 1;
 
@@ -224,6 +225,7 @@ namespace Avalanche.Controls
             FontList.ItemsSource = FontChoices;
             SizeList.ItemsSource = SizeChoices;
             FontPopup.Closed += (_, _) => FontBtn.IsChecked = false;
+            ListPopup.Closed += (_, _) => ListBtn.IsChecked = false;
             _untitledLabel = Loc("Str_Editor_Untitled");
             LoadEditorTabs();
             InitTabStrip();
@@ -472,6 +474,9 @@ namespace Avalanche.Controls
                             _pendingSwitchTo = null;
                             ActivateEditorTabNow(to);
                         }
+                        if (seq == _worldSeq && _activeTab >= 0 && _activeTab < _tabs.Count
+                            && _pendingSavePath is { Length: > 0 })
+                            WriteEditorFile(saved, _tabs[_activeTab].Title);
                         SaveSession();
                     }
                     break;
@@ -552,17 +557,15 @@ namespace Avalanche.Controls
             SetToggle(UnderlineBtn, Prop(r, "u"));
             SetToggle(StrikeBtn, Prop(r, "s"));
             // The block layer (v1.19.73): the header level, the list kind,
-            // the nesting depth and the quote - the lights show what the
-            // caret is actually wearing, page's word is final.
+            // the list layer and the quote - the lights show what the
+            // caret is actually wearing, page's word is final. The lists
+            // dropdown (v1.19.75) lights while any list kind is on.
             int header = r.TryGetProperty("h", out var hv) && hv.ValueKind == JsonValueKind.Number ? hv.GetInt32() : 0;
             SetToggle(HeaderBtn, header == 1);
             SetToggle(H1Btn, header == 2);
             SetToggle(H2Btn, header == 3);
             string listState = r.TryGetProperty("list", out var lsv) ? lsv.GetString() ?? string.Empty : string.Empty;
-            int sub = r.TryGetProperty("sub", out var sv) && sv.ValueKind == JsonValueKind.Number ? sv.GetInt32() : 0;
-            SetToggle(BulletBtn, listState == "bullet");
-            SetToggle(NumBtn, listState == "ordered");
-            SetToggle(SubNumBtn, listState == "ordered" && sub > 0);
+            SetToggle(ListBtn, listState == "bullet" || listState == "ordered");
             SetToggle(QuoteBtn, Prop(r, "quote"));
             if (r.TryGetProperty("page", out var pg))
             {
@@ -616,9 +619,26 @@ namespace Avalanche.Controls
         private void HeaderBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 1 }); RefocusEditor(); }
         private void H1Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 2 }); RefocusEditor(); }
         private void H2Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 3 }); RefocusEditor(); }
-        private void BulletBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "bullet" }); RefocusEditor(); }
-        private void NumBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "number" }); RefocusEditor(); }
-        private void SubNumBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "subnumber" }); RefocusEditor(); }
+        // The lists dropdown (v1.19.75): picking a kind speaks the same
+        // bullet / number / sub-number chord the old buttons spoke; the page
+        // still owns every toggle decision, the light rides the report.
+        private void ListBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (ListBtn.IsChecked != true) return;
+            ListPopup.IsOpen = true;
+        }
+
+        private void ListKinds_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ListKinds.SelectedItem is ListBoxItem it && it.Tag is string cmd)
+            {
+                Post(new { cmd });
+                RefocusEditor();
+                ListPopup.IsOpen = false;
+                Dispatcher.BeginInvoke(() => ListKinds.SelectedIndex = -1,
+                    System.Windows.Threading.DispatcherPriority.Background);
+            }
+        }
         private void QuoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "quote" }); RefocusEditor(); }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
         private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
@@ -1207,6 +1227,112 @@ namespace Avalanche.Controls
         }
 
         private void EditorTabNewBtn_Click(object sender, RoutedEventArgs e) => OpenNewTab();
+
+        // ── Save and Open (v1.19.75): the reader's own files ─────────────────
+        // Save asks where with the app's own Windows-style prompt, then the
+        // sheet's save pipeline delivers the bytes: the dump answers, the
+        // file is written on its arrival, seq-guarded like every save.
+        private void EditorTabSaveBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_activeTab < 0 || _activeTab >= _tabs.Count) return;
+            var dlg = new FileDialog(FileDialogMode.Save)
+            {
+                Filter = "HTML document|*.html;*.htm|Text file|*.txt|All files|*.*",
+                FileName = EditorFileName(_tabs[_activeTab].Title),
+                OverwritePrompt = true,
+            };
+            var owner = Window.GetWindow(this);
+            bool ok = owner is not null ? dlg.ShowDialog(owner) == true : dlg.ShowDialog() == true;
+            if (!ok) return;
+            _pendingSavePath = dlg.FileName;
+            if (_pageReady) { Post(new { cmd = "dump" }); return; }
+            WriteEditorFile(_tabs[_activeTab].Html, _tabs[_activeTab].Title);
+        }
+
+        // Open reads an .html (or plain .txt) back as a document of its own,
+        // in a fresh tab wearing the file's name.
+        private void EditorTabOpenBtn_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new FileDialog(FileDialogMode.Open)
+            {
+                Filter = "HTML document|*.html;*.htm|Text file|*.txt|All files|*.*",
+                CheckFileExists = true,
+            };
+            var owner = Window.GetWindow(this);
+            bool ok = owner is not null ? dlg.ShowDialog(owner) == true : dlg.ShowDialog() == true;
+            if (!ok) return;
+            string text;
+            try { text = File.ReadAllText(dlg.FileName); }
+            catch { return; }
+            _tabs.Add(new EditorTab(Path.GetFileNameWithoutExtension(dlg.FileName), OpenedHtml(text), _untitledLabel));
+            RebuildTabStrip();
+            int to = _tabs.Count - 1;
+            if (!_pageReady) { ActivateEditorTabNow(to); SaveSession(); return; }
+            _pendingSwitchTo = to;
+            Post(new { cmd = "dump" });
+        }
+
+        // The pending file write happens once: the save case hands over the
+        // exact document it stored, and the path clears either way.
+        private void WriteEditorFile(string rawHtml, string title)
+        {
+            string? path = _pendingSavePath;
+            _pendingSavePath = null;
+            if (path is null || path.Length == 0) return;
+            try { File.WriteAllText(path, EditorFileHtml(rawHtml, title), new UTF8Encoding(false)); }
+            catch { /* a refused path must never take the editor down */ }
+        }
+
+        // The file gets a real document shell: the sheet's save is a body
+        // fragment, and the reader's file should open whole in any browser.
+        private static string EditorFileHtml(string raw, string title)
+        {
+            string html = raw ?? string.Empty;
+            int body = html.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+            if (body >= 0)
+            {
+                int s = html.IndexOf('>', body);
+                int e = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+                if (s >= 0 && e > s) html = html[(s + 1)..e];
+            }
+            string safeTitle = (title ?? "").Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+            return "<!DOCTYPE html>\r\n<html>\r\n<head>\r\n<meta charset=\"utf-8\">\r\n<title>" + safeTitle + "</title>\r\n</head>\r\n<body>\r\n"
+                + html + "\r\n</body>\r\n</html>\r\n";
+        }
+
+        private static string EditorFileName(string title)
+        {
+            string t = (title ?? "").Trim();
+            if (t.Length == 0) return "document.html";
+            foreach (char c in Path.GetInvalidFileNameChars()) t = t.Replace(c, '_');
+            if (t.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || t.EndsWith(".htm", StringComparison.OrdinalIgnoreCase)) return t;
+            return t + ".html";
+        }
+
+        // An opened file becomes sheet content: a full HTML document gives
+        // up its body, a bare fragment passes as-is, plain text wears
+        // paragraphs so the sheet receives it line for line.
+        private static string OpenedHtml(string text)
+        {
+            string t = text ?? string.Empty;
+            int body = t.IndexOf("<body", StringComparison.OrdinalIgnoreCase);
+            if (body >= 0)
+            {
+                int s = t.IndexOf('>', body);
+                int e = t.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+                if (s >= 0 && e > s) return t[(s + 1)..e];
+            }
+            bool looksHtml = t.Contains("<p>") || t.Contains("<div") || t.Contains("<br")
+                || t.Contains("<h1") || t.Contains("<ol") || t.Contains("<ul");
+            if (looksHtml) return t;
+            var sb = new StringBuilder();
+            foreach (string line in t.Replace("\r\n", "\n").Split('\n'))
+            {
+                string esc = line.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+                sb.Append(esc.Length == 0 ? "<p><br></p>" : "<p>" + esc + "</p>");
+            }
+            return sb.ToString();
+        }
 
         // ── Drag: reorder within the strip ───────────────────────────────────
         // Arm on press; past the threshold the grabbed tab glues to the cursor

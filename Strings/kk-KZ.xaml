@@ -1389,6 +1389,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_EditorNumber">Нөмірленген тізім</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Ішкі тізім (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Дәйексөз</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Тізімдер</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Құжатты сақтау</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Құжатты ашу</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Сілтеме қоу немесе өңдеу</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Түбәтпе ескертпе қою</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Мөтіннің артына сүрет қою (еркін жылжытады)</sys:String>

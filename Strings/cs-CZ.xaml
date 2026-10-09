@@ -1375,6 +1375,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_TT_EditorNumber">Číslovaný seznam</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Podřazený seznam (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citace</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Seznamy</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Uložit dokument</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Otevřít dokument</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Vložit nebo upravit odkaz</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Vložit poznámku pod čarou</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Vložit obrázek za text (volně přesouvatelný)</sys:String>

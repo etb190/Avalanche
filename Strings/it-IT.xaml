@@ -1390,6 +1390,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_TT_EditorNumber">Elenco numerato</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Sottoelenco (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citazione</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Elenchi</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Salva documento</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Apri documento</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Inserisci o modifica un collegamento</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Inserisci una nota a piè di pagina</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Inserisci un'immagine dietro il testo (trascinala liberamente)</sys:String>

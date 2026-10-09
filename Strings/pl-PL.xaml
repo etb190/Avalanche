@@ -1378,6 +1378,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_EditorNumber">Lista numerowana</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Podlista (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Cytat</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Listy</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Zapisz dokument</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Otwórz dokument</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Wstaw lub edytuj link</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Wstaw przypis dolny</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Wstaw obraz za tekstem (przesuwany swobodnie)</sys:String>

@@ -1376,6 +1376,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_TT_EditorNumber">Nummerierte Liste</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Unterliste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Zitat</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Listen</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Dokument speichern</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Dokument öffnen</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Link einfügen oder bearbeiten</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Fußnote einfügen</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Bild hinter den Text einfügen (frei verschiebbar)</sys:String>

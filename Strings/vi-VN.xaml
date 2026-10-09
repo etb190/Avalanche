@@ -1390,6 +1390,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_TT_EditorNumber">Danh sách đánh số</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Danh sách con (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Trích dẫn</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Danh sách</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Lưu tài liệu</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Mở tài liệu</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Chèn hoặc sửa liên kết</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Chèn chú thích cuối trang</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Chèn ảnh phía sau văn bản (kéo thoải mái)</sys:String>

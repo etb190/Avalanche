@@ -1377,6 +1377,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_EditorNumber">Számozott lista</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Al-lista (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Idézet</sys:String>
+    <sys:String x:Key="Str_TT_EditorLists">Listák</sys:String>
+    <sys:String x:Key="Str_Editor_SaveDoc">Dokumentum mentése</sys:String>
+    <sys:String x:Key="Str_Editor_OpenDoc">Dokumentum megnyitása</sys:String>
     <sys:String x:Key="Str_TT_EditorLink">Hivatkozás beszúrása vagy szerkesztése</sys:String>
     <sys:String x:Key="Str_TT_EditorFootnote">Lábjegyzet beszúrása</sys:String>
     <sys:String x:Key="Str_TT_EditorImage">Kép beszúrása a szöveg mögé (szabadon mozgatható)</sys:String>
