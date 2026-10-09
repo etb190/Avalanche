@@ -792,12 +792,15 @@ namespace Avalanche.Controls
         {
             if (EditorTabStrip == null || EditorTabBand == null) return;
 
-            // Only show the band when two or more documents are open - a single
-            // open document never grows a bar, and the card keeps the eight
-            // points of air the reader asked for (v1.19.68). With the band up,
-            // the -1 tucks the card's top border into it so the active tab and
-            // the card read as one surface, the reader's own join.
-            bool show = _tabs.Count > 1;
+            // The band is ALWAYS up (v1.19.70): the reader looks under the
+            // toolbar for their tabs and they must be there - one document or
+            // five. A band that only grows once a second document exists told
+            // the reader "no tabs" on the very face that was supposed to answer
+            // them, and the fresh-tab + hid behind the very rule that kept the
+            // second document from ever being asked for. With the band up, the
+            // -1 tucks the card's top border into it so the active tab and the
+            // card read as one surface, the reader's own join.
+            bool show = _tabs.Count > 0;
             EditorTabBand.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
             if (CardRow != null)
                 CardRow.Margin = new Thickness(0, show ? -1 : 8, 0, 0);

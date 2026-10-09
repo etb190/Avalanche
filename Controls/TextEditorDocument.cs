@@ -104,11 +104,54 @@ namespace Avalanche.Controls
     return t.offsetHeight > avail + 1;
   }
 
+  // Puts the caret back where its text landed (v1.19.70): a split bare text
+  // node is answered by the tail that now holds the typed half - the caret
+  // follows it by offset - and any other anchor that survived the walk keeps
+  // its place, which is now the page the text moved to. The caret's page
+  // scrolls nearest, so the words the reader is typing are the words on
+  // screen. Without this, typing at the end of a full page left the caret
+  // behind on the old page while the words landed on the new one.
+  function restoreCaretAfterReflow(mark, splits){
+    var sel = document.getSelection();
+    for (var i = 0; i < splits.length; i++){
+      if (splits[i].node === mark.node && mark.off > splits[i].cut){
+        var t = splits[i].tail;
+        var r = document.createRange();
+        r.setStart(t, Math.min(mark.off - splits[i].cut, t.nodeValue.length));
+        r.collapse(true);
+        sel.removeAllRanges(); sel.addRange(r);
+        var pg = t.parentElement ? t.parentElement.closest('.page') : null;
+        if (pg) pg.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+    }
+    if (mark.node && mark.node.isConnected){
+      var n = mark.node, o = mark.off;
+      if (n.nodeType === 3) o = Math.min(o, n.nodeValue.length);
+      else o = Math.min(o, n.childNodes.length);
+      var r2 = document.createRange();
+      r2.setStart(n, o); r2.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r2);
+      var pg2 = n.nodeType === 1 ? n : n.parentElement;
+      pg2 = pg2 ? pg2.closest('.page') : null;
+      if (pg2) pg2.scrollIntoView({ block: 'nearest' });
+    }
+  }
+
   // Text that no longer fits walks forward, whole block by whole block, until
   // every page is honest about what it holds. A fresh page is born when the
   // last one is full; the cascade moves page by page so a mid-document edit
   // pushes everything after it down the stack.
   function reflowFrom(page){
+    // The caret's anchor is read before the walk and restored after it -
+    // collapsed selections only, for a range spanning the split has no
+    // honest home anyway.
+    var sel0 = document.getSelection();
+    var mark = null;
+    if (sel0 && sel0.rangeCount && sel0.isCollapsed && docs.contains(sel0.anchorNode)){
+      mark = { node: sel0.anchorNode, off: sel0.anchorOffset };
+    }
+    var splits = [];
     var guard = 0;
     while (page && guard++ < 400){
       var t = txtOf(page);
@@ -136,7 +179,11 @@ namespace Avalanche.Controls
           if (overflow(t)) hi = mid - 1; else lo = mid;
         }
         last.nodeValue = full.slice(0, lo);
-        nt.insertBefore(document.createTextNode(full.slice(lo)), nt.firstChild);
+        var tail = document.createTextNode(full.slice(lo));
+        nt.insertBefore(tail, nt.firstChild);
+        // The typed half walked to the tail: remembered, so the caret can
+        // follow it by offset once the walk is done.
+        splits.push({ node: last, cut: lo, tail: tail });
         page = next;
         continue;
       }
@@ -146,6 +193,7 @@ namespace Avalanche.Controls
       // page by page in one pass.
       page = overflow(t) ? page : next;
     }
+    if (mark) restoreCaretAfterReflow(mark, splits);
   }
 
   // Answers whether a bare text node could overflow a page at all: it is

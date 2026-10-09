@@ -2659,51 +2659,47 @@ namespace Avalanche
 
         private System.Windows.Controls.Button BuildEditorPageCard(int index, string? thumb)
         {
-            var stack = new System.Windows.Controls.StackPanel();
+            // The PDF list's own item anatomy (v1.19.70), read off its
+            // DataTemplate line for line: a StackPanel wearing the item's
+            // 8,2,8,2 margins, the page's white face in a one-pixel Surface
+            // frame no wider than 200, and the muted label under it. No icon,
+            // no rounded chip, no ring: where the list collapses its frame for
+            // a page it has not rendered, so does this row.
+            var stack = new System.Windows.Controls.StackPanel { Margin = new Thickness(8, 2, 8, 2) };
             var preview = string.IsNullOrEmpty(thumb) ? null : EditorThumbImage(thumb);
             if (preview is not null)
             {
-                // The page's own face (v1.19.69): the raster the editor posted,
-                // on white like every page, fitted whole the way the PDF list
-                // fits a page thumbnail.
                 var img = new System.Windows.Controls.Image
                 {
                     Source = preview,
                     Stretch = System.Windows.Media.Stretch.Uniform,
-                    Margin = new Thickness(2),
+                    MaxWidth = 142,
+                    HorizontalAlignment = HorizontalAlignment.Center,
                 };
                 System.Windows.Media.RenderOptions.SetBitmapScalingMode(img,
                     System.Windows.Media.BitmapScalingMode.HighQuality);
-                var holder = new System.Windows.Controls.Border
+                var face = new System.Windows.Controls.Border
                 {
                     Background = System.Windows.Media.Brushes.White,
-                    CornerRadius = new CornerRadius(2),
-                    ClipToBounds = true,
-                    Height = 84,
+                    BorderThickness = new Thickness(1),
+                    MaxWidth = 200,
+                    HorizontalAlignment = HorizontalAlignment.Center,
                     Child = img,
                 };
-                stack.Children.Add(holder);
-            }
-            else
-            {
-                var icon = new System.Windows.Controls.TextBlock
-                {
-                    Text = "\uE8A5",
-                    FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"),
-                    FontSize = 20,
-                    Margin = new Thickness(0, 4, 0, 2),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                };
-                icon.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "MutedTextBrush");
-                stack.Children.Add(icon);
+                face.SetResourceReference(System.Windows.Controls.Border.BorderBrushProperty, "SurfaceBrush");
+                stack.Children.Add(face);
             }
             var label = new System.Windows.Controls.TextBlock
             {
-                FontSize = 11,
+                FontSize = 10,
+                Margin = new Thickness(0, 2, 0, 0),
                 Text = string.Format(TryFindResource("Str_Editor_PageCard") as string ?? "Page {0}", index),
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
-            label.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "TextBrush");
+            // The label's own face is the list's muted one; the active row's
+            // SelectionFg is handed it by HighlightEditorPage, the way the
+            // list's DataTrigger does - never through a bold face.
+            label.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, "MutedTextBrush");
             label.SetResourceReference(System.Windows.Controls.TextBlock.FontFamilyProperty, "UiFont");
             stack.Children.Add(label);
 
@@ -2712,10 +2708,8 @@ namespace Avalanche
                 Content = stack,
                 Cursor = System.Windows.Input.Cursors.Hand,
                 FocusVisualStyle = null,
-                Margin = new Thickness(0, 0, 0, 6),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
             };
-            card.SetResourceReference(System.Windows.Controls.Control.BackgroundProperty, "PaneBrush");
             card.Template = EditorCardTemplate();
             card.Click += (_, _) => TextPane.ScrollToPage(index);
             return card;
@@ -2743,39 +2737,36 @@ namespace Avalanche
             catch { return null; }
         }
 
-        /// <summary>The card's face: the web-tab card's anatomy in miniature -
-        /// PaneBrush fill, CardBorderBrush ring, themed corner radius, hover to
-        /// the accent - all through DynamicResource, so every theme draws it right.</summary>
+        /// <summary>The card's face: the PDF list's own ListBoxItem template,
+        /// factory for factory - a plain border over a ContentPresenter, hover
+        /// painting RowHoverBrush, the active row painting SelectionBg - read
+        /// off the card's Tag exactly as the list reads IsSelected. The row
+        /// wears no chrome of its own; Foreground rides the row so the label
+        /// under the page recolors with it, the list's own bargain.</summary>
         private static System.Windows.Controls.ControlTemplate EditorCardTemplate()
         {
-            var face = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border), "face");
-            face.SetValue(System.Windows.Controls.Border.BackgroundProperty,
-                new System.Windows.DynamicResourceExtension("PaneBrush"));
-            face.SetValue(System.Windows.Controls.Border.BorderBrushProperty,
-                new System.Windows.DynamicResourceExtension("CardBorderBrush"));
-            face.SetValue(System.Windows.Controls.Border.BorderThicknessProperty, new Thickness(1));
-            face.SetValue(System.Windows.Controls.Border.CornerRadiusProperty,
-                new System.Windows.DynamicResourceExtension("ControlCornerRadius"));
-            face.SetValue(System.Windows.Controls.Border.PaddingProperty, new Thickness(6));
-            face.AppendChild(new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.ContentPresenter)));
+            var bd = new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.Border), "Bd");
+            bd.SetValue(System.Windows.Controls.Border.BackgroundProperty,
+                System.Windows.Media.Brushes.Transparent);
+            bd.SetValue(System.Windows.Controls.Border.PaddingProperty, new Thickness(8, 6, 8, 6));
+            bd.AppendChild(new System.Windows.FrameworkElementFactory(typeof(System.Windows.Controls.ContentPresenter)));
             var tpl = new System.Windows.Controls.ControlTemplate(typeof(System.Windows.Controls.Button))
             {
-                VisualTree = face,
+                VisualTree = bd,
             };
             var hover = new Trigger { Property = UIElement.IsMouseOverProperty, Value = true };
             hover.Setters.Add(new System.Windows.Setter(
-                System.Windows.Controls.Border.BorderBrushProperty,
-                new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
+                System.Windows.Controls.Border.BackgroundProperty,
+                new System.Windows.DynamicResourceExtension("RowHoverBrush")) { TargetName = "Bd" });
             tpl.Triggers.Add(hover);
-            // The active page's ring, read off the card's own Tag - the same
-            // accent the browser's gallery wears for the view on screen.
-            var activeRing = new Trigger { Property = System.Windows.Controls.Control.TagProperty, Value = "Active" };
-            activeRing.Setters.Add(new System.Windows.Setter(
-                System.Windows.Controls.Border.BorderBrushProperty,
-                new System.Windows.DynamicResourceExtension("PrimaryBrush")) { TargetName = "face" });
-            activeRing.Setters.Add(new System.Windows.Setter(
-                System.Windows.Controls.Border.BorderThicknessProperty, new Thickness(1.5)) { TargetName = "face" });
-            tpl.Triggers.Add(activeRing);
+            var active = new Trigger { Property = System.Windows.Controls.Control.TagProperty, Value = "Active" };
+            active.Setters.Add(new System.Windows.Setter(
+                System.Windows.Controls.Border.BackgroundProperty,
+                new System.Windows.DynamicResourceExtension("SelectionBg")) { TargetName = "Bd" });
+            active.Setters.Add(new System.Windows.Setter(
+                System.Windows.Controls.Control.ForegroundProperty,
+                new System.Windows.DynamicResourceExtension("SelectionFg")));
+            tpl.Triggers.Add(active);
             return tpl;
         }
 
@@ -2784,17 +2775,23 @@ namespace Avalanche
             _editorActivePage = page;
             for (int i = 0; i < _editorPageCards.Count; i++)
             {
-                // The active card wears the accent ring, the way the browser's
-                // gallery marks the view on screen (v1.19.69) - the template
-                // reads the tag; the label keeps its bold face.
+                // The active row wears the list's own paint (v1.19.70): the
+                // template reads the Tag for its SelectionBg, and the label
+                // takes SelectionFg the way the list's DataTrigger hands it -
+                // no bold, no ring, exactly the PDF list's manners.
                 _editorPageCards[i].Tag = (i + 1 == page) ? "Active" : null;
-                if (_editorPageCards[i].Content is System.Windows.Controls.StackPanel sp
-                    && sp.Children.Count > 1
-                    && sp.Children[1] is System.Windows.Controls.TextBlock tb)
+                if (_editorPageCards[i].Content is System.Windows.Controls.StackPanel sp)
                 {
-                    tb.FontWeight = (i + 1 == page)
-                        ? System.Windows.FontWeights.Bold
-                        : System.Windows.FontWeights.Normal;
+                    foreach (var child in sp.Children)
+                    {
+                        if (child is System.Windows.Controls.TextBlock tb)
+                        {
+                            tb.SetResourceReference(
+                                System.Windows.Controls.TextBlock.ForegroundProperty,
+                                (i + 1 == page) ? "SelectionFg" : "MutedTextBrush");
+                            break;
+                        }
+                    }
                 }
             }
         }
