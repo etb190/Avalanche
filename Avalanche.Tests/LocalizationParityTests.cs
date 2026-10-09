@@ -83,7 +83,12 @@ public sealed class LocalizationParityTests
             "ja-JP", "kk-KZ", "pl-PL", "ru-RU", "tr-TR", "vi-VN", "zh-CN", "zh-TW",
             " (F5)", " (F6)", " (F7)", " (F8)", "v1.6.3", "Avalanche Team",
             "https://killerpdf.net/help.html", "Avalanche - ", "avalanche.net", "pt",
-            "PNG", "JPEG"
+            "PNG", "JPEG",
+            // Locale-neutral faces: B/I/U/S are the universal bold/italic/
+            // underline/strikethrough marks (like the "T" tool face above),
+            // and "Segoe UI" is a font name shown by the editor's font dial,
+            // not English copy.
+            "B", "I", "U", "S", "Segoe UI"
         };
 
         foreach (string file in Directory.GetFiles(root, "*.xaml", SearchOption.AllDirectories)
