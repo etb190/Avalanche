@@ -1211,6 +1211,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 
 	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
 	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>
+	<sys:String x:Key="Str_TT_WebSummarize">Ағымдағы веб-бетті жинақтау</sys:String>
 	<sys:String x:Key="Str_SummaryTitle">Page Summary</sys:String>
 	<sys:String x:Key="Str_SummaryPages">Pages</sys:String>
 	<sys:String x:Key="Str_SummaryTo">to</sys:String>

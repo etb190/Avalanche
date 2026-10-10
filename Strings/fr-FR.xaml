@@ -1212,6 +1212,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 
 	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
 	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>
+	<sys:String x:Key="Str_TT_WebSummarize">Résumer la page web actuelle</sys:String>
 	<sys:String x:Key="Str_SummaryTitle">Page Summary</sys:String>
 	<sys:String x:Key="Str_SummaryPages">Pages</sys:String>
 	<sys:String x:Key="Str_SummaryTo">to</sys:String>

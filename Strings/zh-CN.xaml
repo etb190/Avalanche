@@ -1196,6 +1196,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 
 	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
 	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>
+	<sys:String x:Key="Str_TT_WebSummarize">总结当前网页</sys:String>
 	<sys:String x:Key="Str_SummaryTitle">Page Summary</sys:String>
 	<sys:String x:Key="Str_SummaryPages">Pages</sys:String>
 	<sys:String x:Key="Str_SummaryTo">to</sys:String>

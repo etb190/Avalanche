@@ -1212,6 +1212,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 
 	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
 	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>
+	<sys:String x:Key="Str_TT_WebSummarize">Tóm tắt trang web hiện tại</sys:String>
 	<sys:String x:Key="Str_SummaryTitle">Page Summary</sys:String>
 	<sys:String x:Key="Str_SummaryPages">Pages</sys:String>
 	<sys:String x:Key="Str_SummaryTo">to</sys:String>

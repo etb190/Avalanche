@@ -1006,6 +1006,7 @@ var ignoredWords = new Set();
 var activeFlags = [];      // { index, length, word, suggestion }
 var errPop = null, errPopHideTimer = null, aiBubble = null, aiMenu = null, aiNote = null;
 var aiNoteTimer = null, aiBubbleRect = null, aiInFlight = false, aiPending = null;
+var aiSavedSel = null;   // the selection the bubble stood over - the input's focus blurs Quill
 
 function hashString(s){
   var h = 5381, i;
@@ -1491,13 +1492,16 @@ function requestCustom(){
   try { var el = document.getElementById('ai_instr'); if (el) job = el.value.trim(); } catch(e0){}
   if (!job) return;
   var sel = quill.getSelection();
+  if (!sel && aiSavedSel) sel = aiSavedSel;   // the input's focus blurred Quill; the bubble remembers
   var index, length, text;
   if (sel && sel.length > 0){
     index = sel.index; length = sel.length;
     text = quill.getText(index, length).trim();
     if (!text){ showAiNote('Nothing selected.'); return; }
   } else {
-    index = quill.getLength() > 0 ? quill.getLength() - 1 : 0;
+    index = sel && typeof sel.index === 'number'
+      ? Math.min(sel.index, quill.getLength())
+      : (quill.getLength() > 0 ? quill.getLength() - 1 : 0);
     length = 0; text = '';
   }
   if (text.length > 16000) text = text.slice(0, 16000);
@@ -1639,6 +1643,15 @@ function hideAiNote(){ if (aiNote) aiNote.style.display = 'none'; }
 
 quill.on('selection-change', function(range){
   if (aiInFlight) return;
+  // The instruction row borrows the caret: focus moving into the input
+  // fires a null selection-change that used to kill the bubble mid-type.
+  // Focus inside the bubble stands down the hide; the last real range
+  // stays saved so the send still knows what it stood over.
+  try {
+    var ae = document.activeElement;
+    if (ae && ae.id === 'ai_instr'){ if (range) aiSavedSel = range; return; }
+  } catch(eAE){}
+  if (range) aiSavedSel = range;
   if (range && range.length > 3 && !selImg) showAiBubble();
   else hideAiBubble();
 });
@@ -1646,7 +1659,8 @@ quill.on('selection-change', function(range){
 // The bubble follows its selection across scrolls and leaves on resize; the
 // card above a red word steps aside on either - the next click re-opens it.
 window.addEventListener('scroll', function(){
-  if (aiBubble && aiBubble.style.display === 'block' && !aiInFlight){
+  var aeS = null; try { aeS = document.activeElement; } catch(eAE2){}
+  if (aiBubble && aiBubble.style.display === 'block' && !aiInFlight && !(aeS && aeS.id === 'ai_instr')){
     try {
       var sel = quill.getSelection();
       var dsel = document.getSelection();

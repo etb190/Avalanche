@@ -918,6 +918,7 @@ namespace Avalanche
         private Features.AI.AiChatViewModel? _aiChatViewModel;
         private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
         private Features.Summary.SummaryWindow? _summaryWindow;
+        private Features.Summary.WebSummaryWindow? _webSummaryWindow;
         private Features.AI.AiTestWindow? _aiTestWindow;
 
         // Companion-window memory: the chat rail reopens with the app when it
@@ -1040,6 +1041,45 @@ namespace Avalanche
 
             Services.AppDataPaths.SetSetting("summary.win.left", string.Empty);
             Services.AppDataPaths.SetSetting("summary.win.top", string.Empty);
+        }
+
+        // ============================================================
+        // Web Summary window (Features/Summary): the browser page's digest in
+        // the navigator's stripped replica - Start/Reset, the one prompt, the
+        // counts. Single instance; the toolbar button toggles it like the
+        // book navigator's.
+        // ============================================================
+
+        private void WebSumBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_webSummaryWindow is { } open)
+            {
+                open.Close();
+                return;
+            }
+
+            OpenWebSummaryWindow();
+        }
+
+        private void OpenWebSummaryWindow()
+        {
+            _aiSettingsViewModel ??= new Features.AI.AiSettingsViewModel();
+            _aiSettingsViewModel.Load();
+            var window = new Features.Summary.WebSummaryWindow(
+                this,
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.Summary),
+                () => WebPane.ActiveTabId,
+                (tabId, ct) => WebPane.ExtractPageTextAsync(tabId, ct),
+                Loc);
+            window.Closed += (_, _) =>
+            {
+                if (ReferenceEquals(_webSummaryWindow, window))
+                {
+                    _webSummaryWindow = null;
+                }
+            };
+            _webSummaryWindow = window;
+            window.Show();
         }
 
         // ============================================================

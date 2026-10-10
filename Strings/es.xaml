@@ -1192,6 +1192,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
 
 	<sys:String x:Key="Str_SummaryCaption">Summary</sys:String>
 	<sys:String x:Key="Str_TT_Summarize">Page Summary (Ctrl+G)</sys:String>
+	<sys:String x:Key="Str_TT_WebSummarize">Resumir la página web actual</sys:String>
 	<sys:String x:Key="Str_SummaryTitle">Page Summary</sys:String>
 	<sys:String x:Key="Str_SummaryPages">Pages</sys:String>
 	<sys:String x:Key="Str_SummaryTo">to</sys:String>

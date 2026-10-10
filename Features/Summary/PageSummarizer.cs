@@ -445,6 +445,94 @@ namespace Avalanche.Features.Summary
                 yield return new SummaryUpdate("done", finalText, RawRange: rawRangeText);
             }
 
+        // ------------------------------------------------------------------
+        // The web page digest (v1.19.87): one streamed pass over the text the
+        // browser extracted from the reader's active tab - no pages, no cache,
+        // no anchors. The prompt is the digest's own voice minus the book
+        // plumbing: the genre persona (the web window only ever speaks the
+        // nonfiction classic), the anti-meta law, the ground rule and a format
+        // block for plain prose. No output-language block: with no dropdown to
+        // name one, the summary follows the page's own tongue.
+        // ------------------------------------------------------------------
+        internal static async System.Collections.Generic.IAsyncEnumerable<SummaryUpdate> GenerateWebDigestAsync(
+            string pageText, int targetWords, string genre,
+            AiProviderConfig config, Func<string, string> loc,
+            [EnumeratorCancellation] CancellationToken ct)
+        {
+            string bodyText = (pageText ?? string.Empty).Trim();
+            if (CountLetters(bodyText) < 250)
+            {
+                yield return new SummaryUpdate("notext");
+                yield break;
+            }
+
+            yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
+            string digestSystem = WebDigestSystemPrompt(targetWords, genre);
+            int digestBudget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * targetWords)));
+            if (!AiEndpoints.IsLocal(config.BaseUrl)) digestBudget = Math.Min(digestBudget, CloudMaxTokens);
+            var live = new StringBuilder();
+            await foreach (SummaryUpdate update in StreamDigestPassAsync(
+                               config, digestSystem, bodyText, ct, digestBudget).ConfigureAwait(false))
+            {
+                if (update.Kind == "delta")
+                {
+                    live.Append(update.Text);
+                    yield return update;
+                }
+            }
+
+            string finalText = live.ToString();
+            if (string.IsNullOrWhiteSpace(finalText))
+            {
+                // The digest's own quiet retry: a reasoning model that spent
+                // its whole budget thinking gets one buffered second chance.
+                finalText = await RunBufferedPassAsync(config, digestSystem, bodyText, ct, digestBudget * 2)
+                    .ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(finalText))
+                {
+                    throw new InvalidOperationException(
+                        "the model produced no answer (its whole budget went to hidden reasoning) - " +
+                        "switch to a non-thinking model or raise the token limit");
+                }
+            }
+
+            if (LooksLikeRefusal(finalText))
+            {
+                yield return new SummaryUpdate(
+                    "error",
+                    "the AI replied with a refusal instead of a digest. Try again, or switch AI models.");
+                yield break;
+            }
+
+            SurfaceHealthLog.Log(string.Format(
+                CultureInfo.InvariantCulture,
+                "websummary: digest ready: {0} chars / {1} words",
+                finalText.Length,
+                CountWords(finalText)));
+            yield return new SummaryUpdate("done", finalText);
+        }
+
+        // The web digest's system prompt: the digest head without the output
+        // language, the genre persona, the anti-meta law, the ground rule - and
+        // a format block for prose with no book plumbing, since a web page
+        // carries no [p. N] anchors and no printed markdown headings.
+        private static string WebDigestSystemPrompt(int targetWords, string genre)
+        {
+            string head =
+                "Summarize the following web page in approximately " + targetWords +
+                " words (do NOT exceed " + targetWords + " words).\n\n";
+            return head +
+                GenreMandate(genre, targetWords) + "\n\n" +
+                AntiMeta + "\n\n" +
+                "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
+                "commentary about the text or about summarizing.\n\n" +
+                "Format: dense flowing prose paragraphs. Connect the sentences with natural " +
+                "transitional phrasing (however, moreover, in practice, as a result) so each " +
+                "paragraph reads as one continuous argument rather than stacked fragments. " +
+                "No bullet lists, no markdown decorations of any kind, no headings - plain " +
+                "prose paragraphs only. Bullet points in your answer are a total failure.";
+        }
+
         // Page refs like (p. 47) -> the set of pages the summary actually touched.
         public static HashSet<int> CoveredPages(string markdown, int firstPage, int lastPage)
         {
