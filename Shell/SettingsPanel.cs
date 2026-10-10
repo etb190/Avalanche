@@ -204,6 +204,14 @@ namespace Avalanche
         // layout and scroll stay exactly where they are and only the bitmaps re-render.
         private void ToggleDocInvert(bool on)
         {
+            // While the text editor leads, the moon flips the SHEET, not the
+            // PDF - the editor's own remembered dark page answers (v1.19.81),
+            // and the DocInvertChanged wire keeps the moon's light honest.
+            if (EditorPaneHost.Visibility == Visibility.Visible)
+            {
+                TextPane.SetDocInverted(!TextPane.DocInverted);
+                return;
+            }
             // Per pane: only the FOCUSED pane flips, so a split can read one document inverted
             // beside a normal one. The moon lights for the focused pane; FocusPane re-syncs it.
             if (ActiveViewer.DocInvert == on) return;
@@ -1269,10 +1277,12 @@ namespace Avalanche
                     if (FindName(name) is FrameworkElement el)
                         el.Visibility = Visibility.Collapsed;
                 NewFileBtn.Visibility = Visibility.Visible;
+                GrpEditorFiles.Visibility = Visibility.Visible;   // the editor's doors on the bar (v1.19.81)
                 RightContainer.Visibility = Visibility.Collapsed;
             }
             else
             {
+                GrpEditorFiles.Visibility = Visibility.Collapsed;   // the doors step down with the editor (v1.19.81)
                 ApplyToolsMode();                        // the ordinary law returns
                 ToolsBtn.Visibility = Visibility.Visible;
                 RightContainer.Visibility = Visibility.Visible;

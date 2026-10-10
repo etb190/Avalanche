@@ -287,15 +287,9 @@
                 <!-- The reader asked for the controls to live in the middle of
                      the band, not pressed against its left edge (v1.19.68). -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="8,0,8,0">
-                    <!-- File operations (v1.19.79): New, Open and Save live on
-                         the ribbon now, left of the Browser button - the tab
-                         band's chips stay for the hands already there. -->
-                    <Button x:Name="EditorNewBtn" Content="&#xE7C3;" Style="{StaticResource EditorBtn}"
-                            Click="EditorNewBtn_Click" ToolTip="{DynamicResource Str_TT_EditorNewTab}"/>
-                    <Button x:Name="EditorOpenBtn" Content="&#xE8DA;" Style="{StaticResource EditorBtn}"
-                            Click="EditorOpenBtn_Click" ToolTip="{DynamicResource Str_Editor_OpenDoc}"/>
-                    <Button x:Name="EditorSaveBtn" Content="&#xE74E;" Style="{StaticResource EditorBtn}"
-                            Click="EditorSaveBtn_Click" ToolTip="{DynamicResource Str_Editor_SaveDoc}"/>
+                    <!-- File operations (v1.19.81): they live in THE RIBBON -
+                         the main window's own toolbar, beside New and before
+                         the Browser button - and nowhere else. -->
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- The two switches: where the reader goes next. The browser
                          globe and the PDF editor's document, wearing the same
@@ -411,21 +405,53 @@
                          every other toolbar button speaks. -->
                     <Button x:Name="SpacingBtn" Content="&#xE8D2;" Style="{StaticResource EditorBtn}"
                             Click="SpacingBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSpacing}"/>
-                    <!-- The alignment trio (v1.19.80): left, center and
-                         justify - Quill's own align format, three presses
-                         away from any paragraph. -->
-                    <Button x:Name="AlignLeftBtn" Content="&#xE730;" Style="{StaticResource EditorBtn}"
-                            Click="AlignLeftBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignLeft}"/>
-                    <Button x:Name="AlignCenterBtn" Content="&#xE731;" Style="{StaticResource EditorBtn}"
-                            Click="AlignCenterBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignCenter}"/>
-                    <Button x:Name="AlignJustifyBtn" Content="&#xE733;" Style="{StaticResource EditorBtn}"
-                            Click="AlignJustifyBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignJustify}"/>
-                    <!-- The inverted page (v1.19.80): the sheet wears black
-                         and the text wears white; the choice is remembered. -->
-                    <ToggleButton x:Name="InvertBtn" Style="{StaticResource EditorToggle}"
-                                  Click="InvertBtn_Click" ToolTip="{DynamicResource Str_DocInvertSetting}">
-                        <TextBlock Text="&#xE708;" FontFamily="{DynamicResource IconFont}" FontSize="15" Margin="0,1,0,0"/>
-                    </ToggleButton>
+                    <!-- The alignment trio (v1.19.81): the typesetter's own
+                         marks - bars flush left, gathered center, spread even
+                         - drawn as vector faces so the mark always matches
+                         the act, in every theme, at every size. -->
+                    <Button x:Name="AlignLeftBtn" Style="{StaticResource EditorBtn}"
+                            Click="AlignLeftBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignLeft}">
+                        <Grid Width="16" Height="14" VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/><RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/><RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Rectangle Grid.Row="0" Height="2" Width="16" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="1" Height="2" Width="11" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="2" Height="2" Width="14" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="3" Height="2" Width="8" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="AlignCenterBtn" Style="{StaticResource EditorBtn}"
+                            Click="AlignCenterBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignCenter}">
+                        <Grid Width="16" Height="14" VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/><RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/><RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Rectangle Grid.Row="0" Height="2" Width="16" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="1" Height="2" Width="10" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="2" Height="2" Width="14" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="3" Height="2" Width="8" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="AlignJustifyBtn" Style="{StaticResource EditorBtn}"
+                            Click="AlignJustifyBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignJustify}">
+                        <Grid Width="16" Height="14" VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/><RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/><RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Rectangle Grid.Row="0" Height="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="1" Height="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="2" Height="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                            <Rectangle Grid.Row="3" Height="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Fill="{DynamicResource TextBrush}"/>
+                        </Grid>
+                    </Button>
+                    <!-- The inverted page (v1.19.81): no button of its own any
+                         more - the moon under the split-pane button, the host's
+                         own Invert document color, flips the sheet while the
+                         editor leads, and remembers the choice. -->
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- Link, footnote, and the behind-text image. -->
                     <Button x:Name="LinkBtn" Content="&#xE71B;" Style="{StaticResource EditorBtn}"
@@ -480,19 +506,9 @@
                             Width="22" Height="16" Margin="2,0,2,0" VerticalAlignment="Center"
                             FocusVisualStyle="{x:Null}"
                             ToolTip="{DynamicResource Str_TT_TabOverflow}" Click="EditorTabOverflow_Click"/>
-                    <!-- The fresh-tab face: the + at the end of the tab row, the way
-                         the browser's strip wears it. DynamicResource on the style -
-                         TabNewButton lives at MainWindow scope and a UserControl's
-                         parse cannot see another tree's dictionary. -->
-                    <Button x:Name="EditorTabNewBtn" DockPanel.Dock="Right"
-                            Style="{DynamicResource TabNewButton}"
-                            Content="&#xE710;" FontFamily="{DynamicResource IconFont}" FontSize="10"
-                            Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
-                            FocusVisualStyle="{x:Null}"
-                            ToolTip="{DynamicResource Str_TT_EditorNewTab}" Click="EditorTabNewBtn_Click"/>
-                    <!-- Save and Open moved up for good (v1.19.80): the file
-                         operations live on the ribbon, next to New and before
-                         the Browser button - the band keeps only the +. -->
+                    <!-- The fresh-tab face moved up for good (v1.19.81): the
+                         + joined Open and Save in THE RIBBON - the band
+                         keeps only the documents themselves. -->
                     <!-- No side insets, horizontal scrolling DISABLED (not hidden -
                          hidden measures at infinite width and defeats the
                          UniformGrid), the PDF strip's own plumbing. -->

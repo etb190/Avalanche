@@ -91,10 +91,14 @@ namespace Avalanche.Controls
   #imgui .az-se { right:-7px; bottom:-7px; cursor:nwse-resize; }
   .az-bar { position:fixed; width:0; height:28px; border-left:2px solid #4a90d9;
             display:none; z-index:61; pointer-events:none; }
-  /* The inverted page (v1.19.80): one class on the body - the sheet wears
-     black, the text wears white, and the reader's eyes keep their night.
-     The quote's voice lightens with it; the marks keep their blue. */
-  body.az-inv #canvas { background:#000000; }
+  /* The inverted page (v1.19.80, retaken v1.19.81): one class on the body -
+     the sheet wears black, the text wears white, and the reader's eyes keep
+     their night. The DESK joins the night too: the gray surround read as a
+     light border around the black page, so it and the shadow go dark with
+     everything else. The quote's voice lightens with it; the marks keep
+     their blue. */
+  body.az-inv { background:#000000; }
+  body.az-inv #canvas { background:#000000; box-shadow:none; }
   body.az-inv .ql-editor { color:#ffffff; }
   body.az-inv .ql-editor blockquote { color:#d0d0d0; }
   /* The quote wears italic and bold (v1.19.76): the left bar alone read as
@@ -628,10 +632,39 @@ function indexAtPoint(x, y){
     var s = window.getSelection();
     s.removeAllRanges();
     s.addRange(range);
-    var b = quill.getSelection();
+    // v1.19.81: the mapping reads the native selection THIS INSTANT - the
+    // selectionchange event rides its own task, so quill.getSelection()'s
+    // last range was still the picture's own seat and every drop died as
+    // "no move". getRange() maps synchronously; update() is the backup.
+    var b = null;
+    try { var gr = quill.selection.getRange(); if (gr && gr[0] && typeof gr[0].index === 'number') b = gr[0]; } catch(e0){}
+    if (!b){ try { quill.selection.update(); } catch(e1){} b = quill.getSelection(); }
     if (b && typeof b.index === 'number') return b.index;
   } catch(e){}
   return blockIndexAtPoint(x, y);   // the silent fallback (v1.19.80)
+}
+
+// The nearest block's edge, read straight from the geometry (v1.19.81):
+// a release over blank paper where no caret lives still lands - the
+// closest block's before or after, decided by the point's height.
+function nearestBlockIndex(x, y){
+  try {
+    var blocks = quill.root.querySelectorAll('p, h1, h2, h3, ol, ul, blockquote, pre, img');
+    var best = null, bestD = Infinity;
+    for (var i = 0; i < blocks.length; i++){
+      var r = blocks[i].getBoundingClientRect();
+      if (!r || (!r.height && !r.width)) continue;
+      var d = (y >= r.top && y <= r.bottom) ? 0 : Math.min(Math.abs(y - r.top), Math.abs(y - r.bottom));
+      if (d < bestD){ bestD = d; best = blocks[i]; }
+    }
+    if (!best) return null;
+    var blot = Quill.find(best, true) || Quill.find(best);
+    if (!blot) return null;
+    var at = quill.getIndex(blot);
+    var r2 = best.getBoundingClientRect();
+    var len = 1; try { len = blot.length() || 1; } catch(e2){}
+    return (y > r2.top + r2.height / 2) ? at + len : at;
+  } catch(e){ return null; }
 }
 
 function placeDropBar(x, y){
@@ -686,7 +719,7 @@ document.addEventListener('mousemove', function(e){
     imgDrag.moved = true;
     if (imgui) imgui.style.display = 'none';
     document.body.style.cursor = 'grabbing';
-    if (selImg) selImg.style.opacity = '0.45';   // the picture travels light
+    if (selImg){ selImg.style.opacity = '0.45'; selImg.style.pointerEvents = 'none'; }   // the caret sees through the traveler (v1.19.81)
   }
   placeDropBar(e.clientX, e.clientY);
 }, true);
@@ -712,6 +745,9 @@ document.addEventListener('mouseup', function(e){
   }
   if (!d.moved) return;
   var to = indexAtPoint(e.clientX, e.clientY);
+  if (to === null) to = nearestBlockIndex(e.clientX, e.clientY);   // blank paper lands too (v1.19.81)
+  if (to !== null) to = Math.max(0, Math.min(to, quill.getLength()));
+  if (selImg) selImg.style.pointerEvents = '';   // solid again, wherever it landed
   var from = imgIndex();
   if (to === null || from === null || to === from || to === from + 1){
     if (selImg) positionImgUI();

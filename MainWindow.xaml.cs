@@ -2521,6 +2521,25 @@ namespace Avalanche
 
         private void TextEditorBtn_Click(object sender, RoutedEventArgs e) => ToggleEditorPane();
 
+        // The ribbon's editor file operations (v1.19.81): new tab, open and
+        // save live beside the New button, before the Browser button. A
+        // hidden editor wakes first - the operations never open a bare pane.
+        private void EditorRibbonNewTab_Click(object sender, RoutedEventArgs e)
+        {
+            if (EditorPaneHost.Visibility != Visibility.Visible) ShowEditorPane();
+            TextPane.OpenNewTab();
+        }
+        private void EditorRibbonOpen_Click(object sender, RoutedEventArgs e)
+        {
+            if (EditorPaneHost.Visibility != Visibility.Visible) ShowEditorPane();
+            TextPane.OpenEditorDocument();
+        }
+        private void EditorRibbonSave_Click(object sender, RoutedEventArgs e)
+        {
+            if (EditorPaneHost.Visibility != Visibility.Visible) ShowEditorPane();
+            TextPane.SaveEditorDocument();
+        }
+
         private int _editorActivePage;
 
         private void ToggleEditorPane()
@@ -2553,6 +2572,7 @@ namespace Avalanche
                 Features.Summary.RecapController.Dismiss();
             }
             EditorPaneHost.Visibility = Visibility.Visible;
+            DocInvertBtn.Tag = TextPane.DocInverted ? "on" : null;   // the moon wears the sheet's face (v1.19.81)
             TextPane.OnPaneShown();
             EnterEditorSidebarMode();
             RefreshWebSaveButton(_originalFile ?? _currentFile);
@@ -2563,6 +2583,7 @@ namespace Avalanche
         {
             if (EditorPaneHost.Visibility != Visibility.Visible) return;
             EditorPaneHost.Visibility = Visibility.Collapsed;
+            DocInvertBtn.Tag = ActiveViewer.DocInvert ? "on" : null;   // back to the book's own night (v1.19.81)
             TextPane.OnPaneHidden();
             ExitEditorSidebarMode();
             ApplyEditorToolbarFace(leads: false);
@@ -2623,6 +2644,9 @@ namespace Avalanche
             TextPane.LinkOpenRequested += OpenEditorLink;
             TextPane.BrowserRequested += () => { HideEditorPane(); ShowWebPane(); };
             TextPane.PdfRequested += () => HideEditorPane();
+            // The moon under the split-pane button wears the sheet's dark face
+            // while the editor leads (v1.19.81): the page's own state lights it.
+            TextPane.DocInvertChanged += on => DocInvertBtn.Tag = on ? "on" : null;
             // The page's own raster of each document page (v1.19.69): the rail's
             // cards wear it the way the PDF list wears its page thumbnails and
             // the browser's gallery wears its captured previews. A null set means

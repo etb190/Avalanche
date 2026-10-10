@@ -1484,6 +1484,15 @@
                 <StackPanel x:Name="LeftBar" Orientation="Horizontal" HorizontalAlignment="Left">
                     <!-- File: New / Open / Close / Save / Print -->
                     <Button x:Name="NewFileBtn" Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
+                    <!-- The editor's file operations (v1.19.81): new tab, open
+                         and save live in THE RIBBON - beside the New button,
+                         before the Browser button - and nowhere else. The
+                         editor's face shows them; every other face hides them. -->
+                    <StackPanel x:Name="GrpEditorFiles" Orientation="Horizontal" Visibility="Collapsed">
+                        <Button x:Name="EditorRibbonNewTabBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="EditorRibbonNewTab_Click" ToolTip="{DynamicResource Str_TT_EditorNewTab}"/>
+                        <Button x:Name="EditorRibbonOpenBtn" Content="&#xE8DA;" Style="{StaticResource ToolbarButton}" Click="EditorRibbonOpen_Click" ToolTip="{DynamicResource Str_Editor_OpenDoc}"/>
+                        <Button x:Name="EditorRibbonSaveBtn" Content="&#xE74E;" Style="{StaticResource ToolbarButton}" Click="EditorRibbonSave_Click" ToolTip="{DynamicResource Str_Editor_SaveDoc}"/>
+                    </StackPanel>
                     <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="{DynamicResource Str_TT_CloseFile}" IsEnabled="False"/>
                     <Button x:Name="OpenFileBtn" Content="&#xE8DA;" Style="{StaticResource ToolbarSplitMain}" Click="Open_Click" MouseRightButtonUp="OpenRecent_Click" ToolTip="{DynamicResource Str_TT_Open}"/>
                     <Button x:Name="OpenRecentBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OpenRecent_Click" ToolTip="{DynamicResource Str_TT_RecentFiles}"/>

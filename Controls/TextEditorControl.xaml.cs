@@ -430,7 +430,7 @@ namespace Avalanche.Controls
                         remove = Loc("Str_Editor_Remove"),
                         linkUrl = Loc("Str_Editor_LinkUrl"),
                     });
-                    InvertBtn.IsChecked = _docInverted;
+                    DocInvertChanged?.Invoke(_docInverted);   // the host's moon wears the remembered face
                     Post(new { cmd = "invert", on = _docInverted });   // the remembered face rides every fresh sheet
                     ThumbsChanged?.Invoke(CachedThumbs());   // the tab's own last raster paints now; a fresh one follows
                     var html = _pendingLoadHtml;
@@ -663,13 +663,20 @@ namespace Avalanche.Controls
         private void AlignLeftBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "alignLeft" }); RefocusEditor(); }
         private void AlignCenterBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "alignCenter" }); RefocusEditor(); }
         private void AlignJustifyBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "alignJustify" }); RefocusEditor(); }
-        // The inverted page (v1.19.80): one class on the sheet's body, the
-        // choice kept in the settings store so it outlives the run.
-        private void InvertBtn_Click(object sender, RoutedEventArgs e)
+        // The inverted page (v1.19.80, retaken v1.19.81): one class on the
+        // sheet's body, the choice kept in the settings store so it outlives
+        // the run. No button of its own any more - the host's moon (under
+        // the split-pane button) drives it while the editor leads; the
+        // control wears the state and takes orders from there.
+        public bool DocInverted => _docInverted;
+        public event Action<bool>? DocInvertChanged;
+        public void SetDocInverted(bool on)
         {
-            _docInverted = InvertBtn.IsChecked == true;   // the toggle already flipped itself
-            App.SetSetting("EditorDocInvert", _docInverted ? "1" : "0");
+            if (_docInverted == on) return;
+            _docInverted = on;
+            App.SetSetting("EditorDocInvert", on ? "1" : "0");
             Post(new { cmd = "invert", on = _docInverted });
+            DocInvertChanged?.Invoke(_docInverted);
             RefocusEditor();
         }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
@@ -1336,20 +1343,15 @@ namespace Avalanche.Controls
             if (sender is System.Windows.Controls.Button b && b.Tag is EditorTab s) CloseTab(s);
         }
 
-        private void EditorTabNewBtn_Click(object sender, RoutedEventArgs e) => OpenNewTab();
-
-        // The ribbon's own file operations (v1.19.79): the same three doors
-        // the tab band wears, on the main toolbar where the reader looks
-        // first - a lone document never grows the band, and these never hide.
-        private void EditorNewBtn_Click(object sender, RoutedEventArgs e) => OpenNewTab();
-        private void EditorOpenBtn_Click(object sender, RoutedEventArgs e) => EditorTabOpenBtn_Click(sender, e);
-        private void EditorSaveBtn_Click(object sender, RoutedEventArgs e) => EditorTabSaveBtn_Click(sender, e);
+        // The ribbon's own file operations (v1.19.81): the main window's
+        // buttons call straight in - new tab, open and save live in THE
+        // RIBBON, beside New and before the Browser button, nowhere else.
 
         // ── Save and Open (v1.19.75): the reader's own files ─────────────────
         // Save asks where with the app's own Windows-style prompt, then the
         // sheet's save pipeline delivers the bytes: the dump answers, the
         // file is written on its arrival, seq-guarded like every save.
-        private void EditorTabSaveBtn_Click(object sender, RoutedEventArgs e)
+        public void SaveEditorDocument()
         {
             if (_activeTab < 0 || _activeTab >= _tabs.Count) return;
             var dlg = new FileDialog(FileDialogMode.Save)
@@ -1368,7 +1370,7 @@ namespace Avalanche.Controls
 
         // Open reads an .html (or plain .txt) back as a document of its own,
         // in a fresh tab wearing the file's name.
-        private void EditorTabOpenBtn_Click(object sender, RoutedEventArgs e)
+        public void OpenEditorDocument()
         {
             var dlg = new FileDialog(FileDialogMode.Open)
             {
