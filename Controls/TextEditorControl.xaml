@@ -287,6 +287,16 @@
                 <!-- The reader asked for the controls to live in the middle of
                      the band, not pressed against its left edge (v1.19.68). -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="8,0,8,0">
+                    <!-- File operations (v1.19.79): New, Open and Save live on
+                         the ribbon now, left of the Browser button - the tab
+                         band's chips stay for the hands already there. -->
+                    <Button x:Name="EditorNewBtn" Content="&#xE7C3;" Style="{StaticResource EditorBtn}"
+                            Click="EditorNewBtn_Click" ToolTip="{DynamicResource Str_TT_EditorNewTab}"/>
+                    <Button x:Name="EditorOpenBtn" Content="&#xE8DA;" Style="{StaticResource EditorBtn}"
+                            Click="EditorOpenBtn_Click" ToolTip="{DynamicResource Str_Editor_OpenDoc}"/>
+                    <Button x:Name="EditorSaveBtn" Content="&#xE74E;" Style="{StaticResource EditorBtn}"
+                            Click="EditorSaveBtn_Click" ToolTip="{DynamicResource Str_Editor_SaveDoc}"/>
+                    <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- The two switches: where the reader goes next. The browser
                          globe and the PDF editor's document, wearing the same
                          glyphs they wear on the main toolbar. -->
@@ -366,17 +376,13 @@
                         <TextBlock Text="S" FontSize="17" FontFamily="Georgia" TextDecorations="Strikethrough"/>
                     </ToggleButton>
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
-                    <!-- The block tools (v1.19.73): three header levels, the
-                         lists dropdown (v1.19.75: bullet, number and alpha
+                    <!-- The block tools (v1.19.73): two header levels (the lone
+                         H retired in v1.19.79), the lists dropdown (v1.19.75: bullet, number and alpha
                          sub-number under one roof) and the quote.
                          Every one is a toggle - the same button that dresses a
                          line undresses it again - and every light rides the
                          page's own state report, never a local guess. The H
                          faces are locale-neutral marks like B / I / U / S. -->
-                    <ToggleButton x:Name="HeaderBtn" Style="{StaticResource EditorToggle}"
-                                  Click="HeaderBtn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader}">
-                        <TextBlock Text="&#x48;" FontWeight="Bold" FontSize="17" FontFamily="Georgia"/>
-                    </ToggleButton>
                     <ToggleButton x:Name="H1Btn" Style="{StaticResource EditorToggle}"
                                   Click="H1Btn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader1}">
                         <TextBlock Text="&#x48;1" FontWeight="Bold" FontSize="15" FontFamily="Georgia"/>
@@ -400,10 +406,11 @@
                     <!-- The spacing cycle (v1.19.78): Axo's three speeds -
                          Compact, Normal, Relaxed - one press ahead each time,
                          the page's own CSS variables doing the breathing. -->
-                    <Button x:Name="SpacingBtn" Style="{StaticResource EditorBtn}"
-                            Click="SpacingBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSpacing}">
-                        <TextBlock Text="&#x2195;" FontSize="17"/>
-                    </Button>
+                    <!-- v1.19.79: the raw up-down arrow is gone - the button
+                         wears the MDL2 line-spacing glyph itself, the family
+                         every other toolbar button speaks. -->
+                    <Button x:Name="SpacingBtn" Content="&#xE8D2;" Style="{StaticResource EditorBtn}"
+                            Click="SpacingBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSpacing}"/>
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- Link, footnote, and the behind-text image. -->
                     <Button x:Name="LinkBtn" Content="&#xE71B;" Style="{StaticResource EditorBtn}"

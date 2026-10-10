@@ -1252,6 +1252,94 @@ function applyAiResult(msg){
   try { quill.updateContents(new Delta().retain(p.index).delete(p.length).insert(text), 'user'); } catch(e){}
 }
 
+// -- the typewriter (v1.19.79) --------------------------------------------
+// The rewrite streams: the host speaks its deltas, the sheet types them at
+// its own pace - a 20ms tick carrying one to ten characters by the size of
+// the backlog, SummaryWindow's adaptive buffer ported to the page. The
+// pending range is deleted the moment the first delta lands, everything
+// after rides at the same index, and the done message may swap the typed
+// run for its cleaned self (fences and JSON wrappers never survive).
+var streamQueue = '', streamTimer = null, streamStarted = false;
+var streamTargetIdx = 0, streamStartIdx = 0;
+var streamDonePending = null;
+
+function onAiStreamDelta(msg){
+  var seq = (msg && typeof msg.seq === 'number') ? msg.seq|0 : -1;
+  if (seq !== worldSeq || !aiPending) return;
+  if (!streamStarted){
+    streamStarted = true;
+    var p = aiPending;
+    try { quill.updateContents(new Delta().retain(p.index).delete(p.length), 'user'); } catch(e){}
+    streamTargetIdx = p.index;
+    streamStartIdx = p.index;
+  }
+  streamQueue += String(msg.delta || '');
+  if (!streamTimer) streamTimer = setInterval(pumpTypewriter, 20);
+}
+
+function pumpTypewriter(){
+  if (!streamQueue.length){
+    if (streamDonePending){
+      clearInterval(streamTimer);
+      streamTimer = null;
+      var done = streamDonePending;
+      streamDonePending = null;
+      finishAiStream(done);
+    }
+    return;
+  }
+  // Adaptive pacing: 1 to 10 characters per tick, the backlog setting the pace.
+  var step = Math.max(1, Math.min(10, Math.floor((streamQueue.length + 5) / 6)));
+  var slice = streamQueue.slice(0, step);
+  streamQueue = streamQueue.slice(step);
+  quill.insertText(streamTargetIdx, slice, 'user');
+  streamTargetIdx += slice.length;
+  try { quill.setSelection(streamTargetIdx, 0, 'silent'); } catch(e){}
+}
+
+function onAiStreamDone(msg){
+  var seq = (msg && typeof msg.seq === 'number') ? msg.seq|0 : -1;
+  if (seq !== worldSeq) return;
+  if (!streamStarted){
+    // Nothing ever streamed: the answer arrived whole. An error or a quiet
+    // note lands here; a real text rides the one-shot applyAiResult path.
+    aiInFlight = false;
+    setAiBusy(false);
+    aiPending = null;
+    if (msg && msg.ok === false) showAiNote(msg.message || 'The request failed - nothing changed.');
+    else if (msg && msg.text) applyAiResult(msg);
+    else showAiNote((msg && msg.message) || 'Grammar looks good!');
+    return;
+  }
+  streamDonePending = msg;
+}
+
+function finishAiStream(msg){
+  aiInFlight = false;
+  setAiBusy(false);
+  aiPending = null;
+  streamStarted = false;
+  if (!msg || msg.ok === false){
+    showAiNote((msg && msg.message) || 'The request failed - nothing changed.');
+    reportState();
+    return;
+  }
+  var text = (msg && typeof msg.text === 'string') ? msg.text : '';
+  if (!text){
+    showAiNote((msg && msg.message) || 'Grammar looks good!');
+    reportState();
+    return;
+  }
+  var typedLen = streamTargetIdx - streamStartIdx;
+  if (text !== quill.getText(streamStartIdx, typedLen)){
+    try {
+      quill.updateContents(new Delta().retain(streamStartIdx).delete(typedLen).insert(text), 'user');
+    } catch(e){}
+  }
+  try { quill.setSelection(streamStartIdx + text.length, 0, 'silent'); } catch(e){}
+  reportState();
+}
+
 function showAiNote(message){
   if (!aiNote){
     aiNote = document.createElement('div');
@@ -1332,7 +1420,11 @@ function align(mode){
 // of a block or after a period, an exclamation or a question and one or
 // more spaces. Both fix the keystroke BEFORE the model sees it - one
 // dispatch, one undo step, the same single transaction Axo's
-// handleTextInput gave the journal. Capture on the editor root, above
+// handleTextInput gave the journal. v1.19.79 fixes both laws' caret: every
+// synthetic insert now walks Quill's own selection forward (the missing
+// advance was typing "dog" into "god"), and the sentence-start test counts
+// real sentence ends only - [.!?] plus spaces - not every single space.
+// Capture on the editor root, above
 // Quill's own handlers; chords and composition never enter here.
 quill.root.addEventListener('keydown', function(e){
   if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
@@ -1341,18 +1433,27 @@ quill.root.addEventListener('keydown', function(e){
   if (!sel || sel.length) return;
   var idx = sel.index;
   var before = quill.getText(0, idx);
+
+  // 1. Autocorrect standalone lowercase 'i' to 'I ' when followed by space
   if (e.key === ' ' && /(^|\s)i$/.test(before)){
     e.preventDefault();
     quill.updateContents({ ops: [ { retain: idx - 1 }, { delete: 1 }, { insert: 'I ' } ] }, 'user');
+    quill.setSelection(idx + 1, 0, 'silent');
     reportState();
     return;
   }
+
+  // 2. Auto-capitalize sentence start: at start of block or after [.!?] + spaces
   if (/^[a-z]$/.test(e.key)){
     var lineInfo = quill.getLine(idx);
     var atBlockStart = !!(lineInfo && lineInfo[1] === 0);
-    if (atBlockStart || /[.!?'\s]+$/.test(before)){
+    var afterSentencePunct = /[.!?]\s+$/.test(before);
+
+    if (atBlockStart || afterSentencePunct){
       e.preventDefault();
-      quill.insertText(idx, e.key.toUpperCase(), 'user');
+      var upper = e.key.toUpperCase();
+      quill.insertText(idx, upper, 'user');
+      quill.setSelection(idx + 1, 0, 'silent');
       reportState();
     }
   }
@@ -1411,6 +1512,28 @@ function subnumber(){
   reportState();
 }
 function quote(){
+  // v1.19.79: a selection gets typographic quotes of its own - wrap, or
+  // wrap OFF when the words already wear them; a resting caret still
+  // toggles the block quote on the current block, as always.
+  var sel = quill.getSelection();
+  if (sel && sel.length > 0){
+    var text = quill.getText(sel.index, sel.length);
+    var LQ = '\u201C', RQ = '\u201D';
+    if ((text.indexOf(LQ) === 0 && text.lastIndexOf(RQ) === text.length - 1) ||
+        (text.charAt(0) === '"' && text.charAt(text.length - 1) === '"')){
+      var unquoted = text.slice(1, -1);
+      quill.deleteText(sel.index, sel.length, 'user');
+      quill.insertText(sel.index, unquoted, 'user');
+      quill.setSelection(sel.index, unquoted.length, 'user');
+    } else {
+      var quoted = LQ + text + RQ;
+      quill.deleteText(sel.index, sel.length, 'user');
+      quill.insertText(sel.index, quoted, 'user');
+      quill.setSelection(sel.index, quoted.length, 'user');
+    }
+    reportState();
+    return;
+  }
   var f = quill.getFormat();
   quill.format('blockquote', !f.blockquote, 'user');
   reportState();
@@ -1476,6 +1599,8 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'pasteImage': insertImage(String(msg.src || '')); break;
       case 'aiScanResult': applyScanResult(msg); break;
       case 'aiResult': applyAiResult(msg); break;
+      case 'aiStreamDelta': onAiStreamDelta(msg); break;
+      case 'aiStreamDone': onAiStreamDone(msg); break;
       case 'load': loadWorld(String(msg.html || ''), msg.seq|0); break;
       case 'i18n': i18n = { apply: String(msg.apply || 'Apply'), remove: String(msg.remove || 'Remove'),
                             linkUrl: String(msg.linkUrl || 'Link URL') };

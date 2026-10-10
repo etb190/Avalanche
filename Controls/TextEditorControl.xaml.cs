@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -511,6 +512,8 @@ namespace Avalanche.Controls
                         if (_activeTab >= 0 && _activeTab < _tabs.Count)
                             _thumbCache[_tabs[_activeTab]] = thumbs.ToArray();
                         ThumbsChanged?.Invoke(thumbs.ToArray());
+                        if (thumbs.Contains(string.Empty))
+                            _ = RefreshThumbnailsAsync();   // the sheet's canvas refused: the host paints instead
                     }
                     break;
 
@@ -573,9 +576,10 @@ namespace Avalanche.Controls
             // caret is actually wearing, page's word is final. The lists
             // dropdown (v1.19.75) lights while any list kind is on.
             int header = r.TryGetProperty("h", out var hv) && hv.ValueKind == JsonValueKind.Number ? hv.GetInt32() : 0;
-            SetToggle(HeaderBtn, header == 1);
-            SetToggle(H1Btn, header == 2);
-            SetToggle(H2Btn, header == 3);
+            // v1.19.79: two header levels, two lights - H1 rides Quill's
+            // header:1, H2 rides header:2, the lone H and its third seat gone.
+            SetToggle(H1Btn, header == 1);
+            SetToggle(H2Btn, header == 2);
             string listState = r.TryGetProperty("list", out var lsv) ? lsv.GetString() ?? string.Empty : string.Empty;
             SetToggle(ListBtn, listState == "bullet" || listState == "ordered");
             SetToggle(QuoteBtn, Prop(r, "quote"));
@@ -628,9 +632,8 @@ namespace Avalanche.Controls
         private void StrikeBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "strike" }); RefocusEditor(); }
         // The block tools (v1.19.73): the page owns every toggle decision -
         // the ribbon only speaks the chord and relights off the state report.
-        private void HeaderBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 1 }); RefocusEditor(); }
-        private void H1Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 2 }); RefocusEditor(); }
-        private void H2Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 3 }); RefocusEditor(); }
+        private void H1Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 1 }); RefocusEditor(); }
+        private void H2Btn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "header", level = 2 }); RefocusEditor(); }
         // The lists dropdown (v1.19.75): picking a kind speaks the same
         // bullet / number / sub-number chord the old buttons spoke; the page
         // still owns every toggle decision, the light rides the report.
@@ -975,6 +978,31 @@ namespace Avalanche.Controls
             => _activeTab >= 0 && _activeTab < _tabs.Count
                && _thumbCache.TryGetValue(_tabs[_activeTab], out var cached) ? cached : null;
 
+        // The host's own raster (v1.19.79): the sheet's SVG paint taints its
+        // canvas in WebView2 (a foreignObject security rule), so its empty
+        // answer now calls THIS - the engine's native page capture, cached
+        // and painted like any other raster. Fired when the sheet's thumbs
+        // arrive carrying empties: on load, on tab switch, and after the
+        // edit idle timer - every moment the rail could be staring at a stub.
+        public async System.Threading.Tasks.Task RefreshThumbnailsAsync()
+        {
+            if (!_pageReady || _web?.CoreWebView2 is null) return;
+            try
+            {
+                using var ms = new MemoryStream();
+                await _web.CoreWebView2.CapturePreviewAsync(
+                    CoreWebView2CapturePreviewImageFormat.Png, ms);
+                string dataUrl = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+                if (_activeTab >= 0 && _activeTab < _tabs.Count)
+                    _thumbCache[_tabs[_activeTab]] = new[] { dataUrl };
+                ThumbsChanged?.Invoke(new[] { dataUrl });
+            }
+            catch
+            {
+                // a refused capture keeps the rail as it was
+            }
+        }
+
         /// <summary>Bind the strip to the editor's tabs. Called once, from the
         /// constructor - the ItemsControl repaints itself off the collection</summary>
         private void InitTabStrip() => EditorTabStrip.ItemsSource = _tabs;
@@ -1240,6 +1268,13 @@ namespace Avalanche.Controls
         }
 
         private void EditorTabNewBtn_Click(object sender, RoutedEventArgs e) => OpenNewTab();
+
+        // The ribbon's own file operations (v1.19.79): the same three doors
+        // the tab band wears, on the main toolbar where the reader looks
+        // first - a lone document never grows the band, and these never hide.
+        private void EditorNewBtn_Click(object sender, RoutedEventArgs e) => OpenNewTab();
+        private void EditorOpenBtn_Click(object sender, RoutedEventArgs e) => EditorTabOpenBtn_Click(sender, e);
+        private void EditorSaveBtn_Click(object sender, RoutedEventArgs e) => EditorTabSaveBtn_Click(sender, e);
 
         // ── Save and Open (v1.19.75): the reader's own files ─────────────────
         // Save asks where with the app's own Windows-style prompt, then the
@@ -1715,6 +1750,182 @@ namespace Avalanche.Controls
                 "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
         };
 
+        // The rewrite stream rides one shared client: the engine's own
+        // connection pool, no per-call setup, the body read as it lands.
+        private static readonly HttpClient AiStreamHttp = CreateAiStreamClient();
+
+        private static HttpClient CreateAiStreamClient()
+        {
+            var client = new HttpClient();
+            client.Timeout = TimeSpan.FromSeconds(180);
+            return client;
+        }
+
+        /// <summary>The washer (v1.19.79): thinking models, markdown fences,
+        /// JSON envelopes, escaped quotes and wrapped quotation marks all
+        /// come off before a rewrite touches the page.</summary>
+        private static string CleanAiGeneratedText(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
+            string text = raw.Trim();
+
+            // Strip reasoning tags (<think>...the closing tag) from thinking models
+            int thinkStart = text.IndexOf("<think>", StringComparison.OrdinalIgnoreCase);
+            if (thinkStart >= 0)
+            {
+                int thinkEnd = text.IndexOf("<" + "/think>", thinkStart, StringComparison.OrdinalIgnoreCase);
+                if (thinkEnd >= 0)
+                    text = (text[..thinkStart] + text[(thinkEnd + 8)..]).Trim();
+            }
+
+            // Strip markdown code fences if wrapped
+            if (text.StartsWith("```", StringComparison.Ordinal))
+            {
+                int firstLine = text.IndexOf('\n');
+                if (firstLine >= 0) text = text[(firstLine + 1)..].Trim();
+                if (text.EndsWith("```", StringComparison.Ordinal))
+                    text = text[..^3].Trim();
+            }
+
+            // Parse JSON if output was emitted as a JSON object
+            if (text.StartsWith('{') && text.EndsWith('}'))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(text);
+                    var root = doc.RootElement;
+                    string[] candidateProps = { "rewritten_text", "rewrittenText", "text", "result", "corrected_text", "output", "content" };
+                    foreach (var prop in candidateProps)
+                    {
+                        if (root.TryGetProperty(prop, out var val) && val.ValueKind == JsonValueKind.String)
+                        {
+                            text = val.GetString() ?? string.Empty;
+                            break;
+                        }
+                    }
+                }
+                catch { /* fallback to string parsing */ }
+            }
+
+            // Unescape literal escaped quotes: backslash+quote -> quote
+            string bsq = "\\" + "\"";
+            if (text.Contains(bsq, StringComparison.Ordinal))
+            {
+                text = text.Replace(bsq, "\"");
+            }
+
+            // Strip wrapping outer quotes if the entire text was encapsulated in quotes
+            if ((text.StartsWith('\"') && text.EndsWith('\"') && text.Length >= 2) ||
+                (text.StartsWith('\u201C') && text.EndsWith('\u201D') && text.Length >= 2))
+            {
+                text = text[1..^1].Trim();
+            }
+
+            return text.Trim();
+        }
+
+        /// <summary>The streaming path (v1.19.79): one OpenAI-compatible
+        /// request wearing stream:true, its SSE deltas posted to the sheet as
+        /// they land. Returns null when the stream never carried a single
+        /// delta - the one-shot provider call answers instead; non-null once
+        /// the page has been told the story one way or the other.</summary>
+        private async System.Threading.Tasks.Task<string?> TryStreamAiSelectionAsync(
+            int seq, string system, string text,
+            Features.AI.AiProviderConfig config, string kind)
+        {
+            bool started = false;
+            try
+            {
+                var body = new Dictionary<string, object?>
+                {
+                    ["model"] = config.Model,
+                    ["messages"] = new List<object>
+                    {
+                        new { role = "system", content = system },
+                        new { role = "user", content = text }
+                    },
+                    ["temperature"] = config.Temperature,
+                    ["max_tokens"] = config.MaxTokens,
+                    ["top_p"] = config.TopP,
+                    ["stream"] = true,
+                };
+                if (!string.IsNullOrEmpty(config.ReasoningEffort))
+                    body["reasoning_effort"] = config.ReasoningEffort;
+                if (config.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
+                    body["chat_template_kwargs"] = new { enable_thinking = true };
+
+                using var request = new HttpRequestMessage(
+                    HttpMethod.Post, $"{config.BaseUrl.TrimEnd('/')}/chat/completions");
+                request.Content = new StringContent(
+                    JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                    "Bearer",
+                    string.IsNullOrEmpty(config.ApiKey) ? "none" : config.ApiKey);
+
+                using var response = await AiStreamHttp.SendAsync(
+                    request, HttpCompletionOption.ResponseHeadersRead);
+                if (!response.IsSuccessStatusCode) return null;
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new StreamReader(stream);
+                var raw = new StringBuilder();
+                string? line;
+                while ((line = await reader.ReadLineAsync()) is not null)
+                {
+                    if (!line.StartsWith("data:", StringComparison.Ordinal)) continue;
+                    string payload = line["data:".Length..].Trim();
+                    if (payload == "[DONE]") break;
+                    string? delta = null;
+                    try
+                    {
+                        using var frame = JsonDocument.Parse(payload);
+                        var choices = frame.RootElement.GetProperty("choices");
+                        if (choices.GetArrayLength() > 0
+                            && choices[0].TryGetProperty("delta", out var d)
+                            && d.TryGetProperty("content", out var c)
+                            && c.ValueKind == JsonValueKind.String)
+                            delta = c.GetString();
+                    }
+                    catch
+                    {
+                        // an exotic or partial frame rides past; content frames do the talking
+                    }
+                    if (string.IsNullOrEmpty(delta)) continue;
+                    raw.Append(delta);
+                    started = true;
+                    Post(new { cmd = "aiStreamDelta", seq, delta });
+                }
+
+                if (!started) return null;   // nothing streamed: the one-shot path answers
+
+                // The raw run is judged on its cleaned self: fences, JSON
+                // wrappers and escaped quotes never survive the done message.
+                string cleaned = CleanAiGeneratedText(raw.ToString());
+                string? finalText = cleaned;
+                string? message = (string?)null;
+                bool ok = true;
+                if (kind == "fix" && string.Equals(cleaned, text.Trim(), StringComparison.Ordinal))
+                {
+                    finalText = null;
+                    message = "Grammar looks good!";
+                }
+                else if (cleaned.Length == 0)
+                {
+                    ok = false;
+                    finalText = null;
+                    message = "The model came back empty - nothing changed.";
+                }
+                Post(new { cmd = "aiStreamDone", seq, ok, text = finalText, message });
+                return cleaned;
+            }
+            catch (Exception ex)
+            {
+                if (!started) return null;   // the stream never spoke: fall back to one-shot
+                Post(new { cmd = "aiStreamDone", seq, ok = false, text = (string?)null,
+                           message = "AI request failed: " + ex.Message });
+                return string.Empty;         // the page has been told; the story ends here
+            }
+        }
+
         private async System.Threading.Tasks.Task RunAiSelectionAsync(
             int seq, string text, string style, string kind)
         {
@@ -1729,6 +1940,13 @@ namespace Avalanche.Controls
                       "If the text is already correct, return it unchanged. " +
                       "Return ONLY the corrected text - no quotes, no explanations, no markdown fences.";
                 var config = AiConfig(Features.AI.AiSurface.EditorRewrite);
+                // The loud door streams (v1.19.79): an OpenAI-compatible
+                // endpoint answers chunk by chunk and the sheet types them out
+                // at its own 20ms cadence; the one-shot call below stays as the
+                // fallback for a stream that never carried a single delta.
+                string? streamed = await TryStreamAiSelectionAsync(seq, system, text, config, kind);
+                if (streamed is not null) return;
+
                 var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
                     .GetChatCompletionAsync(
                         system,
@@ -1744,15 +1962,9 @@ namespace Avalanche.Controls
                         "",
                         config,
                         System.Threading.CancellationToken.None);
-                string outText = (answer.Answer ?? string.Empty).Trim();
-                // Some days the model wraps anyway; the fences come off.
-                if (outText.StartsWith("```", StringComparison.Ordinal))
-                {
-                    int firstLine = outText.IndexOf('\n');
-                    if (firstLine >= 0) outText = outText[(firstLine + 1)..].Trim();
-                    if (outText.EndsWith("```", StringComparison.Ordinal))
-                        outText = outText[..^3].Trim();
-                }
+                // Fences, JSON wrappers, escaped quotes and thinking traces
+                // all come off before the answer rides to the page (v1.19.79).
+                string outText = CleanAiGeneratedText(answer.Answer);
                 if (kind == "fix" && string.Equals(outText, text.Trim(), StringComparison.Ordinal))
                 {
                     // Nothing came back but the same words: the grammar was
