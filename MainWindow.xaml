@@ -3774,6 +3774,24 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
+                                <!-- v1.19.88: the browser page's digest wears its
+                                     own dial - the model the web summarizer
+                                     window bills, the same ten names. -->
+                                <TextBlock Text="{DynamicResource Str_AiModelWebSummary}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding WebSummaryModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatBaseUrl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenBaseUrl, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatModel}" Style="{StaticResource AiSettingsLabel}"/>
@@ -3810,6 +3828,39 @@
                                 <TextBox Text="{Binding EmbeddingDocumentPrefix, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsEmbQueryPrefix}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding EmbeddingQueryPrefix, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>
+                                <!-- v1.19.88: the prompt workshop - the
+                                     summary prompts stop being hardcoded:
+                                     edit the built-in voices, write new
+                                     ones, aim each at the browser digest
+                                     or the book window, save or delete. -->
+                                <TextBlock Text="{DynamicResource Str_AiPromptsHeader}" Style="{StaticResource AiSettingsLabel}" Margin="0,12,0,0"/>
+                                <TextBlock Text="{DynamicResource Str_AiPromptsPick}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox x:Name="AiPromptPick" Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          DisplayMemberPath="DisplayName"
+                                          SelectionChanged="AiPromptPick_SelectionChanged"/>
+                                <TextBlock Text="{DynamicResource Str_AiPromptsTitleLbl}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox x:Name="AiPromptTitleBox" Style="{StaticResource AiSettingsBox}"/>
+                                <TextBlock Text="{DynamicResource Str_AiPromptsCatLbl}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox x:Name="AiPromptCatBox" Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedIndex="0">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiPromptsCatWeb}"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiPromptsCatPdf}"/>
+                                </ComboBox>
+                                <TextBlock Text="{DynamicResource Str_AiPromptsBodyLbl}" Style="{StaticResource AiSettingsLabel}"/>
+                                <TextBox x:Name="AiPromptBodyBox" Style="{StaticResource AiSettingsBox}" AcceptsReturn="True"
+                                         TextWrapping="Wrap" Height="132" VerticalScrollBarVisibility="Auto"
+                                         VerticalContentAlignment="Top"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Button Content="{DynamicResource Str_AiPromptsNew}" x:Name="AiPromptNewBtn"
+                                            Click="AiPromptNewBtn_Click" Margin="0,0,8,0" Padding="10,4"
+                                            Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
+                                    <Button Content="{DynamicResource Str_AiPromptsSave}" x:Name="AiPromptSaveBtn"
+                                            Click="AiPromptSaveBtn_Click" Margin="0,0,8,0" Padding="10,4"
+                                            Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
+                                    <Button Content="{DynamicResource Str_AiPromptsDelete}" x:Name="AiPromptDeleteBtn"
+                                            Click="AiPromptDeleteBtn_Click" Padding="10,4"
+                                            Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
+                                </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
                                     <Button Content="{DynamicResource Str_AiSettingsTestConnection}"
                                             Click="AiTestConnectionBtn_Click" Margin="0,0,8,0" Padding="10,4"

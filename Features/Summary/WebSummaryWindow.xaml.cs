@@ -136,15 +136,17 @@ namespace Avalanche.Features.Summary
             StartBtn.Click += (_, _) => StartGeneration();
             ResetBtn.Click += (_, _) => ResetAll();
 
-            // The prompt dropdown: exactly one voice - the nonfiction classic.
-            // The label rides in every Strings file already; the canonical id in
-            // Tag is what the digest pass reads.
-            PromptCombo.Items.Add(new ComboBoxItem
+            // The prompt dropdown (v1.19.88): the web voices the reader keeps
+            // in the AI settings' prompt workshop - the nonfiction classic is
+            // born with the app, every other row is their own. The canonical
+            // id in Tag is what the digest pass reads.
+            foreach (AiPromptDef p in PromptStore.For(PromptStore.CatWeb))
             {
-                Content = loc("Str_Genre_Nonfiction"),
-                Tag = Genre
-            });
-            PromptCombo.SelectedIndex = 0;
+                PromptCombo.Items.Add(new ComboBoxItem { Content = p.DisplayName, Tag = p.Id });
+            }
+
+            if (PromptCombo.Items.Count > 0) PromptCombo.SelectedIndex = 0;
+            PromptStore.Changed += RebuildPromptItems;
 
             // The typewriter's painting clock - 20ms, proportionally faster when
             // the backlog grows; started by every run, self-stopping when drained.
@@ -156,11 +158,39 @@ namespace Avalanche.Features.Summary
 
             Closed += (_, _) =>
             {
+                PromptStore.Changed -= RebuildPromptItems;
                 _closed = true;
                 _generation++;      // a stale continuation can't repaint either
                 try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
                 StopElapsedClock();
             };
+        }
+
+        // The workshop saved or deleted: the dropdown rebuilds in place,
+        // the reader's pick rides along when it survived, the first voice
+        // wins when it did not.
+        private void RebuildPromptItems()
+        {
+            if (_closed) return;
+            if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(RebuildPromptItems)); return; }
+            string keep = PromptCombo.SelectedItem is ComboBoxItem sel && sel.Tag is string tag ? tag : "";
+            PromptCombo.Items.Clear();
+            foreach (AiPromptDef p in PromptStore.For(PromptStore.CatWeb))
+            {
+                PromptCombo.Items.Add(new ComboBoxItem { Content = p.DisplayName, Tag = p.Id });
+                if (!string.IsNullOrEmpty(keep) && p.Id == keep) PromptCombo.SelectedIndex = PromptCombo.Items.Count - 1;
+            }
+
+            if (PromptCombo.SelectedIndex < 0 && PromptCombo.Items.Count > 0) PromptCombo.SelectedIndex = 0;
+        }
+
+        // The dropdown's chosen voice: the canonical id riding the selected
+        // item's Tag - the workshop's rows, or the born-in nonfiction classic.
+        private string PromptId()
+        {
+            return PromptCombo.SelectedItem is ComboBoxItem item && item.Tag is string id
+                ? id
+                : Genre;
         }
 
         // ------------------------------------------------------------------
@@ -201,6 +231,7 @@ namespace Avalanche.Features.Summary
             // The run's model takes the bottom-right word before its first word
             // lands - the config the run asks is the config named.
             var runConfig = _configProvider();
+            string promptId = PromptId();   // read on the UI thread - the stream below rides the pool
             _runModel = runConfig.Model ?? string.Empty;
             SetModelLabel(_runModel);
 
@@ -243,7 +274,7 @@ namespace Avalanche.Features.Summary
                 try
                 {
                     await foreach (SummaryUpdate update in PageSummarizer.GenerateWebDigestAsync(
-                                       page.Text, TargetWords, Genre, runConfig, _loc, token))
+                                       page.Text, TargetWords, promptId, runConfig, _loc, token))
                     {
                         switch (update.Kind)
                         {

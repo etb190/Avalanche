@@ -1154,6 +1154,17 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelNotes">ノート</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">リライトモデル</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">エディターサイドチャットモデル</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">ブラウザ要約モデル</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">AIプロンプト</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">プロンプト</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">タイトル</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">使用先</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">ブラウザ要約</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF要約</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">プロンプト本文</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">新規</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">保存</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">削除</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">文法モデル</sys:String>
     <sys:String x:Key="Str_AiModelUsed">モデル: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

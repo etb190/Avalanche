@@ -1154,6 +1154,17 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelNotes">Ghi chú</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Mô hình viết lại</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Mô hình trò chuyện cạnh trình soạn thảo</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Mô hình tóm tắt trình duyệt</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">Prompt AI</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Tiêu đề</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Dùng cho</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Tóm tắt trình duyệt</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Tóm tắt PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Nội dung prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Mới</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Lưu</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Xóa</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Mô hình ngữ pháp</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Mô hình: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

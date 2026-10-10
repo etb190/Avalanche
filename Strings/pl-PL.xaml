@@ -1142,6 +1142,17 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelNotes">Notatki</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Model przepisywania</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Model czatu bocznego edytora</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Model podsumowania stron</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">Prompty AI</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Tytuł</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Używany dla</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Podsumowanie strony</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Podsumowanie PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Treść promptu</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Nowy</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Zapisz</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Usuń</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Model gramatyki</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

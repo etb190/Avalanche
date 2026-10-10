@@ -1154,6 +1154,17 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Modèle de réécriture</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Modèle de chat latéral de l'éditeur</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Modèle de résumé web</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">Prompts IA</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Titre</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Utilisé pour</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Résumé web</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Résumé PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Texte du prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Nouveau</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Enregistrer</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Supprimer</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modèle de grammaire</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modèle : {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

@@ -1154,6 +1154,17 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelNotes">Note</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Modello di riscrittura</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Modello chat laterale dell'editor</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Modello riepilogo web</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">Prompt IA</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Titolo</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Usato per</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Riepilogo web</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Riepilogo PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Testo del prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Nuovo</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Salva</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Elimina</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modello di grammatica</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modello: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

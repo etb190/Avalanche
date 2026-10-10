@@ -170,6 +170,7 @@ namespace Avalanche.Controls
      row of its own - type the job, press Enter or the arrow, the answer
      writes itself into the page. */
   #ai_bubble .ai-row { display:flex; gap:6px; margin-top:6px; }
+  ::highlight(ai-hold){ background-color: rgba(88,133,255,0.38); }
   #ai_bubble input { flex:1; min-width:150px; padding:5px 8px; border:1px solid #4a5160;
                      border-radius:5px; background:#1e2229; color:#e8e8e8;
                      font:12px 'Segoe UI',sans-serif; outline:none; }
@@ -1008,6 +1009,35 @@ var errPop = null, errPopHideTimer = null, aiBubble = null, aiMenu = null, aiNot
 var aiNoteTimer = null, aiBubbleRect = null, aiInFlight = false, aiPending = null;
 var aiSavedSel = null;   // the selection the bubble stood over - the input's focus blurs Quill
 
+// The selection the reader sees must not die because the input borrowed
+// the caret (v1.19.88): the job's range is painted through the CSS Custom
+// Highlight API - a paint-only overlay, no DOM mutation, so the saved
+// Quill range stays exactly valid for the send. Cleared the moment a
+// real selection paints itself again, when the job leaves, and when the
+// bubble goes away. An engine without Highlight API loses only the
+// paint - the saved range and the send still work.
+function aiDomRangeFor(q){
+  try {
+    if (!q || typeof q.index !== 'number' || !(q.length > 0)) return null;
+    var s = quill.getLeaf(q.index), e = quill.getLeaf(q.index + q.length);
+    if (!s || !s[0] || !e || !e[0]) return null;
+    var sn = s[0].domNode || s[0], so = s[1] || 0;
+    var en = e[0].domNode || e[0], eo = e[1] || 0;
+    var r = document.createRange();
+    r.setStart(sn, Math.min(so, sn.nodeType === 3 ? sn.length : sn.childNodes.length));
+    r.setEnd(en, Math.min(eo, en.nodeType === 3 ? en.length : en.childNodes.length));
+    return r;
+  } catch(eR){ return null; }
+}
+function aiHoldPaint(q){
+  try {
+    if (!window.Highlight || !CSS.highlights) return;
+    var r = aiDomRangeFor(q);
+    if (r) CSS.highlights.set('ai-hold', new Highlight(r));
+  } catch(eH){}
+}
+function aiHoldClear(){ try { CSS.highlights.delete('ai-hold'); } catch(eC){} }
+
 function hashString(s){
   var h = 5381, i;
   for (i=0;i<s.length;i++){ h = ((h << 5) + h + s.charCodeAt(i)) | 0; }
@@ -1506,6 +1536,7 @@ function requestCustom(){
   }
   if (text.length > 16000) text = text.slice(0, 16000);
   aiInFlight = true;
+  aiHoldClear();   // the job leaves the page: the held paint goes with it
   aiPending = { index: index, length: length, kind: 'custom' };
   setAiBusy(true);
   post({ type:'ai_custom', text: text, instr: job, seq: worldSeq });
@@ -1649,8 +1680,13 @@ quill.on('selection-change', function(range){
   // stays saved so the send still knows what it stood over.
   try {
     var ae = document.activeElement;
-    if (ae && ae.id === 'ai_instr'){ if (range) aiSavedSel = range; return; }
+    if (ae && ae.id === 'ai_instr'){
+      if (range) aiSavedSel = range;
+      else if (aiSavedSel) aiHoldPaint(aiSavedSel);   // the input holds the caret: the page's paint follows the saved range
+      return;
+    }
   } catch(eAE){}
+  aiHoldClear();   // a real selection paints itself again
   if (range) aiSavedSel = range;
   if (range && range.length > 3 && !selImg) showAiBubble();
   else hideAiBubble();

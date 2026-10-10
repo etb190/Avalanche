@@ -1158,6 +1158,17 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Rewrite Model</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Editor sidechat model</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Browser summary model</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">AI prompts</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Title</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Used for</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Browser summary</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF summary</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Prompt text</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">New</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Save</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Delete</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Grammar Model</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

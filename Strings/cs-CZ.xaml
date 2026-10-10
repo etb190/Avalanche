@@ -1139,6 +1139,17 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiModelNotes">Poznámky</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Model přepisování</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Model bočního chatu editoru</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Model souhrnu z prohlížeče</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">AI prompty</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Název</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Použito pro</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Souhrn z prohlížeče</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Souhrn PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Text promptu</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Nový</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Uložit</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Smazat</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Model gramatiky</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

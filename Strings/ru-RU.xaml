@@ -1154,6 +1154,17 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelNotes">Заметки</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Модель перезаписи</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Модель бокового чата редактора</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Модель браузерного резюме</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">ИИ-промпты</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Промпт</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Название</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Используется для</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Резюме из браузера</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Резюме PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Текст промпта</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Новый</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Сохранить</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Удалить</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Модель грамматики</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

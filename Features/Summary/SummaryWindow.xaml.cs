@@ -426,14 +426,32 @@ namespace Avalanche.Features.Summary
             // across sessions and tab switches - while summary.default_genre keeps
             // the reader's latest pick as the default for a book that never chose.
             // The digest prompt AND the cache identity ride on it.
-            foreach (string genre in GenreChoices)
+            // v1.19.88: the dropdown reads the prompt store - the reader's
+            // workshop rows under the pdf category, the localized built-in
+            // names still shown while a voice stays untouched. The canonical
+            // id in Tag (the genre tag the digests always carried) is
+            // unchanged, so the per-book restore paths keep working.
+            void RebuildGenreItems()
             {
-                GenreCombo.Items.Add(new ComboBoxItem
+                if (!Dispatcher.CheckAccess()) { Dispatcher.BeginInvoke(new Action(RebuildGenreItems)); return; }
+                string keep = GenreCombo.SelectedItem is ComboBoxItem sel && sel.Tag is string tag ? tag : "";
+                GenreCombo.Items.Clear();
+                foreach (AiPromptDef p in PromptStore.For(PromptStore.CatPdf))
                 {
-                    Content = loc("Str_Genre_" + GenreKeySuffix[genre]),
-                    Tag = genre
-                });
+                    GenreCombo.Items.Add(new ComboBoxItem { Content = p.DisplayName, Tag = p.Id });
+                    if (!string.IsNullOrEmpty(keep) && p.Id == keep) GenreCombo.SelectedIndex = GenreCombo.Items.Count - 1;
+                }
+
+                if (GenreCombo.SelectedIndex < 0 && GenreCombo.Items.Count > 0) GenreCombo.SelectedIndex = 0;
             }
+
+            foreach (AiPromptDef p in PromptStore.For(PromptStore.CatPdf))
+            {
+                GenreCombo.Items.Add(new ComboBoxItem { Content = p.DisplayName, Tag = p.Id });
+            }
+
+            PromptStore.Changed += RebuildGenreItems;
+            Closed += (_, _) => PromptStore.Changed -= RebuildGenreItems;
 
             GenreCombo.SelectionChanged += (_, _) =>
             {
@@ -636,7 +654,8 @@ namespace Avalanche.Features.Summary
                 genre = AppDataPaths.GetSetting("summary.default_genre");
             }
 
-            _genre = genre != null && GenreChoices.Contains(genre) ? genre : "nonfiction_classic";
+            _genre = genre != null && (GenreChoices.Contains(genre) || PromptStore.Exists(genre))
+                ? genre : "nonfiction_classic";
 
             if (double.TryParse(AppDataPaths.GetSetting("summary.font"), NumberStyles.Float, CultureInfo.InvariantCulture, out double font)
                 && font >= 10 && font <= 24)

@@ -1134,6 +1134,17 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notas</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Modelo de reescritura</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Modelo de chat lateral del editor</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Modelo de resumen web</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">Prompts de IA</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Título</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Usado para</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Resumen web</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">Resumen PDF</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Texto del prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Nuevo</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Guardar</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Eliminar</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modelo de gramática</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modelo: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

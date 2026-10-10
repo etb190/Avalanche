@@ -1140,6 +1140,17 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiModelNotes">Notizen</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Umschreibungsmodell</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Editor-Seitenchat-Modell</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Browser-Zusammenfassungsmodell</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">KI-Prompts</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Titel</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Verwendet für</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Browser-Zusammenfassung</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF-Zusammenfassung</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Prompttext</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Neu</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Speichern</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Löschen</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Grammatikmodell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

@@ -1138,6 +1138,17 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_AiModelNotes">笔记</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">改写模型</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">编辑器侧聊模型</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">浏览器摘要模型</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">AI 提示词</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">提示词</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">标题</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">用于</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">浏览器摘要</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF 摘要</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">提示词内容</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">新建</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">保存</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">删除</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">语法模型</sys:String>
     <sys:String x:Key="Str_AiModelUsed">模型：{0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

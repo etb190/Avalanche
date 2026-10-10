@@ -31,6 +31,7 @@ namespace Avalanche.Features.AI
         // every surface); these properties only mirror it for the combos and
         // write through on every change.
         private string _summaryModelChoice = AiSurfaceModels.NemotronChoice;
+        private string _webSummaryModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.88: the web digest's dial
         private string _sidechatModelChoice = AiSurfaceModels.NemotronChoice;
         private string _webSidechatModelChoice = AiSurfaceModels.NemotronChoice;
         private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
@@ -127,6 +128,14 @@ namespace Avalanche.Features.AI
         {
             get => _summaryModelChoice;
             set { _summaryModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Summary, _summaryModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.19.88: which model answers the browser page's
+        /// digest - the web summarizer window's own seat.</summary>
+        public string WebSummaryModelChoice
+        {
+            get => _webSummaryModelChoice;
+            set { _webSummaryModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.WebSummary, _webSummaryModelChoice); OnPropertyChanged(); }
         }
 
         /// <summary>Which model answers the book sidechat.</summary>
@@ -456,6 +465,7 @@ namespace Avalanche.Features.AI
                 // v1.19.31: the four dials ride their own file; the panel mirrors
                 // whatever they say right now.
                 _summaryModelChoice = AiSurfaceModels.Get(AiSurface.Summary);
+                _webSummaryModelChoice = AiSurfaceModels.Get(AiSurface.WebSummary);
                 _sidechatModelChoice = AiSurfaceModels.Get(AiSurface.Sidechat);
                 _webSidechatModelChoice = AiSurfaceModels.Get(AiSurface.WebSidechat);
                 _recallerModelChoice = AiSurfaceModels.Get(AiSurface.Recaller);

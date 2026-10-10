@@ -1134,6 +1134,17 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiModelNotes">Notlar</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Yeniden Yazma Modeli</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Düzenleyici yan sohbet modeli</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Tarayıcı özet modeli</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">YZ istemleri</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">İstem</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Başlık</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Kullanım yeri</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Tarayıcı özeti</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF özeti</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">İstem metni</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Yeni</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Kaydet</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Sil</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Dilbilgisi Modeli</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

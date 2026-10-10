@@ -1141,6 +1141,17 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiModelNotes">Jegyzetek</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Átírási modell</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Szerkesztő oldali csevegés modellje</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Böngésző-összefoglaló modell</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">MI-prompotok</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Prompt</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Cím</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Használat</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Böngésző-összefoglaló</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF-összefoglaló</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Promptszöveg</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Új</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Mentés</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Törlés</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Nyelvtani modell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

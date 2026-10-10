@@ -909,6 +909,16 @@ namespace Avalanche.Features.Summary
         // DetailChecklist and adds the epistemic accuracy rule beside them.
         private static string GenreMandate(string genre, int targetWords)
         {
+            // v1.19.88: the prompt workshop's stored text outranks the
+            // hardcoded voice - an edited or newly written prompt body
+            // takes the persona's seat, its {words} placeholder fed the
+            // real target on the way out.
+            string? stored = PromptStore.StoredMandate(genre);
+            if (!string.IsNullOrWhiteSpace(stored))
+            {
+                return stored.Replace("{words}", targetWords.ToString(CultureInfo.InvariantCulture));
+            }
+
             switch (NormalizeGenre(genre))
             {
                 case "fiction":
@@ -934,6 +944,15 @@ namespace Avalanche.Features.Summary
                         DetailChecklist + "\n\n" +
                         EpistemicAccuracy;
             }
+        }
+
+        // v1.19.88: the persona text as a template for the prompt
+        // workshop's editor - the one place the word count appears
+        // becomes a {words} placeholder, so a stored body never bakes
+        // a number the digest head would contradict.
+        internal static string BuiltinMandateTemplate(string genre)
+        {
+            return GenreMandate(genre, 0).Replace(" 0 words", " {words} words");
         }
 
         private static string DigestSystemPrompt(int targetWords, string language, string genre)

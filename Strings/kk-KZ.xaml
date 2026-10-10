@@ -1153,6 +1153,17 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiModelNotes">Жазбалар</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Қайта жазу моделі</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Редактордың бүйірлік чат моделі</sys:String>
+    <sys:String x:Key="Str_AiModelWebSummary">Браузерлік түйіндеме моделі</sys:String>
+    <sys:String x:Key="Str_AiPromptsHeader">AI промпттар</sys:String>
+    <sys:String x:Key="Str_AiPromptsPick">Промпт</sys:String>
+    <sys:String x:Key="Str_AiPromptsTitleLbl">Атауы</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatLbl">Арналғаны</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatWeb">Браузерлік түйіндеме</sys:String>
+    <sys:String x:Key="Str_AiPromptsCatPdf">PDF түйіндеме</sys:String>
+    <sys:String x:Key="Str_AiPromptsBodyLbl">Промпт мәтіні</sys:String>
+    <sys:String x:Key="Str_AiPromptsNew">Жаңа</sys:String>
+    <sys:String x:Key="Str_AiPromptsSave">Сақтау</sys:String>
+    <sys:String x:Key="Str_AiPromptsDelete">Жою</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Грамматика моделі</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

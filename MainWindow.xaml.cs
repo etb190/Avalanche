@@ -1067,7 +1067,7 @@ namespace Avalanche
             _aiSettingsViewModel.Load();
             var window = new Features.Summary.WebSummaryWindow(
                 this,
-                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.Summary),
+                () => Features.AI.AiSurfaceModels.Configure(_aiSettingsViewModel!.ToGenConfig(), Features.AI.AiSurface.WebSummary),
                 () => WebPane.ActiveTabId,
                 (tabId, ct) => WebPane.ExtractPageTextAsync(tabId, ct),
                 Loc);
@@ -1802,6 +1802,112 @@ namespace Avalanche
             _aiChatViewModel?.CancelReply();
         }
 
+        // ---- the prompt workshop (v1.19.88) --------------------------------
+        // The summary prompts stop being hardcoded: the reader edits the
+        // built-in voices, writes new ones, aims each at the browser digest
+        // or the book window, saves and deletes. The store carries it all;
+        // this section is just the chair the workshop sits in.
+
+        private bool _promptWiring;   // the rebuild must not answer its own SelectionChanged
+        private Features.Summary.AiPromptDef? _promptEditing;   // null = a new row waiting for Save
+
+        private void RefreshPromptWorkshop()
+        {
+            if (AiPromptPick is null) return;
+            string keep = _promptEditing?.Id
+                ?? (AiPromptPick.SelectedItem is Features.Summary.AiPromptDef sel ? sel.Id : "");
+            var rows = Features.Summary.PromptStore.All();
+            Features.Summary.AiPromptDef? pick = null;
+            foreach (var p in rows)
+            {
+                if (!string.IsNullOrEmpty(keep) && p.Id == keep) { pick = p; break; }
+            }
+
+            _promptWiring = true;
+            AiPromptPick.ItemsSource = rows;
+            AiPromptPick.DisplayMemberPath = "DisplayName";
+            AiPromptPick.SelectedItem = pick;
+            if (pick is null) _promptEditing = null;
+            FillPromptFields();
+            _promptWiring = false;
+        }
+
+        private void FillPromptFields()
+        {
+            var p = _promptEditing;
+            if (p is null)
+            {
+                AiPromptTitleBox.Text = "";
+                AiPromptCatBox.SelectedIndex = 0;
+                AiPromptBodyBox.Text = "";
+                return;
+            }
+
+            AiPromptTitleBox.Text = p.DisplayName;
+            AiPromptCatBox.SelectedIndex = string.Equals(p.Category, Features.Summary.PromptStore.CatWeb, StringComparison.Ordinal) ? 0 : 1;
+            AiPromptBodyBox.Text = PromptBodyForEditor(p);
+        }
+
+        // An untouched built-in shows the hardcoded voice's own text, the
+        // word count left as a {words} placeholder - editing and saving
+        // turns it into the row's body from then on.
+        private static string PromptBodyForEditor(Features.Summary.AiPromptDef p)
+        {
+            if (!string.IsNullOrWhiteSpace(p.Body)) return p.Body;
+            string id = p.Id;
+            if (id.StartsWith("web_", StringComparison.Ordinal)) id = id[4..];
+            try { return Features.Summary.PageSummarizer.BuiltinMandateTemplate(id); }
+            catch { return ""; }
+        }
+
+        private void AiPromptPick_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_promptWiring) return;
+            _promptEditing = AiPromptPick.SelectedItem as Features.Summary.AiPromptDef;
+            FillPromptFields();
+        }
+
+        private void AiPromptNewBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _promptEditing = null;
+            _promptWiring = true;
+            AiPromptPick.SelectedItem = null;
+            _promptWiring = false;
+            AiPromptTitleBox.Text = "";
+            AiPromptCatBox.SelectedIndex = 0;
+            AiPromptBodyBox.Text = "";
+            AiPromptTitleBox.Focus();
+        }
+
+        private void AiPromptSaveBtn_Click(object sender, RoutedEventArgs e)
+        {
+            string body = AiPromptBodyBox.Text ?? "";
+            string title = (AiPromptTitleBox.Text ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(body) && string.IsNullOrWhiteSpace(title)) return;
+
+            var def = _promptEditing ?? new Features.Summary.AiPromptDef
+            {
+                Id = Features.Summary.PromptStore.NewId()
+            };
+            if (title.Length > 0) { def.Title = title; def.TitleKey = ""; }
+            def.Category = AiPromptCatBox.SelectedIndex == 0
+                ? Features.Summary.PromptStore.CatWeb
+                : Features.Summary.PromptStore.CatPdf;
+            def.Body = body;
+            Features.Summary.PromptStore.Upsert(def);
+            _promptEditing = def;
+            RefreshPromptWorkshop();
+        }
+
+        private void AiPromptDeleteBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_promptEditing is null) return;
+            string id = _promptEditing.Id;
+            _promptEditing = null;
+            Features.Summary.PromptStore.Delete(id);
+            RefreshPromptWorkshop();
+        }
+
         // ---- AI settings overlay (F1) -------------------------------------
 
         private void AiChatSettingsBtn_Click(object sender, RoutedEventArgs e)
@@ -1818,6 +1924,7 @@ namespace Avalanche
                 _aiSettingsViewModel.Load();
                 AiSettingsOverlay.DataContext = _aiSettingsViewModel;
                 AiSettingsOverlay.Visibility = Visibility.Visible;
+                RefreshPromptWorkshop();   // v1.19.88: the workshop shows the store as it is right now
             }
         }
 
