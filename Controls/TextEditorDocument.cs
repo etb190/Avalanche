@@ -65,7 +65,7 @@ namespace Avalanche.Controls
 <style>__QUILL_CSS__</style>
 <style>
   html, body { margin:0; padding:0; }
-  body { background-color:#2b2d30; overflow-x:hidden; font-family:'Segoe UI',sans-serif; }
+  body { background-color:#3d4046; overflow-x:hidden; font-family:'Segoe UI',sans-serif; }
   #canvas { width:816px; min-height:1056px; margin:24px auto 48px auto; background:#ffffff;
             box-shadow:0 2px 10px rgba(0,0,0,0.45); border-radius:2px; box-sizing:border-box; }
   /* The snow theme pins the container to height:100% and gives the editor its
@@ -240,34 +240,8 @@ namespace Avalanche.Controls
 'use strict';
 function post(o){ try { window.chrome.webview.postMessage(o); } catch(e){} }
 
-// Film grain background on margins: exact procedural noise matching PdfViewer
-(function initNoiseBackground(){
-  try {
-    var size = 256;
-    var c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    var ctx = c.getContext('2d');
-    var imgData = ctx.createImageData(size, size);
-    var d = imgData.data;
-    var seed = 1337;
-    function rnd(){ seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
-    for (var i = 0; i < d.length; i += 4){
-      if (rnd() > 0.33) continue;
-      var bright = rnd() < 0.5;
-      var v = bright ? Math.floor(190 + rnd() * 65) : Math.floor(rnd() * 50);
-      var a = Math.floor(35 + rnd() * 60);
-      d[i] = v;
-      d[i+1] = v;
-      d[i+2] = v;
-      d[i+3] = a;
-    }
-    ctx.putImageData(imgData, 0, 0);
-    var url = c.toDataURL();
-    document.body.style.backgroundImage = 'url(' + url + ')';
-    document.body.style.backgroundRepeat = 'repeat';
-  } catch(e){}
-})();
-
+// The film grain is gone (v1.19.84): the margins wear the desk's
+// own solid gray again - no canvas, no noise, no layer.
 // ── fonts & sizes ─────────────────────────────────────────────────────────
 var currentDocFont = 'Segoe UI';
 var FONTS = ['Segoe UI','Arial','Calibri','Cambria','Consolas','Courier New','Georgia',
