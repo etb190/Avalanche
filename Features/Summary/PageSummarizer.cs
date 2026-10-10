@@ -451,11 +451,11 @@ namespace Avalanche.Features.Summary
         // no anchors. The prompt is the digest's own voice minus the book
         // plumbing: the genre persona (the web window only ever speaks the
         // nonfiction classic), the anti-meta law, the ground rule and a format
-        // block for plain prose. No output-language block: with no dropdown to
-        // name one, the summary follows the page's own tongue.
+        // block for plain prose. v1.19.91: the window's language dial joins -
+        // the OUTPUT LANGUAGE block rides when the reader names a tongue.
         // ------------------------------------------------------------------
         internal static async System.Collections.Generic.IAsyncEnumerable<SummaryUpdate> GenerateWebDigestAsync(
-            string pageText, int targetWords, string genre,
+            string pageText, int targetWords, string language, string genre,
             AiProviderConfig config, Func<string, string> loc,
             [EnumeratorCancellation] CancellationToken ct)
         {
@@ -467,7 +467,7 @@ namespace Avalanche.Features.Summary
             }
 
             yield return new SummaryUpdate("progress", loc("Str_SummaryWriting"));
-            string digestSystem = WebDigestSystemPrompt(targetWords, genre);
+            string digestSystem = WebDigestSystemPrompt(targetWords, language, genre);
             int digestBudget = Math.Max(config.MaxTokens, Math.Max(10000, 3000 + (4 * targetWords)));
             if (!AiEndpoints.IsLocal(config.BaseUrl)) digestBudget = Math.Min(digestBudget, CloudMaxTokens);
             var live = new StringBuilder();
@@ -512,15 +512,24 @@ namespace Avalanche.Features.Summary
             yield return new SummaryUpdate("done", finalText);
         }
 
-        // The web digest's system prompt: the digest head without the output
-        // language, the genre persona, the anti-meta law, the ground rule - and
-        // a format block for prose with no book plumbing, since a web page
-        // carries no [p. N] anchors and no printed markdown headings.
-        private static string WebDigestSystemPrompt(int targetWords, string genre)
+        // The web digest's system prompt: the digest head with the output
+        // language the reader picked, the genre persona, the anti-meta law,
+        // the ground rule - and a format block for prose with no book
+        // plumbing, since a web page carries no [p. N] anchors and no printed
+        // markdown headings.
+        private static string WebDigestSystemPrompt(int targetWords, string language, string genre)
         {
+            // v1.19.91: OUTPUT LANGUAGE - the digest is written in the language
+            // the reader picked; passages the page quotes or prints in another
+            // tongue stay as the page printed them.
+            string languageBlock =
+                "OUTPUT LANGUAGE: write every sentence of the summary in " + language + ". The " +
+                "one exception is passages the page itself quotes or prints in another " +
+                "language: copy those VERBATIM, exactly as printed.\n\n";
             string head =
                 "Summarize the following web page in approximately " + targetWords +
-                " words (do NOT exceed " + targetWords + " words).\n\n";
+                " words (do NOT exceed " + targetWords + " words).\n\n" +
+                languageBlock;
             return head +
                 GenreMandate(genre, targetWords) + "\n\n" +
                 AntiMeta + "\n\n" +

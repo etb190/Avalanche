@@ -1,10 +1,10 @@
 <!-- Features/Summary/WebSummaryWindow.xaml — the web page summarizer (v1.19.87).
      The page navigator's replica, stripped to what a web page needs: Start and
-     Reset, one prompt dropdown (the nonfiction classic - the only voice here),
-     the digest card with its empty state, and the bottom line that names the
-     model, the word and character counts and the time the generation took.
-     No range, no recap, no ping, no buffer arrows, no tester, no language
-     dropdown, no pages picker. The rounded chrome, title bar, fade-close and
+     Reset, one prompt dropdown (the web voices), the word ceiling and the
+     output language beside it, the digest card with its empty state, and the
+     bottom line that names the model, the word and character counts and the
+     time the generation took. No range, no recap, no ping, no buffer arrows,
+     no tester, no pages picker. The rounded chrome, title bar, fade-close and
      Escape handling come from DialogChrome.Frame (composed in code-behind). -->
 <Window x:Class="Avalanche.Features.Summary.WebSummaryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -149,14 +149,21 @@
                     ToolTip="{DynamicResource Str_SummaryReset}"/>
         </Grid>
 
-        <!-- Row 1: the prompt dropdown - one voice only, the nonfiction classic.
-             The label rides in every Strings file already; the dropdown stays a
-             dropdown so the shape of the navigator survives intact. -->
+        <!-- Row 1: the reader's three dials - the prompt voice, the word
+             ceiling and the output language. Each remembers its pick across
+             sessions (websummary.* settings), the same memory the book
+             navigator's own dials keep. -->
         <WrapPanel Grid.Row="1" Margin="14,8,14,2" VerticalAlignment="Center"
                    HorizontalAlignment="Center">
             <ComboBox x:Name="PromptCombo" Style="{StaticResource DarkComboBox}" Width="170" Height="28"
                       VerticalAlignment="Center" MaxDropDownHeight="260"
                       ToolTip="{DynamicResource Str_SummaryGenreTT}"/>
+            <ComboBox x:Name="WordsCombo" Style="{StaticResource DarkComboBox}" Width="90" Height="28"
+                      Margin="8,0,0,0" VerticalAlignment="Center" MaxDropDownHeight="260"
+                      ToolTip="{DynamicResource Str_SummaryWordsTT}"/>
+            <ComboBox x:Name="LangCombo" Style="{StaticResource DarkComboBox}" Width="112" Height="28"
+                      Margin="8,0,0,0" VerticalAlignment="Center" MaxDropDownHeight="260"
+                      ToolTip="{DynamicResource Str_SummaryLangTT}"/>
         </WrapPanel>
 
         <!-- Row 2: the digest - justified like a typeset page. -->

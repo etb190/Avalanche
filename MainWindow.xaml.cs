@@ -919,6 +919,7 @@ namespace Avalanche
         private Features.AI.AiSettingsViewModel? _aiSettingsViewModel;
         private Features.Summary.SummaryWindow? _summaryWindow;
         private Features.Summary.WebSummaryWindow? _webSummaryWindow;
+        private bool _webSummaryWanted;   // v1.19.91: the digest window was open when its pane stepped aside
         private Features.AI.AiTestWindow? _aiTestWindow;
 
         // Companion-window memory: the chat rail reopens with the app when it
@@ -1918,27 +1919,15 @@ namespace Avalanche
             RefreshPromptWorkshop();
         }
 
-        // v1.19.90: the body editor never consumes the wheel - the event
-        // rides up to the settings scroll viewer, so the sidebar keeps
-        // scrolling while the caret still finds its line when the reader types.
-        private void AiPromptBodyBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        // v1.19.91: the wheel over the body belongs to the body. The box
+        // scrolls its own text when it has overflow (the class handler does
+        // the work and marks the event handled) and this handler swallows
+        // the rest - the ride never reaches the sidebar scroll viewer, from
+        // the first notch to the last, while everywhere else the sidebar
+        // scrolls exactly as before. Neither hand borrows the other's wheel.
+        private void AiPromptBodyBox_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            if (e.Handled) return;
             e.Handled = true;
-            var ride = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-            {
-                RoutedEvent = UIElement.MouseWheelEvent,
-                Source = sender
-            };
-            System.Windows.Controls.ScrollViewer? sidebar = null;
-            for (System.Windows.DependencyObject? node = AiPromptBodyBox.Parent;
-                 node is not null;
-                 node = System.Windows.Media.VisualTreeHelper.GetParent(node))
-            {
-                if (node is System.Windows.Controls.ScrollViewer viewer) { sidebar = viewer; break; }
-            }
-
-            sidebar?.RaiseEvent(ride);
         }
 
         // ---- AI settings overlay (F1) -------------------------------------
@@ -2635,6 +2624,20 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Visible;
             WebSumBtn.Visibility = Visibility.Visible;   // the browser summary chip rides the pane (v1.19.89)
             WebPane.OnPaneShown();
+            // v1.19.91: the browser leads again - the digest window the last
+            // switch parked steps back on in the place and size it left in.
+            if (_webSummaryWanted && _webSummaryWindow is null)
+            {
+                _webSummaryWanted = false;
+                OpenWebSummaryWindow();
+            }
+            // v1.19.91: the browser leads again - the digest window the last
+            // switch parked steps back on in the place and size it left in.
+            if (_webSummaryWanted && _webSummaryWindow is null)
+            {
+                _webSummaryWanted = false;
+                OpenWebSummaryWindow();
+            }
             EnterWebSidebarMode();
             ApplyBrowserToolbarFace(leads: true);
             App.SetSetting("LastLeadPane", "browser");   // the browser led last (v1.19.86)
@@ -2655,6 +2658,14 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Collapsed;
             WebSumBtn.Visibility = Visibility.Collapsed;   // back to the book - the globe leaves with the pane
             WebPane.OnPaneHidden();
+            // v1.19.91: the browser's own window steps out with the pane - the
+            // reader's wish survives the switch-away close, and the browser's
+            // return raises it again in the place and size it was left in.
+            if (_webSummaryWindow is { } parkedDigest)
+            {
+                _webSummaryWanted = true;
+                parkedDigest.Close();
+            }
             ExitWebSidebarMode();
             ApplyBrowserToolbarFace(leads: false);
             App.SetSetting("LastLeadPane", "book");   // the book's floor again (v1.19.86)

@@ -3798,8 +3798,12 @@ namespace Avalanche.Controls
             try
             {
                 WebView2? view = null;
+                // v1.19.91: the key rides back here in either shape - the cards
+                // are born "wt_..." and the chat hands back the id it stored,
+                // so both forms must land on the same tab.
+                string wantedTab = Features.AI.WebChat.SessionKey(tabId);
                 foreach (WebTabCardVm t in Tabs)
-                    if (t.TabId == tabId) { view = t.View; break; }
+                    if (t.TabId == tabId || t.TabId == wantedTab) { view = t.View; break; }
                 CoreWebView2? core = view?.CoreWebView2;
                 if (core is null) return null;
 

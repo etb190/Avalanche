@@ -3902,33 +3902,37 @@
                                 <TextBlock Text="{DynamicResource Str_AiPromptsTitleLbl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox x:Name="AiPromptTitleBox" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiPromptsBodyLbl}" Style="{StaticResource AiSettingsLabel}"/>
-                                <!-- v1.19.90: the editor grows to the workshop's
-                                     full width of attention and never eats the
-                                     wheel - the sidebar's scroll owns the ride. -->
+                                <!-- v1.19.91: the editor grows to the workshop's
+                                     full width of attention and keeps its own
+                                     scrollbar back - the wheel over the box
+                                     scrolls the box and never the sidebar, and
+                                     the sidebar's wheel never moves the box. -->
                                 <TextBox x:Name="AiPromptBodyBox" Style="{StaticResource AiSettingsBox}" AcceptsReturn="True"
-                                         TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Disabled"
+                                         TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Auto"
                                          VerticalContentAlignment="Top"
-                                         PreviewMouseWheel="AiPromptBodyBox_PreviewMouseWheel"/>
-                                <!-- v1.19.90: the workshop's actions live in their
-                                     own strip - New starts a fresh row, Save lands
-                                     what the editors hold, Delete removes the picked
-                                     one - real buttons in a real container. -->
-                                <Border Background="{DynamicResource PaneBrush}"
-                                        BorderBrush="{DynamicResource CardBorderBrush}"
-                                        BorderThickness="1" CornerRadius="4"
-                                        Padding="8,6" Margin="0,8,0,0"
-                                        HorizontalAlignment="Left">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Content="{DynamicResource Str_AiPromptsNew}" x:Name="AiPromptNewBtn"
-                                                Click="AiPromptNewBtn_Click" Style="{StaticResource AiSettingsActionButton}"
-                                                Margin="0,0,6,0"/>
-                                        <Button Content="{DynamicResource Str_AiPromptsSave}" x:Name="AiPromptSaveBtn"
-                                                Click="AiPromptSaveBtn_Click" Style="{StaticResource AiSettingsActionButton}"
-                                                Margin="0,0,6,0"/>
-                                        <Button Content="{DynamicResource Str_AiPromptsDelete}" x:Name="AiPromptDeleteBtn"
-                                                Click="AiPromptDeleteBtn_Click" Style="{StaticResource AiSettingsActionButton}"/>
-                                    </StackPanel>
-                                </Border>
+                                         MouseWheel="AiPromptBodyBox_MouseWheel"/>
+                                <!-- v1.19.91: the workshop's actions fill the
+                                     row the editors speak from - New, Save and
+                                     Delete each take a third of the prompt
+                                     container's width, no wrapper face. -->
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="6"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Content="{DynamicResource Str_AiPromptsNew}" x:Name="AiPromptNewBtn"
+                                            Click="AiPromptNewBtn_Click" Style="{StaticResource AiSettingsActionButton}"
+                                            HorizontalAlignment="Stretch" MinWidth="0"/>
+                                    <Button Grid.Column="2" Content="{DynamicResource Str_AiPromptsSave}" x:Name="AiPromptSaveBtn"
+                                            Click="AiPromptSaveBtn_Click" Style="{StaticResource AiSettingsActionButton}"
+                                            HorizontalAlignment="Stretch" MinWidth="0"/>
+                                    <Button Grid.Column="4" Content="{DynamicResource Str_AiPromptsDelete}" x:Name="AiPromptDeleteBtn"
+                                            Click="AiPromptDeleteBtn_Click" Style="{StaticResource AiSettingsActionButton}"
+                                            HorizontalAlignment="Stretch" MinWidth="0"/>
+                                </Grid>
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
                                     <Button Content="{DynamicResource Str_AiSettingsTestConnection}"
                                             Click="AiTestConnectionBtn_Click" Margin="0,0,8,0"

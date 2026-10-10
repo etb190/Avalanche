@@ -18,6 +18,7 @@
 namespace Avalanche.Features.Summary
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
     using System.Threading;
     using System.Threading.Tasks;
@@ -29,12 +30,26 @@ namespace Avalanche.Features.Summary
     using System.Windows.Threading;
     using Avalanche.Controls;
     using Avalanche.Features.AI;
+    using Avalanche.Services;
 
     public partial class WebSummaryWindow : Window
     {
-        // The window's fixed vocabularies: no word ceiling, no language, no genre
-        // table - the web digest speaks the nonfiction classic at 1,000 words and
-        // answers in the page's own tongue.
+        // The window's vocabularies (v1.19.91): the word ceilings and the
+        // output languages the book navigator speaks, now here too - each
+        // dial remembers its pick across sessions, and the digest answers
+        // in the chosen tongue.
+        private static readonly int[] WordChoices = { 500, 750, 1000, 1500, 2000, 3000, 4500 };
+        private static readonly string[] LanguageChoices = { "English", "French", "Spanish", "Italian", "Arabic" };
+
+        private static readonly Dictionary<string, string> LangKeySuffix = new()
+        {
+            ["English"] = "En",
+            ["French"] = "Fr",
+            ["Spanish"] = "Es",
+            ["Italian"] = "It",
+            ["Arabic"] = "Ar"
+        };
+
         private const int TargetWords = 1000;
         private const string Genre = "nonfiction_classic";
 
@@ -52,6 +67,9 @@ namespace Avalanche.Features.Summary
         private string _fullText = string.Empty;
         private string _runModel = string.Empty;
         private double _digestFont = 13;
+        private int _targetWords = TargetWords;
+        private string _language = "English";
+        private bool _wiring;           // the constructor's restore must not write the dials' own settings
 
         // The typewriter: the stream pump parks deltas in _incoming; the 20ms
         // timer on the UI thread drains it into _fullText and paints the shown
@@ -148,10 +166,105 @@ namespace Avalanche.Features.Summary
             if (PromptCombo.Items.Count > 0) PromptCombo.SelectedIndex = 0;
             PromptStore.Changed += RebuildPromptItems;
 
+            // v1.19.91: the word ceiling and the output language - the book
+            // navigator's pair, remembered under the web window's own keys.
+            foreach (int words in WordChoices)
+            {
+                WordsCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = words.ToString("N0", CultureInfo.InvariantCulture),
+                    Tag = words
+                });
+            }
+
+            WordsCombo.SelectionChanged += (_, _) =>
+            {
+                if (WordsCombo.SelectedItem is ComboBoxItem item && item.Tag is int words)
+                {
+                    _targetWords = words;
+                    if (!_wiring)
+                    {
+                        AppDataPaths.SetSetting("websummary.words", words.ToString(CultureInfo.InvariantCulture));
+                    }
+                }
+            };
+
+            foreach (string language in LanguageChoices)
+            {
+                LangCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = _loc("Str_SummaryLang" + LangKeySuffix[language]),
+                    Tag = language
+                });
+            }
+
+            LangCombo.SelectionChanged += (_, _) =>
+            {
+                if (LangCombo.SelectedItem is ComboBoxItem item && item.Tag is string language)
+                {
+                    _language = language;
+                    if (!_wiring)
+                    {
+                        AppDataPaths.SetSetting("websummary.lang", language);
+                    }
+
+                    ApplyReadingDirection();
+                }
+            };
+
             // The typewriter's painting clock - 20ms, proportionally faster when
             // the backlog grows; started by every run, self-stopping when drained.
             _typeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
             _typeTimer.Tick += (_, _) => TypeTimerTick();
+
+            // v1.19.91: the dials' saved picks and the window's saved place
+            // and size - the same memory the book navigator keeps, under the
+            // web window's own keys. The restore runs under the wiring guard
+            // so a window being built never writes the choices it reads.
+            _wiring = true;
+            if (int.TryParse(AppDataPaths.GetSetting("websummary.words"), NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out int savedWords)
+                && Array.IndexOf(WordChoices, savedWords) >= 0)
+            {
+                _targetWords = savedWords;
+            }
+
+            string? savedLang = AppDataPaths.GetSetting("websummary.lang");
+            if (!string.IsNullOrEmpty(savedLang) && Array.IndexOf(LanguageChoices, savedLang) >= 0)
+            {
+                _language = savedLang;
+            }
+
+            SelectCombo(WordsCombo, _targetWords);
+            SelectCombo(LangCombo, _language);
+            _wiring = false;
+            ApplyReadingDirection();
+            RestorePlacement();
+
+            // Placement follows the window live (debounced), the book
+            // navigator's own bargain: a killed app still finds the window
+            // where the reader left it, not where it started.
+            var placementTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+            placementTimer.Tick += (_, _) =>
+            {
+                placementTimer.Stop();
+                if (!_closed)
+                {
+                    PersistPlacement();
+                }
+            };
+            LocationChanged += (_, _) =>
+            {
+                if (_closed) return;
+                placementTimer.Stop();
+                placementTimer.Start();
+            };
+            SizeChanged += (_, _) =>
+            {
+                if (_closed) return;
+                placementTimer.Stop();
+                placementTimer.Start();
+            };
 
             DocBox.FontSize = _digestFont;
             UpdateEmptyState();
@@ -163,6 +276,7 @@ namespace Avalanche.Features.Summary
                 _generation++;      // a stale continuation can't repaint either
                 try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
                 StopElapsedClock();
+                PersistPlacement();     // the place and size stay with the window (v1.19.91)
             };
         }
 
@@ -274,7 +388,7 @@ namespace Avalanche.Features.Summary
                 try
                 {
                     await foreach (SummaryUpdate update in PageSummarizer.GenerateWebDigestAsync(
-                                       page.Text, TargetWords, promptId, runConfig, _loc, token))
+                                       page.Text, _targetWords, _language, promptId, runConfig, _loc, token))
                     {
                         switch (update.Kind)
                         {
@@ -729,6 +843,94 @@ namespace Avalanche.Features.Summary
                 ? m
                 : new Thickness(0);
             close.Margin = new Thickness(chromeMargin.Left, chromeMargin.Top, Math.Max(chromeMargin.Right, 5), chromeMargin.Bottom);
+        }
+
+        // ------------------------------------------------------------------
+        // The dials' memory and the window's place (v1.19.91)
+        // ------------------------------------------------------------------
+
+        // Arabic turns the digest area right-to-left - the book navigator's
+        // own bargain, kept here for the web window's card.
+        private void ApplyReadingDirection()
+        {
+            DocBox.FlowDirection = string.Equals(_language, "Arabic", StringComparison.Ordinal)
+                ? FlowDirection.RightToLeft
+                : FlowDirection.LeftToRight;
+        }
+
+        private static void SelectCombo(ComboBox combo, object value)
+        {
+            foreach (ComboBoxItem item in combo.Items)
+            {
+                if (Equals(item.Tag, value))
+                {
+                    combo.SelectedItem = item;
+                    return;
+                }
+            }
+        }
+
+        private void RestorePlacement()
+        {
+            try
+            {
+                if (TryGetSetting("websummary.win.w", out double width) && width >= 320 && width <= 1200)
+                {
+                    Width = width;
+                }
+
+                if (TryGetSetting("websummary.win.h", out double height) && height >= 360 && height <= 1600)
+                {
+                    Height = height;
+                }
+
+                if (TryGetSetting("websummary.win.left", out double left) && TryGetSetting("websummary.win.top", out double top))
+                {
+                    // DialogChrome.Configure leaves CenterOwner in place, and WPF
+                    // applies it at Show() regardless of an explicit Left/Top - the
+                    // manual startup location hands the place back to the reader.
+                    WindowStartupLocation = WindowStartupLocation.Manual;
+                    double vsLeft = SystemParameters.VirtualScreenLeft;
+                    double vsTop = SystemParameters.VirtualScreenTop;
+                    double vsRight = vsLeft + SystemParameters.VirtualScreenWidth;
+                    double vsBottom = vsTop + SystemParameters.VirtualScreenHeight;
+                    Left = Math.Clamp(left, vsLeft - 100, Math.Max(vsLeft - 100, vsRight - 200));
+                    Top = Math.Clamp(top, vsTop - 20, Math.Max(vsTop - 20, vsBottom - 120));
+                }
+            }
+            catch
+            {
+                // placement is best-effort
+            }
+        }
+
+        private void PersistPlacement()
+        {
+            try
+            {
+                AppDataPaths.SetSetting("websummary.win.w", Width.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting("websummary.win.h", Height.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting("websummary.win.left", Left.ToString(CultureInfo.InvariantCulture));
+                AppDataPaths.SetSetting("websummary.win.top", Top.ToString(CultureInfo.InvariantCulture));
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        private static bool TryGetSetting(string name, out double value)
+        {
+            string? raw = AppDataPaths.GetSetting(name);
+            if (raw != null
+                && double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed))
+            {
+                value = parsed;
+                return true;
+            }
+
+            value = 0;
+            return false;
         }
 
         private void AdjustDigestFont(int direction)
