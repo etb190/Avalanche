@@ -920,6 +920,8 @@ namespace Avalanche
         private Features.Summary.SummaryWindow? _summaryWindow;
         private Features.Summary.WebSummaryWindow? _webSummaryWindow;
         private bool _webSummaryWanted;   // v1.19.91: the digest window was open when its pane stepped aside
+        private bool _paneToEditor;       // v1.19.92: the editor is taking the floor - the aside-hide must not raise the navigator
+        private bool _paneToBrowser;      // v1.19.92: the browser is taking the floor - the aside-hide must not raise the navigator
         private Features.AI.AiTestWindow? _aiTestWindow;
 
         // Companion-window memory: the chat rail reopens with the app when it
@@ -2599,22 +2601,30 @@ namespace Avalanche
         private void ShowWebPane()
         {
             // v1.19.64: one interface leads at a time - the editor steps aside
-            // before the browser takes the floor.
-            if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
+            // before the browser takes the floor. v1.19.92: the aside-hide
+            // learns the destination - the editor's welcome-back must not
+            // raise the navigator the browser is about to park.
+            _paneToBrowser = true;
+            try
+            {
+                if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
+            }
+            finally { _paneToBrowser = false; }
             // v1.19.32: the browser takes the floor - the navigator and the
-            // recap companion step out with it. The navigator's close wears
-            // the switch-away face (the book keeps its wish, the reader's
-            // hand never touched it), and a showing recap parks one flag that
-            // HideWebPane spends to bring it back.
+            // recap companion step out with it. v1.19.92: the step-out HIDES
+            // the navigator now - the digest, its scroll and its place stay
+            // alive behind the pane, and the book's welcome-back raises the
+            // same window instead of rebuilding an empty one. A visible park
+            // reads the scroll first; an already-parked window keeps it.
             if (_summaryWindow is { } navigator && _currentFile is not null
                 && navigator.DocumentPathEquals(_currentFile))
             {
-                // v1.19.34: the digest's scroll is read before the close takes
-                // it away - the welcome-back replays it.
-                _summaryParkedScrollOffset = navigator.DigestScrollOffset;
-                _summarySwitchAway = navigator;     // a switch, never the reader's hand
-                navigator.Close();
-                _summarySwitchAway = null;
+                if (navigator.IsVisible)
+                {
+                    _summaryParkedScrollOffset = navigator.DigestScrollOffset;
+                }
+
+                navigator.ParkForPaneSwitch();
             }
             if (Features.Summary.RecapController.HasOpenWindow)
             {
@@ -2624,19 +2634,22 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Visible;
             WebSumBtn.Visibility = Visibility.Visible;   // the browser summary chip rides the pane (v1.19.89)
             WebPane.OnPaneShown();
-            // v1.19.91: the browser leads again - the digest window the last
-            // switch parked steps back on in the place and size it left in.
-            if (_webSummaryWanted && _webSummaryWindow is null)
+            // v1.19.92: the browser leads again - the digest window the last
+            // switch parked steps back on. The switch HIDES the window now,
+            // so the parked one is the same instance: the card and its scroll
+            // come back exactly as they were left. Only a window the reader
+            // truly closed is rebuilt fresh.
+            if (_webSummaryWanted)
             {
                 _webSummaryWanted = false;
-                OpenWebSummaryWindow();
-            }
-            // v1.19.91: the browser leads again - the digest window the last
-            // switch parked steps back on in the place and size it left in.
-            if (_webSummaryWanted && _webSummaryWindow is null)
-            {
-                _webSummaryWanted = false;
-                OpenWebSummaryWindow();
+                if (_webSummaryWindow is { } parkedDigest)
+                {
+                    parkedDigest.ReturnFromPark();
+                }
+                else
+                {
+                    OpenWebSummaryWindow();
+                }
             }
             EnterWebSidebarMode();
             ApplyBrowserToolbarFace(leads: true);
@@ -2658,13 +2671,14 @@ namespace Avalanche
             WebPaneHost.Visibility = Visibility.Collapsed;
             WebSumBtn.Visibility = Visibility.Collapsed;   // back to the book - the globe leaves with the pane
             WebPane.OnPaneHidden();
-            // v1.19.91: the browser's own window steps out with the pane - the
-            // reader's wish survives the switch-away close, and the browser's
-            // return raises it again in the place and size it was left in.
+            // v1.19.92: the browser's own window steps out with the pane - the
+            // switch HIDES it now: the generated card, its scroll and the
+            // window's place all stay alive, and the browser's return raises
+            // the same window. The wish flag still tells ShowWebPane to raise.
             if (_webSummaryWindow is { } parkedDigest)
             {
                 _webSummaryWanted = true;
-                parkedDigest.Close();
+                parkedDigest.ParkForPaneSwitch();
             }
             ExitWebSidebarMode();
             ApplyBrowserToolbarFace(leads: false);
@@ -2705,7 +2719,22 @@ namespace Avalanche
                     ToggleRecapCompanion();
                 }
             }
-            if (_summaryWindow is null && _doc is not null
+            if (_summaryWindow is { } parkedNavigator && !parkedNavigator.IsVisible)
+            {
+                // v1.19.92: the navigator a switch parked comes back as the
+                // SAME window - the digest, its scroll and its place are
+                // untouched. The editor-bound switch leaves it parked: the
+                // editor's own welcome-back raises it when the editor steps
+                // aside.
+                if (!_paneToEditor)
+                {
+                    parkedNavigator.ReturnFromPark();
+                    // v1.19.34: the navigator returns where the reader left it.
+                    parkedNavigator.RestoreDigestScroll(_summaryParkedScrollOffset);
+                    _summaryParkedScrollOffset = 0.0;
+                }
+            }
+            else if (_summaryWindow is null && _doc is not null
                 && !string.IsNullOrEmpty(_currentFile)
                 && _summaryOpenByDoc.TryGetValue(_currentFile, out bool browserWanted) && browserWanted)
             {
@@ -2716,8 +2745,8 @@ namespace Avalanche
                 {
                     returned.RestoreDigestScroll(_summaryParkedScrollOffset);
                 }
+                _summaryParkedScrollOffset = 0.0;
             }
-            _summaryParkedScrollOffset = 0.0;
         }
 
         // ── The text editor pane (v1.19.64) ─────────────────────────────────────
@@ -2761,21 +2790,34 @@ namespace Avalanche
 
         private void ShowEditorPane()
         {
-            // One interface leads at a time: the browser steps aside first - its
-            // hide may bring the navigator back, so the navigator parking below
-            // runs after it and closes it with the switch-away face preserved.
-            if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
+            // One interface leads at a time: the browser steps aside first.
+            // v1.19.92: the aside-hide learns the destination - the browser's
+            // welcome-back must not raise the navigator the editor is about
+            // to park.
+            _paneToEditor = true;
+            try
+            {
+                if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
+            }
+            finally { _paneToEditor = false; }
             // The editor takes the floor - the navigator and the recap companion
             // step out with it, exactly the bargain the browser struck in
             // v1.19.32, and a showing recap parks the same flag HideEditorPane
             // spends to bring it back.
+            // v1.19.92: the step-out HIDES the navigator now - the digest,
+            // its scroll and its place stay alive behind the pane, and the
+            // editor's welcome-back raises the same window instead of
+            // rebuilding an empty one. A visible park reads the scroll first;
+            // an already-parked window keeps it.
             if (_summaryWindow is { } navigator && _currentFile is not null
                 && navigator.DocumentPathEquals(_currentFile))
             {
-                _summaryParkedScrollOffset = navigator.DigestScrollOffset;
-                _summarySwitchAway = navigator;     // a switch, never the reader's hand
-                navigator.Close();
-                _summarySwitchAway = null;
+                if (navigator.IsVisible)
+                {
+                    _summaryParkedScrollOffset = navigator.DigestScrollOffset;
+                }
+
+                navigator.ParkForPaneSwitch();
             }
             if (Features.Summary.RecapController.HasOpenWindow)
             {
@@ -2812,7 +2854,20 @@ namespace Avalanche
                     ToggleRecapCompanion();
                 }
             }
-            if (_summaryWindow is null && _doc is not null
+            if (_summaryWindow is { } parkedNavigator && !parkedNavigator.IsVisible)
+            {
+                // v1.19.92: the navigator a switch parked comes back as the
+                // SAME window - the digest, its scroll and its place are
+                // untouched. The browser-bound switch leaves it parked:
+                // ShowWebPane parks it again right behind this call.
+                if (!_paneToBrowser)
+                {
+                    parkedNavigator.ReturnFromPark();
+                    parkedNavigator.RestoreDigestScroll(_summaryParkedScrollOffset);
+                    _summaryParkedScrollOffset = 0.0;
+                }
+            }
+            else if (_summaryWindow is null && _doc is not null
                 && !string.IsNullOrEmpty(_currentFile)
                 && _summaryOpenByDoc.TryGetValue(_currentFile, out bool editorWanted) && editorWanted)
             {
@@ -2821,8 +2876,8 @@ namespace Avalanche
                 {
                     returned.RestoreDigestScroll(_summaryParkedScrollOffset);
                 }
+                _summaryParkedScrollOffset = 0.0;
             }
-            _summaryParkedScrollOffset = 0.0;
         }
 
         // ── The sidebar's editor-page rail ──────────────────────────────────────

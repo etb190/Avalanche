@@ -266,7 +266,18 @@ namespace Avalanche.Features.Summary
                 placementTimer.Start();
             };
 
+            // v1.19.92: the reader's place in the card is remembered live - a
+            // debounced fraction of the scroll, saved beside the card, so a
+            // killed app reopens the digest where the reading left off.
+            DocBox.AddHandler(System.Windows.Controls.ScrollViewer.ScrollChangedEvent,
+                new System.Windows.Controls.ScrollChangedEventHandler(DigestScrollChanged));
+
             DocBox.FontSize = _digestFont;
+            // v1.19.92: the last generated card comes back with the window -
+            // across the pane's switches, the window's own close and the
+            // app's restarts - down to the reader's place in the scroll.
+            RestoreDigestMemory();
+
             UpdateEmptyState();
 
             Closed += (_, _) =>
@@ -277,6 +288,7 @@ namespace Avalanche.Features.Summary
                 try { _cts?.Cancel(); } catch (ObjectDisposedException) { }
                 StopElapsedClock();
                 PersistPlacement();     // the place and size stay with the window (v1.19.91)
+                PersistDigestMemory();  // the card and its place stay with the app (v1.19.92)
             };
         }
 
@@ -554,6 +566,9 @@ namespace Avalanche.Features.Summary
 
             _shownLength = _fullText.Length;
             DocBox.SetValue(AiMarkdown.TextProperty, _fullText);
+            // v1.19.92: a stopped run's arrival is remembered too.
+            _clockFresh = true;
+            PersistDigestMemory();
         }
 
         // The "done" verdict, run on the UI thread: the final text replaces the
@@ -600,6 +615,9 @@ namespace Avalanche.Features.Summary
                 + DurationSuffix(DateTime.UtcNow - _runStartedUtc);
             _cts?.Dispose();
             _cts = null;
+            // v1.19.92: the finished card is remembered - restart-proof.
+            _clockFresh = true;
+            PersistDigestMemory();
         }
 
         // Reset: stops any live run, clears the card and returns the window to
@@ -624,6 +642,9 @@ namespace Avalanche.Features.Summary
             SetBusy(false);
             StopElapsedClock();
             UpdateEmptyState();
+            // v1.19.92: the reset was the reader's hand - the memory goes too.
+            _clockFresh = false;
+            PersistDigestMemory();
         }
 
         // ------------------------------------------------------------------
@@ -931,6 +952,142 @@ namespace Avalanche.Features.Summary
 
             value = 0;
             return false;
+        }
+
+        // ------------------------------------------------------------------
+        // The digest's own memory (v1.19.92): the last generated card and the
+        // reader's place in it survive the window's closes, the pane's
+        // switches and the app's restarts - saved beside the dials' picks and
+        // restored on every open until a new run or a reset replaces them.
+        // ------------------------------------------------------------------
+
+        private DispatcherTimer? _scrollSaveTimer;   // the debounced scroll writer
+        private bool _clockFresh;   // a run finished (or stopped) this session - the seconds are real
+
+        // The pane switches park the digest by HIDING it: the generated card,
+        // its scroll and the window's place all stay alive behind the pane,
+        // and the welcome-back raises the same window.
+        public void ParkForPaneSwitch()
+        {
+            if (!IsVisible) return;
+            PersistPlacement();
+            PersistDigestMemory();
+            Hide();
+        }
+
+        public void ReturnFromPark()
+        {
+            if (IsVisible) return;
+            Show();
+        }
+
+        private void DigestScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
+        {
+            if (_closed || _fullText.Length == 0)
+            {
+                return;
+            }
+
+            if (_scrollSaveTimer is null)
+            {
+                _scrollSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+                _scrollSaveTimer.Tick += (_, _) =>
+                {
+                    _scrollSaveTimer.Stop();
+                    PersistDigestMemory(includeClock: false);
+                };
+            }
+
+            _scrollSaveTimer.Stop();
+            _scrollSaveTimer.Start();
+        }
+
+        private void PersistDigestMemory(bool includeClock = true)
+        {
+            try
+            {
+                AppDataPaths.SetSetting("websummary.last.text", _fullText);
+                AppDataPaths.SetSetting(
+                    "websummary.last.model",
+                    _fullText.Length > 0 ? _runModel : string.Empty);
+                AppDataPaths.SetSetting(
+                    "websummary.last.scroll",
+                    _fullText.Length > 0 && DocBox.ExtentHeight - DocBox.ViewportHeight > 0
+                        ? (DocBox.VerticalOffset / (DocBox.ExtentHeight - DocBox.ViewportHeight))
+                            .ToString(CultureInfo.InvariantCulture)
+                        : string.Empty);
+                if (includeClock && _clockFresh)
+                {
+                    AppDataPaths.SetSetting(
+                        "websummary.last.secs",
+                        Math.Max(0, (DateTime.UtcNow - _runStartedUtc).TotalSeconds)
+                            .ToString("0", CultureInfo.InvariantCulture));
+                }
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+
+        private void RestoreDigestMemory()
+        {
+            try
+            {
+                string text = AppDataPaths.GetSetting("websummary.last.text") ?? string.Empty;
+                if (text.Length == 0)
+                {
+                    return;
+                }
+
+                _fullText = text;
+                _shownLength = text.Length;
+                DocBox.SetValue(AiMarkdown.TextProperty, text);
+                StatusText.Text = string.Format(
+                    _loc("Str_SummaryCounts"), PageSummarizer.CountWords(text), text.Length);
+                string savedModel = AppDataPaths.GetSetting("websummary.last.model") ?? string.Empty;
+                if (savedModel.Length > 0)
+                {
+                    _runModel = savedModel;
+                    SetModelLabel(savedModel);
+                }
+
+                if (double.TryParse(
+                        AppDataPaths.GetSetting("websummary.last.secs"), NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double secs) && secs > 0)
+                {
+                    StatusText.Text += DurationSuffix(TimeSpan.FromSeconds(secs));
+                }
+
+                if (double.TryParse(
+                        AppDataPaths.GetSetting("websummary.last.scroll"), NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double ratio) && ratio > 0)
+                {
+                    double savedRatio = Math.Min(1.0, ratio);
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                        () =>
+                        {
+                            try
+                            {
+                                DocBox.UpdateLayout();
+                                if (DocBox.ExtentHeight - DocBox.ViewportHeight > 0)
+                                {
+                                    DocBox.ScrollToVerticalOffset(savedRatio * (DocBox.ExtentHeight - DocBox.ViewportHeight));
+                                }
+                            }
+                            catch
+                            {
+                                // a scroll that cannot climb is nobody's emergency
+                            }
+                        });
+                }
+            }
+            catch
+            {
+                // best-effort
+            }
+
+            UpdateEmptyState();
         }
 
         private void AdjustDigestFont(int direction)

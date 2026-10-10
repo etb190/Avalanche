@@ -133,6 +133,58 @@ namespace Avalanche.Features.Summary
         // welcomes it back.
         public double DigestScrollOffset => DocBox.VerticalOffset;
 
+        // v1.19.92: the pane switches park the navigator by HIDING it - the
+        // digest, its scroll and the window's place all stay alive behind the
+        // pane; the welcome-back raises the same window, not a rebuilt one.
+        public void ParkForPaneSwitch()
+        {
+            if (!IsVisible) return;
+            Hide();
+        }
+
+        public void ReturnFromPark()
+        {
+            if (IsVisible) return;
+            Show();
+        }
+
+        private DispatcherTimer? _scrollSaveTimer;   // v1.19.92: the debounced scroll writer
+
+        // v1.19.92: the reader's place in the digest is remembered live - a
+        // debounced fraction of the scroll, saved beside the digest, so even
+        // a killed app reopens the card where the reading left off.
+        private void DigestScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
+        {
+            if (_closed || _fullText.Length == 0)
+            {
+                return;
+            }
+
+            if (_scrollSaveTimer is null)
+            {
+                _scrollSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+                _scrollSaveTimer.Tick += (_, _) =>
+                {
+                    _scrollSaveTimer.Stop();
+                    try
+                    {
+                        AppDataPaths.SetSetting(
+                            "summary.digest." + _documentId + ".scroll",
+                            DocBox.ExtentHeight - DocBox.ViewportHeight > 0
+                                ? (DocBox.VerticalOffset / (DocBox.ExtentHeight - DocBox.ViewportHeight)).ToString(CultureInfo.InvariantCulture)
+                                : string.Empty);
+                    }
+                    catch
+                    {
+                        // best-effort
+                    }
+                };
+            }
+
+            _scrollSaveTimer.Stop();
+            _scrollSaveTimer.Start();
+        }
+
         public void RestoreDigestScroll(double offset)
         {
             if (offset <= 0)
@@ -491,6 +543,11 @@ namespace Avalanche.Features.Summary
             DocBox.FontSize = _digestFont;
             WireActionPopup();                  // the floating action popup over the digest
             RestoreDigest();                    // the last digest of this book, if any
+            // v1.19.92: the scroll fraction rides the digest's memory - the
+            // inner viewer's ScrollChanged bubbles to the box, the writer
+            // debounces it.
+            DocBox.AddHandler(System.Windows.Controls.ScrollViewer.ScrollChangedEvent,
+                new System.Windows.Controls.ScrollChangedEventHandler(DigestScrollChanged));
             AdoptOrphanRun();                   // v1.19.35: adopt a run left generating when the window last closed
 
             // v1.19.30: there is no thirty-second clock anymore. When a digest
@@ -2471,6 +2528,30 @@ namespace Avalanche.Features.Summary
                     ?? string.Empty;
                 SetModelLabel(savedModel.Length > 0 ? savedModel : _configProvider().Model);
                 _digestRestored = true;   // the constructor arms the buffer once the clock exists
+                // v1.19.92: the reader's place comes back with the card - the
+                // saved fraction of the scroll climbs back once layout exists.
+                if (double.TryParse(
+                        AppDataPaths.GetSetting("summary.digest." + _documentId + ".scroll"),
+                        NumberStyles.Float, CultureInfo.InvariantCulture, out double savedRatio)
+                    && savedRatio > 0)
+                {
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                        () =>
+                        {
+                            try
+                            {
+                                DocBox.UpdateLayout();
+                                if (DocBox.ExtentHeight - DocBox.ViewportHeight > 0)
+                                {
+                                    DocBox.ScrollToVerticalOffset(savedRatio * (DocBox.ExtentHeight - DocBox.ViewportHeight));
+                                }
+                            }
+                            catch
+                            {
+                                // a scroll that cannot climb is nobody's emergency
+                            }
+                        });
+                }
             }
             catch
             {

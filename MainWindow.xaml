@@ -1483,7 +1483,7 @@
                 <!-- File operations -->
                 <StackPanel x:Name="LeftBar" Orientation="Horizontal" HorizontalAlignment="Left">
                     <!-- File: New / Open / Close / Save / Print -->
-                    <Button x:Name="NewFileBtn" Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
+                    <Button x:Name="NewFileBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="{DynamicResource Str_TT_NewBlank}"/>
                     <!-- The editor's file operations (v1.19.81): new tab, open
                          and save live in THE RIBBON - beside the New button,
                          before the Browser button - and nowhere else. The
@@ -1546,7 +1546,7 @@
                         <!-- The PDF editor switch while the browser leads (v1.19.68):
                              the browser's toolbar keeps exactly three buttons - New,
                              Text Editor, PDF Editor - each saying the pane it opens. -->
-                        <Button x:Name="PdfEditorBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="PdfEditorBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}" Visibility="Collapsed"/>
+                        <Button x:Name="PdfEditorBtn" Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="PdfEditorBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}" Visibility="Collapsed"/>
                         <!-- The browser summary (v1.19.90): the PDF ribbon's own
                              summary button, sitting where the browser's face lives -
                              same glyph, same style, the caption engine dressing it

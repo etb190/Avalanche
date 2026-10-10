@@ -270,6 +270,14 @@ namespace Avalanche.Features.AI
 
         /// <summary>Gate for the New-chat button: a fresh conversation cannot
         /// be swept out from under a reply that is still streaming.</summary>
+        // v1.19.92: the page, read once. The sidechat's first question on a
+        // session extracts the tab's article text; every later question on
+        // the SAME session reuses that snapshot instead of re-reading the
+        // live page. A new side chat drops the memory - the next question
+        // reads fresh, once, and the memory starts over.
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, WebPageSnapshot> WebPageMemory
+            = new();
+
         public bool CanStartNewChat => !IsProcessing;
 
         public bool CanSend => !IsProcessing && !IsIndexing && !string.IsNullOrWhiteSpace(CurrentInput);
@@ -1313,19 +1321,32 @@ namespace Avalanche.Features.AI
                     string tabId = key.StartsWith(WebChat.SessionPrefix, StringComparison.Ordinal)
                         ? key[WebChat.SessionPrefix.Length..]
                         : key;
-                    var reader = WebPageReader;
-                    WebPageSnapshot? page = null;
-                    if (reader is not null)
+                    // v1.19.92: the page rides the session's memory - read once
+                    // on the session's first question, reused for every question
+                    // after, until a new side chat drops the memory. An empty
+                    // placeholder stands for "not read yet": a failed read
+                    // leaves it in place, so the next question tries again.
+                    WebPageSnapshot? page = WebPageMemory.GetOrAdd(key, _ => new WebPageSnapshot());
+                    if (string.IsNullOrWhiteSpace(page.Text))
                     {
-                        try { page = await reader(tabId, ct); }
-                        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-                        catch { page = null; }
+                        var reader = WebPageReader;
+                        if (reader is not null)
+                        {
+                            try { page = await reader(tabId, ct); }
+                            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                            catch { page = null; }
+                        }
+
+                        if (page is not null && !string.IsNullOrWhiteSpace(page.Text))
+                        {
+                            WebPageMemory[key] = page;
+                        }
                     }
 
                     // A tab with no readable page (blank tab, browser error
                     // page, extraction timeout) answers honestly instead of
                     // pretending the model read something.
-                    if (page is null)
+                    if (page is null || string.IsNullOrWhiteSpace(page.Text))
                     {
                         assistantMsg.Content = _loc("Str_AiWebNoPage");
                         assistantMsg.IsLoading = false;
@@ -1795,6 +1816,10 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void StartNewChat()
         {
+            // v1.19.92: a new side chat forgets the page it had read - the
+            // next question extracts the live page fresh, once, and the
+            // memory starts over for this conversation.
+            WebPageMemory.Clear();
             PendingMessage? parked = null;
             lock (_processingLock)
             {

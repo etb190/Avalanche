@@ -724,7 +724,7 @@ namespace Avalanche
         // whose glyph isn't listed keep their icon with no caption.
         private static readonly Dictionary<string, string> _toolbarLabelKeys = new()
         {
-            [""] = "Str_Lbl_New",
+            [""] = "Str_Lbl_New",
             [""] = "Str_Lbl_Open",
             [""] = "Str_Lbl_Close",
             [""] = "Str_Lbl_Save",
@@ -782,7 +782,7 @@ namespace Avalanche
                     else if (ReferenceEquals(btn, ToolFormFieldBtn))
                         _toolbarButtons.Add((btn, FormFieldGlyph, "Str_Lbl_FormField"));
                     else if (ReferenceEquals(btn, PdfEditorBtn))
-                        _toolbarButtons.Add((btn, "\uE8A5", "Str_Lbl_PdfEditor"));
+                        _toolbarButtons.Add((btn, "\uE7C3", "Str_Lbl_PdfEditor"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
                     {
                         // the pane toggle reads its destination while the editor leads
@@ -1293,9 +1293,9 @@ namespace Avalanche
             // the pane the reader would reach by pressing it.
             for (int i = 0; i < _toolbarButtons.Count; i++)
                 if (ReferenceEquals(_toolbarButtons[i].btn, TextEditorBtn))
-                    _toolbarButtons[i] = (TextEditorBtn, "\uE70B", _editorToggleLabelKey);
+                    _toolbarButtons[i] = (TextEditorBtn, "\uE7C3", _editorToggleLabelKey);
             TextEditorBtn.ToolTip = Loc(leads ? "Str_TT_EditorPdf" : "Str_TT_TextEditor");
-            SetToolbarButton(TextEditorBtn, "\uE70B", _editorToggleLabelKey,
+            SetToolbarButton(TextEditorBtn, "\uE7C3", _editorToggleLabelKey,
                 withLabel: _toolbarLabelMode is ToolbarLabelMode.Beside or ToolbarLabelMode.Under);
             InvalidateToolbarReflow();
             QueueReflowToolbar();
