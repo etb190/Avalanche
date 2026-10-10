@@ -462,6 +462,8 @@
                     </Button>
                     <Button x:Name="ImageBtn" Content="&#xEB9F;" Style="{StaticResource EditorBtn}"
                             Click="ImageBtn_Click" ToolTip="{DynamicResource Str_TT_EditorImage}"/>
+                    <Button x:Name="TableBtn" Content="&#xE8EC;" Style="{StaticResource EditorBtn}"
+                            Click="TableBtn_Click" ToolTip="{DynamicResource Str_TT_EditorTable}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -741,6 +743,41 @@
                     </ListBoxItem>
                     <ListBoxItem Style="{StaticResource EditorPopupItem}" Tag="subnumber">
                         <TextBlock Text="&#x41;." FontSize="14" FontWeight="Bold" FontFamily="Georgia"/>
+                    </ListBoxItem>
+                </ListBox>
+            </Border>
+        </Popup>
+        <!-- The table flyout (v1.19.93): insert plus the row and column ops.
+             The ops wake only while the caret stands inside a table (the
+             sheet's state message carries tbl) - outside one they sit down. -->
+        <Popup x:Name="TablePopup" PlacementTarget="{Binding ElementName=TableBtn}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Style="{StaticResource EditorPopupBorder}" Width="230">
+                <ListBox x:Name="TableOps" BorderThickness="0" Background="Transparent"
+                         SelectionChanged="TableOps_SelectionChanged">
+                    <ListBoxItem Style="{StaticResource EditorPopupItem}" Tag="insertTable">
+                        <TextBlock Text="{DynamicResource Str_TT_EditorTable}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemRowAbove" Style="{StaticResource EditorPopupItem}" Tag="tableRowAbove">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableRowAbove}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemRowBelow" Style="{StaticResource EditorPopupItem}" Tag="tableRowBelow">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableRowBelow}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemColLeft" Style="{StaticResource EditorPopupItem}" Tag="tableColLeft">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableColLeft}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemColRight" Style="{StaticResource EditorPopupItem}" Tag="tableColRight">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableColRight}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemRowDelete" Style="{StaticResource EditorPopupItem}" Tag="tableRowDelete">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableDeleteRow}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemColDelete" Style="{StaticResource EditorPopupItem}" Tag="tableColDelete">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableDeleteCol}"/>
+                    </ListBoxItem>
+                    <ListBoxItem x:Name="TableItemDelete" Style="{StaticResource EditorPopupItem}" Tag="tableDelete">
+                        <TextBlock Text="{DynamicResource Str_Editor_TableDelete}"/>
                     </ListBoxItem>
                 </ListBox>
             </Border>

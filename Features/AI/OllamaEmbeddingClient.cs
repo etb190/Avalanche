@@ -178,12 +178,65 @@ namespace Avalanche.Features.AI
         /// it would bounce to the local bridge.</summary>
         private sealed record EmbedTarget(string Url, string Model, string? ApiKey);
 
+        // v1.19.93: the cloud users' embedding default. A cloud chat host that
+        // does not name its own embedding model gets the one model every
+        // OpenAI-compatible embeddings door speaks; the reader's own dial
+        // (EmbeddingModel in settings) always wins when they typed one.
+        public const string CloudEmbeddingModel = "text-embedding-3-small";
+
+        /// <summary>The model the embedding pass actually serves with, for the
+        /// config at hand - the ONE name the index build stamps and the
+        /// retrieval gate compares against, so a target change invalidates the
+        /// old vectors honestly instead of mixing two vector spaces silently.</summary>
+        public static string ResolveModel(AiProviderConfig config)
+        {
+            if (AiSurfaceModels.GetEmbeddingChoice() == AiSurfaceModels.EmbeddingGeminiChoice)
+                return AiSurfaceModels.GeminiEmbeddingModel;
+
+            string root = (config.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
+            if (IsCloudHost(root))
+            {
+                string configured = config.EmbeddingModel ?? string.Empty;
+                return string.IsNullOrWhiteSpace(configured)
+                    || string.Equals(configured, DefaultModel, StringComparison.OrdinalIgnoreCase)
+                    ? CloudEmbeddingModel
+                    : configured;
+            }
+
+            return string.IsNullOrWhiteSpace(config.EmbeddingModel) ? DefaultModel : config.EmbeddingModel;
+        }
+
+        /// <summary>A chat host that is not this machine's: the loopback gates
+        /// of AiEndpoints.IsLocal, and a literal :11434 (Ollama on the LAN
+        /// speaking its native /api/embed) both count as local here.</summary>
+        private static bool IsCloudHost(string root)
+        {
+            if (root.Length == 0) return false;
+            if (AiEndpoints.IsLocal(root)) return false;
+            if (root.EndsWith(":11434", StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
+        }
+
         private static EmbedTarget ResolveTarget(AiProviderConfig config)
         {
             if (AiSurfaceModels.GetEmbeddingChoice() == AiSurfaceModels.EmbeddingGeminiChoice)
             {
                 return new EmbedTarget(AiSurfaceModels.GeminiEmbeddingUrl,
                     AiSurfaceModels.GeminiEmbeddingModel, AiSurfaceModels.GoogleGuestApiKey);
+            }
+
+            // v1.19.93: a CLOUD chat host serves its own embeddings - the
+            // OpenAI-compatible {base}/embeddings door with the host's key
+            // (OpenAI, an OpenAI-compatible bridge, or Google's OpenAI door
+            // when the Gemini guest is the active identity). No local Ollama
+            // is asked, and a host without an embeddings endpoint fails the
+            // one tiny probe and falls back to lexical, exactly as before.
+            string cloudRoot = (config.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
+            if (IsCloudHost(cloudRoot))
+            {
+                string cloudModel = ResolveModel(config);
+                return new EmbedTarget(cloudRoot + "/embeddings", cloudModel,
+                    string.IsNullOrWhiteSpace(config.ApiKey) ? null : config.ApiKey);
             }
 
             var root = ResolveEmbedRoot(config.BaseUrl);

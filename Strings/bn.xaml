@@ -1413,4 +1413,12 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_EditorNewTab">নতুন ট্যাব</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">ফন্ট সাইজ বাড়ান</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">ফন্ট সাইজ কমান</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">একটি টেবিল যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">উপরে সারি যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">নিচে সারি যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">বামে কলাম যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">ডানে কলাম যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">সারি মুছুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">কলাম মুছুন</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">টেবিল মুছুন</sys:String>
 </ResourceDictionary>

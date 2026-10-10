@@ -20,6 +20,20 @@ namespace Avalanche.Features.AI
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Streams a chat completion as SSE deltas: each yield carries the next
+        /// piece of raw assistant content (reasoning traces excluded). The
+        /// buffered contract is unchanged - the full raw text, parsed at the
+        /// end, still decides citations and structure.
+        /// </summary>
+        IAsyncEnumerable<string> GetChatCompletionStreamAsync(
+            string systemPrompt,
+            List<ChatMessage> messages,
+            List<DocumentChunk> contextChunks,
+            string sourceReferences,
+            AiProviderConfig config,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Gets a chat completion with structured output and source references.
         /// </summary>
         Task<AiResponse> GetChatCompletionAsync(

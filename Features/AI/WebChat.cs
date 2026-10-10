@@ -183,10 +183,42 @@ namespace Avalanche.Features.AI
         /// </summary>
         public static string BuildSystemPrompt(WebPageSnapshot page)
         {
-            var segments = SplitPageSegments(page.Text);
+            // The full first-turn prompt: the instruction head, the page
+            // evidence, the citation contract - one string (v1.19.93).
+            var sb = new System.Text.StringBuilder();
+            sb.Append(InstructionHead());
+            sb.AppendLine();
+            sb.Append(BuildContextBlock(page));
+            sb.AppendLine();
+            sb.Append(CitationContract());
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// The page-independent half of the web sidechat's system prompt: the
+        /// store's instruction voice, with NO page text. v1.19.93: the
+        /// follow-up turns' prompt - the page was anchored once on the first
+        /// turn and the rolling history carries the conversation since, so
+        /// re-attaching the whole extraction on every turn (quadratic tokens,
+        /// context limits blown on long pages) is over.
+        /// </summary>
+        public static string InstructionHead()
+        {
             var sb = new System.Text.StringBuilder();
             sb.AppendLine(AiPromptLibrary.WebSidechatHead());
-            sb.AppendLine();
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// The page's own evidence: the metadata head (with the extraction
+        /// notes), then the numbered [SOURCE_n] segments the citation
+        /// resolution hunts quotes through. Anchored once, on the
+        /// conversation's first model call (v1.19.93).
+        /// </summary>
+        public static string BuildContextBlock(WebPageSnapshot page)
+        {
+            var segments = SplitPageSegments(page.Text);
+            var sb = new System.Text.StringBuilder();
             sb.AppendLine("PAGE:");
             sb.Append("TITLE: ").AppendLine(string.IsNullOrEmpty(page.Title) ? "(untitled)" : page.Title);
             if (!string.IsNullOrWhiteSpace(page.Byline))
@@ -208,6 +240,14 @@ namespace Avalanche.Features.AI
                 sb.AppendLine();
             }
 
+            return sb.ToString();
+        }
+
+        /// <summary>The JSON answer contract the provider's tolerant parser
+        /// reads: the same words every turn, page-independent.</summary>
+        public static string CitationContract()
+        {
+            var sb = new System.Text.StringBuilder();
             sb.AppendLine("Return ONLY a JSON object in this exact shape:");
             sb.AppendLine("{\"answer\": \"<your full answer with inline [SOURCE_n] markers>\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text copied from that segment>\", \"reason\": \"<why it supports the answer>\"}]}");
             sb.AppendLine("The 'quote' must be a short exact excerpt (up to ~300 characters) copied verbatim from the cited segment - it is used to find the passage on the live page.");

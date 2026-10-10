@@ -9,15 +9,13 @@
 //    to the model in ONE request - no slicing, no segments, no fusion pass, no
 //    fallback road. If a host refuses a call that size, the run fails loudly;
 //    a half-answer was never what "miss nothing" meant.
-//  * Output contract (v1.12.3): extraction renders compact GitHub-Flavored
-//    Markdown (MarkdownNormalizer): de-hyphenated reflowed paragraphs, the
-//    book's OWN printed section headings as native # / ## / ### lines (still
-//    font-geometry detected, running heads filtered), "- " list items and
-//    compact [p. N] page anchors. The digest copies each printed heading
-//    VERBATIM as a '### ' markdown heading and summarizes under it in dense
-//    flowing prose - no invented headings, no page tags, strict word ceiling.
-//    Legacy [[p. N]] / [[H]] markers stay recognized everywhere the new
-//    surface could meet old text.
+//  * Output contract (v1.19.93): extraction renders compact GitHub-Flavored
+//    Markdown (MarkdownNormalizer): de-hyphenated reflowed paragraphs, native
+//    heading lines, "- " list items and compact [p. N] page anchors. The
+//    digest's system prompt is the store's own body - the deck's voice, with
+//    only {words} and {language} fed on the way out; no hidden C# wrapper
+//    dictates the shape any more. Legacy [[p. N]] / [[H]] markers stay
+//    recognized everywhere the new surface could meet old text.
 //  * Live paint (v1.19.52): the digest streams straight to the card AS the
 //    model writes it - no hidden buffer, no post-hoc reshaping, no retried
 //    second draft. What the model says is what the reader sees, bullets and
@@ -519,27 +517,11 @@ namespace Avalanche.Features.Summary
         // markdown headings.
         private static string WebDigestSystemPrompt(int targetWords, string language, string genre)
         {
-            // v1.19.91: OUTPUT LANGUAGE - the digest is written in the language
-            // the reader picked; passages the page quotes or prints in another
-            // tongue stay as the page printed them.
-            string languageBlock =
-                "OUTPUT LANGUAGE: write every sentence of the summary in " + language + ". The " +
-                "one exception is passages the page itself quotes or prints in another " +
-                "language: copy those VERBATIM, exactly as printed.\n\n";
-            string head =
-                "Summarize the following web page in approximately " + targetWords +
-                " words (do NOT exceed " + targetWords + " words).\n\n" +
-                languageBlock;
-            return head +
-                GenreMandate(genre, targetWords) + "\n\n" +
-                AntiMeta + "\n\n" +
-                "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
-                "commentary about the text or about summarizing.\n\n" +
-                "Format: dense flowing prose paragraphs. Connect the sentences with natural " +
-                "transitional phrasing (however, moreover, in practice, as a result) so each " +
-                "paragraph reads as one continuous argument rather than stacked fragments. " +
-                "No bullet lists, no markdown decorations of any kind, no headings - plain " +
-                "prose paragraphs only. Bullet points in your answer are a total failure.";
+            // v1.19.93: the web digest speaks the store's body the same way the
+            // book digest does - the deck row is the whole system prompt, only
+            // {words} and {language} fed. The C# wrapper that dictated prose-only
+            // formatting and the page-head word count is gone with the book one.
+            return GenreMandate(genre, targetWords, language);
         }
 
         // Page refs like (p. 47) -> the set of pages the summary actually touched.
@@ -725,60 +707,11 @@ namespace Avalanche.Features.Summary
         // Prompts
         // ------------------------------------------------------------------
 
-        // Transplanted verbatim from the user's pdf-summarizer extension
-        // (background.js, shared ANTI_META_LANGUAGE block): bans meta-language,
-        // LaTeX/dollar signs, and invented abbreviations.
-        private static readonly string AntiMeta =
-            """
-            ABSOLUTE BAN ON META-LANGUAGE — these phrases are FORBIDDEN, never write them:
-            - "The text examines...", "The text explores...", "The text discusses...", "The text illustrates...", "The text investigates...", "The text considers...", "The text analyzes...", "The text looks at...", "The text deals with...", "The text covers...", "The text presents...", "The text describes...", "The text outlines...", "The text reviews...", "The text studies...", "The text delves into...", "The text talks about...", "The text addresses...", "The text examines how..."
-            - "The author argues...", "The author shows...", "The author portrays...", "The author suggests...", "The author claims...", "The author explains...", "The author makes the case that...", "The author contends..."
-            - "This passage covers...", "This section deals with...", "This section explores...", "This page discusses...", "These pages describe...", "This chapter examines...", "This range covers..."
-            - "The book examines...", "The book explores...", "The story explores...", "The narrative focuses on...", "The paper argues...", "The study investigates...", "The chapter argues..."
+        // v1.19.93: the transplanted anti-meta law, the format rules and the
+        // BOOK HEADINGS mandate all retired with the C# wrapper that carried
+        // them - the prompt deck's own bodies now say everything the digest
+        // needs, and the workshop is the one place that shapes them.
 
-            If the subject of your sentence is "the text", "the author", "the passage", "this section", "the book", "the story", "the narrative", "the paper", "the study", or "the chapter" — STOP and rewrite that sentence so the subject is the actual person, event, finding, idea, number, or definition.
-
-            THIS SUMMARY IS A SUBSTITUTE FOR READING. The reader is using it INSTEAD of the original. Do NOT describe what the text is about — SAY what the text says. State the actual content (definitions, findings, events, arguments, numbers, names, dates) directly as fact, as if you were the expert teaching it from memory.
-
-            BAD (forbidden — describes the text instead of stating content):
-            "The text examines the critical period hypothesis, specifically regarding how age affects pronunciation, grammaticality intuitions, and the overall rate of learning."
-
-            GOOD (states the content directly):
-            "After puberty, second-language learners almost never achieve native-like pronunciation; their grammaticality intuitions also plateau. Younger learners outperform them on implicit acquisition, but older learners actually show a faster explicit learning rate in the early stages — the critical period narrows the ceiling, not the speed of early gains."
-
-            BAD (forbidden):  "The author discusses the relationship between sleep and memory."
-            GOOD:             "Sleep after learning consolidates memories. REM-sleep deprivation specifically impairs procedural memory tasks, while slow-wave-sleep deprivation impairs declarative memory."
-
-            BAD (forbidden):  "The chapter explores Raskolnikov's moral conflict after the murder."
-            GOOD:             "After killing the pawnbroker, Raskolnikov hides the stolen items without using them, falls into a fever, and obsessively revisits the crime scene — convinced he has the right to transgress ordinary morality, yet crushed by guilt he cannot name."
-
-            Before finalizing your summary, re-read every sentence. If any sentence DESCRIBES the text instead of STATING the text's content, rewrite it.
-
-            ABSOLUTE BAN ON LATEX / MATH NOTATION — these are FORBIDDEN in your output:
-            - Never write "$\to$", "$\rightarrow$", "$\Rightarrow$", "$\leftarrow$", "$\mapsto$", "$\approx$", "$\leq$", "$\geq$", "$\neq$", "$\in$", "$\sum$", "$\int$", "$\frac{}{}", "$\sqrt{}$", or ANY other LaTeX command.
-            - NEVER write a dollar sign ($). Dollar signs are FORBIDDEN. If you are about to write a dollar sign, STOP. You have made a mistake.
-            - If you need an arrow, write the literal Unicode character "→" (copy this character: →). Or use the word "to".
-            - If you need any other math symbol, write the literal Unicode character directly: ≤, ≥, ≠, ×, ÷, ±, ≈, ∑, ∫, etc.
-            - For proportions or ratios, write "X to Y" or "X:Y" — never "$\frac{X}{Y}$".
-            - For superscripts/subscripts, write them inline (e.g., "m²" not "$m^2$").
-
-            BAD (forbidden):  "research flows from topic $\to$ thesis $\to$ notes $\to$ draft"
-            BAD (forbidden):  "research flows from topic $\rightarrow$ thesis $\rightarrow$ notes $\rightarrow$ draft"
-            GOOD:              "research flows from topic → thesis → notes → draft"
-            ALSO GOOD:         "research flows from topic to thesis to notes to draft"
-
-            SELF-CHECK BEFORE OUTPUT: Scan your entire response. If it contains ANY dollar sign ($), you have FAILED. Remove every dollar sign and replace any LaTeX command with its plain-text equivalent before sending. Your output is rendered as PLAIN TEXT — it is NOT rendered by a LaTeX engine. Any "$\to$" or "$\rightarrow$" in your output will appear as literal garbage to the reader.
-
-            ABSOLUTE BAN ON CREATING ABBREVIATIONS — NEVER abbreviate proper nouns, technical terms, or multi-word concepts unless the abbreviation appears verbatim in the source text.
-            - If the source text says "Covenant Code", you MUST write "Covenant Code" — NEVER abbreviate it to "CC" or "(CC)".
-            - If the source text says "Critical Period Hypothesis", you MUST write "Critical Period Hypothesis" — NEVER abbreviate it to "CPH".
-            - If the source text says "System 1", you MUST write "System 1" — NEVER abbreviate it to "S1".
-            - Do NOT introduce abbreviations in parentheses after the first mention (e.g., do NOT write "Covenant Code (CC)"). Write the full term every time.
-            - The ONLY exception: if the source text itself uses an abbreviation (e.g., "DNA", "NASA", "MIS 6"), you may use it as the source does.
-            """;
-
-        // The dropdowns' ids are canonical genre tags; anything unknown reads
-        // the nonfiction classic - the deck's first voice.
         private static string NormalizeGenre(string? genre)
         {
             return genre switch
@@ -792,58 +725,31 @@ namespace Avalanche.Features.Summary
             };
         }
 
-        // The genre's persona block (v1.19.90): every persona text moved to
-        // the shipped prompt deck - the store's own row wins, an untouched
-        // or deleted row speaks the deck's factory voice, and the {words}
-        // placeholder is fed the real target on the way out.
-        private static string GenreMandate(string genre, int targetWords)
+        // The genre's persona block (v1.19.90, widened in v1.19.93): every
+        // persona text moved to the shipped prompt deck - the store's own row
+        // wins, an untouched or deleted row speaks the deck's factory voice,
+        // and the two standard placeholders are fed the run's values on the
+        // way out: {words} the real target, {language} the reader's tongue.
+        private static string GenreMandate(string genre, int targetWords, string language)
         {
             string? stored = PromptStore.StoredMandate(genre)
                 ?? PromptStore.StoredMandate(NormalizeGenre(genre))
                 ?? PromptStore.StoredMandate("nonfiction_classic");
-            return (stored ?? string.Empty).Replace(
-                "{words}", targetWords.ToString(CultureInfo.InvariantCulture));
+            return (stored ?? string.Empty)
+                .Replace("{words}", targetWords.ToString(CultureInfo.InvariantCulture))
+                .Replace("{language}", string.IsNullOrWhiteSpace(language) ? "English" : language);
         }
 
         private static string DigestSystemPrompt(int targetWords, string language, string genre)
         {
-            // Word-for-word transplant of the extension's nonfiction_classic
-            // multi-page prompt, with two Avalanche adaptations: the ground rule
-            // (no outside knowledge) and the marker/tag plumbing note.
-            // OUTPUT LANGUAGE: the digest is written in the language the reader picked
-            // in the window's dropdown. The book's printed headings are the one exception -
-            // they are quoted verbatim in whatever language the book printed them in.
-            string languageBlock =
-                "OUTPUT LANGUAGE: write every sentence of the summary in " + language + ". The " +
-                "one exception is the book's own printed section headings: copy those VERBATIM " +
-                "in their original language exactly as printed.\n\n";
-            string head =
-                "Summarize the following text in approximately " + targetWords +
-                " words (do NOT exceed " + targetWords + " words).\n\n" +
-                languageBlock;
-            return head +
-                GenreMandate(genre, targetWords) + "\n\n" +
-                AntiMeta + "\n\n" +
-                "Use ONLY the provided material; never add outside knowledge, opinions, or meta " +
-                "commentary about the text or about summarizing.\n\n" +
-                "Format: dense flowing prose paragraphs. Connect the sentences with natural " +
-                "transitional phrasing (however, moreover, in practice, as a result) so each " +
-                "paragraph reads as one continuous argument rather than stacked fragments. " +
-                "No bullet lists, no page tags, no markdown " +
-                "decorations of any kind - with exactly one exception: the book's own section " +
-                "headings may appear as '### ' headings, as described below.\n\n" +
-                "Each page's text starts with a [p. N] anchor (legacy [[p. N]]); the anchors " +
-                "tell you which page each part came from, but they must NOT appear in your " +
-                "output.\n\n" +
-                "BOOK HEADINGS: lines starting with '#', '##' or '###' are the book's own " +
-                "printed section headings (native markdown). Copy each one VERBATIM as a " +
-                "markdown '### ' heading and summarize the text that follows it under that " +
-                "heading, in flowing prose paragraphs. Text before the first heading (the " +
-                "range may start mid-section) is ordinary intro prose with no heading. If " +
-                "the material has no markdown heading lines at all, write plain prose with " +
-                "no headings. NEVER invent a heading and NEVER reword one - use exactly " +
-                "the printed heading text. No bullet points and no page tags in your " +
-                "output. Bullet points in your answer are a total failure.";
+            // v1.19.93: the store's body IS the system prompt. The invisible C#
+            // wrapper - the word head, the language block, the anti-meta law, the
+            // format rules and the BOOK HEADINGS mandate that forced a verbatim
+            // heading per printed section (a 30-60 page range exploding into
+            // thousands of words) - is gone. Every instruction lives in the prompt
+            // deck the reader can edit in the workshop; only the two standard
+            // placeholders are fed the run's values on the way out.
+            return GenreMandate(genre, targetWords, language);
         }
 
         // ------------------------------------------------------------------

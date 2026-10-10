@@ -1433,4 +1433,12 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_TT_EditorNewTab">Tab mới</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Tăng cỡ chữ</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Giảm cỡ chữ</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Chèn bảng</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Chèn hàng phía trên</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Chèn hàng phía dưới</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Chèn cột bên trái</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Chèn cột bên phải</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Xóa hàng</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Xóa cột</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Xóa bảng</sys:String>
 </ResourceDictionary>

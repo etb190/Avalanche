@@ -1413,4 +1413,12 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_TT_EditorNewTab">Nueva pestaña</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Aumentar el tamaño de la fuente</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Reducir el tamaño de la fuente</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Insertar una tabla</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Insertar fila arriba</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Insertar fila abajo</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Insertar columna a la izquierda</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Insertar columna a la derecha</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Eliminar fila</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Eliminar columna</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Eliminar tabla</sys:String>
 </ResourceDictionary>

@@ -1421,4 +1421,12 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_EditorNewTab">Nowa karta</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Zwiększ rozmiar czcionki</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Zmniejsz rozmiar czcionki</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Wstaw tabelę</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Wstaw wiersz powyżej</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Wstaw wiersz poniżej</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Wstaw kolumnę po lewej</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Wstaw kolumnę po prawej</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Usuń wiersz</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Usuń kolumnę</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Usuń tabelę</sys:String>
 </ResourceDictionary>

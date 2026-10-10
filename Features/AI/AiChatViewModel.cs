@@ -639,7 +639,7 @@ namespace Avalanche.Features.AI
             PaintSemanticStatus(docId, () => _loc("Str_AiChatSemanticBuilding"));
 
             var passCt = _semanticPassCts!.Token;
-            var embeddingModel = _configProvider().EmbeddingModel;
+            var embeddingModel = OllamaEmbeddingClient.ResolveModel(_configProvider());
             var documentPrefix = _configProvider().EmbeddingDocumentPrefix;
             var queryPrefix = _configProvider().EmbeddingQueryPrefix;
 
@@ -1298,13 +1298,18 @@ namespace Avalanche.Features.AI
 
                     var editorConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.EditorSidechat);
                     string docTitle = _editorDocTitle;
-                    var editorResponse = await GetProvider(editorConfig).GetChatCompletionAsync(
+                    // v1.19.93: the answer streams into the bubble as it is
+                    // written; the structured parse (and its citation work)
+                    // still runs on the whole answer at the end.
+                    string editorRaw = await StreamReplyIntoAsync(
+                        GetProvider(editorConfig), editorConfig,
                         EditorChat.BuildSystemPrompt(docTitle, docText),
                         recentHistory,
                         new List<DocumentChunk>(),
                         "",
-                        editorConfig,
-                        ct);
+                        assistantMsg, ct);
+                    var editorResponse = OpenAiCompatibleProvider.ParseStructuredContent(
+                        StripThinkSpans(editorRaw));
 
                     assistantMsg.Content = editorResponse.Answer;
                     assistantMsg.IsLoading = false;
@@ -1354,13 +1359,25 @@ namespace Avalanche.Features.AI
                     }
 
                     var webConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.WebSidechat);
-                    var webResponse = await GetProvider(webConfig).GetChatCompletionAsync(
-                        WebChat.BuildSystemPrompt(page),
+                    // v1.19.93: the page anchors ONCE. The conversation's first
+                    // model call carries the full prompt - head, page evidence,
+                    // contract - and every follow-up rides the rolling history
+                    // with the head and the contract only. Re-attaching up to
+                    // 160,000 characters on every turn blew through tokens
+                    // quadratically and hit the context ceiling on long pages.
+                    bool firstWebTurn = !recentHistory.Any(
+                        m => m.MessageRole == ChatMessage.Role.Assistant);
+                    string webSystem = firstWebTurn
+                        ? WebChat.BuildSystemPrompt(page)
+                        : WebChat.InstructionHead() + "\n" + WebChat.CitationContract();
+                    string webRaw = await StreamReplyIntoAsync(
+                        GetProvider(webConfig), webConfig, webSystem,
                         recentHistory,
                         new List<DocumentChunk>(),
                         "",
-                        webConfig,
-                        ct);
+                        assistantMsg, ct);
+                    var webResponse = OpenAiCompatibleProvider.ParseStructuredContent(
+                        StripThinkSpans(webRaw));
 
                     // v1.19.25: the segments the prompt numbered are this
                     // reply's evidence list; the model's sources resolve
@@ -1414,13 +1431,14 @@ namespace Avalanche.Features.AI
 
                 // Get AI response with the CURRENT provider settings
                 var config = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.Sidechat);
-                var response = await GetProvider(config).GetChatCompletionAsync(
-                    systemPrompt,
-                    recentHistory,
-                    retrieved.ConvertAll(r => r.Chunk),
-                    sourceRefs,
-                    config,
-                    ct);
+                // v1.19.93: the answer streams into the bubble as the model
+                // writes it; the whole-answer parse below decides citations
+                // exactly as the buffered call used to.
+                string sidechatRaw = await StreamReplyIntoAsync(
+                    GetProvider(config), config, systemPrompt, recentHistory,
+                    retrieved.ConvertAll(r => r.Chunk), sourceRefs, assistantMsg, ct);
+                var response = OpenAiCompatibleProvider.ParseStructuredContent(
+                    StripThinkSpans(sidechatRaw));
 
                 // Resolve each returned sourceId through THIS reply's evidence
                 // list before anything binds to Sources: the chip row and the
@@ -1469,6 +1487,91 @@ namespace Avalanche.Features.AI
                 // so coming back shows what was produced.
                 RetireInflight(key, assistantMsg, record: !cancelled);
             }
+        }
+
+        // Content think-spans (models that print their thinking inside the
+        // answer text) never paint: the span and everything inside it is
+        // stripped wherever the streamed text is shown, open span included.
+        private static readonly System.Text.RegularExpressions.Regex ThinkSpanRx = new(
+            "<think>[\\s\\S]*?(\\x3C/think>|\\z)", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static string StripThinkSpans(string text) =>
+            string.IsNullOrEmpty(text) || !text.Contains("<think>", StringComparison.Ordinal)
+                ? text
+                : ThinkSpanRx.Replace(text, string.Empty);
+
+        /// <summary>
+        /// Streams one sidechat reply into its bubble (v1.19.93): deltas land
+        /// in the message as the model writes them - no more staring at a
+        /// static "Thinking..." while the whole answer travels. The paint is
+        /// a ~24ms UI-thread timer (the digest's typewriter discipline), so a
+        /// fast stream never re-renders markdown per token. Returns the full
+        /// RAW text; the caller parses structure and citations from it at the
+        /// end, exactly as the buffered path did.
+        /// </summary>
+        private async Task<string> StreamReplyIntoAsync(
+            IAiProvider provider,
+            AiProviderConfig config,
+            string systemPrompt,
+            List<ChatMessage> history,
+            List<DocumentChunk> chunks,
+            string sourceRefs,
+            ChatMessage assistantMsg,
+            CancellationToken ct)
+        {
+            var ui = Application.Current.Dispatcher;
+            var raw = new System.Text.StringBuilder();
+            string visible = "";
+            bool dirty = false, any = false;
+
+            var paintTimer = new System.Windows.Threading.DispatcherTimer(
+                TimeSpan.FromMilliseconds(24), DispatcherPriority.Background,
+                (_, _) =>
+                {
+                    if (!dirty) return;
+                    dirty = false;
+                    string next = StripThinkSpans(raw.ToString());
+                    if (string.Equals(next, visible, StringComparison.Ordinal)) return;
+                    visible = next;
+                    try { assistantMsg.Content = visible; } catch { /* the bubble left the view */ }
+                },
+                ui);
+
+            try
+            {
+                paintTimer.Start();
+                var stream = provider.GetChatCompletionStreamAsync(
+                    systemPrompt, history, chunks, sourceRefs, config, ct);
+                await foreach (string delta in stream.WithCancellation(ct).ConfigureAwait(false))
+                {
+                    if (string.IsNullOrEmpty(delta)) continue;
+                    raw.Append(delta);
+                    if (!any)
+                    {
+                        any = true;
+                        ui.BeginInvoke(DispatcherPriority.Background, (Action)(() =>
+                        {
+                            try { assistantMsg.IsLoading = false; } catch { }
+                        }));
+                    }
+
+                    dirty = true;
+                }
+            }
+            finally
+            {
+                try { paintTimer.Stop(); } catch { }
+            }
+
+            string finalRaw = raw.ToString();
+            if (any)
+            {
+                visible = StripThinkSpans(finalRaw);
+                try { ui.Invoke((Action)(() => { try { assistantMsg.Content = visible; } catch { } })); }
+                catch { /* app shutting down */ }
+            }
+
+            return finalRaw;
         }
 
         /// <summary>The timing/model line above the input (v1.19.25/v1.19.32).
@@ -1735,7 +1838,7 @@ namespace Avalanche.Features.AI
             var cfg = _configProvider();
             _retrievalOptions.TopK = cfg.TopK;
             _retrievalOptions.EvidenceCharBudget = cfg.EvidenceCharBudget;
-            _retrievalOptions.EmbeddingModel = cfg.EmbeddingModel;
+            _retrievalOptions.EmbeddingModel = OllamaEmbeddingClient.ResolveModel(cfg);
             _retrievalOptions.EmbeddingQueryPrefix = cfg.EmbeddingQueryPrefix;
             _retrievalOptions.EmbeddingPrefixKey = (cfg.EmbeddingDocumentPrefix ?? "") + "\u0001" + (cfg.EmbeddingQueryPrefix ?? "");
             _maxHistoryMessages = Math.Max(2, cfg.MaxHistoryMessages);
@@ -2154,18 +2257,38 @@ namespace Avalanche.Features.AI
             return AiChatText.BuildRetrievalQuery(input, previous);
         }
 
+        // A substantive word anywhere makes the message a real question about
+        // the document, however politely it opens (v1.19.93): "Hi, what is the
+        // conclusion on page 12?" used to answer with the canned greeting.
+        private static readonly string[] SmallTalkQuestionWords =
+        {
+            "what", "why", "how", "who", "whom", "whose", "when", "where", "which",
+            "page", "summarize", "summarise", "explain", "define", "describe",
+            "tell", "conclusion", "conclude", "meaning", "example", "chapter"
+        };
+
         /// <summary>
-        /// Detects greetings and other small talk that need no document retrieval.
+        /// Detects STANDALONE greetings that need no document retrieval
+        /// (v1.19.93): the whole message must be just the greeting - nothing
+        /// past ~20 characters, no trailing question, no substantive word.
+        /// Anything else reaches the model with the document's context.
         /// </summary>
         private static bool IsSmallTalk(string input)
         {
             var s = input.Trim().ToLowerInvariant();
-            if (s.Length == 0 || s.Length > 32 || s.Contains('?'))
+            if (s.Length == 0 || s.Length > 20 || s.Contains('?'))
                 return false;
 
             var words = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length == 0 || words.Length > 3)
                 return false;
+
+            foreach (var raw in words)
+            {
+                var w = new string(raw.Where(char.IsLetter).ToArray());
+                if (w.Length > 0 && SmallTalkQuestionWords.Contains(w))
+                    return false;
+            }
 
             var cleaned = string.Join(" ",
                 words.Select(w => new string(w.Where(char.IsLetter).ToArray())));

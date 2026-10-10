@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -32,11 +34,38 @@ namespace Avalanche.Features.AI
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
-        // Serialize chat requests ACROSS provider instances: the factory mints
-        // a new provider per call (Test Connection created its own), so an
-        // instance semaphore let two cloud requests run in parallel against a
-        // queue-limited account.
-        private static readonly SemaphoreSlim SharedChatSemaphore = new SemaphoreSlim(1, 1);
+        // v1.19.93: the process-wide chat gate is gone. One semaphore over every
+        // AI surface meant a large PDF summary froze the sidechat, the grammar
+        // scan and the rewrite bubble until it finished - the reader stared at
+        // "Thinking..." for minutes for no reason. What stays is a PER-HOST
+        // gate: hosts that answer one request at a time (a local Ollama on one
+        // GPU) keep their serial dignity, while a cloud host runs a couple of
+        // surfaces in parallel and lets its own 429s pace the rest.
+        private static readonly ConcurrentDictionary<string, SemaphoreSlim> HostGates = new();
+
+        private static SemaphoreSlim HostGate(AiProviderConfig config)
+        {
+            string host = HostKey(config);
+            int slots = HostSlots(config);
+            return HostGates.GetOrAdd(host, _ => new SemaphoreSlim(slots, slots));
+        }
+
+        private static string HostKey(AiProviderConfig config)
+        {
+            string root = config.BaseUrl ?? string.Empty;
+            try
+            {
+                return new Uri(root).Host.ToLowerInvariant();
+            }
+            catch
+            {
+                // an unparsable root gates on itself, whole
+                return root.Trim().ToLowerInvariant();
+            }
+        }
+
+        private static int HostSlots(AiProviderConfig config) =>
+            AiEndpoints.IsLocal(config.BaseUrl) ? 1 : 2;
 
         // Learned optional-field drops per endpoint (provider|base url|model):
         // after a 400 that names one of the optional fields, the field is
@@ -71,7 +100,8 @@ namespace Avalanche.Features.AI
             AiProviderConfig config,
             CancellationToken cancellationToken = default)
         {
-            await SharedChatSemaphore.WaitAsync(cancellationToken);
+            var hostGate = HostGate(config);
+            await hostGate.WaitAsync(cancellationToken);
             try
             {
                 bool jsonOutput = config.RequestJsonOutput && !LearnedJsonDrop(config);
@@ -121,8 +151,248 @@ namespace Avalanche.Features.AI
             }
             finally
             {
-                SharedChatSemaphore.Release();
+                hostGate.Release();
             }
+        }
+
+        /// <summary>
+        /// Streams a chat completion as SSE deltas (v1.19.93): the sidechat's
+        /// front door. Each yield carries the next piece of RAW assistant
+        /// content; reasoning traces (reasoning_content / reasoning frames and
+        /// content <think> spans) are collected but never yielded, the same
+        /// law the digest's stream pass keeps. The caller parses the joined
+        /// text at the end - citations and structured answers are decided on
+        /// the whole answer, exactly as the buffered path does.
+        /// </summary>
+        public async IAsyncEnumerable<string> GetChatCompletionStreamAsync(
+            string systemPrompt,
+            List<ChatMessage> messages,
+            List<DocumentChunk> contextChunks,
+            string sourceReferences,
+            AiProviderConfig config,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            var hostGate = HostGate(config);
+            await hostGate.WaitAsync(cancellationToken);
+            try
+            {
+                bool jsonOutput = config.RequestJsonOutput && !LearnedJsonDrop(config);
+                string? reasoning = string.IsNullOrWhiteSpace(config.ReasoningEffort) ? null : config.ReasoningEffort;
+                if (reasoning is not null && LearnedReasoningDrop(config))
+                    reasoning = null;
+
+                while (true)
+                {
+                    var body = BuildRequestBody(systemPrompt, messages, sourceReferences, config, jsonOutput, reasoning);
+                    body["stream"] = true;
+
+                    using var request = new HttpRequestMessage(
+                        HttpMethod.Post, $"{config.BaseUrl.TrimEnd('/')}/chat/completions")
+                    {
+                        Content = new StringContent(JsonSerializer.Serialize(body, _jsonOptions), Encoding.UTF8, "application/json")
+                    };
+                    var apiKey = string.IsNullOrWhiteSpace(config.ApiKey) && AiEndpoints.IsLocal(config.BaseUrl)
+                        ? "ollama"
+                        : config.ApiKey;
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+                    HttpResponseMessage response;
+                    try
+                    {
+                        response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (OperationCanceledException oce)
+                    {
+                        throw new AiProviderException(AiErrorCategory.Timeout, config.Model, null, oce);
+                    }
+                    catch (HttpRequestException hre) when (IsConnectionFailure(hre))
+                    {
+                        AiErrorCategory category = AiEndpoints.IsLocal(config.BaseUrl)
+                            ? AiErrorCategory.OllamaNotRunning
+                            : AiErrorCategory.ServiceUnreachable;
+                        throw new AiProviderException(category, config.Model, null, hre);
+                    }
+
+                    using (response)
+                    {
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            string errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                            if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                            {
+                                if (jsonOutput && errorBody.Contains("response_format", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    RememberJsonDrop(config);
+                                    jsonOutput = false;
+                                    continue;
+                                }
+                                if (reasoning is not null && errorBody.Contains("reasoning_effort", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    RememberReasoningDrop(config);
+                                    reasoning = null;
+                                    continue;
+                                }
+                            }
+
+                            throw MapError(response.StatusCode, errorBody, config);
+                        }
+
+                        string mediaType = response.Content.Headers.ContentType?.MediaType ?? string.Empty;
+                        if (!mediaType.Contains("event-stream", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // The endpoint ignored stream:true and answered one
+                            // JSON body: hand it over as a single delta.
+                            string whole = await response.Content.ReadAsStringAsync(cancellationToken);
+                            yield return ExtractMessageContent(whole);
+                            yield break;
+                        }
+
+                        Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+                        using var reader = new StreamReader(stream);
+                        var thinkBuf = new StringBuilder();
+                        string? finish = null;
+                        while (true)
+                        {
+                            string? line = await reader.ReadLineAsync(cancellationToken);
+                            if (line is null) break;
+                            if (!line.StartsWith("data:", StringComparison.Ordinal)) continue;
+
+                            string payload = line.Substring(5).Trim();
+                            if (payload == "[DONE]") break;
+
+                            string? delta = ExtractStreamDelta(payload);
+                            if (delta is not null && delta.Length > 0)
+                            {
+                                yield return delta;   // raw content; the caller paints and finally parses it
+                            }
+                            else
+                            {
+                                string? rt = ExtractDeltaField(payload, "reasoning_content")
+                                    ?? ExtractDeltaField(payload, "reasoning");
+                                if (!string.IsNullOrEmpty(rt)) thinkBuf.Append(rt);
+
+                                string? fin = ExtractFinishReason(payload);
+                                if (!string.IsNullOrEmpty(fin)) finish = fin;
+                            }
+                        }
+
+                        if (thinkBuf.Length > 0)
+                            System.Diagnostics.Debug.WriteLine($"[AI Reasoning stream]: {thinkBuf.Length} chars (not shown)");
+
+                        if (finish == "length")
+                            throw new AiProviderException(AiErrorCategory.CutOff);
+
+                        yield break;
+                    }
+                }
+            }
+            finally
+            {
+                hostGate.Release();
+            }
+        }
+
+        /// <summary>The delta content of one SSE frame: choices[0].delta.content
+        /// when the frame carries one, null (or empty) otherwise.</summary>
+        private static string? ExtractStreamDelta(string payload)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(payload);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("choices", out var choices)
+                    || choices.ValueKind != JsonValueKind.Array
+                    || choices.GetArrayLength() == 0)
+                    return null;
+                var choice = choices[0];
+                if (!choice.TryGetProperty("delta", out var deltaEl))
+                {
+                    // Some bridges stream the whole message in one frame.
+                    if (choice.TryGetProperty("message", out var msgEl)
+                        && msgEl.TryGetProperty("content", out var cEl)
+                        && cEl.ValueKind == JsonValueKind.String)
+                        return cEl.GetString();
+                    return null;
+                }
+
+                return deltaEl.TryGetProperty("content", out var contentEl)
+                    && contentEl.ValueKind == JsonValueKind.String
+                    ? contentEl.GetString()
+                    : null;
+            }
+            catch (JsonException)
+            {
+                return null;   // a comment or keep-alive frame is not content
+            }
+        }
+
+        private static string? ExtractDeltaField(string payload, string field)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(payload);
+                if (!doc.RootElement.TryGetProperty("choices", out var choices)
+                    || choices.ValueKind != JsonValueKind.Array
+                    || choices.GetArrayLength() == 0)
+                    return null;
+                var choice = choices[0];
+                if (!choice.TryGetProperty("delta", out var deltaEl)) return null;
+                if (!deltaEl.TryGetProperty(field, out var fEl)) return null;
+                return fEl.ValueKind == JsonValueKind.String ? fEl.GetString() : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static string? ExtractFinishReason(string payload)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(payload);
+                if (!doc.RootElement.TryGetProperty("choices", out var choices)
+                    || choices.ValueKind != JsonValueKind.Array
+                    || choices.GetArrayLength() == 0)
+                    return null;
+                return choices[0].TryGetProperty("finish_reason", out var fr) && fr.ValueKind == JsonValueKind.String
+                    ? fr.GetString()
+                    : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>The message content of a NON-stream completion body -
+        /// the single-delta road an endpoint that ignored stream:true takes.</summary>
+        private static string ExtractMessageContent(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("choices", out var choices)
+                    && choices.ValueKind == JsonValueKind.Array
+                    && choices.GetArrayLength() > 0
+                    && choices[0].TryGetProperty("message", out var message)
+                    && message.TryGetProperty("content", out var contentEl)
+                    && contentEl.ValueKind == JsonValueKind.String)
+                {
+                    return contentEl.GetString() ?? string.Empty;
+                }
+            }
+            catch (JsonException)
+            {
+                // not a completion body - nothing quotable
+            }
+
+            return string.Empty;
         }
 
         private static string EndpointKey(AiProviderConfig config) =>

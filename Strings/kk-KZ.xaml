@@ -1432,4 +1432,12 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_EditorNewTab">Жаңа қойынды</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Қаріп өлшемін үлкейту</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Қаріп өлшемін кішірейту</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Кесте енгізу</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Жоғарыға жол енгізу</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Төменге жол енгізу</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Солға баған енгізу</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Оңға баған енгізу</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Жолды жою</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Бағанды жою</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Кестені жою</sys:String>
 </ResourceDictionary>

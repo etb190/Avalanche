@@ -10,6 +10,12 @@
 // merges itself back in. The deck's own voice only answers when a feature
 // needs a body and the store has none: the factory default, not a second
 // copy living in code.
+//
+// v1.19.93: one careful exception to "never merges back in" - a body that is
+// byte-identical to a PREVIOUS factory voice is a factory echo, not a reader
+// edit, and graduates to the current deck body so a prompt overhaul reaches
+// the installs that never opened the workshop. A body that differs by a
+// single letter is the reader's own wording and is never touched.
 
 namespace Avalanche.Features.Summary
 {
@@ -102,6 +108,49 @@ namespace Avalanche.Features.Summary
             }
         }
 
+        // The pre-overhaul factory voices (v1.19.90-92), fingerprinted: a
+        // stored body whose SHA-256 matches one of these was never edited by
+        // the reader - the first run's deck extraction wrote it and nothing
+        // else ever did. Only those graduate to the current deck body.
+        private static readonly Dictionary<string, string> LegacyBodyHashes = new()
+        {
+            ["nonfiction_classic"] = "71d0db20a95e19b4d828ceaf69a5c974996d8aa406e2f2949c9906fa633ef53b",
+            ["fiction"] = "004e3cfe27f54510b6fd0afb1c9f2402f524c2e772807e043ebefd35e1af7d0c",
+            ["philosophical_fiction"] = "af0f044cb3089906c62010920d72fa03662c5b1889defe9bb77ceaf5d14bc11c",
+            ["research_papers"] = "7deaccd97248f17ebea2e1c7d8234ae65cf6ad429bb0ab1d8e1047af2ab1531d",
+            ["self_help"] = "e41d5bf86b2d50f980a030509672c173487928168ce1cf79c36e7659eb81a96b",
+            ["law"] = "9c7d7d8122c46e69563f9fc62d0b137c95510b93bf37b8bff966b8fb94cb4b8d",
+            ["web_nonfiction_classic"] = "71d0db20a95e19b4d828ceaf69a5c974996d8aa406e2f2949c9906fa633ef53b",
+        };
+
+        private static bool IsLegacyFactoryBody(string id, string body)
+        {
+            if (!LegacyBodyHashes.TryGetValue(id, out string? legacy)) return false;
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            string hex = Convert.ToHexString(sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(body)));
+            return string.Equals(hex, legacy, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // Graduates factory echoes to the current deck bodies. Returns true
+        // when something changed and the store should be re-written.
+        private static bool GraduateLegacyBodies(List<AiPromptDef> rows)
+        {
+            bool changed = false;
+            foreach (AiPromptDef row in rows)
+            {
+                if (string.IsNullOrWhiteSpace(row.Body)) continue;
+                if (!IsLegacyFactoryBody(row.Id, row.Body)) continue;
+                string? fresh = DefaultBody(row.Id);
+                if (fresh is not null && !string.Equals(fresh, row.Body, StringComparison.Ordinal))
+                {
+                    row.Body = fresh;
+                    changed = true;
+                }
+            }
+
+            return changed;
+        }
+
         private static List<AiPromptDef> Load()
         {
             try
@@ -111,7 +160,13 @@ namespace Avalanche.Features.Summary
                 {
                     var read = System.Text.Json.JsonSerializer.Deserialize<List<AiPromptDef>>(
                         File.ReadAllText(path));
-                    if (read != null) return read;   // the reader's file, as it is - deletions included
+                    if (read != null)
+                    {
+                        // Factory echoes step up to the current deck voice; the
+                        // reader's own wording never moves. Deletions included.
+                        if (GraduateLegacyBodies(read)) WriteStore(read);
+                        return read;
+                    }
                 }
             }
             catch
@@ -203,17 +258,22 @@ namespace Avalanche.Features.Summary
         {
             try
             {
-                string json = System.Text.Json.JsonSerializer.Serialize(_prompts,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(StorePath(), json);
+                WriteStore(_prompts!);
+                Changed?.Invoke();
             }
             catch
             {
                 // best-effort persistence; a read-only disk must not crash the workshop
+                // and a listener must never break the saver
             }
+        }
 
-            try { Changed?.Invoke(); }
-            catch { /* a listener must never break the saver */ }
+        // The byte-level writer both the workshop and the graduation share.
+        private static void WriteStore(List<AiPromptDef> rows)
+        {
+            string json = System.Text.Json.JsonSerializer.Serialize(rows,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(StorePath(), json);
         }
 
         /// <summary>Every row, a defensive copy - the caller may do what it

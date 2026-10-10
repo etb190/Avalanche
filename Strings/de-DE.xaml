@@ -1419,4 +1419,12 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_TT_EditorNewTab">Neuer Tab</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Schriftgröße vergrößern</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Schriftgröße verkleinern</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Tabelle einfügen</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Zeile oben einfügen</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Zeile unten einfügen</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Spalte links einfügen</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Spalte rechts einfügen</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Zeile löschen</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Spalte löschen</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Tabelle löschen</sys:String>
 </ResourceDictionary>

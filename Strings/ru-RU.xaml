@@ -1433,4 +1433,12 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_TT_EditorNewTab">Новая вкладка</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Увеличить размер шрифта</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Уменьшить размер шрифта</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Вставить таблицу</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Вставить строку выше</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Вставить строку ниже</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Вставить столбец слева</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Вставить столбец справа</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Удалить строку</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Удалить столбец</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Удалить таблицу</sys:String>
 </ResourceDictionary>

@@ -1433,4 +1433,12 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_TT_EditorNewTab">Nuova scheda</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Aumenta la dimensione del carattere</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Riduci la dimensione del carattere</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Inserisci una tabella</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Inserisci riga sopra</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Inserisci riga sotto</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Inserisci colonna a sinistra</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Inserisci colonna a destra</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Elimina riga</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Elimina colonna</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Elimina tabella</sys:String>
 </ResourceDictionary>

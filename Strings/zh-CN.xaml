@@ -1417,4 +1417,12 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_TT_EditorNewTab">新建标签页</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">增大字号</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">减小字号</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">插入表格</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">在上方插入行</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">在下方插入行</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">在左侧插入列</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">在右侧插入列</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">删除行</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">删除列</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">删除表格</sys:String>
 </ResourceDictionary>

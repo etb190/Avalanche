@@ -1418,4 +1418,12 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_TT_EditorNewTab">Nová karta</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Zvětšit velikost písma</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Zmenšit velikost písma</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Vložit tabulku</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Vložit řádek nad</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Vložit řádek pod</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Vložit sloupec vlevo</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Vložit sloupec vpravo</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Odstranit řádek</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Odstranit sloupec</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Odstranit tabulku</sys:String>
 </ResourceDictionary>

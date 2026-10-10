@@ -1413,4 +1413,12 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_TT_EditorNewTab">Yeni sekme</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Yazı tipi boyutunu büyüt</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Yazı tipi boyutunu küçült</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Tablo ekle</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Yukarı satır ekle</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Aşağı satır ekle</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Sola sütun ekle</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Sağa sütun ekle</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Satırı sil</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Sütunu sil</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Tabloyu sil</sys:String>
 </ResourceDictionary>

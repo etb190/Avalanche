@@ -610,6 +610,16 @@ namespace Avalanche.Controls
             string listState = r.TryGetProperty("list", out var lsv) ? lsv.GetString() ?? string.Empty : string.Empty;
             SetToggle(ListBtn, listState == "bullet" || listState == "ordered");
             SetToggle(QuoteBtn, Prop(r, "quote"));
+            // The table ops (v1.19.93): row and column work answers only when
+            // the caret stands inside a table - the sheet's own word.
+            bool inTable = Prop(r, "tbl");
+            TableItemRowAbove.IsEnabled = inTable;
+            TableItemRowBelow.IsEnabled = inTable;
+            TableItemColLeft.IsEnabled = inTable;
+            TableItemColRight.IsEnabled = inTable;
+            TableItemRowDelete.IsEnabled = inTable;
+            TableItemColDelete.IsEnabled = inTable;
+            TableItemDelete.IsEnabled = inTable;
             if (r.TryGetProperty("page", out var pg))
             {
                 int p = pg.GetInt32();
@@ -727,6 +737,30 @@ namespace Avalanche.Controls
         }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
         private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
+
+        // The table flyout (v1.19.93): the button opens it, the list's picks
+        // post the sheet's table commands, and a fresh open resets the pick.
+        private void TableBtn_Click(object sender, RoutedEventArgs e)
+        {
+            TableOps.SelectedIndex = -1;
+            TablePopup.IsOpen = true;
+        }
+
+        private void TableOps_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            if (TableOps.SelectedItem is not System.Windows.Controls.ListBoxItem item
+                || item.Tag is not string cmd
+                || cmd.Length == 0)
+            {
+                return;
+            }
+
+            if (cmd == "insertTable") Post(new { cmd, rows = 3, cols = 3 });
+            else Post(new { cmd });
+            TablePopup.IsOpen = false;
+            TableOps.SelectedIndex = -1;
+            RefocusEditor();
+        }
 
         private void FontBtn_Click(object sender, RoutedEventArgs e)
         {

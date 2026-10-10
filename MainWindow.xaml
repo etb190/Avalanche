@@ -1542,19 +1542,21 @@
                              own, fonts, sizes, links, footnotes, and images that live behind
                              the text and move freely. Living in GrpToolsToggle keeps it on
                              the bar in BOTH modes, exactly like the globe it leans on. -->
+                        <!-- The browser summary (v1.19.90, moved in v1.19.93): the
+                             PDF ribbon's own summary button, now sitting on the LEFT
+                             of the browser's action tools exactly where the PDF
+                             editor's Summarize sits - same glyph, same style, the
+                             caption engine dressing it like its twin. Only the
+                             browser pane leads it; a click opens the web
+                             summarizer for the page on screen. -->
+                        <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
+                                Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
+                                Visibility="Collapsed"/>
                         <Button x:Name="TextEditorBtn" Content="&#xE70B;" Style="{StaticResource ToolbarButton}" Click="TextEditorBtn_Click" ToolTip="{DynamicResource Str_TT_TextEditor}"/>
                         <!-- The PDF editor switch while the browser leads (v1.19.68):
                              the browser's toolbar keeps exactly three buttons - New,
                              Text Editor, PDF Editor - each saying the pane it opens. -->
                         <Button x:Name="PdfEditorBtn" Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="PdfEditorBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}" Visibility="Collapsed"/>
-                        <!-- The browser summary (v1.19.90): the PDF ribbon's own
-                             summary button, sitting where the browser's face lives -
-                             same glyph, same style, the caption engine dressing it
-                             like its twin. Only the browser pane leads it; a click
-                             opens the web summarizer for the page on screen. -->
-                        <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
-                                Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
-                                Visibility="Collapsed"/>
                         <!-- Save Web PDF (v1.19.5): a book the browser downloaded lives in
                              the reader's temp area - this is the one-glance way to keep it.
                              Visible only while the active document IS a web download; the

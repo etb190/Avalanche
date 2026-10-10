@@ -82,6 +82,10 @@ namespace Avalanche.Controls
      contenteditable, so the model never sees the chrome; the browser's own
      image drag is switched off because the sheet does the moving itself. */
   .ql-editor img.az-sel { outline:2px solid #4a90d9; outline-offset:2px; }
+  .ql-editor table { border-collapse: collapse; width: 100%; margin: 16px 0; table-layout: auto; }
+  .ql-editor td, .ql-editor th { border: 1px solid #d0d7de; padding: 8px 12px; min-width: 48px; vertical-align: top; box-sizing: border-box; }
+  body.az-inv .ql-editor td, body.az-inv .ql-editor th { border-color: #444c56; }
+  .ql-editor td:focus, .ql-editor th:focus { outline: 1.5px solid #4a90d9; outline-offset: -1px; }
   #imgui { position:fixed; display:none; z-index:60; pointer-events:none; }
   #imgui .az-h { position:absolute; width:12px; height:12px; background:#fff;
                  border:2px solid #4a90d9; border-radius:2px; pointer-events:auto; }
@@ -297,6 +301,7 @@ var quill = new Quill('#editor', {
   placeholder: '',
   modules: {
     toolbar: false,
+    table: true,
     history: { delay: 400, maxStack: 500, userOnly: true }
   }
 });
@@ -836,6 +841,18 @@ function effSize(){
   if (el){ var px = parseFloat(getComputedStyle(el).fontSize) || 16; return String(Math.round(px * 0.75)); }
   return '12';
 }
+// The caret's table membership (v1.19.93): the ribbon's table flyout reads
+// this and nothing else - row and column ops light up only inside a table.
+function inTableNow(){
+  try {
+    var s = quill.getSelection();
+    if (!s) return false;
+    var mod = quill.getModule('table');
+    if (!mod) return false;
+    var hit = mod.getTable(s);
+    return !!(hit && hit[0]);
+  } catch(e){ return false; }
+}
 function reportState(){
   var sel = quill.getSelection();
   if (!sel) return;
@@ -846,7 +863,7 @@ function reportState(){
   post({ type:'state', edit:true, font: effFont(), size: effSize(),
          b: !!f.bold, i: !!f.italic, u: !!f.underline, s: !!f.strike,
          h: f.header || 0, list: f.list || '', sub: f.indent || 0,
-         quote: !!f.blockquote, page: 1 });
+         quote: !!f.blockquote, tbl: inTableNow(), page: 1 });
 }
 quill.on('selection-change', function(){ reportState(); });
 
@@ -937,6 +954,8 @@ var THUMB_CSS = '.doc{width:816px;height:1056px;background:#fff;overflow:hidden;
   '.docbody blockquote:after{content:"\\201D";font-family:Georgia,serif;font-size:1.5em;' +
   'line-height:0.1em;vertical-align:-0.2em;margin-left:4px;color:#7aa7d8;}' +
   '.docbody a{color:#1155cc;text-decoration:underline;}' +
+  '.docbody table{border-collapse:collapse;width:100%;margin:8px 0;}' +
+  '.docbody td,.docbody th{border:1px solid #d0d7de;padding:4px 8px;vertical-align:top;}' +
   'sup.fnref{color:#1155cc;}sup.fnref::after{content:attr(data-n);}' +
   ".docfn{margin:0 72px;padding:12px 0 0 0;border-top:1px solid #d8d8d8;font-family:'Segoe UI',sans-serif;font-size:10pt;color:#333;}" +
   '.docfn .fnnum{font-weight:bold;color:#1155cc;margin-right:7px;}';
@@ -1900,6 +1919,67 @@ function pasteFromHost(msg){
     try { quill.setSelection(at + text.length, 0, 'user'); } catch(e){}
   }
 }
+// ── tables (v1.19.93) ─────────────────────────────────────────────────────
+// Quill's own table module carries the cells; this section is the door the
+// ribbon knocks on. Every op rides the module (and so rides the history:
+// Ctrl+Z undoes a deleted row exactly like a deleted word), the serializer
+// needed nothing - the Delta already stores tables natively.
+function tableMod(){
+  try { return quill.getModule('table') || null; } catch(e){ return null; }
+}
+function tableInsert(rows, cols){
+  var mod = tableMod(); if (!mod) return;
+  try { mod.insertTable(rows, cols); } catch(e){}
+  reportState();
+}
+function tableOp(name){
+  var mod = tableMod(); if (!mod) return;
+  try { mod[name](); } catch(e){}
+  reportState();
+}
+function caretToCellStart(td){
+  try {
+    var blot = Quill.find(td, true);
+    if (!blot) return;
+    var idx = blot.offset(quill.scroll);
+    if (typeof idx !== 'number' || idx < 0) return;
+    quill.setSelection(idx, 0, 'user');
+    reportState();
+  } catch(e){}
+}
+// Tab walks the cells; Shift+Tab walks them back; Tab in the last cell adds
+// a row below and steps into it. The listener rides the capture phase so it
+// answers before any other binding, and it only speaks inside a table.
+quill.root.addEventListener('keydown', function(e){
+  if (e.key !== 'Tab') return;
+  var sel = quill.getSelection();
+  if (!sel) return;
+  var mod = tableMod(); if (!mod) return;
+  var hit = null;
+  try { hit = mod.getTable(sel); } catch(err){ return; }
+  if (!hit || !hit[0] || !hit[2]) return;
+  var all = hit[0].domNode.querySelectorAll('td, th');
+  var idx = -1;
+  for (var i = 0; i < all.length; i++) if (all[i] === hit[2].domNode) { idx = i; break; }
+  if (idx < 0) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.shiftKey){
+    if (idx > 0) caretToCellStart(all[idx - 1]);
+    return;
+  }
+  if (idx < all.length - 1){
+    caretToCellStart(all[idx + 1]);
+    return;
+  }
+  // the last cell: a fresh row below, the caret in its first cell
+  try { mod.insertRowBelow(); } catch(err){ return; }
+  var rows = hit[0].domNode.querySelectorAll('tr');
+  var fresh = rows.length ? rows[rows.length - 1] : null;
+  var first = fresh ? fresh.querySelector('td, th') : null;
+  if (first) caretToCellStart(first);
+}, true);
+
 if (window.chrome && window.chrome.webview && window.chrome.webview.addEventListener){
   window.chrome.webview.addEventListener('message', function(e){
     var msg = e && e.data;
@@ -1922,6 +2002,14 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'sizeStep': sizeStep(Number(msg.dir) || 0); break;
       case 'linkui': openLinkPop(); break;
       case 'footnote': insertFootnote(); break;
+      case 'insertTable': tableInsert(Number(msg.rows) || 3, Number(msg.cols) || 3); break;
+      case 'tableRowAbove': tableOp('insertRowAbove'); break;
+      case 'tableRowBelow': tableOp('insertRowBelow'); break;
+      case 'tableColLeft': tableOp('insertColumnLeft'); break;
+      case 'tableColRight': tableOp('insertColumnRight'); break;
+      case 'tableRowDelete': tableOp('deleteRow'); break;
+      case 'tableColDelete': tableOp('deleteColumn'); break;
+      case 'tableDelete': tableOp('deleteTable'); break;
       case 'image': insertImage(String(msg.src || '')); break;
       case 'undo': quill.history.undo(); reportState(); break;
       case 'redo': quill.history.redo(); reportState(); break;

@@ -1433,4 +1433,12 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_TT_EditorNewTab">New Tab</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Increase the font size</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Decrease the font size</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Insert a table</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Insert row above</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Insert row below</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Insert column left</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Insert column right</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Delete row</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Delete column</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Delete table</sys:String>
 </ResourceDictionary>

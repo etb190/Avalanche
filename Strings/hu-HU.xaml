@@ -1420,4 +1420,12 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_EditorNewTab">Új lap</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">Betűméret növelése</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">Betűméret csökkentése</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">Táblázat beszúrása</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">Sor beszúrása fölé</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">Sor beszúrása alá</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">Oszlop beszúrása balra</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">Oszlop beszúrása jobbra</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">Sor törlése</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">Oszlop törlése</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">Táblázat törlése</sys:String>
 </ResourceDictionary>

@@ -114,8 +114,38 @@ namespace Avalanche.Features.AI
         {
             EnsureHandlers(rtb);
 
+            // v1.19.93: a brand-new FlowDocument resets the box's scroll to
+            // the top - during a live digest the 20ms repaints were yanking
+            // the reader back to position 0 fifty times a second, and any
+            // attempt to read along was violently jerked back up. The reader's
+            // offset is captured before the swap and handed back once the new
+            // document lays out; a reader riding the bottom follows the text
+            // down, a reader parked mid-page stays parked. A scroll the reader
+            // made between the swap and the hand-back is left alone.
+            double keep = rtb.VerticalOffset;
+            bool rideBottom = rtb.ViewportHeight > 0
+                && rtb.ExtentHeight > rtb.ViewportHeight
+                && keep >= rtb.ExtentHeight - rtb.ViewportHeight - 2.0;
+
             var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
             rtb.Document = doc;
+
+            if (keep > 0 || rideBottom)
+            {
+                rtb.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+                {
+                    try
+                    {
+                        if (!rideBottom && rtb.VerticalOffset > 0.5) return;   // the reader moved on their own
+                        double max = Math.Max(0, rtb.ExtentHeight - rtb.ViewportHeight);
+                        rtb.ScrollToVerticalOffset(rideBottom ? max : Math.Min(keep, max));
+                    }
+                    catch
+                    {
+                        // a scroll that cannot climb is nobody's emergency
+                    }
+                }));
+            }
 
             // A RichTextBox always stretches to the full available width, which
             // would turn the right-aligned user bubbles into full-width rows.
@@ -171,6 +201,48 @@ namespace Avalanche.Features.AI
             // their Click bubbles up here where the box's DataContext (the
             // ChatMessage) resolves the clicked SOURCE_n back to its AiSource.
             rtb.AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(OnCitationClick));
+            // v1.19.93: the wheel tunnels to the outer ScrollViewer (see
+            // OnRichTextBoxPreviewMouseWheel) so scrolling over a chat bubble
+            // rides the conversation instead of fighting it.
+            rtb.PreviewMouseWheel += OnRichTextBoxPreviewMouseWheel;
+        }
+
+        /// <summary>
+        /// A RichTextBox is a TextBoxBase: even with its scrollbar disabled it
+        /// intercepts MouseWheel and partially consumes the deltas, so the
+        /// message list behind it stuttered, rubber-banded and jerked whenever
+        /// the cursor crossed a bubble. Tunneling the wheel straight to the
+        /// nearest outer ScrollViewer makes scrolling anywhere in the chat
+        /// area - long markdown bubbles included - one smooth ride. A box that
+        /// scrolls itself (the summary windows' digest card, its scrollbar on)
+        /// is left alone: the tunnel only fires when the box has nothing to
+        /// scroll of its own.
+        /// </summary>
+        private static void OnRichTextBoxPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is not RichTextBox rtb || e.Handled) return;
+            if (rtb.ExtentHeight > rtb.ViewportHeight + 0.5) return;   // the box scrolls itself
+
+            e.Handled = true;
+            var parentScrollViewer = FindVisualParent<ScrollViewer>(rtb);
+            if (parentScrollViewer is null) return;
+            parentScrollViewer.RaiseEvent(new MouseWheelEventArgs(
+                e.MouseDevice, e.Timestamp, e.Delta)
+            {
+                RoutedEvent = UIElement.MouseWheelEvent,
+                Source = sender
+            });
+        }
+
+        private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            var parent = VisualTreeHelper.GetParent(child);
+            while (parent is not null && parent is not T)
+            {
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+
+            return parent as T;
         }
 
         private static void OnCitationClick(object sender, RoutedEventArgs e)

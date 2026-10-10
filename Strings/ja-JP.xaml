@@ -1433,4 +1433,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_EditorNewTab">新しいタブ</sys:String>
     <sys:String x:Key="Str_TT_EditorFontGrow">フォント サイズを大きくする</sys:String>
     <sys:String x:Key="Str_TT_EditorFontShrink">フォント サイズを小さくする</sys:String>
+    <sys:String x:Key="Str_TT_EditorTable">表を挿入</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowAbove">上に行を挿入</sys:String>
+    <sys:String x:Key="Str_Editor_TableRowBelow">下に行を挿入</sys:String>
+    <sys:String x:Key="Str_Editor_TableColLeft">左に列を挿入</sys:String>
+    <sys:String x:Key="Str_Editor_TableColRight">右に列を挿入</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteRow">行を削除</sys:String>
+    <sys:String x:Key="Str_Editor_TableDeleteCol">列を削除</sys:String>
+    <sys:String x:Key="Str_Editor_TableDelete">表を削除</sys:String>
 </ResourceDictionary>
