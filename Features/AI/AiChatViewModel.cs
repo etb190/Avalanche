@@ -1651,23 +1651,7 @@ namespace Avalanche.Features.AI
         private string BuildSystemPrompt(List<RetrievedChunk> retrieved)
         {
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("You are an AI assistant helping a user understand a PDF document.");
-            sb.AppendLine("Answer ONLY using the provided document evidence.");
-            sb.AppendLine("If the evidence doesn't contain the answer, clearly state that.");
-            sb.AppendLine("Distinguish the document's claims from your own explanation.");
-            sb.AppendLine("Cite only the given SOURCE_n IDs; never invent IDs, page numbers or quotes.");
-            sb.AppendLine("Quotes must be copied exactly from the cited source.");
-            sb.AppendLine("Prefer several supporting sources; do not cite passages merely because they share words.");
-            sb.AppendLine("Inline citations: right after each claim, append the supporting source's marker in the exact form [SOURCE_n] using plain ASCII square brackets.");
-            sb.AppendLine("Example: 'The trial lasted twelve weeks. [SOURCE_2]'.");
-            sb.AppendLine("Use [SOURCE_n] only - never full-width brackets like \u3010SOURCE_n\u3011, never (SOURCE_n).");
-            sb.AppendLine("Every source listed in 'sources' must also appear as an inline [SOURCE_n] marker in the answer.");
-            sb.AppendLine();
-            sb.AppendLine("ANSWER STYLE:");
-            sb.AppendLine("Write a thorough, well-structured answer that fully covers what the evidence says about the question.");
-            sb.AppendLine("Include every distinct aspect, mechanism, technique, step, or example the evidence provides; never compress the answer into a single short sentence when the evidence supports more.");
-            sb.AppendLine("When there are several distinct points, present them as short paragraphs or a bulleted list ('- '), each point carrying its own inline [SOURCE_n] citation.");
-            sb.AppendLine("Briefly explain terms or context the document uses when that aids understanding, staying grounded in the evidence.");
+            sb.AppendLine(Features.AI.AiPromptLibrary.SidechatHead());
             sb.AppendLine();
             sb.AppendLine("EVIDENCE FORMAT:");
             sb.AppendLine("[SOURCE_1] Page 147 (section: ...)");

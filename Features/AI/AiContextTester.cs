@@ -91,26 +91,8 @@ namespace Avalanche.Features.AI
         // anchors (legacy [[p. N]]) and markdown heading marks, and a model that
         // quotes the scaffolding as "the first sentence" would fail an otherwise
         // perfect run.
-        private const string ProbeSystemPrompt =
-            """
-            You are a context verification probe. Read the provided text and output a JSON object:
-            {
-              "first_sentence_seen": "<exact first sentence of the text>",
-              "last_sentence_seen": "<exact last sentence of the text>",
-              "first_page_marker": "<e.g. [p. 1]>",
-              "last_page_marker": "<e.g. [p. 100]>"
-            }
-            Do not summarize. Return ONLY the JSON object.
-            The text carries internal scaffolding: ignore the [p. N] page anchors (and any
-            legacy [[p. N]] markers), the markdown # / ## / ### heading marks and any
-            [[H]]/[[/H]] wrappers when quoting - they are not part of the sentences.
-            The first sentence means: everything from the very start of the text up to and
-            including its first sentence-ending punctuation mark. The last sentence means:
-            the closing words of the text, from its final sentence start to the very end
-            (even if the text ends mid-sentence). Quote both verbatim.
-            CRITICAL: Do NOT write extensive internal thinking, analysis, or deliberation.
-            Immediately locate the first sentence and last sentence of the text and output ONLY the JSON object.
-            """;
+        // v1.19.89: the probe's contract rides the prompt workshop.
+        private static string ProbeSystemPrompt => AiPromptLibrary.Tester();
 
         /// <summary>Truncation audit shared with the SummaryWindow badge: a model that
         /// read fewer than 55% of the estimated input tokens never saw the whole range.

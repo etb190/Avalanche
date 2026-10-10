@@ -21,19 +21,13 @@ namespace Avalanche.Features.AI
         public static string BuildSystemPrompt(string title, string text)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("You are an AI writing, editing, and research assistant embedded in Avalanche's rich text editor.");
-            sb.AppendLine("The user is currently writing and editing a document. The live document content is provided below.");
+            // v1.19.89: the instruction set rides the prompt workshop -
+            // the DOCUMENT framing stays hardcoded after it.
+            sb.AppendLine(AiPromptLibrary.EditorSidechatHead());
             sb.AppendLine();
             sb.AppendLine($"DOCUMENT TITLE: {(string.IsNullOrWhiteSpace(title) ? "Untitled Document" : title)}");
             sb.AppendLine("DOCUMENT CONTENT:");
             sb.AppendLine(string.IsNullOrWhiteSpace(text) ? "(The document is currently empty.)" : text);
-            sb.AppendLine();
-            sb.AppendLine("GUIDELINES:");
-            sb.AppendLine("- Answer questions about the document, brainstorm, critique prose, rewrite passages, summarize, or draft new sections.");
-            sb.AppendLine("- When asked to generate, expand, or rewrite text, output the actual prose directly in clean Markdown.");
-            sb.AppendLine("- NEVER wrap your answer in JSON wrappers like {\"rewritten_text\": ...} unless the user explicitly requested a JSON format.");
-            sb.AppendLine("- When citing or referring to parts of the document, quote them directly.");
-            sb.AppendLine("- Be concise, clear, and natural.");
             return sb.ToString();
         }
     }

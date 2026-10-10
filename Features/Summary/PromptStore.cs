@@ -60,6 +60,16 @@ namespace Avalanche.Features.Summary
         public const string CatWeb = "web";
         public const string CatPdf = "pdf";
 
+        // v1.19.89: the other eight surfaces join the workshop.
+        public const string CatSidechat = "sidechat";
+        public const string CatWebSidechat = "websidechat";
+        public const string CatRecap = "recap";
+        public const string CatNotes = "notes";
+        public const string CatTester = "tester";
+        public const string CatGrammar = "grammar";
+        public const string CatRewrite = "rewrite";
+        public const string CatEditorSidechat = "editorsidechat";
+
         private static readonly object _gate = new();
         private static List<AiPromptDef>? _prompts;
 
@@ -94,7 +104,11 @@ namespace Avalanche.Features.Summary
                 {
                     var read = System.Text.Json.JsonSerializer.Deserialize<List<AiPromptDef>>(
                         File.ReadAllText(path));
-                    if (read != null) return read;
+                    if (read != null)
+                    {
+                        MergeSeeds(read);
+                        return read;
+                    }
                 }
             }
             catch
@@ -103,6 +117,24 @@ namespace Avalanche.Features.Summary
             }
 
             return Seed();
+        }
+
+        // v1.19.89: a store written by an older build lacks the newer
+        // rows - append any seed id that is missing so every category
+        // is always represented; the reader's own rows and edits are
+        // never touched.
+        private static void MergeSeeds(List<AiPromptDef> list)
+        {
+            foreach (AiPromptDef seed in Seed())
+            {
+                bool exists = false;
+                foreach (AiPromptDef p in list)
+                {
+                    if (string.Equals(p.Id, seed.Id, StringComparison.Ordinal)) { exists = true; break; }
+                }
+
+                if (!exists) list.Add(seed);
+            }
         }
 
         private static void Save()
@@ -134,7 +166,25 @@ namespace Avalanche.Features.Summary
             new AiPromptDef { Id = "philosophical_fiction", TitleKey = "Str_Genre_Philosophical", Category = CatPdf },
             new AiPromptDef { Id = "research_papers", TitleKey = "Str_Genre_Research", Category = CatPdf },
             new AiPromptDef { Id = "self_help", TitleKey = "Str_Genre_SelfHelp", Category = CatPdf },
-            new AiPromptDef { Id = "law", TitleKey = "Str_Genre_Law", Category = CatPdf }
+            new AiPromptDef { Id = "law", TitleKey = "Str_Genre_Law", Category = CatPdf },
+
+            // v1.19.89: one standard row for each fixed-voice feature,
+            // seven for the rewriter's styles. Empty bodies keep the
+            // hardcoded voices speaking; a saved body takes the seat.
+            new AiPromptDef { Id = "sidechat_standard", Title = "Standard", Category = CatSidechat },
+            new AiPromptDef { Id = "websidechat_standard", Title = "Standard", Category = CatWebSidechat },
+            new AiPromptDef { Id = "recap_standard", Title = "Standard", Category = CatRecap },
+            new AiPromptDef { Id = "notes_standard", Title = "Standard", Category = CatNotes },
+            new AiPromptDef { Id = "tester_standard", Title = "Standard", Category = CatTester },
+            new AiPromptDef { Id = "grammar_standard", Title = "Standard", Category = CatGrammar },
+            new AiPromptDef { Id = "editorsidechat_standard", Title = "Standard", Category = CatEditorSidechat },
+            new AiPromptDef { Id = "rewrite_humanize", Title = "Humanize", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_professional", Title = "Professional", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_simple", Title = "Simple", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_academic", Title = "Academic", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_jargon", Title = "Jargon", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_lengthen", Title = "Lengthen", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_shorten", Title = "Shorten", Category = CatRewrite }
         };
 
         /// <summary>Every row, a defensive copy - the caller may do what it
@@ -159,6 +209,25 @@ namespace Avalanche.Features.Summary
 
                 return list;
             }
+        }
+
+        /// <summary>The first saved body in a category, store order -
+        /// the fixed-voice features (the side chats, recap, notes,
+        /// tester, grammar, editor side chat) speak it when it exists;
+        /// null sends the built-in voice.</summary>
+        public static string? FirstBody(string category)
+        {
+            EnsureLoaded();
+            lock (_gate)
+            {
+                foreach (AiPromptDef p in _prompts!)
+                {
+                    if (!string.Equals(p.Category, category, StringComparison.Ordinal)) continue;
+                    if (!string.IsNullOrWhiteSpace(p.Body)) return p.Body;
+                }
+            }
+
+            return null;
         }
 
         public static bool Exists(string? id)

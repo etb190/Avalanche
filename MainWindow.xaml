@@ -1615,7 +1615,7 @@
                         <Button x:Name="AiTestBtn" Content="&#xE9D9;" Style="{StaticResource ToolbarButton}" Click="AiTestBtn_Click" MouseRightButtonUp="AiTestBtn_RightClick" ToolTip="{DynamicResource Str_TT_AiTest}"/>
                         <!-- The web summarizer: the navigator's stripped replica for
                              the browser's page - the globe wearing the digest mark. -->
-                        <Button x:Name="WebSumBtn" Style="{StaticResource ToolbarButton}" Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}">
+                        <Button x:Name="WebSumBtn" Style="{StaticResource ToolbarButton}" Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}" Visibility="Collapsed">
                             <Grid Width="16" Height="16">
                                 <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-2,-1"/>
@@ -3834,50 +3834,64 @@
                                      ones, aim each at the browser digest
                                      or the book window, save or delete. -->
                                 <TextBlock Text="{DynamicResource Str_AiPromptsHeader}" Style="{StaticResource AiSettingsLabel}" Margin="0,12,0,0"/>
+                                <!-- v1.19.89: the category dropdown leads - ten
+                                     surfaces, each holding its own rows. Switch
+                                     the category, then the prompt inside it. -->
+                                <TextBlock Text="{DynamicResource Str_AiPromptsCatLbl}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox x:Name="AiPromptCatBox" Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedIndex="0" SelectionChanged="AiPromptCatBox_SelectionChanged">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelSummary}" Tag="pdf"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelSidechat}" Tag="sidechat"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelWebSidechat}" Tag="websidechat"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelRecaller}" Tag="recap"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNotes}" Tag="notes"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelTester}" Tag="tester"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelEditorGrammar}" Tag="grammar"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelEditorRewrite}" Tag="rewrite"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelEditorSidechat}" Tag="editorsidechat"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelWebSummary}" Tag="web"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiPromptsPick}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox x:Name="AiPromptPick" Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           DisplayMemberPath="DisplayName"
                                           SelectionChanged="AiPromptPick_SelectionChanged"/>
                                 <TextBlock Text="{DynamicResource Str_AiPromptsTitleLbl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox x:Name="AiPromptTitleBox" Style="{StaticResource AiSettingsBox}"/>
-                                <TextBlock Text="{DynamicResource Str_AiPromptsCatLbl}" Style="{StaticResource AiSettingsLabel}"/>
-                                <ComboBox x:Name="AiPromptCatBox" Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
-                                          SelectedIndex="0">
-                                    <ComboBoxItem Content="{DynamicResource Str_AiPromptsCatWeb}"/>
-                                    <ComboBoxItem Content="{DynamicResource Str_AiPromptsCatPdf}"/>
-                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiPromptsBodyLbl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox x:Name="AiPromptBodyBox" Style="{StaticResource AiSettingsBox}" AcceptsReturn="True"
                                          TextWrapping="Wrap" Height="132" VerticalScrollBarVisibility="Auto"
                                          VerticalContentAlignment="Top"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <!-- Width Auto beats the ToolbarButton's icon-width
+                                         setter: the caption renders whole. -->
                                     <Button Content="{DynamicResource Str_AiPromptsNew}" x:Name="AiPromptNewBtn"
-                                            Click="AiPromptNewBtn_Click" Margin="0,0,8,0" Padding="10,4"
+                                            Click="AiPromptNewBtn_Click" Margin="0,0,8,0" Padding="14,4"
+                                            Width="Auto" Height="28" MinWidth="72"
                                             Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
                                     <Button Content="{DynamicResource Str_AiPromptsSave}" x:Name="AiPromptSaveBtn"
-                                            Click="AiPromptSaveBtn_Click" Margin="0,0,8,0" Padding="10,4"
+                                            Click="AiPromptSaveBtn_Click" Margin="0,0,8,0" Padding="14,4"
+                                            Width="Auto" Height="28" MinWidth="72"
                                             Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
                                     <Button Content="{DynamicResource Str_AiPromptsDelete}" x:Name="AiPromptDeleteBtn"
-                                            Click="AiPromptDeleteBtn_Click" Padding="10,4"
+                                            Click="AiPromptDeleteBtn_Click" Padding="14,4"
+                                            Width="Auto" Height="28" MinWidth="72"
                                             Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
                                 </StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
                                     <Button Content="{DynamicResource Str_AiSettingsTestConnection}"
-                                            Click="AiTestConnectionBtn_Click" Margin="0,0,8,0" Padding="10,4"
+                                            Click="AiTestConnectionBtn_Click" Margin="0,0,8,0" Padding="14,4"
+                                            Width="Auto" Height="28" MinWidth="72"
                                             Style="{StaticResource ToolbarButton}" FontSize="11"
                                             FontFamily="{DynamicResource UiFont}"/>
                                     <Button Content="{DynamicResource Str_AiSettingsOllamaPreset}"
-                                            Click="AiOllamaPresetBtn_Click" Padding="10,4"
+                                            Click="AiOllamaPresetBtn_Click" Padding="14,4"
+                                            Width="Auto" Height="28" MinWidth="72"
                                             Style="{StaticResource ToolbarButton}" FontSize="11"
                                             FontFamily="{DynamicResource UiFont}"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding ConnectionStatus}" TextWrapping="Wrap"
                                            FontFamily="{DynamicResource UiFont}" FontSize="11"
                                            Foreground="{DynamicResource MutedTextBrush}" Margin="0,4,0,10"/>
-                                <Button Content="{DynamicResource Str_AiSettingsClose}"
-                                        Click="AiSettingsCloseBtn_Click" Padding="10,4" HorizontalAlignment="Left"
-                                        Style="{StaticResource ToolbarButton}" FontSize="11"
-                                        FontFamily="{DynamicResource UiFont}"/>
                             </StackPanel>
                         </ScrollViewer>
                     </Border>

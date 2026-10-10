@@ -422,12 +422,7 @@ namespace Avalanche.Features.Summary
         // condense:"), the order itself as the system message - the standard
         // two-message shape the provider bridge already speaks.
         private static string CondenseSystemPrompt(string language) =>
-            "Condense the following text into a single short paragraph of 3-4 sentences.\n" +
-            "Capture only the essential points — the most important facts, findings, events, or takeaways.\n" +
-            "Drop all detail, examples, and elaboration.\n" +
-            "Write it as flowing prose, not bullets.\n" +
-            "\n" +
-            $"Respond in {language} only.";
+            Features.AI.AiPromptLibrary.Condense(language);
 
         // The recap answers in the reader's chosen digest language (the
         // navigator's language dropdown persists it); English until they say

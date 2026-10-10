@@ -1756,22 +1756,8 @@ namespace Avalanche.Controls
                 string ignoredList = ignored.Count == 0
                     ? "(none)"
                     : string.Join(", ", ignored.Take(200));
-                string system =
-                    "You are an expert copyeditor and proofreader.\n" +
-                    "Scan the provided text and identify all misspelled words, poor word choices, and grammatical mistakes.\n" +
-                    "DO NOT flag words in this ignored list: [" + ignoredList + "].\n" +
-                    "\n" +
-                    "Output ONLY valid JSON with this exact schema (no markdown, no conversational text):\n" +
-                    "{\n" +
-                    "  \"errors\": [\n" +
-                    "    {\n" +
-                    "      \"word\": \"exact misspelled/poor word in text\",\n" +
-                    "      \"suggestion\": \"corrected replacement\",\n" +
-                    "      \"reason\": \"Spelling|Grammar|Word Choice\"\n" +
-                    "    }\n" +
-                    "  ]\n" +
-                    "}\n" +
-                    "If there are no errors, return: {\"errors\": []}";
+                // v1.19.89: the copyeditor's scan rides the prompt workshop.
+                string system = Features.AI.AiPromptLibrary.Grammar(ignoredList);
                 var config = AiConfig(Features.AI.AiSurface.EditorGrammar);
                 var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
                     .GetChatCompletionAsync(
@@ -1926,52 +1912,11 @@ namespace Avalanche.Controls
             }
         }
 
-        private static string AiRewriteSystem(string style) => style switch
-        {
-            "professional" =>
-                "You are a professional rewriter. Rewrite the provided text crisp, " +
-                "direct and active-voiced, workplace-appropriate, clear and polite. " +
-                "Keep the meaning exactly. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-            "simple" =>
-                "You are a plain-language rewriter. Rewrite the provided text in plain " +
-                "English at an 8th-grade reading level (Flesch-Kincaid 60 or higher): " +
-                "short words, direct active sentences, no jargon. Keep the meaning " +
-                "exactly - do not add or drop facts. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-            "academic" =>
-                "You are an academic rewriter. Rewrite the provided text with disciplined, " +
-                "scholarly vocabulary and formal analytical framing. Keep the meaning " +
-                "exactly. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-            "jargon" =>
-                "You are a jargon rewriter. Rewrite the provided text as deliberately " +
-                "dense, bureaucratic prose - heavy nominalizations, passive voice, " +
-                "corporate and academic buzzwords - so that it becomes harder to read " +
-                "and understand. Do not change the underlying claims. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-            "lengthen" =>
-                "You are a lengthening rewriter. Elaborate and expand the phrasing of " +
-                "the provided text purely to make it longer - richer transitions, " +
-                "fuller sentences, more restatement - WITHOUT adding any new facts, " +
-                "substance, examples or ideas that are not already there. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-            "shorten" =>
-                "You are a condensing rewriter. Rewrite the provided text ruthlessly " +
-                "condensed to its core meaning - eliminate every trace of fluff, filler " +
-                "and repetition. Keep every surviving claim accurate. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-            _ =>
-                "You are a humanizing rewriter. Rewrite the provided text so it reads as " +
-                "naturally, quietly human prose. Vary sentence length hard - mix short " +
-                "three-word punches with longer, unhurried sentences (high burstiness). " +
-                "These words and phrases are BANNED: delve, testament, tapestry, crucial, " +
-                "pivotal, foster, intertwined, multifaceted, underscores, moreover, beacon, " +
-                "furthermore, in conclusion. Break up three-part parallelisms. Prefer " +
-                "natural idioms and everyday contractions (it's, don't, can't). Keep the " +
-                "meaning exactly. " +
-                "Return ONLY the rewritten text - no quotes, no explanations, no markdown fences.",
-        };
+        // v1.19.89: the seven styles ride the prompt workshop - each
+        // row is addressed rewrite_<style>, the humanize voice answering
+        // for anything the menu never sent.
+        private static string AiRewriteSystem(string style) =>
+            Features.AI.AiPromptLibrary.Rewrite(string.IsNullOrWhiteSpace(style) ? "humanize" : style);
 
         // The rewrite stream rides one shared client: the engine's own
         // connection pool, no per-call setup, the body read as it lands.

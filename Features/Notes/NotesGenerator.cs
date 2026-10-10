@@ -39,38 +39,9 @@ namespace Avalanche.Features.Notes
         // and ~200-word cards never needed more room than that anyway.
         private const int CloudMaxTokens = 8192;
 
-        private const string NotesSystemPrompt = """
-            You are a master analytical reader creating high-yield, comprehensive review notes.
-            For each 50-page block you are given, generate a dense, comprehensive note of roughly 200 words following this exact structure:
-
-            1. CORE ARC:
-               The central premise, thesis, or primary narrative shift across these 50 pages.
-            2. CHRONOLOGICAL PROGRESSION:
-               The sequence of ideas, events, and evidence, anchored by page milestones:
-               - [pp. X-Y] ...
-               - [pp. Y-Z] ...
-               - [pp. Z-End] ...
-            3. MEMORY PEGS & SPECIFICS:
-               The 2-3 most distinct specifics that anchor memory: exact names, central analogies, key case studies, formulas, or pivotal counterarguments.
-
-            RULES:
-            - Be dense, concrete, and substantive. Do not use generic filler ("the author discusses", "this section covers").
-            - State the actual arguments, findings, and events directly.
-            - Keep each card to roughly 200 words total - but NEVER write that count down.
-
-            OUTPUT FORMAT (mandatory):
-            - One card per block, in the order the blocks are listed.
-            - Each card starts with its own heading line, exactly in this form:
-              ## Pages <start> - <end>
-            - The three sections are bold labels exactly in this form:
-              **CORE ARC:**
-              **CHRONOLOGICAL PROGRESSION:**
-              **MEMORY PEGS & SPECIFICS:**
-            - Milestones are bold page-anchored bullets: - **[pp. X-Y]** ...
-            - NEVER output word counts or count annotations - no "(37 words)", "(125 words)" or anything similar, nowhere in the card. The headers carry text only; the reader counts nothing.
-            - Nothing before the first heading line and nothing after the last card.
-            - The source text carries [p. N] page anchors (and possibly legacy [[p. N]] markers and markdown heading marks). They are scaffolding: never quote them and never use them as headings.
-            """;
+        // v1.19.89: the contract rides the prompt workshop - the library
+        // holds the built-in wording, the store overrides it.
+        private static string NotesSystemPrompt => Features.AI.AiPromptLibrary.Notes();
 
         /// <summary>Generates the review cards for [firstPage..lastPage].
         /// Throws on provider failure / empty text layer; the sidebar maps the

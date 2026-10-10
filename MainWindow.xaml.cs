@@ -1811,12 +1811,24 @@ namespace Avalanche
         private bool _promptWiring;   // the rebuild must not answer its own SelectionChanged
         private Features.Summary.AiPromptDef? _promptEditing;   // null = a new row waiting for Save
 
+        // v1.19.89: ten categories, the dropdown the reader switches before
+        // the prompt dropdown - each category holds its own rows, in store
+        // order, and the editors below work on whatever it selects.
+        private static readonly string[] PromptCatTags =
+            { "pdf", "sidechat", "websidechat", "recap", "notes", "tester", "grammar", "rewrite", "editorsidechat", "web" };
+
+        private string SelectedPromptCat()
+        {
+            int i = AiPromptCatBox.SelectedIndex;
+            return i >= 0 && i < PromptCatTags.Length ? PromptCatTags[i] : PromptCatTags[0];
+        }
+
         private void RefreshPromptWorkshop()
         {
             if (AiPromptPick is null) return;
+            var rows = Features.Summary.PromptStore.For(SelectedPromptCat());
             string keep = _promptEditing?.Id
                 ?? (AiPromptPick.SelectedItem is Features.Summary.AiPromptDef sel ? sel.Id : "");
-            var rows = Features.Summary.PromptStore.All();
             Features.Summary.AiPromptDef? pick = null;
             foreach (var p in rows)
             {
@@ -1826,8 +1838,8 @@ namespace Avalanche
             _promptWiring = true;
             AiPromptPick.ItemsSource = rows;
             AiPromptPick.DisplayMemberPath = "DisplayName";
-            AiPromptPick.SelectedItem = pick;
-            if (pick is null) _promptEditing = null;
+            AiPromptPick.SelectedItem = pick ?? (rows.Count > 0 ? rows[0] : null);
+            _promptEditing = AiPromptPick.SelectedItem as Features.Summary.AiPromptDef;
             FillPromptFields();
             _promptWiring = false;
         }
@@ -1838,33 +1850,34 @@ namespace Avalanche
             if (p is null)
             {
                 AiPromptTitleBox.Text = "";
-                AiPromptCatBox.SelectedIndex = 0;
                 AiPromptBodyBox.Text = "";
                 return;
             }
 
+            int catIdx = Array.IndexOf(PromptCatTags, p.Category);
+            AiPromptCatBox.SelectedIndex = catIdx < 0 ? 0 : catIdx;   // the caller holds the wiring guard
             AiPromptTitleBox.Text = p.DisplayName;
-            AiPromptCatBox.SelectedIndex = string.Equals(p.Category, Features.Summary.PromptStore.CatWeb, StringComparison.Ordinal) ? 0 : 1;
             AiPromptBodyBox.Text = PromptBodyForEditor(p);
         }
 
-        // An untouched built-in shows the hardcoded voice's own text, the
-        // word count left as a {words} placeholder - editing and saving
-        // turns it into the row's body from then on.
+        // An untouched built-in shows the hardcoded voice's own text - the
+        // library holds every wording the features speak, placeholders and
+        // all - editing and saving turns it into the row's body from then on.
         private static string PromptBodyForEditor(Features.Summary.AiPromptDef p)
-        {
-            if (!string.IsNullOrWhiteSpace(p.Body)) return p.Body;
-            string id = p.Id;
-            if (id.StartsWith("web_", StringComparison.Ordinal)) id = id[4..];
-            try { return Features.Summary.PageSummarizer.BuiltinMandateTemplate(id); }
-            catch { return ""; }
-        }
+            => Features.AI.AiPromptLibrary.EditorBodyFor(p);
 
         private void AiPromptPick_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (_promptWiring) return;
             _promptEditing = AiPromptPick.SelectedItem as Features.Summary.AiPromptDef;
             FillPromptFields();
+        }
+
+        private void AiPromptCatBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_promptWiring) return;
+            _promptEditing = null;
+            RefreshPromptWorkshop();
         }
 
         private void AiPromptNewBtn_Click(object sender, RoutedEventArgs e)
@@ -1874,7 +1887,6 @@ namespace Avalanche
             AiPromptPick.SelectedItem = null;
             _promptWiring = false;
             AiPromptTitleBox.Text = "";
-            AiPromptCatBox.SelectedIndex = 0;
             AiPromptBodyBox.Text = "";
             AiPromptTitleBox.Focus();
         }
@@ -1890,9 +1902,7 @@ namespace Avalanche
                 Id = Features.Summary.PromptStore.NewId()
             };
             if (title.Length > 0) { def.Title = title; def.TitleKey = ""; }
-            def.Category = AiPromptCatBox.SelectedIndex == 0
-                ? Features.Summary.PromptStore.CatWeb
-                : Features.Summary.PromptStore.CatPdf;
+            def.Category = SelectedPromptCat();
             def.Body = body;
             Features.Summary.PromptStore.Upsert(def);
             _promptEditing = def;
@@ -2600,6 +2610,7 @@ namespace Avalanche
                 Features.Summary.RecapController.Dismiss();
             }
             WebPaneHost.Visibility = Visibility.Visible;
+            WebSumBtn.Visibility = Visibility.Visible;   // the browser summary chip rides the pane (v1.19.89)
             WebPane.OnPaneShown();
             EnterWebSidebarMode();
             ApplyBrowserToolbarFace(leads: true);
@@ -2619,6 +2630,7 @@ namespace Avalanche
         {
             if (WebPaneHost.Visibility != Visibility.Visible) return;
             WebPaneHost.Visibility = Visibility.Collapsed;
+            WebSumBtn.Visibility = Visibility.Collapsed;   // back to the book - the globe leaves with the pane
             WebPane.OnPaneHidden();
             ExitWebSidebarMode();
             ApplyBrowserToolbarFace(leads: false);

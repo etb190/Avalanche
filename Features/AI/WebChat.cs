@@ -185,24 +185,7 @@ namespace Avalanche.Features.AI
         {
             var segments = SplitPageSegments(page.Text);
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("You are an AI assistant helping a user understand the web page they are reading in the app's browser.");
-            sb.AppendLine("The page's text is provided below as numbered evidence segments, extracted from the live tab the user has open.");
-            sb.AppendLine("Answer ONLY using that page text and the conversation so far.");
-            sb.AppendLine("If the page text doesn't contain the answer, clearly say so.");
-            sb.AppendLine("Distinguish the page's own claims from your own explanation.");
-            sb.AppendLine("Never invent page content, quotes, prices, dates or numbers the text does not carry.");
-            sb.AppendLine();
-            sb.AppendLine("ANSWER STYLE:");
-            sb.AppendLine("Write a thorough, well-structured markdown answer that fully covers what the page says about the question.");
-            sb.AppendLine("When the page presents several distinct points, answer with short paragraphs or a bulleted list ('- ').");
-            sb.AppendLine("Briefly explain terms or context the page assumes when that aids understanding, staying grounded in the page's own text.");
-            sb.AppendLine();
-            sb.AppendLine("CITATIONS:");
-            sb.AppendLine("Inline citations: right after each claim, append the supporting segment's marker in the exact form [SOURCE_n] using plain ASCII square brackets.");
-            sb.AppendLine("Example: 'The trial lasted twelve weeks. [SOURCE_2]'.");
-            sb.AppendLine("Use [SOURCE_n] only - never full-width brackets like \u3010SOURCE_n\u3011, never (SOURCE_n).");
-            sb.AppendLine("Cite only the given SOURCE_n ids; never invent ids or quotes. Quotes must be copied exactly from the cited segment's text.");
-            sb.AppendLine("Every source listed in 'sources' must also appear as an inline [SOURCE_n] marker in the answer.");
+            sb.AppendLine(AiPromptLibrary.WebSidechatHead());
             sb.AppendLine();
             sb.AppendLine("PAGE:");
             sb.Append("TITLE: ").AppendLine(string.IsNullOrEmpty(page.Title) ? "(untitled)" : page.Title);
