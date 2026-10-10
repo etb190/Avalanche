@@ -1,336 +1,281 @@
-# TASK: TextEditor Refinements, Bug Fixes & Streaming (v1.19.79)
+# TASK: AI Subsystem Overhaul, Word Count Fix, Streaming, Interactive Tables & UI Refinements
 
 Repository: `https://github.com/etb190/Avalanche`  
 Target Files:
+- `Features/Summary/PageSummarizer.cs`
+- `Features/Summary/SummaryWindow.xaml.cs`
+- `Features/Summary/WebSummaryWindow.xaml.cs`
+- `Features/Summary/PromptStore.cs`
+- `Features/AI/AiMarkdown.cs`
+- `Features/AI/AiPromptLibrary.cs`
+- `Features/AI/prompts.default.json`
+- `Features/AI/OpenAiCompatibleProvider.cs`
+- `Features/AI/AiChatViewModel.cs`
+- `Features/AI/HybridRetriever.cs`
+- `Features/AI/OllamaEmbeddingClient.cs`
+- `Features/AI/WebChat.cs`
 - `Controls/TextEditorControl.xaml`
 - `Controls/TextEditorControl.xaml.cs`
 - `Controls/TextEditorDocument.cs`
-- `MainWindow.xaml.cs` (if sidebar rail wiring requires adjustment)
+- `MainWindow.xaml`
+- `MainWindow.xaml.cs`
+- `Shell/SettingsPanel.cs`
 
 ---
 
-## 1. Fix Cycle Line Spacing Icon (MDL2 Parity)
+## 1. Summary Word Count Explosion & Hidden C# Heading Overhaul
 
-### Issue:
-`SpacingBtn` in `Controls/TextEditorControl.xaml` currently renders a raw Unicode up-down arrow `&#x2195;` inside a TextBlock, which looks broken and does not match the Segoe MDL2 icon family used by all other toolbar buttons.
+### Problem:
+When a user selects a 500-word limit in the PDF Summarizer, cloud models (Nemotron, GLM, DeepSeek) generate 4,000–5,000 words. 
+1. **Hidden C# Injection (`PageSummarizer.cs`):** In `DigestSystemPrompt()`, C# invisibly appends a hardcoded `BOOK HEADINGS` block that commands the model:
+   *"Copy each one VERBATIM as a markdown '### ' heading and summarize the text that follows it under that heading, in flowing prose paragraphs."*
+   In a 30–60 page PDF excerpt, `MarkdownNormalizer` extracts 15–25 headings from font sizes. The model is forced to generate a `### ` heading and multiple paragraphs for every single heading in the book, mathematically exploding into 4,000 words.
+2. **Invisible Wrapper vs. Workshop:** The AI Prompts Workshop in Settings only exposes `prompts.json` (`GenreMandate`), while C# secretly wraps it in 300 words of rigid formatting laws, preventing the user from controlling prompt behavior.
 
-### Fix:
-In `Controls/TextEditorControl.xaml`:
-Change `SpacingBtn` to use the standard Segoe MDL2 line spacing glyph `&#xE8D2;` (LineSpacing):
-```xml
-<Button x:Name="SpacingBtn" Content="&#xE8D2;" Style="{StaticResource EditorBtn}"
-        Click="SpacingBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSpacing}"/>
-```
-Remove the inner `<TextBlock Text="&#x2195;"/>`. By setting `Content="&#xE8D2;"` directly on the button, it inherits `FontFamily="Segoe MDL2 Assets"` and `FontSize="16"` from `EditorBtn`.
-
----
-
-## 2. Fix Quotes Behavior (Inline Quote Selection vs Blockquote)
-
-### Issue:
-When a portion of text within a paragraph is selected and the user clicks Quote or presses `Ctrl+Shift+B`, Quill converts the entire paragraph into a blockquote instead of quoting only the selected words.
-
-### Fix:
-In `Controls/TextEditorDocument.cs`, update `quote()` to distinguish between an active text selection and a resting caret:
-```javascript
-function quote(){
-  var sel = quill.getSelection();
-  if (sel && sel.length > 0){
-    var text = quill.getText(sel.index, sel.length);
-    // If selected text is already wrapped in curly or straight quotes, toggle quotes off
-    if ((text.startsWith('“') && text.endsWith('”')) || (text.startsWith('"') && text.endsWith('"'))){
-      var unquoted = text.slice(1, -1);
-      quill.deleteText(sel.index, sel.length, 'user');
-      quill.insertText(sel.index, unquoted, 'user');
-      quill.setSelection(sel.index, unquoted.length, 'user');
-    } else {
-      // Wrap selection in typographic curly quotation marks
-      var quoted = '“' + text + '”';
-      quill.deleteText(sel.index, sel.length, 'user');
-      quill.insertText(sel.index, quoted, 'user');
-      quill.setSelection(sel.index, quoted.length, 'user');
-    }
-    reportState();
-    return;
-  }
-  // When no text is selected (caret resting), toggle blockquote on the current block
-  var f = quill.getFormat();
-  quill.format('blockquote', !f.blockquote, 'user');
-  reportState();
-}
-```
+### Requirements & Fix:
+1. **Remove Hidden C# Wrappers in `PageSummarizer.cs`:**
+   - Remove the hardcoded `BOOK HEADINGS` requirement from `DigestSystemPrompt()`.
+   - Remove the invisible trailing rules that force verbatim section reproduction.
+   - Let the prompt body from `PromptStore` / `prompts.json` be the true system prompt, substituting only standard placeholders:
+     - `{words}`: Target word count from dropdown (e.g., `500`).
+     - `{language}`: Output language from dropdown (e.g., `English`).
+2. **Keep the Beautiful Green Headings Without Exploding:**
+   - In Avalanche, `AiMarkdown.cs` renders any markdown heading (`### ` or `## `) with `PrimaryBrush` (the green accent theme color).
+   - In the prompt body (e.g., `nonfiction_classic`), explicitly instruct the model to organize the summary into a small, structured set of sections:
+     > *"Structure the summary into 2 to 4 overarching thematic sections using markdown `### ` headings. Under each heading, write concise flowing prose paragraphs. Connect ideas logically and ensure the total length across all sections strictly stays around approximately {words} words (do NOT exceed {words} words)."*
+   - Also include a short scaffolding note in the prompt:
+     > *"The text carries internal `[p. N]` page markers for reference; do not include these markers in your summary."*
+3. **CRITICAL: Preserve User-Created & User-Edited Prompts:**
+   - When loading or updating `PromptStore`, do **NOT** overwrite, wipe, or reset any custom prompts that users have added or edited in `%LocalAppData%\Avalanche\AI\prompts.json`.
+   - Only supply default bodies for built-in prompt IDs when the user's file does not contain them.
 
 ---
 
-## 3. Remove Redundant Header Type (Keep Only H1 and H2)
+## 2. Fix Global Semaphore Serializing All AI Across the App
 
-### Issue:
-There are currently three header buttons: `HeaderBtn` (`H`), `H1Btn` (`H1`), and `H2Btn` (`H2`). Only `H1` and `H2` are wanted.
-
-### Fix:
-1. **`Controls/TextEditorControl.xaml`**:
-   Remove `HeaderBtn` (`H`). Keep only `H1Btn` (`H1`) and `H2Btn` (`H2`):
-   ```xml
-   <ToggleButton x:Name="H1Btn" Style="{StaticResource EditorToggle}"
-                 Click="H1Btn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader1}">
-       <TextBlock Text="&#x48;1" FontWeight="Bold" FontSize="15" FontFamily="Georgia"/>
-   </ToggleButton>
-   <ToggleButton x:Name="H2Btn" Style="{StaticResource EditorToggle}"
-                 Click="H2Btn_Click" ToolTip="{DynamicResource Str_TT_EditorHeader2}">
-       <TextBlock Text="&#x48;2" FontWeight="Bold" FontSize="13" FontFamily="Georgia"/>
-   </ToggleButton>
-   ```
-2. **`Controls/TextEditorControl.xaml.cs`**:
-   - Remove `HeaderBtn_Click`.
-   - Update `H1Btn_Click` to apply level 1: `Post(new { cmd = "header", level = 1 }); RefocusEditor();`
-   - Update `H2Btn_Click` to apply level 2: `Post(new { cmd = "header", level = 2 }); RefocusEditor();`
-   - Update `reportState` handler in `TextEditorControl.xaml.cs`:
-     ```csharp
-     int h = PropInt(r, "h");
-     SetToggle(H1Btn, h == 1);
-     SetToggle(H2Btn, h == 2);
-     ```
-
----
-
-## 4. Fix Caret Reversal Bug ("dog" -> "god") & Smart Typing
-
-### Issue:
-Typing sometimes enters characters in reverse order (e.g. typing "dog" produces "god") because the keydown interceptor in `TextEditorDocument.cs`:
-1. Used the faulty regex `/[.!?'\s]+$/`, matching *any* space and firing on every single word.
-2. Intercepted the keystroke and called `quill.insertText(...)` or `quill.updateContents(...)` **without advancing Quill's selection**. Because Quill does not move the caret automatically on synthetic inserts, the caret remained at the original offset, causing subsequent keystrokes to insert before previously typed letters.
-
-### Fix:
-In `Controls/TextEditorDocument.cs`, fix the smart typing listener:
-```javascript
-quill.root.addEventListener('keydown', function(e){
-  if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
-  if (e.key.length !== 1) return;
-  var sel = quill.getSelection();
-  if (!sel || sel.length) return;
-  var idx = sel.index;
-  var before = quill.getText(0, idx);
-
-  // 1. Autocorrect standalone lowercase 'i' to 'I ' when followed by space
-  if (e.key === ' ' && /(^|\s)i$/.test(before)){
-    e.preventDefault();
-    quill.updateContents({ ops: [ { retain: idx - 1 }, { delete: 1 }, { insert: 'I ' } ] }, 'user');
-    quill.setSelection(idx + 1, 0, 'silent');
-    reportState();
-    return;
-  }
-
-  // 2. Auto-capitalize sentence start: at start of block or after [.!?] + spaces
-  if (/^[a-z]$/.test(e.key)){
-    var lineInfo = quill.getLine(idx);
-    var atBlockStart = !!(lineInfo && lineInfo[1] === 0);
-    var afterSentencePunct = /[.!?]\s+$/.test(before);
-
-    if (atBlockStart || afterSentencePunct){
-      e.preventDefault();
-      var upper = e.key.toUpperCase();
-      quill.insertText(idx, upper, 'user');
-      quill.setSelection(idx + 1, 0, 'silent');
-      reportState();
-    }
-  }
-}, true);
-```
-
----
-
-## 5 & 6. Fix Escaped Quotes (`\"`) and Raw JSON Leak (`{"rewritten_text": ...}`)
-
-### Issue:
-AI models frequently output JSON structures (e.g. `{"rewritten_text": "..."}`) with escaped quotes (`\"Winterbust\"`) or markdown fences. The text editor was directly inserting the raw unparsed JSON string into Quill.
-
-### Fix:
-In `Controls/TextEditorControl.xaml.cs`, implement clean extraction in `RunAiSelectionAsync` before dispatching to the document:
+### Problem:
+In `Features/AI/OpenAiCompatibleProvider.cs`:
 ```csharp
-private static string CleanAiGeneratedText(string raw)
+private static readonly SemaphoreSlim SharedChatSemaphore = new(1, 1);
+```
+Every single AI call in Avalanche (Sidechat questions, PDF summarization, Notes generation, Grammar proofreading, Rewrite bubble, Connection Test) waits on this single global lock. If a large PDF summary is running, typing in AI Sidechat freezes and deadlocks until the summary completes.
+
+### Fix:
+1. Remove `SharedChatSemaphore = new(1, 1)` as a process-wide blocker.
+2. Implement surface-scoped concurrency or a multi-slot throttler (e.g. allowing Sidechat and Quick Actions to execute in parallel with a background Page Summarizer).
+3. If an individual endpoint host requires rate-limiting (e.g. local Ollama), scope the gate per-host (`BaseUrl`), not globally across all surfaces and cloud providers.
+
+---
+
+## 3. Enable Live Streaming in AI Sidechat
+
+### Problem:
+`PageSummarizer` and the Text Editor rewriter already use Server-Sent Events (SSE) streaming (`stream: true`). However, `AiChatViewModel.cs` calls `GetChatCompletionAsync` (non-streaming). When asking questions in the Sidechat, the user stares at a static "Thinking..." placeholder for 20–60 seconds before the entire markdown payload drops at once.
+
+### Fix:
+1. In `Features/AI/AiChatViewModel.cs` (`SendMessageAsync`):
+   - Replace the one-shot `GetChatCompletionAsync` call with `OpenAiCompatibleProvider.GetChatCompletionStreamAsync`.
+2. As chunks/deltas arrive via SSE:
+   - Append to the active assistant message and update the UI in real-time.
+   - Maintain full citation parsing and thought trace handling (`<think>` blocks).
+
+---
+
+## 4. Fix Semantic Vector Search for Cloud Users
+
+### Problem:
+In `HybridRetriever.cs` and `OllamaEmbeddingClient.cs`, vector similarity search only functions if local Ollama is running on localhost with `embeddinggemma:latest` installed. Users configured with cloud models (OpenAI, OpenRouter, Google Gemini) have vector search permanently disabled and silently degrade to BM25 keyword matching.
+
+### Fix:
+1. Generalize the embedding client in `Features/AI/`:
+   - Support standard OpenAI-compatible `/v1/embeddings` endpoints (e.g. `text-embedding-3-small`, OpenRouter embeddings).
+   - Support Google Gemini embedding endpoints when Google identity is active.
+2. In `HybridRetriever.cs`:
+   - Route embedding requests through the active provider's embedding configuration so cloud users get hybrid semantic + lexical retrieval.
+
+---
+
+## 5. Prevent Quadratic Document Re-Transmission on Every Chat Turn
+
+### Problem:
+In `WebChat.cs` and `AiChatViewModel.cs`, every follow-up message in a conversation re-attaches the full document or webpage extraction (up to 160,000 characters) into the conversation history. On multi-turn chats, token consumption explodes quadratically, context limits are quickly exceeded, and latency spikes.
+
+### Fix:
+1. Anchor document and webpage source extracts only once in the initial system/context turn.
+2. For subsequent conversational turns, send only the rolling chat history and new retrieved RAG chunks, rather than re-prepending the entire raw document text on every turn.
+
+---
+
+## 6. Prevent Small Talk Regex from Intercepting Legitimate Queries
+
+### Problem:
+In `AiChatViewModel.cs`, `IsSmallTalk` uses client-side regex to intercept greetings (`hi`, `hello`, `hey`) and immediately returns a hardcoded canned greeting. If a user asks a real question that begins with a polite greeting (e.g. *"Hi, what is the conclusion on page 12?"*), the regex fires, completely ignores the document, and returns a canned "Hello! How can I help you?".
+
+### Fix:
+1. Update `IsSmallTalk` to strictly match standalone greetings (e.g. the message contains *only* a greeting with no trailing query words or punctuation).
+2. If the message length exceeds ~20 characters or contains substantive question words (`what`, `why`, `how`, `page`, `summarize`, etc.), do NOT treat it as small talk; send it to the model with document context.
+
+---
+
+## 7. Fix Scrolling Locked to Top During Live Streaming
+
+### Problem:
+In `SummaryWindow.xaml.cs` and `WebSummaryWindow.xaml.cs`, while a summary is streaming, users cannot scroll down to read along. Any attempt to scroll down is violently jerked back up to the top (position 0).
+
+### Root Cause:
+`_typeTimer` ticks every 20ms to paint newly arrived text:
+```csharp
+DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+```
+This triggers `AiMarkdown.OnTextChanged` $\rightarrow$ `AiMarkdown.Render`:
+```csharp
+var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
+rtb.Document = doc; // Replaces FlowDocument!
+```
+In WPF, assigning a brand-new `FlowDocument` to a `RichTextBox` (`rtb.Document = doc`) destroys the visual tree and resets `VerticalOffset` to 0 (the top). Because this happens 50 times per second, the scroll position is forcibly reset to the top continuously during streaming.
+
+### Fix:
+1. In `AiMarkdown.cs` / `SummaryWindow.xaml.cs` / `WebSummaryWindow.xaml.cs`:
+   - Before setting `rtb.Document = doc`, record `double currentOffset = rtb.VerticalOffset;`.
+   - If the user has scrolled down (`currentOffset > 0`), restore the scroll position immediately after layout updates via `rtb.ScrollToVerticalOffset(currentOffset)`.
+   - Alternatively, only auto-scroll to the bottom if the user is already at the bottom; if the user has manually scrolled up or down to read, do not jump their scroll position.
+
+---
+
+## 8. Ribbon Toolbar: Move Browser Summary Button to the Left Side
+
+### Problem:
+In the browser ribbon toolbar, `WebSumBtn` currently sits on the right side of the pane buttons (`PdfEditorBtn`). In the PDF editor ribbon, the Summarize button sits on the left side of the action tools. The layout is inconsistent.
+
+### Fix:
+1. In `MainWindow.xaml`:
+   - Move `WebSumBtn` to the left side of the browser action tools (to the left of `TextEditorBtn` and `PdfEditorBtn`), matching the placement of `SummarizeBtn` in the PDF editor ribbon.
+2. In `Shell/SettingsPanel.cs` (`ApplyBrowserToolbarFace`):
+   - Ensure the toolbar reflow and visibility toggles respect the updated position on the left.
+
+---
+
+## 9. Fully Functional, Interactive Tables in Text Editor
+
+### Problem:
+The Text Editor lacks table creation and editing tools. Users cannot insert tables, edit rows or columns, or navigate table cells smoothly, forcing reliance on external editors.
+
+### Technical Foundation:
+Avalanche uses Quill.js v2 bundled offline in `Resources/Scripts/quill.min.js`. The bundled library already includes the full native Quill 2 Table API (`insertTable`, `insertRowAbove`, `insertRowBelow`, `insertColumnLeft`, `insertColumnRight`, `deleteRow`, `deleteColumn`, `deleteTable`).
+
+### Implementation Details:
+1. **Enable Quill Table Module in `Controls/TextEditorDocument.cs`:**
+   ```javascript
+   var quill = new Quill('#editor', {
+     theme: 'snow',
+     placeholder: '',
+     modules: {
+       table: true,
+       toolbar: false,
+       history: { delay: 400, maxStack: 500, userOnly: true }
+     }
+   });
+   ```
+2. **Table Styling in `Controls/TextEditorDocument.cs`:**
+   Add clean, professional CSS styling for tables:
+   ```css
+   .ql-editor table {
+     border-collapse: collapse;
+     width: 100%;
+     margin: 16px 0;
+     table-layout: auto;
+   }
+   .ql-editor td, .ql-editor th {
+     border: 1px solid #d0d7de;
+     padding: 8px 12px;
+     min-width: 48px;
+     vertical-align: top;
+     box-sizing: border-box;
+   }
+   /* Inverse / Dark Mode Support */
+   body.az-inv .ql-editor td, body.az-inv .ql-editor th {
+     border-color: #444c56;
+   }
+   /* Cell selection & focus outline */
+   .ql-editor td:focus, .ql-editor th:focus {
+     outline: 1.5px solid #4a90d9;
+     outline-offset: -1px;
+   }
+   ```
+3. **Toolbar Button in `Controls/TextEditorControl.xaml`:**
+   - Add a `TableBtn` on the editor ribbon beside Image / Footnote:
+     ```xml
+     <Button x:Name="TableBtn" Content="&#xE8EC;" Style="{StaticResource EditorBtn}"
+             Click="TableBtn_Click" ToolTip="{DynamicResource Str_TT_EditorTable}"/>
+     ```
+   - In `Controls/TextEditorControl.xaml.cs`:
+     - Clicking `TableBtn` opens a compact table insertion popup (or inserts a default 3×3 grid) via:
+       `Post(new { cmd = "insertTable", rows = 3, cols = 3 });`
+4. **Interactive Table Operations (Contextual Actions):**
+   - In `TextEditorDocument.cs`, track selection changes (`editor-change` / `selection-change`).
+   - If the caret or selection is inside a `td` or `th`:
+     - Report `inTable: true` to WPF in `reportState()`.
+   - Implement handlers in `TextEditorDocument.cs` for table commands:
+     - `table.insertTable(rows, cols)`
+     - `table.insertRowAbove()`
+     - `table.insertRowBelow()`
+     - `table.insertColumnLeft()`
+     - `table.insertColumnRight()`
+     - `table.deleteRow()`
+     - `table.deleteColumn()`
+     - `table.deleteTable()`
+   - Provide intuitive UI access: either contextual toolbar buttons enabled when `inTable` is true, or a sleek floating bubble/context-menu offering row/column insertion and deletion.
+5. **Keyboard Navigation & Behavior:**
+   - Handle `Tab` inside a cell to advance to the next cell.
+   - If `Tab` is pressed in the last cell of the table, automatically insert a new row below and move caret into the first cell of the new row.
+   - Handle `Shift+Tab` to move to the previous cell.
+6. **Undo/Redo & Persistence:**
+   - Ensure all table insertions and edits register with Quill's `history` module for seamless `Ctrl+Z` / `Ctrl+Y` undo/redo.
+   - Ensure the HTML serializer (`dump` / `save`) serializes `<table>` elements cleanly and restores them on load.
+
+---
+
+## 10. Fix AI Sidechat Jerky / Buggy Scrolling
+
+### Problem:
+Scrolling the message history in the AI Sidechat is glitchy, rubber-banding, and jerking back and forth when the mouse cursor is over chat message bubbles. Scrolling over the bottom input prompt area or empty margins is completely smooth.
+
+### Root Cause:
+In `MainWindow.xaml`:
+`AiChatScrollViewer` wraps `AiChatMessages` (`ItemsControl`), which renders each message bubble using a nested `RichTextBox` (`MessageRichText`).
+In WPF, `RichTextBox` inherits from `TextBoxBase`. Even though `VerticalScrollBarVisibility="Disabled"` is set, WPF's `RichTextBox` intercepts and handles `MouseWheel` events internally instead of cleanly bubbling them up to `AiChatScrollViewer`. The nested text box partially consumes scroll deltas and fights the parent container, producing severe stutter and jerking.
+
+### Fix:
+In `Features/AI/AiMarkdown.cs` (inside `EnsureHandlers(RichTextBox rtb)`):
+Attach a `PreviewMouseWheel` event handler to tunnel mouse wheel deltas directly to the parent `ScrollViewer`:
+```csharp
+private static void OnRichTextBoxPreviewMouseWheel(object sender, MouseWheelEventArgs e)
 {
-    if (string.IsNullOrWhiteSpace(raw)) return string.Empty;
-    string text = raw.Trim();
-
-    // Strip reasoning tags (<think>...</think>) from thinking models
-    int thinkStart = text.IndexOf("<think>", StringComparison.OrdinalIgnoreCase);
-    if (thinkStart >= 0)
+    if (sender is RichTextBox rtb && !e.Handled)
     {
-        int thinkEnd = text.IndexOf("</think>", thinkStart, StringComparison.OrdinalIgnoreCase);
-        if (thinkEnd >= 0)
-            text = (text[..thinkStart] + text[(thinkEnd + 8)..]).Trim();
-    }
-
-    // Strip markdown code fences if wrapped
-    if (text.StartsWith("```", StringComparison.Ordinal))
-    {
-        int firstLine = text.IndexOf('\n');
-        if (firstLine >= 0) text = text[(firstLine + 1)..].Trim();
-        if (text.EndsWith("```", StringComparison.Ordinal))
-            text = text[..^3].Trim();
-    }
-
-    // Parse JSON if output was emitted as a JSON object
-    if (text.StartsWith('{') && text.EndsWith('}'))
-    {
-        try
+        e.Handled = true;
+        var parentScrollViewer = FindVisualParent<ScrollViewer>(rtb);
+        if (parentScrollViewer != null)
         {
-            using var doc = JsonDocument.Parse(text);
-            var root = doc.RootElement;
-            string[] candidateProps = { "rewritten_text", "rewrittenText", "text", "result", "corrected_text", "output", "content" };
-            foreach (var prop in candidateProps)
+            parentScrollViewer.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
             {
-                if (root.TryGetProperty(prop, out var val) && val.ValueKind == JsonValueKind.String)
-                {
-                    text = val.GetString() ?? string.Empty;
-                    break;
-                }
-            }
+                RoutedEvent = UIElement.MouseWheelEvent,
+                Source = sender
+            });
         }
-        catch { /* fallback to string parsing */ }
     }
-
-    // Unescape literal escaped quotes \" -> "
-    if (text.Contains("\\\""))
-    {
-        text = text.Replace("\\\"", "\"");
-    }
-
-    // Strip wrapping outer quotes if the entire text was encapsulated in quotes
-    if ((text.StartsWith('"') && text.EndsWith('"') && text.Length >= 2) ||
-        (text.StartsWith('“') && text.EndsWith('”') && text.Length >= 2))
-    {
-        text = text[1..^1].Trim();
-    }
-
-    return text.Trim();
 }
 ```
-
----
-
-## 7. Streaming Rewriter with Smooth Typewriter Effect
-
-### Issue:
-The user has to wait for completions to finish; rewrites should stream with a smooth typing animation similar to `SummaryWindow`'s typewriter.
-
-### Implementation:
-1. **Streaming in `Controls/TextEditorControl.xaml.cs`**:
-   - For `RunAiSelectionAsync`, if `config.ProviderType` is OpenAI-compatible, send HTTP request with `stream: true`.
-   - Read SSE chunks (`data: {"choices":[{"delta":{"content":"..."}}]}`).
-   - Post incremental chunks to WebView2:
-     ```csharp
-     Post(new { cmd = "aiStreamDelta", seq, delta });
-     ```
-   - On completion:
-     ```csharp
-     Post(new { cmd = "aiStreamDone", seq, ok = true });
-     ```
-2. **Typewriter Queue in `Controls/TextEditorDocument.cs`**:
-   - Mirror `SummaryWindow`'s 20ms adaptive buffer:
-     ```javascript
-     var streamQueue = '';
-     var streamTargetIdx = 0;
-     var streamTimer = null;
-
-     function onAiStreamDelta(delta){
-       streamQueue += delta;
-       if (!streamTimer) streamTimer = setInterval(pumpTypewriter, 20);
-     }
-
-     function pumpTypewriter(){
-       if (!streamQueue.length){
-         if (streamDonePending){
-           clearInterval(streamTimer);
-           streamTimer = null;
-           finishAiStream();
-         }
-         return;
-       }
-       // Adaptive pacing: 1 to 10 chars per tick based on backlog
-       var step = Math.max(1, Math.min(10, Math.floor((streamQueue.length + 5) / 6)));
-       var slice = streamQueue.slice(0, step);
-       streamQueue = streamQueue.slice(step);
-       quill.insertText(streamTargetIdx, slice, 'user');
-       streamTargetIdx += slice.length;
-       quill.setSelection(streamTargetIdx, 0, 'silent');
-     }
-     ```
-
----
-
-## 8. Toolbar Placement: Move Save and Open Next to New and Before Browser
-
-### Issue:
-Save and Open buttons were buried in `EditorTabBand` (which is invisible when only one document is open). They belong on the **main editor ribbon** before the `Browser` button.
-
-### Fix:
-1. **`Controls/TextEditorControl.xaml`**:
-   Move `New`, `Open`, and `Save` buttons into the editor toolbar stack panel at `Grid.Row="0"` immediately before `EditorBrowserBtn`:
-   ```xml
-   <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="8,0,8,0">
-       <!-- File operations: New, Open, Save -->
-       <Button x:Name="EditorNewBtn" Content="&#xE7C3;" Style="{StaticResource EditorBtn}"
-               Click="EditorNewBtn_Click" ToolTip="{DynamicResource Str_TT_EditorNewTab}"/>
-       <Button x:Name="EditorOpenBtn" Content="&#xE8DA;" Style="{StaticResource EditorBtn}"
-               Click="EditorOpenBtn_Click" ToolTip="{DynamicResource Str_Editor_OpenDoc}"/>
-       <Button x:Name="EditorSaveBtn" Content="&#xE74E;" Style="{StaticResource EditorBtn}"
-               Click="EditorSaveBtn_Click" ToolTip="{DynamicResource Str_Editor_SaveDoc}"/>
-       <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
-
-       <!-- Destination switches: Browser, PDF Editor -->
-       <Button x:Name="EditorBrowserBtn" Content="&#xE774;" Style="{StaticResource EditorBtn}"
-               Click="EditorBrowserBtn_Click" ToolTip="{DynamicResource Str_TT_EditorBrowser}"/>
-       <Button x:Name="EditorPdfBtn" Content="&#xE8A5;" Style="{StaticResource EditorBtn}"
-               Click="EditorPdfBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}"/>
-       <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
-   ...
-   ```
-2. In `EditorTabBand`: Keep or streamline `EditorTabNewBtn`, but ensure primary access is on the ribbon toolbar.
-3. In `Controls/TextEditorControl.xaml.cs`: Wire `EditorNewBtn_Click`, `EditorOpenBtn_Click`, and `EditorSaveBtn_Click` to `OpenNewTab()`, `EditorTabOpenBtn_Click()`, and `EditorTabSaveBtn_Click()`.
-
----
-
-## 9. Fix Broken Thumbnails Showing Only "Page 1"
-
-### Issue:
-`postThumbs()` in `TextEditorDocument.cs` attempts to rasterize an SVG `<foreignObject>` onto an HTML5 canvas and call `c.toDataURL()`. In Chromium / WebView2, `<foreignObject>` taints the canvas, throwing a security exception (`SecurityError: Tainted canvases may not be exported`). The exception is caught and emits `thumbs: ['']`, causing `MainWindow.xaml.cs` to fall back to a blank card displaying only the label "Page 1".
-
-### Fix:
-In `Controls/TextEditorControl.xaml.cs`, use WebView2's native, reliable capture API (`CapturePreviewAsync`):
+Helper:
 ```csharp
-public async Task RefreshThumbnailsAsync()
+private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
 {
-    if (_webView?.CoreWebView2 == null) return;
-    try
+    var parent = VisualTreeHelper.GetParent(child);
+    while (parent != null && parent is not T)
     {
-        using var ms = new MemoryStream();
-        await _webView.CoreWebView2.CapturePreviewAsync(
-            Microsoft.Web.WebView2.Core.CoreWebView2CapturePreviewImageFormat.Png, ms);
-        byte[] png = ms.ToArray();
-        string dataUrl = "data:image/png;base64," + Convert.ToBase64String(png);
-        _thumbCache[_tabs[_activeTab]] = new[] { dataUrl };
-        ThumbsChanged?.Invoke(new[] { dataUrl });
+        parent = VisualTreeHelper.GetParent(parent);
     }
-    catch
-    {
-        // Fail gracefully without crashing
-    }
+    return parent as T;
 }
 ```
-Trigger `RefreshThumbnailsAsync()` when documents load, switch, or after the edit idle timer fires.
-
----
-
-## Verification Checklist
-
-1. [ ] Spacing button displays the clean Segoe MDL2 icon `&#xE8D2;` matching all other toolbar buttons.
-2. [ ] Quoting a selection wraps the selected words in `“...”` instead of converting the entire paragraph into a blockquote.
-3. [ ] Toolbar has only `H1` and `H2` buttons (`H` removed).
-4. [ ] Typing words like "dog" preserves proper forward caret advancement and never reverses text to "god".
-5. [ ] Rewritten text never contains escaped backslash quotes (`\"Winterbust\"`).
-6. [ ] Rewritten text never outputs raw JSON objects (`{"rewritten_text": ...}`).
-7. [ ] Rewrites stream smoothly into Quill with a letter-by-letter typing effect.
-8. [ ] New, Open, and Save buttons are positioned in the top toolbar to the left of the Browser button.
-9. [ ] Sidebar rail renders real page thumbnails instead of empty cards showing only "Page 1".
-10. [ ] Project builds with 0 errors.
+This guarantees that scrolling anywhere inside the chat area—including directly over long markdown bubbles—scrolls the outer `AiChatScrollViewer` smoothly without hesitation or rubber-banding.
