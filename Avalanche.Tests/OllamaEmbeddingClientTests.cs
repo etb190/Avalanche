@@ -24,8 +24,11 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         try { System.IO.Directory.Delete(_dir, recursive: true); } catch { }
     }
 
+    // v1.19.93: the machinery tests (batching, deadlines, probes) speak to a
+    // LOCAL endpoint - the old default config was the NIM cloud host, which
+    // now serves its own embeddings instead of bouncing to the bridge.
     private OllamaEmbeddingClient NewClient(FakeEmbedHandler handler, int batchSize = 32)
-        => new(() => new AiProviderConfig(), batchSize, handler);
+        => new(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, batchSize, handler);
 
     private static HttpResponseMessage Json(string body, HttpStatusCode code = HttpStatusCode.OK) =>
         new(code) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
@@ -277,16 +280,15 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         Assert.Equal(new[] { 1f, 0f, 0f, 0f }, v);
     }
 
-    // ---- v1.19.27: the embed root follows the server that actually serves
-    // embeddings - a cloud chat endpoint rides the local Ollama bridge ----
+    // ---- v1.19.93: a cloud chat endpoint serves its OWN embeddings ----
+    // (v1.19.27's "rides the local Ollama bridge" is revoked: cloud users
+    // get semantic search back - the OpenAI-compatible {base}/embeddings
+    // door with the host's own key, and a dead door degrades to lexical
+    // exactly as a dead Ollama always did.)
 
     [Fact]
-    public async Task GenerateEmbeddings_CloudChatEndpoint_RidesTheLocalBridge()
+    public async Task GenerateEmbeddings_CloudChatEndpoint_ServesItsOwnEmbeddings()
     {
-        // The NVIDIA NIM preset's own contract: "embeddings stay on local
-        // Ollama". Asking the cloud host for /api/embed returned a bare 404
-        // that read as "embeddinggemma:latest not found" while the reader's
-        // own Ollama had the model installed all along.
         HttpRequestMessage? seen = null;
         var handler = new FakeEmbedHandler
         {
@@ -300,17 +302,19 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         {
             BaseUrl = "https://integrate.api.nvidia.com/v1",
             ApiKey = "nvapi-secret",
-            EmbeddingModel = "embeddinggemma:latest"
+            EmbeddingModel = "text-embedding-3-small"
         }, 4, handler);
         await c.GenerateEmbeddingAsync("q");
         c.Dispose();
 
         Assert.NotNull(seen);
-        Assert.Equal("http://localhost:11434/api/embed", seen!.RequestUri!.ToString());
+        Assert.Equal("https://integrate.api.nvidia.com/v1/embeddings", seen!.RequestUri!.ToString());
+        Assert.Contains("text-embedding-3-small", handler.RequestBodies[0]);
+        Assert.Equal("Bearer nvapi-secret", seen.Headers.Authorization!.ToString());
     }
 
     [Fact]
-    public async Task GenerateEmbeddings_OllamaComChatEndpoint_RidesTheLocalBridge()
+    public async Task GenerateEmbeddings_OllamaComChatEndpoint_ServesItsOwnEmbeddings()
     {
         HttpRequestMessage? seen = null;
         var handler = new FakeEmbedHandler
@@ -324,13 +328,12 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         var c = new OllamaEmbeddingClient(() => new AiProviderConfig
         {
             BaseUrl = "https://ollama.com/v1",
-            ApiKey = "k",
-            EmbeddingModel = "embeddinggemma:latest"
+            ApiKey = "k"
         }, 4, handler);
         await c.GenerateEmbeddingAsync("q");
         c.Dispose();
 
-        Assert.Equal("http://localhost:11434/api/embed", seen!.RequestUri!.ToString());
+        Assert.Equal("https://ollama.com/v1/embeddings", seen!.RequestUri!.ToString());
     }
 
     [Fact]

@@ -40,7 +40,7 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         handler.VectorMap[Question] = new[] { 1f, 0f, 0f, 0f };
         handler.VectorMap["capability probe"] = new[] { 0f, 0f, 0f, 1f };
 
-        var client = new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler);
+        var client = new OllamaEmbeddingClient(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, 32, handler);
         await new DocumentIndexer(index).EnsureEmbeddingsAsync(
             doc, (texts, ct) => client.GenerateEmbeddingsAsync(texts, ct), "embeddinggemma:latest");
         return index;
@@ -53,7 +53,7 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         var handler = new FakeEmbedHandler();
         handler.VectorMap[Question] = new[] { 1f, 0f, 0f, 0f };
         var retriever = new HybridRetriever(index,
-            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new OllamaEmbeddingClient(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, 32, handler),
             new RetrievalOptions
             {
                 EnableReranking = false,
@@ -81,7 +81,7 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         // Simulate a partial pass: state row claims MORE chunks than embedded.
         index.SetEmbeddingState("doc_partial", "embeddinggemma:latest", "any", 4, 999, "\u0001");
         var retriever = new HybridRetriever(index,
-            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new OllamaEmbeddingClient(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, 32, handler),
             new RetrievalOptions
             {
                 EnableReranking = false,
@@ -104,7 +104,7 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         var handler = new FakeEmbedHandler();
         handler.VectorMap[Question] = new[] { 1f, 0f, 0f, 0f };
         var retriever = new HybridRetriever(index,
-            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new OllamaEmbeddingClient(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, 32, handler),
             new RetrievalOptions
             {
                 EnableReranking = false,
@@ -143,7 +143,7 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
         index.PersistDocumentAtomic(doc);
 
         var retriever = new HybridRetriever(index,
-            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new OllamaEmbeddingClient(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, 32, handler),
             new RetrievalOptions { EnableReranking = false });
 
         var results = await retriever.RetrieveAsync("novectors", "terminated", 8);
@@ -163,7 +163,7 @@ public sealed class HybridRetrieverSemanticTests : IDisposable
                 System.Net.HttpStatusCode.InternalServerError)
         };
         var retriever = new HybridRetriever(index,
-            new OllamaEmbeddingClient(() => new AiProviderConfig(), 32, handler),
+            new OllamaEmbeddingClient(() => new AiProviderConfig { BaseUrl = "http://localhost:11434/v1" }, 32, handler),
             new RetrievalOptions { EnableReranking = false });
 
         var results = await retriever.RetrieveAsync("doc_fail", "terminated notice", 8);
