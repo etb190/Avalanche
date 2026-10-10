@@ -1542,16 +1542,7 @@
                              own, fonts, sizes, links, footnotes, and images that live behind
                              the text and move freely. Living in GrpToolsToggle keeps it on
                              the bar in BOTH modes, exactly like the globe it leans on. -->
-                        <!-- The browser summary (v1.19.90, moved in v1.19.93): the
-                             PDF ribbon's own summary button, now sitting on the LEFT
-                             of the browser's action tools exactly where the PDF
-                             editor's Summarize sits - same glyph, same style, the
-                             caption engine dressing it like its twin. Only the
-                             browser pane leads it; a click opens the web
-                             summarizer for the page on screen. -->
-                        <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
-                                Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
-                                Visibility="Collapsed"/>
+
                         <Button x:Name="TextEditorBtn" Content="&#xE70B;" Style="{StaticResource ToolbarButton}" Click="TextEditorBtn_Click" ToolTip="{DynamicResource Str_TT_TextEditor}"/>
                         <!-- The PDF editor switch while the browser leads (v1.19.68):
                              the browser's toolbar keeps exactly three buttons - New,
@@ -1733,6 +1724,17 @@
                             </Grid>
                         </Border>
                     </Popup>
+                </StackPanel>
+                <!-- The browser summary, alone on the far right (v1.19.94): the
+                     ribbon's right end answers to the browser the way the PDF
+                     ribbon's Summarize answers to the document - its own
+                     container so the PDF annotation bar's fold-away never
+                     carries it along, visible only while the browser leads. -->
+                <StackPanel x:Name="BrowserSumBar" Orientation="Horizontal"
+                            HorizontalAlignment="Right" Visibility="Collapsed">
+                    <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
+                            Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
+                            Visibility="Collapsed"/>
                 </StackPanel>
             </Grid>
             </Grid>

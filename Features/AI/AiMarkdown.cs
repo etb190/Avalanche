@@ -130,21 +130,26 @@ namespace Avalanche.Features.AI
             var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
             rtb.Document = doc;
 
+            // v1.19.94: the hand-back is SYNCHRONOUS. The Loaded-priority hop
+            // left the box sitting at offset 0 for a full frame, and the next
+            // 20ms tick captured that 0 as its own keep - the reader's place
+            // and the top fought fifty times a second and the card strobed.
+            // UpdateLayout inside the same pass, the offset handed back before
+            // the frame ever paints: a reader riding the bottom follows the
+            // text down, a reader parked mid-page stays parked, and no tick
+            // ever sees the box at the top again.
             if (keep > 0 || rideBottom)
             {
-                rtb.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+                try
                 {
-                    try
-                    {
-                        if (!rideBottom && rtb.VerticalOffset > 0.5) return;   // the reader moved on their own
-                        double max = Math.Max(0, rtb.ExtentHeight - rtb.ViewportHeight);
-                        rtb.ScrollToVerticalOffset(rideBottom ? max : Math.Min(keep, max));
-                    }
-                    catch
-                    {
-                        // a scroll that cannot climb is nobody's emergency
-                    }
-                }));
+                    rtb.UpdateLayout();
+                    double max = Math.Max(0, rtb.ExtentHeight - rtb.ViewportHeight);
+                    rtb.ScrollToVerticalOffset(rideBottom ? max : Math.Min(keep, max));
+                }
+                catch
+                {
+                    // a scroll that cannot climb is nobody's emergency
+                }
             }
 
             // A RichTextBox always stretches to the full available width, which

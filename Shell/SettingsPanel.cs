@@ -731,7 +731,6 @@ namespace Avalanche
             [""] = "Str_Lbl_Flatten",
             [""] = "Str_Lbl_Ocr",
             [""] = "Str_Lbl_Print",
-            [""] = "Str_Lbl_Merge",
             [""] = "Str_Lbl_Extract",
             [""] = "Str_Lbl_Delete",
             [""] = "Str_Lbl_MoveUp",
@@ -771,7 +770,7 @@ namespace Avalanche
         private void IndexToolbarButtons()
         {
             _toolbarButtons.Clear();
-            foreach (Panel? bar in new Panel?[] { LeftBar, RightBar })
+            foreach (Panel? bar in new Panel?[] { LeftBar, RightBar, BrowserSumBar })
             {
                 if (bar is null) continue;
                 foreach (var btn in DescendantButtons(bar))
@@ -781,6 +780,14 @@ namespace Avalanche
                         _toolbarButtons.Add((btn, CompareGlyph, "Str_TT_ComparePDFs"));
                     else if (ReferenceEquals(btn, ToolFormFieldBtn))
                         _toolbarButtons.Add((btn, FormFieldGlyph, "Str_Lbl_FormField"));
+                    // The two plus faces answer by reference (v1.19.94): both
+                    // wear \uE710, and the dictionary's single glyph slot made
+                    // whichever entry lost the duel caption BOTH of them - the
+                    // reader's New button announcing itself as Merge PDFs.
+                    else if (ReferenceEquals(btn, NewFileBtn))
+                        _toolbarButtons.Add((btn, "\uE710", "Str_Lbl_New"));
+                    else if (ReferenceEquals(btn, MergeBtn))
+                        _toolbarButtons.Add((btn, "\uE710", "Str_Lbl_Merge"));
                     else if (ReferenceEquals(btn, PdfEditorBtn))
                         _toolbarButtons.Add((btn, "\uE7C3", "Str_Lbl_PdfEditor"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
@@ -1321,6 +1328,7 @@ namespace Avalanche
                 NewFileBtn.Visibility = Visibility.Visible;
                 RightContainer.Visibility = Visibility.Collapsed;
                 PdfEditorBtn.Visibility = Visibility.Visible;
+                BrowserSumBar.Visibility = Visibility.Visible;   // the summary lives on the far right (v1.19.94)
                 WebSumBtn.Visibility = Visibility.Visible;   // the browser summary rides its pane (v1.19.90)
             }
             else
@@ -1330,6 +1338,7 @@ namespace Avalanche
                 RightContainer.Visibility = Visibility.Visible;
                 WebBrowserBtn.Visibility = Visibility.Visible;
                 PdfEditorBtn.Visibility = Visibility.Collapsed;
+                BrowserSumBar.Visibility = Visibility.Collapsed;   // the far-right container steps down too (v1.19.94)
                 WebSumBtn.Visibility = Visibility.Collapsed;   // the summary chip steps down with the pane (v1.19.90)
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             }

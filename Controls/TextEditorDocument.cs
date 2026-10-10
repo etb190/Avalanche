@@ -82,8 +82,8 @@ namespace Avalanche.Controls
      contenteditable, so the model never sees the chrome; the browser's own
      image drag is switched off because the sheet does the moving itself. */
   .ql-editor img.az-sel { outline:2px solid #4a90d9; outline-offset:2px; }
-  .ql-editor table { border-collapse: collapse; width: 100%; margin: 16px 0; table-layout: auto; }
-  .ql-editor td, .ql-editor th { border: 1px solid #d0d7de; padding: 8px 12px; min-width: 48px; vertical-align: top; box-sizing: border-box; }
+  .ql-editor table { border-collapse: collapse; width: 100%; max-width: 100%; margin: 16px 0; table-layout: fixed; box-sizing: border-box; }
+  .ql-editor td, .ql-editor th { border: 1px solid #d0d7de; padding: 6px 10px; vertical-align: top; box-sizing: border-box; word-break: break-word; overflow-wrap: break-word; }
   body.az-inv .ql-editor td, body.az-inv .ql-editor th { border-color: #444c56; }
   .ql-editor td:focus, .ql-editor th:focus { outline: 1.5px solid #4a90d9; outline-offset: -1px; }
   #imgui { position:fixed; display:none; z-index:60; pointer-events:none; }
@@ -294,6 +294,14 @@ FnRef.tagName = 'SUP';
 FnRef.className = 'fnref';
 Quill.register(FnRef);
 
+// The soft break (v1.19.94): an ATOMIC <br> embed the caret can sit right
+// after - Enter inside a table cell inserts this instead of Quill's stock
+// 'table enter' exit, so the table never splits and never shoves down.
+class LineBreakBlot extends Embed { }
+LineBreakBlot.blotName = 'line-break';
+LineBreakBlot.tagName = 'BR';
+Quill.register(LineBreakBlot);
+
 // ── the editor ────────────────────────────────────────────────────────────
 var fnote = document.getElementById('fnote');
 var quill = new Quill('#editor', {
@@ -335,6 +343,37 @@ quill.keyboard.addBinding({ key: 'E', shortKey: true }, function(){ toggle('code
 quill.keyboard.addBinding({ key: 'L', shortKey: true, shiftKey: true }, function(){ align('left'); });
 quill.keyboard.addBinding({ key: 'E', shortKey: true, shiftKey: true }, function(){ align('center'); });
 quill.keyboard.addBinding({ key: 'R', shortKey: true, shiftKey: true }, function(){ align('right'); });
+
+// Enter inside a table cell (v1.19.94): a soft line-break embed in the
+// cell, NEVER the stock table exit. shiftKey:null answers both Enter and
+// Shift+Enter; the capture handler below is the belt to the binding's
+// braces and the guard flag keeps the pair from double-inserting.
+var azSoftBreak = 0;
+quill.keyboard.addBinding({
+  key: 'Enter',
+  shiftKey: null,
+  format: ['table']
+}, function(range, context) {
+  quill.insertEmbed(range.index, 'line-break', true, 'user');
+  quill.setSelection(range.index + 1, 'silent');
+  azSoftBreak = Date.now();
+  reportState();
+  return false; // keep Quill's own table-exit answer silent
+});
+quill.root.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter') return;
+  try {
+    if (Date.now() - azSoftBreak < 50) return; // the binding answered already
+    var r = quill.getSelection();
+    if (!r) return;
+    var fmts = quill.getFormat(r.index, 0);
+    if (!fmts || !fmts.table) return;
+    e.preventDefault();
+    quill.insertEmbed(r.index, 'line-break', true, 'user');
+    quill.setSelection(r.index + 1, 'silent');
+    reportState();
+  } catch (err) { }
+}, true);
 
 // ── footnotes ─────────────────────────────────────────────────────────────
 function nextFnId(){

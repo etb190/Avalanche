@@ -109,6 +109,8 @@ namespace Avalanche.Features.Summary
         private readonly System.Text.StringBuilder _incoming = new();
         private int _shownLength;
         private bool _sawDeltas;
+        private long _lastMdPaint;                      // v1.19.94: the rebuild throttle's clock
+        private double _userDesiredVerticalOffset;      // v1.19.94: where the reader last put the card
         private DispatcherTimer _typeTimer = null!;
         private bool _wiring;
         private bool _closed;
@@ -525,6 +527,7 @@ namespace Avalanche.Features.Summary
             // once, started by every run, self-stopping when drained and idle.
             _typeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
             _typeTimer.Tick += (_, _) => TypeTimerTick();
+            DocBox.AddHandler(System.Windows.Controls.ScrollViewer.ScrollChangedEvent, (System.Windows.Controls.ScrollChangedEventHandler)((_, _) => _userDesiredVerticalOffset = DocBox.VerticalOffset));
 
             // v1.19.63: the restore below sets SelectedItem / IsChecked, and
             // WPF answers with the very SelectionChanged handlers that save.
@@ -1182,7 +1185,21 @@ namespace Avalanche.Features.Summary
             int backlog = total - _shownLength;
             int step = Math.Clamp((backlog + 5) / 6, 1, 60);
             _shownLength = Math.Min(total, _shownLength + step);
-            DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+
+            // v1.19.94: the rebuild throttle. The pen advances every tick but
+            // the FlowDocument is re-typeset at most ~9 times a second, or the
+            // moment a paragraph lands: a 5-page digest rebuilt every 20ms is
+            // a layout storm, and the storm is what made the card fight its
+            // own scrollbar. The painted slice stays honest - the next paint
+            // simply shows more letters at once.
+            bool mdDone = _shownLength >= total;
+            bool paragraphLanded = _fullText[_shownLength - 1] == '\n';
+            long nowTick = Environment.TickCount64;
+            if (mdDone || paragraphLanded || nowTick - _lastMdPaint >= 110)
+            {
+                _lastMdPaint = nowTick;
+                DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+            }
             // v1.19.53: the reader owns the scroll position - the paint never
             // scrolls the page out from under them. The empty state stands
             // down here too: words on the card are the loading indicator now.

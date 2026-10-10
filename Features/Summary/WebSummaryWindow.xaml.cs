@@ -77,6 +77,8 @@ namespace Avalanche.Features.Summary
         private readonly object _incomingGate = new();
         private readonly System.Text.StringBuilder _incoming = new();
         private int _shownLength;
+        private long _lastMdPaint;                      // v1.19.94: the rebuild throttle's clock
+        private double _userDesiredVerticalOffset;      // v1.19.94: where the reader last put the card
         private bool _sawDeltas;
         private DispatcherTimer _typeTimer = null!;
         private DispatcherTimer? _elapsedTimer;
@@ -216,6 +218,7 @@ namespace Avalanche.Features.Summary
             // the backlog grows; started by every run, self-stopping when drained.
             _typeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(20) };
             _typeTimer.Tick += (_, _) => TypeTimerTick();
+            DocBox.AddHandler(System.Windows.Controls.ScrollViewer.ScrollChangedEvent, (System.Windows.Controls.ScrollChangedEventHandler)((_, _) => _userDesiredVerticalOffset = DocBox.VerticalOffset));
 
             // v1.19.91: the dials' saved picks and the window's saved place
             // and size - the same memory the book navigator keeps, under the
@@ -525,7 +528,17 @@ namespace Avalanche.Features.Summary
             int backlog = total - _shownLength;
             int step = Math.Clamp((backlog + 5) / 6, 1, 60);
             _shownLength = Math.Min(total, _shownLength + step);
-            DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+
+            // v1.19.94: the rebuild throttle - re-typeset at most ~9 times a
+            // second, or the moment a paragraph lands; the pen never stalls.
+            bool mdDone = _shownLength >= total;
+            bool paragraphLanded = _fullText[_shownLength - 1] == '\n';
+            long nowTick = Environment.TickCount64;
+            if (mdDone || paragraphLanded || nowTick - _lastMdPaint >= 110)
+            {
+                _lastMdPaint = nowTick;
+                DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+            }
             UpdateEmptyState();
         }
 

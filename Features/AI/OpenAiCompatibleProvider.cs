@@ -195,6 +195,10 @@ namespace Avalanche.Features.AI
                         ? "ollama"
                         : config.ApiKey;
                     request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+                    // v1.19.94: ask for SSE by name - gateways and proxies
+                    // buffer a request that never said it wanted a stream, and
+                    // a buffered stream is no stream at all.
+                    request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("text/event-stream"));
 
                     HttpResponseMessage response;
                     try

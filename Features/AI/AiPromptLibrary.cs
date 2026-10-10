@@ -12,6 +12,10 @@ namespace Avalanche.Features.AI
         // -- PDF/book side chat: the instruction head. The evidence framing
         // (EVIDENCE FORMAT / RETRIEVED EVIDENCE / the JSON contract) stays
         // wired after it - the citation resolver parses that dialect.
+        // v1.19.94: the deck's sidechat bodies carry the CRITICAL CITATION
+        // MANDATE - inline [SOURCE_n] immediately after the claim, never
+        // clustered at the end - so every head riding through here enforces
+        // immediate placement in the reader's own dialect.
         public static string SidechatHead() =>
             Features.Summary.PromptStore.FirstBody(Features.Summary.PromptStore.CatSidechat) ?? "";
 

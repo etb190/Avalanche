@@ -1525,7 +1525,7 @@ namespace Avalanche.Features.AI
             bool dirty = false, any = false;
 
             var paintTimer = new System.Windows.Threading.DispatcherTimer(
-                TimeSpan.FromMilliseconds(24), DispatcherPriority.Background,
+                TimeSpan.FromMilliseconds(24), DispatcherPriority.Render,   // v1.19.94: Background starved - network chunks landed faster than priority 4 ever painted, so the whole answer arrived at once
                 (_, _) =>
                 {
                     if (!dirty) return;
@@ -1549,7 +1549,11 @@ namespace Avalanche.Features.AI
                     if (!any)
                     {
                         any = true;
-                        ui.BeginInvoke(DispatcherPriority.Background, (Action)(() =>
+                        // v1.19.94: Normal, not Background - the bubble's
+                        // MessageBorder stays Collapsed while IsLoading rides,
+                        // and at Background the reveal queued behind the very
+                        // stream it was meant to unhide.
+                        ui.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
                         {
                             try { assistantMsg.IsLoading = false; } catch { }
                         }));
@@ -1801,6 +1805,7 @@ namespace Avalanche.Features.AI
             sb.AppendLine("6. Do NOT invent page numbers or source IDs.");
             sb.AppendLine("7. Cite multiple sources when appropriate.");
             sb.AppendLine("8. Distinguish the document's claims from your explanation.");
+            sb.AppendLine("9. CRITICAL CITATION MANDATE - IMMEDIATE INLINE PLACEMENT: every factual claim, date, name, statistic, or finding carries its [SOURCE_n] marker IMMEDIATELY after that clause or sentence; NEVER cluster citations at the end of a sentence, paragraph, or answer.");
             sb.AppendLine("Output ONLY a JSON object:");
             sb.AppendLine("{\"answer\": \"The fee doubles after the first year. [SOURCE_1]\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text from that source>\", \"reason\": \"<why it supports the answer>\"}]}");
 
