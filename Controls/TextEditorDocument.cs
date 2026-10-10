@@ -91,14 +91,13 @@ namespace Avalanche.Controls
   #imgui .az-se { right:-7px; bottom:-7px; cursor:nwse-resize; }
   .az-bar { position:fixed; width:0; height:28px; border-left:2px solid #4a90d9;
             display:none; z-index:61; pointer-events:none; }
-  /* The inverted page (v1.19.80, retaken v1.19.81): one class on the body -
-     the sheet wears black, the text wears white, and the reader's eyes keep
-     their night. The DESK joins the night too: the gray surround read as a
-     light border around the black page, so it and the shadow go dark with
-     everything else. The quote's voice lightens with it; the marks keep
-     their blue. */
-  body.az-inv { background:#000000; }
-  body.az-inv #canvas { background:#000000; box-shadow:none; }
+  /* The inverted page (v1.19.80, desk restored v1.19.82): one class on the
+     body - the sheet wears black, the text wears white, and the reader's
+     eyes keep their night. The DESK keeps its gray: painting the surround
+     black was a verdict the reader overruled - the margins are the app's
+     furniture, not the page's. The quote's voice lightens with it; the
+     marks keep their blue. */
+  body.az-inv #canvas { background:#000000; }
   body.az-inv .ql-editor { color:#ffffff; }
   body.az-inv .ql-editor blockquote { color:#d0d0d0; }
   /* The quote wears italic and bold (v1.19.76): the left bar alone read as

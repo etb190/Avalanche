@@ -679,7 +679,7 @@
                     Background="{DynamicResource BgCanvas}"
                     CornerRadius="{DynamicResource RadCard}"
                     Effect="{DynamicResource PaneShadowEffect}"/>
-            <Border Panel.ZIndex="6"
+            <Border Panel.ZIndex="6" x:Name="SheetCard"
                     Background="{DynamicResource BgCanvas}"
                     BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1"
                     CornerRadius="{DynamicResource RadCard}"

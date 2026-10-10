@@ -432,6 +432,7 @@ namespace Avalanche.Controls
                     });
                     DocInvertChanged?.Invoke(_docInverted);   // the host's moon wears the remembered face
                     Post(new { cmd = "invert", on = _docInverted });   // the remembered face rides every fresh sheet
+                    ApplyInvertChrome(_docInverted);   // the card's ring goes dark with the sheet (v1.19.82)
                     ThumbsChanged?.Invoke(CachedThumbs());   // the tab's own last raster paints now; a fresh one follows
                     var html = _pendingLoadHtml;
                     _pendingLoadHtml = null;
@@ -676,8 +677,30 @@ namespace Avalanche.Controls
             _docInverted = on;
             App.SetSetting("EditorDocInvert", on ? "1" : "0");
             Post(new { cmd = "invert", on = _docInverted });
+            ApplyInvertChrome(on);   // the card's ring follows the sheet (v1.19.82)
             DocInvertChanged?.Invoke(_docInverted);
             RefocusEditor();
+        }
+        // The card's ring follows the sheet (v1.19.82): with the page inverted,
+        // the host card's own light border and backing - PaneBorderBrush and
+        // BgCanvas, near-white in the light themes - wrapped the black page in
+        // a pale halo the reader kept calling a border. While the night is on
+        // the card wears the desk's own gray, so the only edge on screen is the
+        // page's own shadow; night off, the theme's brushes come back.
+        private void ApplyInvertChrome(bool on)
+        {
+            if (on)
+            {
+                var desk = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x3D, 0x40, 0x46));
+                desk.Freeze();
+                SheetCard.BorderBrush = desk;
+                SheetCard.Background = desk;
+            }
+            else
+            {
+                SheetCard.SetResourceReference(System.Windows.Controls.Border.BorderBrushProperty, "PaneBorderBrush");
+                SheetCard.SetResourceReference(System.Windows.Controls.Border.BackgroundProperty, "BgCanvas");
+            }
         }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
         private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
