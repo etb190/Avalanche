@@ -1165,6 +1165,13 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiPromptsNew">Новый</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Сохранить</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Удалить</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Гуманизация</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Профессиональный</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Простой</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Академический</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Жаргон</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Удлинить</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Сократить</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Модель грамматики</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

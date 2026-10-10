@@ -1150,6 +1150,13 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiPromptsNew">Nový</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Uložit</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Smazat</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Zlidštění</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Profesionální</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Jednoduchý</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Akademický</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Žargon</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Prodloužit</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Zkrátit</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Model gramatiky</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

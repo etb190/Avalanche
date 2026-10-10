@@ -1169,6 +1169,13 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiPromptsNew">New</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Save</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Delete</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Humanize</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Professional</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Simple</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Academic</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Jargon</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Lengthen</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Shorten</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Grammar Model</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

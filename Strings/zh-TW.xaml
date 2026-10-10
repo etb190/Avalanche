@@ -1147,6 +1147,13 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_AiPromptsNew">新增</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">儲存</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">刪除</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">人性化</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">專業</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">通俗</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">學術</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">術語化</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">擴寫</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">縮寫</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">語法模型</sys:String>
     <sys:String x:Key="Str_AiModelUsed">模型：{0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

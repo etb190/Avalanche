@@ -1165,6 +1165,13 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_AiPromptsNew">Nouveau</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Enregistrer</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Supprimer</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Humaniser</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Professionnel</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Simple</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Académique</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Jargon</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Allonger</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Raccourcir</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modèle de grammaire</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modèle : {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

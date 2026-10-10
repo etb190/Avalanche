@@ -1165,6 +1165,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiPromptsNew">新規</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">保存</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">削除</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">人間らしく</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">プロフェッショナル</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">簡潔</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">アカデミック</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">専門用語</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">長く</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">短く</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">文法モデル</sys:String>
     <sys:String x:Key="Str_AiModelUsed">モデル: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

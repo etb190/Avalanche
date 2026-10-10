@@ -1153,6 +1153,13 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiPromptsNew">Nowy</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Zapisz</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Usuń</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Uhumanizuj</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Profesjonalny</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Prosty</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Akademicki</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Żargon</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Wydłuż</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Skróć</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Model gramatyki</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

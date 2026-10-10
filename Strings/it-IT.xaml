@@ -1165,6 +1165,13 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiPromptsNew">Nuovo</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Salva</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Elimina</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Umanizzare</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Professionale</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Semplice</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Accademico</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Gergo</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Allungare</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Accorciare</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modello di grammatica</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modello: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

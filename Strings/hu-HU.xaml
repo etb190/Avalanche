@@ -1152,6 +1152,13 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiPromptsNew">Új</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Mentés</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Törlés</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Emberiesítés</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Professzionális</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Egyszerű</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Tudományos</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Zsargon</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Hosszabbítás</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Rövidítés</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Nyelvtani modell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

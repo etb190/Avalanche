@@ -1164,6 +1164,13 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiPromptsNew">Жаңа</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Сақтау</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Жою</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Адамға тән</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Кәсіби</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Жай</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Академиялық</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Жаргон</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Ұзарту</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Қысқарту</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Грамматика моделі</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

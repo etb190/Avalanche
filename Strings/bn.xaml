@@ -1145,6 +1145,13 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiPromptsNew">নতুন</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">সংরক্ষণ</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">মুছুন</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">হিউম্যানাইজ</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">পেশাদার</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">সরল</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">একাডেমিক</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">জারগন</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">দীর্ঘায়িত</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">সংক্ষিপ্ত</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">ব্যাকরণ মডেল</sys:String>
     <sys:String x:Key="Str_AiModelUsed">মডেল: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

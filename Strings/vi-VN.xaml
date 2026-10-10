@@ -1165,6 +1165,13 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiPromptsNew">Mới</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Lưu</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Xóa</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Giống người</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Chuyên nghiệp</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Đơn giản</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Học thuật</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Biệt ngữ</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Kéo dài</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Rút gọn</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Mô hình ngữ pháp</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Mô hình: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

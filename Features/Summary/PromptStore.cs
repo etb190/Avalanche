@@ -171,20 +171,20 @@ namespace Avalanche.Features.Summary
             // v1.19.89: one standard row for each fixed-voice feature,
             // seven for the rewriter's styles. Empty bodies keep the
             // hardcoded voices speaking; a saved body takes the seat.
-            new AiPromptDef { Id = "sidechat_standard", Title = "Standard", Category = CatSidechat },
-            new AiPromptDef { Id = "websidechat_standard", Title = "Standard", Category = CatWebSidechat },
-            new AiPromptDef { Id = "recap_standard", Title = "Standard", Category = CatRecap },
-            new AiPromptDef { Id = "notes_standard", Title = "Standard", Category = CatNotes },
-            new AiPromptDef { Id = "tester_standard", Title = "Standard", Category = CatTester },
-            new AiPromptDef { Id = "grammar_standard", Title = "Standard", Category = CatGrammar },
-            new AiPromptDef { Id = "editorsidechat_standard", Title = "Standard", Category = CatEditorSidechat },
-            new AiPromptDef { Id = "rewrite_humanize", Title = "Humanize", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_professional", Title = "Professional", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_simple", Title = "Simple", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_academic", Title = "Academic", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_jargon", Title = "Jargon", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_lengthen", Title = "Lengthen", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_shorten", Title = "Shorten", Category = CatRewrite }
+            new AiPromptDef { Id = "sidechat_standard", TitleKey = "Str_AiModelSidechat", Category = CatSidechat },
+            new AiPromptDef { Id = "websidechat_standard", TitleKey = "Str_AiModelWebSidechat", Category = CatWebSidechat },
+            new AiPromptDef { Id = "recap_standard", TitleKey = "Str_AiModelRecaller", Category = CatRecap },
+            new AiPromptDef { Id = "notes_standard", TitleKey = "Str_AiModelNotes", Category = CatNotes },
+            new AiPromptDef { Id = "tester_standard", TitleKey = "Str_AiModelTester", Category = CatTester },
+            new AiPromptDef { Id = "grammar_standard", TitleKey = "Str_AiModelEditorGrammar", Category = CatGrammar },
+            new AiPromptDef { Id = "editorsidechat_standard", TitleKey = "Str_AiModelEditorSidechat", Category = CatEditorSidechat },
+            new AiPromptDef { Id = "rewrite_humanize", TitleKey = "Str_PromptStyle_Humanize", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_professional", TitleKey = "Str_PromptStyle_Professional", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_simple", TitleKey = "Str_PromptStyle_Simple", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_academic", TitleKey = "Str_PromptStyle_Academic", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_jargon", TitleKey = "Str_PromptStyle_Jargon", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_lengthen", TitleKey = "Str_PromptStyle_Lengthen", Category = CatRewrite },
+            new AiPromptDef { Id = "rewrite_shorten", TitleKey = "Str_PromptStyle_Shorten", Category = CatRewrite }
         };
 
         /// <summary>Every row, a defensive copy - the caller may do what it

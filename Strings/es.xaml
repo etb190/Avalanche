@@ -1145,6 +1145,13 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_AiPromptsNew">Nuevo</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Guardar</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Eliminar</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Humanizar</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Profesional</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Sencillo</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Académico</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Jerga</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Alargar</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Acortar</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modelo de gramática</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modelo: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

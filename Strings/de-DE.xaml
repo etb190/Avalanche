@@ -1151,6 +1151,13 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiPromptsNew">Neu</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Speichern</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Löschen</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">Vermenschlichen</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Professionell</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Einfach</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Akademisch</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Fachchinesisch</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Länger</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Kürzer</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Grammatikmodell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

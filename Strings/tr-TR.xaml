@@ -1145,6 +1145,13 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiPromptsNew">Yeni</sys:String>
     <sys:String x:Key="Str_AiPromptsSave">Kaydet</sys:String>
     <sys:String x:Key="Str_AiPromptsDelete">Sil</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Humanize">İnsanileştir</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Professional">Profesyonel</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Simple">Basit</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Academic">Akademik</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Jargon">Jargon</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Lengthen">Uzat</sys:String>
+    <sys:String x:Key="Str_PromptStyle_Shorten">Kısalt</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Dilbilgisi Modeli</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
