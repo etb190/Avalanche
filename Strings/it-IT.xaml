@@ -1152,6 +1152,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
     <sys:String x:Key="Str_AiModelTester">Tester IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Note</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Modello di riscrittura</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Modello di grammatica</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modello: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1390,6 +1392,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_TT_EditorNumber">Elenco numerato</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Sottoelenco (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citazione</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Interlinea: Compatto, Normale, Ampio</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Elenchi</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Salva documento</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Apri documento</sys:String>

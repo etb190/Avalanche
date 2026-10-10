@@ -1139,6 +1139,8 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiModelRecaller">Emlékeztető</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI-teszter</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Jegyzetek</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Átírási modell</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Nyelvtani modell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1377,6 +1379,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_TT_EditorNumber">Számozott lista</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Al-lista (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Idézet</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Sorköz váltása: Tömör, Normál, Laza</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listák</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Dokumentum mentése</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Dokumentum megnyitása</sys:String>

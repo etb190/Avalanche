@@ -1152,6 +1152,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelRecaller">Nhắc lại</sys:String>
     <sys:String x:Key="Str_AiModelTester">Trình kiểm thử AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Ghi chú</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Mô hình viết lại</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Mô hình ngữ pháp</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Mô hình: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1390,6 +1392,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_TT_EditorNumber">Danh sách đánh số</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Danh sách con (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Trích dẫn</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Giãn dòng: Chật, Vừa, Rộng</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Danh sách</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Lưu tài liệu</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Mở tài liệu</sys:String>

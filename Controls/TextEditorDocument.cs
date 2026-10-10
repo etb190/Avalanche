@@ -73,7 +73,7 @@ namespace Avalanche.Controls
      the window scrolls, one unbroken ride. */
   .ql-container { height:auto; font-family:'Times New Roman',serif; }
   .ql-editor { height:auto; min-height:1056px; overflow-y:visible;
-               font-family:'Times New Roman',serif; font-size:12pt; line-height:1.5;
+               font-family:'Times New Roman',serif; font-size:12pt; line-height:var(--line-height,1.6);
                color:#1c1c1c; padding:64px 72px 32px 72px; outline:none; }
   .ql-editor.ql-blank::before { content:none; }
   .ql-editor img { max-width:100%; height:auto; -webkit-user-drag:none; }
@@ -107,6 +107,29 @@ namespace Avalanche.Controls
   .ql-editor blockquote::after { content: "\201D"; font-family: Georgia, serif;
                font-size: 1.5em; line-height: 0.1em; vertical-align: -0.2em;
                margin-left: 4px; color: #7aa7d8; }
+  /* The journal's typesetting (v1.19.78): the paragraph breathes on the two
+     variables the Spacing button turns, the lists pack tight the way Axo
+     packed them, the code block wears VS Code's dark face, and the headings
+     keep Axo's exact sizes. (Axo's li rides display:flex - a ProseMirror
+     shape; Quill's items carry inline content and the marker spans, so the
+     packing lands on the margins alone.) Quill 2 renders a code block as a
+     ql-code-block-container of div lines, not a pre, so both faces get the
+     dark rule; the pre rule stays for anything the clipboard drops in. */
+  .ql-editor p { margin: 0 0 var(--p-margin, 0.5em) 0; }
+  .ql-editor ul, .ql-editor ol { padding-left: 0 !important; margin-left: 1em !important;
+      margin-top: 0 !important; margin-bottom: var(--p-margin, 0.5em) !important; }
+  .ql-editor li { margin-top: 0 !important; margin-bottom: -0.1em !important; }
+  .ql-editor p + ul, .ql-editor p + ol { margin-top: calc(var(--p-margin, 0.5em) * -0.5) !important; }
+  .ql-editor h1 { font-size: 2em; line-height: 1.2; margin: 0.5em 0 0.25em 0; }
+  .ql-editor h2 { font-size: 1.5em; line-height: 1.3; margin: 0.5em 0 0.25em 0; }
+  .ql-editor pre, .ql-editor .ql-code-block-container { background: #1e1e1e !important;
+      color: #d4d4d4 !important; padding: 0.75rem 1rem !important;
+      border-radius: 0.5rem !important; margin: 0.5rem 0 !important; }
+  .ql-editor pre, .ql-editor .ql-code-block { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace !important;
+      color: #d4d4d4 !important; }
+  .ql-editor .ql-code-block-container { background: #1e1e1e !important; }
+  .ql-editor code { background-color: rgba(110,118,129,0.4); padding: 0.2em 0.4em;
+      border-radius: 6px; font-size: 85%; font-family: Consolas, 'Courier New', monospace; }
   /* The proofreader's marks and chrome (v1.19.77): a flagged word wears the
      wavy red the eye already knows, the card above it offers the fix or the
      forget, the bubble rides a selection longer than three characters, and
@@ -269,6 +292,23 @@ quill.keyboard.addBinding({ key: 'Z', shortKey: true, shiftKey: true }, function
 quill.keyboard.addBinding({ key: 'A', shortKey: true }, function(){
   quill.setSelection(0, quill.getLength(), 'user');
 });
+
+// Axo's chords (v1.19.78): every tool the journal answered from the
+// keyboard, the sheet answers too. Quill's stock bindings carry only
+// bold, italic and underline, so each chord here owns exactly one law
+// and none of them double-fires. Every handler is a toggle - the same
+// press that dresses a line undresses it again.
+quill.keyboard.addBinding({ key: 'X', shortKey: true, shiftKey: true }, function(){ toggle('strike'); });
+quill.keyboard.addBinding({ key: '1', shortKey: true, altKey: true }, function(){ header(1); });
+quill.keyboard.addBinding({ key: '2', shortKey: true, altKey: true }, function(){ header(2); });
+quill.keyboard.addBinding({ key: '8', shortKey: true, shiftKey: true }, function(){ bullet(); });
+quill.keyboard.addBinding({ key: '7', shortKey: true, shiftKey: true }, function(){ number(); });
+quill.keyboard.addBinding({ key: 'B', shortKey: true, shiftKey: true }, function(){ quote(); });
+quill.keyboard.addBinding({ key: 'C', shortKey: true, altKey: true }, function(){ toggle('code-block'); });
+quill.keyboard.addBinding({ key: 'E', shortKey: true }, function(){ toggle('code'); });
+quill.keyboard.addBinding({ key: 'L', shortKey: true, shiftKey: true }, function(){ align('left'); });
+quill.keyboard.addBinding({ key: 'E', shortKey: true, shiftKey: true }, function(){ align('center'); });
+quill.keyboard.addBinding({ key: 'R', shortKey: true, shiftKey: true }, function(){ align('right'); });
 
 // ── footnotes ─────────────────────────────────────────────────────────────
 function nextFnId(){
@@ -1254,6 +1294,70 @@ window.addEventListener('resize', function(){
   if (errPop && errPop.style.display === 'block') hideErrPop();
 });
 
+// ── the journal's breath (v1.19.78) ───────────────────────────────────────
+// Axo's line spacing lives on two CSS variables the Spacing button turns:
+// three speeds, one press ahead each time - Compact, Normal, Relaxed -
+// and the paragraph and the lists all breathe by the same two numbers.
+var SPACING_MODES = ['compact', 'normal', 'relaxed'];
+var SPACING_STYLE = {
+  compact: { line: '1.25', pm: '0.15em' },
+  normal:  { line: '1.6',  pm: '0.5em'  },
+  relaxed: { line: '1.8',  pm: '1.0em'  }
+};
+var spacingMode = 'normal';
+function applySpacing(mode){
+  if (!SPACING_STYLE[mode]) mode = 'normal';
+  spacingMode = mode;
+  var s = SPACING_STYLE[mode];
+  quill.root.style.setProperty('--line-height', s.line);
+  quill.root.style.setProperty('--p-margin', s.pm);
+}
+function cycleSpacing(){
+  applySpacing(SPACING_MODES[(SPACING_MODES.indexOf(spacingMode) + 1) % SPACING_MODES.length]);
+}
+applySpacing('normal');
+
+// Axo's align law: the chord sets the voice, a second press walks it
+// back to the page's own left.
+function align(mode){
+  var f = quill.getFormat();
+  var next = (mode === 'left' || f.align === mode) ? false : mode;
+  quill.format('align', next, 'user');
+  reportState();
+}
+
+// ── the journal's smart typing (v1.19.78) ──────────────────────────────────
+// Axo's two quiet laws, ported: the standalone "i" grows up the moment a
+// space follows it, and a sentence's first letter stands up at the start
+// of a block or after a period, an exclamation or a question and one or
+// more spaces. Both fix the keystroke BEFORE the model sees it - one
+// dispatch, one undo step, the same single transaction Axo's
+// handleTextInput gave the journal. Capture on the editor root, above
+// Quill's own handlers; chords and composition never enter here.
+quill.root.addEventListener('keydown', function(e){
+  if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+  if (e.key.length !== 1) return;
+  var sel = quill.getSelection();
+  if (!sel || sel.length) return;
+  var idx = sel.index;
+  var before = quill.getText(0, idx);
+  if (e.key === ' ' && /(^|\s)i$/.test(before)){
+    e.preventDefault();
+    quill.updateContents({ ops: [ { retain: idx - 1 }, { delete: 1 }, { insert: 'I ' } ] }, 'user');
+    reportState();
+    return;
+  }
+  if (/^[a-z]$/.test(e.key)){
+    var lineInfo = quill.getLine(idx);
+    var atBlockStart = !!(lineInfo && lineInfo[1] === 0);
+    if (atBlockStart || /[.!?'\s]+$/.test(before)){
+      e.preventDefault();
+      quill.insertText(idx, e.key.toUpperCase(), 'user');
+      reportState();
+    }
+  }
+}, true);
+
 // ── the ribbon's commands ─────────────────────────────────────────────────
 function toggle(name){
   var f = quill.getFormat();
@@ -1364,6 +1468,7 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'number': number(); break;
       case 'subnumber': subnumber(); break;
       case 'quote': quote(); break;
+      case 'spacing': cycleSpacing(); break;
       case 'selectAll': quill.focus(); quill.setSelection(0, quill.getLength(), 'user'); break;
       case 'copy': copySelection(false); break;
       case 'cut': copySelection(true); break;

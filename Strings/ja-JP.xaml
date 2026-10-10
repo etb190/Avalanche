@@ -1152,6 +1152,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">リキャップ</sys:String>
     <sys:String x:Key="Str_AiModelTester">AIテスター</sys:String>
     <sys:String x:Key="Str_AiModelNotes">ノート</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">リライトモデル</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">文法モデル</sys:String>
     <sys:String x:Key="Str_AiModelUsed">モデル: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1390,6 +1392,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_EditorNumber">番号付きリスト</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">副番号リスト（A、B、C）</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">引用</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">行間を切り替え：狭い・標準・広い</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">リスト</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">文書を保存</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">文書を開く</sys:String>

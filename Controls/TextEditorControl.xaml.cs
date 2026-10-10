@@ -652,6 +652,7 @@ namespace Avalanche.Controls
             }
         }
         private void QuoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "quote" }); RefocusEditor(); }
+        private void SpacingBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "spacing" }); RefocusEditor(); }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
         private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
 
@@ -1502,7 +1503,7 @@ namespace Avalanche.Controls
 
         // ── The editor's second brain (v1.19.77) ─────────────────────────────
         // Two doors, both opened by the page, both answered through the
-        // sheet's own dial (AiSurface.TextEditor). The quiet door: five
+        // sheet's own dials (EditorGrammar proofs, EditorRewrite rewrites). The quiet door: five
         // seconds after the reader stops typing, the page sends ONE batched
         // scan of the whole document - never a keystroke, an untouched
         // document never asks twice - and the answer dresses every stumble
@@ -1514,16 +1515,18 @@ namespace Avalanche.Controls
 
         private Features.AI.AiSettingsViewModel? _aiSettings;
 
-        /// <summary>The text editor's own dial, resolved fresh every call:
+        /// <summary>The named surface's dial, resolved fresh every call:
         /// the settings panel stays the single source of the base config,
         /// the surface dial owns only who answers - the same law every other
-        /// surface lives by.</summary>
-        private Features.AI.AiProviderConfig AiConfig()
+        /// surface lives by. v1.19.78: the sheet's seat is two dials now -
+        /// the proofreader (EditorGrammar) and the rewriter (EditorRewrite) -
+        /// so the quiet door and the loud door can bill different brains.</summary>
+        private Features.AI.AiProviderConfig AiConfig(Features.AI.AiSurface surface)
         {
             _aiSettings ??= new Features.AI.AiSettingsViewModel();
             _aiSettings.Load();
             return Features.AI.AiSurfaceModels.Configure(
-                _aiSettings.ToGenConfig(), Features.AI.AiSurface.TextEditor);
+                _aiSettings.ToGenConfig(), surface);
         }
 
         private void RunAiGrammarScan(JsonElement root)
@@ -1570,7 +1573,7 @@ namespace Avalanche.Controls
                     "  ]\n" +
                     "}\n" +
                     "If there are no errors, return: {\"errors\": []}";
-                var config = AiConfig();
+                var config = AiConfig(Features.AI.AiSurface.EditorGrammar);
                 var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
                     .GetChatCompletionAsync(
                         system,
@@ -1725,7 +1728,7 @@ namespace Avalanche.Controls
                       "structure and flow. Preserve the author's meaning and voice. " +
                       "If the text is already correct, return it unchanged. " +
                       "Return ONLY the corrected text - no quotes, no explanations, no markdown fences.";
-                var config = AiConfig();
+                var config = AiConfig(Features.AI.AiSurface.EditorRewrite);
                 var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
                     .GetChatCompletionAsync(
                         system,

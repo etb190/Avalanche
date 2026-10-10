@@ -1132,6 +1132,8 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiModelRecaller">রিক্যাপ</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI টেস্টার</sys:String>
     <sys:String x:Key="Str_AiModelNotes">নোট</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">পুনর্লিখন মডেল</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">ব্যাকরণ মডেল</sys:String>
     <sys:String x:Key="Str_AiModelUsed">মডেল: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1370,6 +1372,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_EditorNumber">সংখ্যাযুক্ত তালিকা</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">সাব-নম্বর তালিকা (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">উদ্ধৃতি</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">লাইন স্পেসিং পরিবর্তন: কমপ্যাক্ট, স্বাভাবিক, শিথিল</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">তালিকা</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">নথি সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">নথি খুলুন</sys:String>

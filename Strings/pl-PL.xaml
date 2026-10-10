@@ -1140,6 +1140,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelRecaller">Rekapitulacja</sys:String>
     <sys:String x:Key="Str_AiModelTester">Tester AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notatki</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Model przepisywania</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Model gramatyki</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1378,6 +1380,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_EditorNumber">Lista numerowana</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Podlista (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Cytat</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Interlinia: Ciasna, Zwykła, Luźna</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listy</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Zapisz dokument</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Otwórz dokument</sys:String>

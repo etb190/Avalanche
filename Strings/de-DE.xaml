@@ -1138,6 +1138,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiModelRecaller">Recap</sys:String>
     <sys:String x:Key="Str_AiModelTester">KI-Tester</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notizen</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Umschreibungsmodell</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Grammatikmodell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1376,6 +1378,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_TT_EditorNumber">Nummerierte Liste</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Unterliste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Zitat</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Zeilenabstand umschalten: Kompakt, Normal, Locker</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listen</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Dokument speichern</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Dokument öffnen</sys:String>

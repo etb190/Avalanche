@@ -1136,6 +1136,8 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_AiModelRecaller">回顾</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI 测试器</sys:String>
     <sys:String x:Key="Str_AiModelNotes">笔记</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">改写模型</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">语法模型</sys:String>
     <sys:String x:Key="Str_AiModelUsed">模型：{0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1374,6 +1376,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_TT_EditorNumber">编号列表</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">子编号列表（A、B、C）</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">引用</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">行距切换：紧凑、标准、宽松</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">列表</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">保存文档</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">打开文档</sys:String>

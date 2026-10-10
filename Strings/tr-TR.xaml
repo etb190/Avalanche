@@ -1132,6 +1132,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiModelRecaller">Kısa Tekrar</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI test aracı</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notlar</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Yeniden Yazma Modeli</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Dilbilgisi Modeli</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1370,6 +1372,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_TT_EditorNumber">Numaralı liste</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Alt liste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Alıntı</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Satır aralığı döngüsü: Sıkı, Normal, Geniş</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listeler</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Belgeyi kaydet</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Belgeyi aç</sys:String>

@@ -1152,6 +1152,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_AiModelRecaller">Récapitulatif</sys:String>
     <sys:String x:Key="Str_AiModelTester">Testeur IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Modèle de réécriture</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Modèle de grammaire</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modèle : {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1390,6 +1392,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_TT_EditorNumber">Liste numérotée</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Sous-liste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citation</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Interligne : Compact, Normal, Aéré</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listes</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Enregistrer le document</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Ouvrir le document</sys:String>

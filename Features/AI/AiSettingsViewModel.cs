@@ -36,6 +36,8 @@ namespace Avalanche.Features.AI
         private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
         private string _aiTesterModelChoice = AiSurfaceModels.NemotronChoice;
         private string _notesModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.34: the sidebar's notes
+        private string _editorGrammarModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's proofreader
+        private string _editorRewriteModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's rewriter
         private string _embeddingChoice = AiSurfaceModels.EmbeddingDefaultChoice;   // v1.19.55: who embeds
 
         private bool _isEnabled = false;
@@ -160,6 +162,24 @@ namespace Avalanche.Features.AI
         {
             get => _notesModelChoice;
             set { _notesModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Notes, _notesModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.19.78: the sheet's seat split in two - which model
+        /// proofreads the timer's batched scan (Grammar) and which model
+        /// answers the seven-voice rewriter (Rewrite). Two dials, one law:
+        /// only who answers moves.</summary>
+        public string EditorGrammarModelChoice
+        {
+            get => _editorGrammarModelChoice;
+            set { _editorGrammarModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.EditorGrammar, _editorGrammarModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.19.78: the rewriter's own dial - the seven voices
+        /// bill whoever the reader seated here, nothing else moves.</summary>
+        public string EditorRewriteModelChoice
+        {
+            get => _editorRewriteModelChoice;
+            set { _editorRewriteModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.EditorRewrite, _editorRewriteModelChoice); OnPropertyChanged(); }
         }
 
         /// <summary>v1.19.55: the embedding dial - the app default (the

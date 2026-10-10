@@ -1152,6 +1152,8 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelRecaller">Рекап</sys:String>
     <sys:String x:Key="Str_AiModelTester">ИИ-тестер</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Заметки</sys:String>
+    <sys:String x:Key="Str_AiModelEditorRewrite">Модель перезаписи</sys:String>
+    <sys:String x:Key="Str_AiModelEditorGrammar">Модель грамматики</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>
     <sys:String x:Key="Str_AiSettingsTopK">Passages per question (Top K)</sys:String>
@@ -1390,6 +1392,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_TT_EditorNumber">Нумерованный список</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Вложенный список (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Цитата</sys:String>
+    <sys:String x:Key="Str_TT_EditorSpacing">Междустрочный интервал: Плотный, Обычный, Свободный</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Списки</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Сохранить документ</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Открыть документ</sys:String>

@@ -397,6 +397,13 @@
                                   Click="QuoteBtn_Click" ToolTip="{DynamicResource Str_TT_EditorQuote}">
                         <TextBlock Text="&#x201C;" FontWeight="Bold" FontSize="20" FontFamily="Georgia"/>
                     </ToggleButton>
+                    <!-- The spacing cycle (v1.19.78): Axo's three speeds -
+                         Compact, Normal, Relaxed - one press ahead each time,
+                         the page's own CSS variables doing the breathing. -->
+                    <Button x:Name="SpacingBtn" Style="{StaticResource EditorBtn}"
+                            Click="SpacingBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSpacing}">
+                        <TextBlock Text="&#x2195;" FontSize="17"/>
+                    </Button>
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- Link, footnote, and the behind-text image. -->
                     <Button x:Name="LinkBtn" Content="&#xE71B;" Style="{StaticResource EditorBtn}"
