@@ -1,281 +1,323 @@
-# TASK: AI Subsystem Overhaul, Word Count Fix, Streaming, Interactive Tables & UI Refinements
+# TASK: Table Layout & Newlines, Summarizer Scroll Seizure Fix, Ribbon Layout, Sidechat Streaming & Citation Formatting
 
 Repository: `https://github.com/etb190/Avalanche`  
 Target Files:
-- `Features/Summary/PageSummarizer.cs`
-- `Features/Summary/SummaryWindow.xaml.cs`
-- `Features/Summary/WebSummaryWindow.xaml.cs`
-- `Features/Summary/PromptStore.cs`
-- `Features/AI/AiMarkdown.cs`
-- `Features/AI/AiPromptLibrary.cs`
-- `Features/AI/prompts.default.json`
-- `Features/AI/OpenAiCompatibleProvider.cs`
-- `Features/AI/AiChatViewModel.cs`
-- `Features/AI/HybridRetriever.cs`
-- `Features/AI/OllamaEmbeddingClient.cs`
-- `Features/AI/WebChat.cs`
+- `Controls/TextEditorDocument.cs`
 - `Controls/TextEditorControl.xaml`
 - `Controls/TextEditorControl.xaml.cs`
-- `Controls/TextEditorDocument.cs`
+- `Features/Summary/SummaryWindow.xaml.cs`
+- `Features/Summary/WebSummaryWindow.xaml.cs`
+- `Features/AI/AiMarkdown.cs`
+- `Features/AI/AiChatViewModel.cs`
+- `Features/AI/OpenAiCompatibleProvider.cs`
+- `Features/AI/AiPromptLibrary.cs`
+- `Features/AI/prompts.default.json`
+- `Features/AI/WebChat.cs`
 - `MainWindow.xaml`
 - `MainWindow.xaml.cs`
 - `Shell/SettingsPanel.cs`
 
 ---
 
-## 1. Summary Word Count Explosion & Hidden C# Heading Overhaul
+## 1. Text Editor: Table Width Distortion & Layout Stability
 
 ### Problem:
-When a user selects a 500-word limit in the PDF Summarizer, cloud models (Nemotron, GLM, DeepSeek) generate 4,000–5,000 words. 
-1. **Hidden C# Injection (`PageSummarizer.cs`):** In `DigestSystemPrompt()`, C# invisibly appends a hardcoded `BOOK HEADINGS` block that commands the model:
-   *"Copy each one VERBATIM as a markdown '### ' heading and summarize the text that follows it under that heading, in flowing prose paragraphs."*
-   In a 30–60 page PDF excerpt, `MarkdownNormalizer` extracts 15–25 headings from font sizes. The model is forced to generate a `### ` heading and multiple paragraphs for every single heading in the book, mathematically exploding into 4,000 words.
-2. **Invisible Wrapper vs. Workshop:** The AI Prompts Workshop in Settings only exposes `prompts.json` (`GenreMandate`), while C# secretly wraps it in 300 words of rigid formatting laws, preventing the user from controlling prompt behavior.
-
-### Requirements & Fix:
-1. **Remove Hidden C# Wrappers in `PageSummarizer.cs`:**
-   - Remove the hardcoded `BOOK HEADINGS` requirement from `DigestSystemPrompt()`.
-   - Remove the invisible trailing rules that force verbatim section reproduction.
-   - Let the prompt body from `PromptStore` / `prompts.json` be the true system prompt, substituting only standard placeholders:
-     - `{words}`: Target word count from dropdown (e.g., `500`).
-     - `{language}`: Output language from dropdown (e.g., `English`).
-2. **Keep the Beautiful Green Headings Without Exploding:**
-   - In Avalanche, `AiMarkdown.cs` renders any markdown heading (`### ` or `## `) with `PrimaryBrush` (the green accent theme color).
-   - In the prompt body (e.g., `nonfiction_classic`), explicitly instruct the model to organize the summary into a small, structured set of sections:
-     > *"Structure the summary into 2 to 4 overarching thematic sections using markdown `### ` headings. Under each heading, write concise flowing prose paragraphs. Connect ideas logically and ensure the total length across all sections strictly stays around approximately {words} words (do NOT exceed {words} words)."*
-   - Also include a short scaffolding note in the prompt:
-     > *"The text carries internal `[p. N]` page markers for reference; do not include these markers in your summary."*
-3. **CRITICAL: Preserve User-Created & User-Edited Prompts:**
-   - When loading or updating `PromptStore`, do **NOT** overwrite, wipe, or reset any custom prompts that users have added or edited in `%LocalAppData%\Avalanche\AI\prompts.json`.
-   - Only supply default bodies for built-in prompt IDs when the user's file does not contain them.
-
----
-
-## 2. Fix Global Semaphore Serializing All AI Across the App
-
-### Problem:
-In `Features/AI/OpenAiCompatibleProvider.cs`:
-```csharp
-private static readonly SemaphoreSlim SharedChatSemaphore = new(1, 1);
-```
-Every single AI call in Avalanche (Sidechat questions, PDF summarization, Notes generation, Grammar proofreading, Rewrite bubble, Connection Test) waits on this single global lock. If a large PDF summary is running, typing in AI Sidechat freezes and deadlocks until the summary completes.
-
-### Fix:
-1. Remove `SharedChatSemaphore = new(1, 1)` as a process-wide blocker.
-2. Implement surface-scoped concurrency or a multi-slot throttler (e.g. allowing Sidechat and Quick Actions to execute in parallel with a background Page Summarizer).
-3. If an individual endpoint host requires rate-limiting (e.g. local Ollama), scope the gate per-host (`BaseUrl`), not globally across all surfaces and cloud providers.
-
----
-
-## 3. Enable Live Streaming in AI Sidechat
-
-### Problem:
-`PageSummarizer` and the Text Editor rewriter already use Server-Sent Events (SSE) streaming (`stream: true`). However, `AiChatViewModel.cs` calls `GetChatCompletionAsync` (non-streaming). When asking questions in the Sidechat, the user stares at a static "Thinking..." placeholder for 20–60 seconds before the entire markdown payload drops at once.
-
-### Fix:
-1. In `Features/AI/AiChatViewModel.cs` (`SendMessageAsync`):
-   - Replace the one-shot `GetChatCompletionAsync` call with `OpenAiCompatibleProvider.GetChatCompletionStreamAsync`.
-2. As chunks/deltas arrive via SSE:
-   - Append to the active assistant message and update the UI in real-time.
-   - Maintain full citation parsing and thought trace handling (`<think>` blocks).
-
----
-
-## 4. Fix Semantic Vector Search for Cloud Users
-
-### Problem:
-In `HybridRetriever.cs` and `OllamaEmbeddingClient.cs`, vector similarity search only functions if local Ollama is running on localhost with `embeddinggemma:latest` installed. Users configured with cloud models (OpenAI, OpenRouter, Google Gemini) have vector search permanently disabled and silently degrade to BM25 keyword matching.
-
-### Fix:
-1. Generalize the embedding client in `Features/AI/`:
-   - Support standard OpenAI-compatible `/v1/embeddings` endpoints (e.g. `text-embedding-3-small`, OpenRouter embeddings).
-   - Support Google Gemini embedding endpoints when Google identity is active.
-2. In `HybridRetriever.cs`:
-   - Route embedding requests through the active provider's embedding configuration so cloud users get hybrid semantic + lexical retrieval.
-
----
-
-## 5. Prevent Quadratic Document Re-Transmission on Every Chat Turn
-
-### Problem:
-In `WebChat.cs` and `AiChatViewModel.cs`, every follow-up message in a conversation re-attaches the full document or webpage extraction (up to 160,000 characters) into the conversation history. On multi-turn chats, token consumption explodes quadratically, context limits are quickly exceeded, and latency spikes.
-
-### Fix:
-1. Anchor document and webpage source extracts only once in the initial system/context turn.
-2. For subsequent conversational turns, send only the rolling chat history and new retrieved RAG chunks, rather than re-prepending the entire raw document text on every turn.
-
----
-
-## 6. Prevent Small Talk Regex from Intercepting Legitimate Queries
-
-### Problem:
-In `AiChatViewModel.cs`, `IsSmallTalk` uses client-side regex to intercept greetings (`hi`, `hello`, `hey`) and immediately returns a hardcoded canned greeting. If a user asks a real question that begins with a polite greeting (e.g. *"Hi, what is the conclusion on page 12?"*), the regex fires, completely ignores the document, and returns a canned "Hello! How can I help you?".
-
-### Fix:
-1. Update `IsSmallTalk` to strictly match standalone greetings (e.g. the message contains *only* a greeting with no trailing query words or punctuation).
-2. If the message length exceeds ~20 characters or contains substantive question words (`what`, `why`, `how`, `page`, `summarize`, etc.), do NOT treat it as small talk; send it to the model with document context.
-
----
-
-## 7. Fix Scrolling Locked to Top During Live Streaming
-
-### Problem:
-In `SummaryWindow.xaml.cs` and `WebSummaryWindow.xaml.cs`, while a summary is streaming, users cannot scroll down to read along. Any attempt to scroll down is violently jerked back up to the top (position 0).
+When inserting or typing inside a table in the Text Editor, typing even a short amount of text in a cell dramatically distorts the table's width. The column balloons out and pushes adjacent columns to their minimum width, and the table stretches wider than the document margins.
 
 ### Root Cause:
-`_typeTimer` ticks every 20ms to paint newly arrived text:
-```csharp
-DocBox.SetValue(AiMarkdown.TextProperty, _fullText[.._shownLength]);
+In `Controls/TextEditorDocument.cs`:
+```css
+.ql-editor table { border-collapse: collapse; width: 100%; margin: 16px 0; table-layout: auto; }
+.ql-editor td, .ql-editor th { border: 1px solid #d0d7de; padding: 8px 12px; min-width: 48px; vertical-align: top; box-sizing: border-box; }
 ```
-This triggers `AiMarkdown.OnTextChanged` $\rightarrow$ `AiMarkdown.Render`:
-```csharp
-var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
-rtb.Document = doc; // Replaces FlowDocument!
-```
-In WPF, assigning a brand-new `FlowDocument` to a `RichTextBox` (`rtb.Document = doc`) destroys the visual tree and resets `VerticalOffset` to 0 (the top). Because this happens 50 times per second, the scroll position is forcibly reset to the top continuously during streaming.
+1. `table-layout: auto`: With automatic table layout, browsers dynamically recalculate column widths on every keystroke based on content length. Typing a single sentence into Column 1 forces Column 1 to expand to 80%+ of the table width while shrinking Columns 2 and 3 down to `min-width: 48px`.
+2. Lack of `word-break` and `overflow-wrap`: Words or text without explicit wrapping expand the table beyond the 816px canvas width.
+3. Excessive cell padding: `padding: 8px 12px` consumes 24px of horizontal padding per column, compounding width pressure.
 
 ### Fix:
-1. In `AiMarkdown.cs` / `SummaryWindow.xaml.cs` / `WebSummaryWindow.xaml.cs`:
-   - Before setting `rtb.Document = doc`, record `double currentOffset = rtb.VerticalOffset;`.
-   - If the user has scrolled down (`currentOffset > 0`), restore the scroll position immediately after layout updates via `rtb.ScrollToVerticalOffset(currentOffset)`.
-   - Alternatively, only auto-scroll to the bottom if the user is already at the bottom; if the user has manually scrolled up or down to read, do not jump their scroll position.
+In `Controls/TextEditorDocument.cs`:
+Update the table CSS styles:
+```css
+.ql-editor table {
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 100%;
+  margin: 16px 0;
+  table-layout: fixed;
+  box-sizing: border-box;
+}
+.ql-editor td, .ql-editor th {
+  border: 1px solid #d0d7de;
+  padding: 6px 10px;
+  vertical-align: top;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+body.az-inv .ql-editor td, body.az-inv .ql-editor th {
+  border-color: #444c56;
+}
+.ql-editor td:focus, .ql-editor th:focus {
+  outline: 1.5px solid #4a90d9;
+  outline-offset: -1px;
+}
+```
+With `table-layout: fixed; width: 100%; max-width: 100%;`, all columns maintain an equal, fixed share of the table width by default, and typing inside any cell never expands or shifts column widths.
 
 ---
 
-## 8. Ribbon Toolbar: Move Browser Summary Button to the Left Side
+## 2. Text Editor: Enter Inside Table Cell Pushes Entire Table Down
 
 ### Problem:
-In the browser ribbon toolbar, `WebSumBtn` currently sits on the right side of the pane buttons (`PdfEditorBtn`). In the PDF editor ribbon, the Summarize button sits on the left side of the action tools. The layout is inconsistent.
+Pressing `Enter` while inside a table cell does not create a new line within the cell. Instead, it pushes the entire table down (or exits/splits the table).
+
+### Root Cause:
+In Quill.js v2, table cells are represented as block blots (`class TableCell extends Block { static tagName = "TD"; }`). Quill's default keyboard module includes a `"table enter"` binding that explicitly jumps outside the table:
+```javascript
+"table enter": {
+  key: "Enter",
+  format: ["table"],
+  handler(range) {
+    // Inserts a newline outside before or after the table, exiting the table!
+  }
+}
+```
+Because Quill's native block model treats `\n` as a block boundary, pressing Enter either triggers this exit logic or creates a new block blot outside `<tr>`, splitting the table and pushing it down.
+
+### Fix:
+In `Controls/TextEditorDocument.cs`:
+1. Register a custom inline embed blot (`line-break`) representing a soft `<br>`:
+   ```javascript
+   var Embed = Quill.import('blots/embed');
+   class LineBreakBlot extends Embed {
+     static blotName = 'line-break';
+     static tagName = 'BR';
+   }
+   Quill.register(LineBreakBlot);
+   ```
+2. Intercept `Enter` and `Shift+Enter` when inside a table cell:
+   ```javascript
+   quill.keyboard.addBinding({
+     key: 'Enter',
+     shiftKey: null,
+     format: ['table']
+   }, function(range, context) {
+     quill.insertEmbed(range.index, 'line-break', true, 'user');
+     quill.setSelection(range.index + 1, 'silent');
+     reportState();
+     return false; // prevent default Quill table exit
+   });
+   ```
+   Add a matching keydown handler on `quill.root` capture phase to ensure standard `Enter` and `Shift+Enter` inside any `td` / `th` reliably insert the `<br>` without breaking or pushing the table.
+
+---
+
+## 3. Summarizer Window: Fix Violent Scrolling Seizure / Flashing During Streaming
+
+### Problem:
+When reading a summary as it streams in `SummaryWindow` or `WebSummaryWindow`, scrolling down causes severe jitter and flickering. The window violently jerks back and forth between the top (position 0) and the user's scroll position like a seizure.
+
+### Root Cause:
+In `Features/AI/AiMarkdown.cs` (`Render` method):
+```csharp
+double keep = rtb.VerticalOffset;
+bool rideBottom = rtb.ViewportHeight > 0
+    && rtb.ExtentHeight > rtb.ViewportHeight
+    && keep >= rtb.ExtentHeight - rtb.ViewportHeight - 2.0;
+
+var doc = BuildDocument(text, parse, rtb, GetParagraphAlignment(rtb));
+rtb.Document = doc; // Destroys visual tree and resets VerticalOffset to 0!
+
+if (keep > 0 || rideBottom)
+{
+    rtb.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+    {
+        try
+        {
+            if (!rideBottom && rtb.VerticalOffset > 0.5) return;   // reader moved on their own
+            double max = Math.Max(0, rtb.ExtentHeight - rtb.ViewportHeight);
+            rtb.ScrollToVerticalOffset(rideBottom ? max : Math.Min(keep, max));
+        }
+        catch { }
+    }));
+}
+```
+1. `_typeTimer` ticks every 20ms (50 FPS).
+2. On every tick, `rtb.Document = doc` assigns a brand-new `FlowDocument`. In WPF, replacing `Document` immediately drops `VerticalOffset` to 0.
+3. The asynchronous `BeginInvoke(DispatcherPriority.Loaded)` attempts to restore the offset later, but by the time it runs, another 20ms tick has already captured `keep = 0` (or `rtb.VerticalOffset > 0.5` causes it to abort).
+4. The scroll position rapidly oscillates between 0 and the user's scroll offset 50 times per second, creating a violent visual strobe effect.
+
+### Fix:
+In `Features/AI/AiMarkdown.cs`, `Features/Summary/SummaryWindow.xaml.cs`, and `Features/Summary/WebSummaryWindow.xaml.cs`:
+1. **Track Intentional User Scroll Offset:**
+   - In `SummaryWindow` and `WebSummaryWindow`, listen to user scroll input (e.g. `PreviewMouseWheel` or user drag) and record `_userDesiredVerticalOffset`.
+   - If the user has manually scrolled down, maintain this offset across renders.
+2. **Synchronous Scroll Restoration:**
+   - In `AiMarkdown.Render`, do not let `VerticalOffset` stay at 0 across asynchronous frames.
+   - After `rtb.Document = doc`, call `rtb.UpdateLayout()` and immediately restore `rtb.ScrollToVerticalOffset(keep)` synchronously within the same render pass.
+   - If the user was riding the bottom, scroll to bottom (`rtb.ScrollToEnd()`). If the user scrolled mid-page, strictly restore `keep`.
+3. **Throttle Streaming Markdown Rebuilds:**
+   - While streaming, update the full markdown AST at a throttled cadence (e.g. 100–120ms or upon paragraph completion) rather than recreating a 5-page `FlowDocument` visual tree every 20 milliseconds.
+
+---
+
+## 4. Ribbon Toolbar: Move Browser Summary Icon to the Far Right
+
+### Problem:
+The browser summary ribbon button (`WebSumBtn`) is currently sitting on the far left next to `NewFileBtn`, `TextEditorBtn`, and `PdfEditorBtn`. The user expects it on the far right alone, across from the PDF editor icon, matching standard toolbar layout.
 
 ### Fix:
 1. In `MainWindow.xaml`:
-   - Move `WebSumBtn` to the left side of the browser action tools (to the left of `TextEditorBtn` and `PdfEditorBtn`), matching the placement of `SummarizeBtn` in the PDF editor ribbon.
+   - Move `WebSumBtn` out of `LeftBar` / `GrpToolsToggle`.
+   - Place `WebSumBtn` on the far right end of the ribbon toolbar (inside `RightContainer` or a dedicated right-aligned container that is visible when browser leads).
+   ```xml
+   <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
+           Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
+           Visibility="Collapsed"/>
+   ```
 2. In `Shell/SettingsPanel.cs` (`ApplyBrowserToolbarFace`):
-   - Ensure the toolbar reflow and visibility toggles respect the updated position on the left.
+   - When `leads == true`:
+     - Keep `NewFileBtn`, `TextEditorBtn`, and `PdfEditorBtn` visible on the left in `LeftBar`.
+     - Show `WebSumBtn` on the far right.
+     - Ensure `RightContainer` or the right-aligned container hosting `WebSumBtn` is set to `Visibility = Visibility.Visible` while hiding unrelated PDF annotation tools.
+   - When `leads == false`:
+     - Hide `WebSumBtn`.
 
 ---
 
-## 9. Fully Functional, Interactive Tables in Text Editor
+## 5. Fix AI Sidechat Streaming Failure (Text Appearing All at Once)
 
 ### Problem:
-The Text Editor lacks table creation and editing tools. Users cannot insert tables, edit rows or columns, or navigate table cells smoothly, forcing reliance on external editors.
+In all AI Sidechats (PDF Sidechat, Web Sidechat, Editor Sidechat), answers do not stream progressively. The user sees a loading state for 20–60 seconds, and then the entire markdown text appears all at once.
 
-### Technical Foundation:
-Avalanche uses Quill.js v2 bundled offline in `Resources/Scripts/quill.min.js`. The bundled library already includes the full native Quill 2 Table API (`insertTable`, `insertRowAbove`, `insertRowBelow`, `insertColumnLeft`, `insertColumnRight`, `deleteRow`, `deleteColumn`, `deleteTable`).
-
-### Implementation Details:
-1. **Enable Quill Table Module in `Controls/TextEditorDocument.cs`:**
-   ```javascript
-   var quill = new Quill('#editor', {
-     theme: 'snow',
-     placeholder: '',
-     modules: {
-       table: true,
-       toolbar: false,
-       history: { delay: 400, maxStack: 500, userOnly: true }
-     }
-   });
+### Root Causes:
+1. **Low Dispatcher Priority (`DispatcherPriority.Background`):**
+   In `Features/AI/AiChatViewModel.cs` (`StreamReplyIntoAsync`):
+   - `paintTimer` is created with `DispatcherPriority.Background` (priority 4).
+   - In WPF, `Background` priority is lower than layout and rendering. When network chunks arrive rapidly, `paintTimer` gets starved and does not tick until the background streaming task completes.
+2. **Message Border Collapsed by `IsLoading`:**
+   In `MainWindow.xaml`:
+   ```xml
+   <DataTrigger Binding="{Binding IsLoading}" Value="True">
+       <Setter Property="Visibility" Value="Collapsed"/>
+   </DataTrigger>
    ```
-2. **Table Styling in `Controls/TextEditorDocument.cs`:**
-   Add clean, professional CSS styling for tables:
-   ```css
-   .ql-editor table {
-     border-collapse: collapse;
-     width: 100%;
-     margin: 16px 0;
-     table-layout: auto;
-   }
-   .ql-editor td, .ql-editor th {
-     border: 1px solid #d0d7de;
-     padding: 8px 12px;
-     min-width: 48px;
-     vertical-align: top;
-     box-sizing: border-box;
-   }
-   /* Inverse / Dark Mode Support */
-   body.az-inv .ql-editor td, body.az-inv .ql-editor th {
-     border-color: #444c56;
-   }
-   /* Cell selection & focus outline */
-   .ql-editor td:focus, .ql-editor th:focus {
-     outline: 1.5px solid #4a90d9;
-     outline-offset: -1px;
-   }
+   In `StreamReplyIntoAsync`:
+   ```csharp
+   ui.BeginInvoke(DispatcherPriority.Background, (Action)(() =>
+   {
+       assistantMsg.IsLoading = false;
+   }));
    ```
-3. **Toolbar Button in `Controls/TextEditorControl.xaml`:**
-   - Add a `TableBtn` on the editor ribbon beside Image / Footnote:
-     ```xml
-     <Button x:Name="TableBtn" Content="&#xE8EC;" Style="{StaticResource EditorBtn}"
-             Click="TableBtn_Click" ToolTip="{DynamicResource Str_TT_EditorTable}"/>
-     ```
-   - In `Controls/TextEditorControl.xaml.cs`:
-     - Clicking `TableBtn` opens a compact table insertion popup (or inserts a default 3×3 grid) via:
-       `Post(new { cmd = "insertTable", rows = 3, cols = 3 });`
-4. **Interactive Table Operations (Contextual Actions):**
-   - In `TextEditorDocument.cs`, track selection changes (`editor-change` / `selection-change`).
-   - If the caret or selection is inside a `td` or `th`:
-     - Report `inTable: true` to WPF in `reportState()`.
-   - Implement handlers in `TextEditorDocument.cs` for table commands:
-     - `table.insertTable(rows, cols)`
-     - `table.insertRowAbove()`
-     - `table.insertRowBelow()`
-     - `table.insertColumnLeft()`
-     - `table.insertColumnRight()`
-     - `table.deleteRow()`
-     - `table.deleteColumn()`
-     - `table.deleteTable()`
-   - Provide intuitive UI access: either contextual toolbar buttons enabled when `inTable` is true, or a sleek floating bubble/context-menu offering row/column insertion and deletion.
-5. **Keyboard Navigation & Behavior:**
-   - Handle `Tab` inside a cell to advance to the next cell.
-   - If `Tab` is pressed in the last cell of the table, automatically insert a new row below and move caret into the first cell of the new row.
-   - Handle `Shift+Tab` to move to the previous cell.
-6. **Undo/Redo & Persistence:**
-   - Ensure all table insertions and edits register with Quill's `history` module for seamless `Ctrl+Z` / `Ctrl+Y` undo/redo.
-   - Ensure the HTML serializer (`dump` / `save`) serializes `<table>` elements cleanly and restores them on load.
-
----
-
-## 10. Fix AI Sidechat Jerky / Buggy Scrolling
-
-### Problem:
-Scrolling the message history in the AI Sidechat is glitchy, rubber-banding, and jerking back and forth when the mouse cursor is over chat message bubbles. Scrolling over the bottom input prompt area or empty margins is completely smooth.
-
-### Root Cause:
-In `MainWindow.xaml`:
-`AiChatScrollViewer` wraps `AiChatMessages` (`ItemsControl`), which renders each message bubble using a nested `RichTextBox` (`MessageRichText`).
-In WPF, `RichTextBox` inherits from `TextBoxBase`. Even though `VerticalScrollBarVisibility="Disabled"` is set, WPF's `RichTextBox` intercepts and handles `MouseWheel` events internally instead of cleanly bubbling them up to `AiChatScrollViewer`. The nested text box partially consumes scroll deltas and fights the parent container, producing severe stutter and jerking.
+   Because `assistantMsg.IsLoading = false` is also dispatched at `Background` priority, `MessageBorder` remains `Collapsed` during streaming. The message bubble is completely hidden until generation finishes and `IsLoading = false` is set at the end of `GenerateReplyAsync`.
+3. **Missing `Accept: text/event-stream` Header:**
+   In `Features/AI/OpenAiCompatibleProvider.cs` (`GetChatCompletionStreamAsync`):
+   The request sends `body["stream"] = true` but fails to include `request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"))`. Cloud gateways, proxies, and endpoints buffer the response and return `application/json` instead of streaming SSE frames.
 
 ### Fix:
-In `Features/AI/AiMarkdown.cs` (inside `EnsureHandlers(RichTextBox rtb)`):
-Attach a `PreviewMouseWheel` event handler to tunnel mouse wheel deltas directly to the parent `ScrollViewer`:
-```csharp
-private static void OnRichTextBoxPreviewMouseWheel(object sender, MouseWheelEventArgs e)
-{
-    if (sender is RichTextBox rtb && !e.Handled)
-    {
-        e.Handled = true;
-        var parentScrollViewer = FindVisualParent<ScrollViewer>(rtb);
-        if (parentScrollViewer != null)
-        {
-            parentScrollViewer.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
-            {
-                RoutedEvent = UIElement.MouseWheelEvent,
-                Source = sender
-            });
-        }
-    }
-}
+1. In `Features/AI/AiChatViewModel.cs` (`StreamReplyIntoAsync`):
+   - Change `paintTimer` priority to `DispatcherPriority.Render` (or `Normal`):
+     ```csharp
+     var paintTimer = new System.Windows.Threading.DispatcherTimer(
+         TimeSpan.FromMilliseconds(24), DispatcherPriority.Render,
+         (_, _) =>
+         {
+             if (!dirty) return;
+             dirty = false;
+             string next = StripThinkSpans(raw.ToString());
+             if (string.Equals(next, visible, StringComparison.Ordinal)) return;
+             visible = next;
+             assistantMsg.Content = visible;
+         },
+         ui);
+     ```
+   - On the first chunk received (`if (!any)`), immediately set `assistantMsg.IsLoading = false` at `DispatcherPriority.Normal` (or `Render`) so the message bubble becomes visible instantly:
+     ```csharp
+     if (!any)
+     {
+         any = true;
+         ui.BeginInvoke(DispatcherPriority.Normal, (Action)(() =>
+         {
+             assistantMsg.IsLoading = false;
+         }));
+     }
+     ```
+2. In `Features/AI/OpenAiCompatibleProvider.cs`:
+   - In `GetChatCompletionStreamAsync`, explicitly add the SSE accept header:
+     ```csharp
+     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
+     ```
+
+---
+
+## 6. Inline Evidence Citations: Never Cluster Citations at the End of Paragraphs
+
+### Problem:
+In AI Sidechat answers, the model places all citation markers clustered together at the very end of the paragraph/answer (e.g. `...in 2017. (1) (2) (3) (4) (5)`), instead of attaching individual citations directly after their specific factual claims (e.g. `Lee Martin McDonald. (1) ...published in 2017. (2)`).
+
+### Root Cause:
+In `Features/AI/prompts.default.json` (`sidechat_standard` and `websidechat_standard`) and `AiPromptLibrary.cs`, the prompt instructs the model to provide citations, but lacks an explicit negative constraint prohibiting end-of-paragraph citation clustering. LLMs default to dumping citations in a single batch at the end.
+
+### Fix:
+Update the citation instructions in `Features/AI/prompts.default.json` (`sidechat_standard` and `websidechat_standard`), `AiPromptLibrary.cs`, and `WebChat.cs`:
+Add a strict, prominent citation mandate:
+```text
+CRITICAL CITATION MANDATE — IMMEDIATE INLINE PLACEMENT:
+- Every factual claim, date, name, statistic, or finding MUST have its supporting citation marker [SOURCE_n] placed IMMEDIATELY after that specific clause or sentence.
+- NEVER cluster or batch citations together at the end of a sentence, paragraph, or answer (e.g. NEVER write "...end of text. [SOURCE_1] [SOURCE_2] [SOURCE_3]").
+- Example of CORRECT placement:
+  "The author of this book is Lee Martin McDonald. [SOURCE_1] The current fourth edition was published in 2017 by Bloomsbury T&T Clark. [SOURCE_2] The first edition was published by Abingdon Press in 1988. [SOURCE_3]"
+- Example of FORBIDDEN placement:
+  "The author is Lee Martin McDonald and the fourth edition was published in 2017 by Bloomsbury T&T Clark, following earlier editions by Abingdon Press and Hendrickson Publishers. [SOURCE_1] [SOURCE_2] [SOURCE_3]"
+- Use exact ASCII square brackets [SOURCE_n] only.
 ```
-Helper:
+
+---
+
+## 7. Fix Erroneous "Merge PDFs" Button Label in Text Editor Toolbar Ribbon
+
+### Problem:
+In the Text Editor ribbon toolbar, the first button displays the label **"Merge PDFs"** under a `+` icon:
+`[+ Merge PDFs] [Open] [Save] [Browser] [PDF Editor]`.
+The Text Editor has nothing to do with merging PDFs.
+
+### Root Cause:
+In `Shell/SettingsPanel.cs`:
+`_toolbarLabelKeys` maps Segoe MDL2 glyph strings to localization string resource keys:
 ```csharp
-private static T? FindVisualParent<T>(DependencyObject child) where T : DependencyObject
+private static readonly Dictionary<string, string> _toolbarLabelKeys = new()
 {
-    var parent = VisualTreeHelper.GetParent(child);
-    while (parent != null && parent is not T)
-    {
-        parent = VisualTreeHelper.GetParent(parent);
-    }
-    return parent as T;
-}
+    ["\uE710"] = "Str_Lbl_New",       // Line 727
+    ...
+    ["\uE710"] = "Str_Lbl_Merge",     // Line 734: OVERWRITES Line 727!
+};
 ```
-This guarantees that scrolling anywhere inside the chat area—including directly over long markdown bubbles—scrolls the outer `AiChatScrollViewer` smoothly without hesitation or rubber-banding.
+Because `_toolbarLabelKeys` is a dictionary literal, the entry `["\uE710"] = "Str_Lbl_Merge"` silently overwrites `["\uE710"] = "Str_Lbl_New"`.
+Both `NewFileBtn` and `MergeBtn` share the glyph `\uE710` (the plus sign).
+When `IndexToolbarButtons()` indexes toolbar buttons, `_toolbarLabelKeys["\uE710"]` evaluates to `"Str_Lbl_Merge"`.
+Consequently, `NewFileBtn` (which creates a new document) is labeled with `"Merge PDFs"`! In Text Editor mode, `MergeBtn` was already collapsed, but `NewFileBtn` was visible and mistakenly wearing the "Merge PDFs" label.
+
+### Fix:
+In `Shell/SettingsPanel.cs`:
+1. In `IndexToolbarButtons()`:
+   Identify `NewFileBtn` and `MergeBtn` by reference equality rather than ambiguous glyph lookup:
+   ```csharp
+   if (ReferenceEquals(btn, NewFileBtn))
+       _toolbarButtons.Add((btn, "\uE710", "Str_Lbl_New"));
+   else if (ReferenceEquals(btn, MergeBtn))
+       _toolbarButtons.Add((btn, "\uE710", "Str_Lbl_Merge"));
+   ```
+2. In `_toolbarLabelKeys`:
+   Ensure `["\uE710"] = "Str_Lbl_New"` is not clobbered by `MergeBtn`. If needed, differentiate `MergeBtn` or keep reference-based indexing so `NewFileBtn` always resolves to `Str_Lbl_New`.
+3. Verify that in Text Editor mode, `NewFileBtn` displays the label `"New"` (or localized equivalent), and `MergeBtn` remains collapsed.
+
+---
+
+## Verification & Testing Checklist:
+1. **Table Width & Layout:** Insert a table in Text Editor. Type short and long sentences in cells. Confirm table width stays strictly within page bounds and columns do not distort or collapse neighboring columns.
+2. **Table Newline:** Place cursor inside a table cell and press `Enter`. Confirm a new line is inserted within the cell without pushing or splitting the table. Test `Shift+Enter` as well.
+3. **Summarizer Scroll Stability:** Run a 500-word summary in PDF and Web summarizers. While text is streaming, scroll down halfway. Confirm the scroll position stays smooth and stable with zero jumping, strobe flickering, or rubber-banding to the top.
+4. **Browser Ribbon Layout:** Open the Web Browser pane. Confirm the Web Summary button is alone on the far right of the ribbon toolbar, across from the PDF Editor button.
+5. **AI Sidechat Streaming:** Ask questions in PDF Sidechat, Web Sidechat, and Text Editor Sidechat. Confirm tokens stream progressively in real-time into the message bubble without stalling until the end.
+6. **Citation Placement:** Ask a multi-fact question in Sidechat (e.g. author and publication history). Confirm each factual statement carries its own `[SOURCE_n]` badge inline immediately after the claim, rather than all citations lumped at the end of the paragraph.
+7. **Text Editor Toolbar Button:** Switch to Text Editor. Confirm the first ribbon button displays `+` with the label `"New"`, and `"Merge PDFs"` is not present.
