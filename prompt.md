@@ -1,7 +1,9 @@
 # TASK: Add Grammar/Rewrite Model Dials & Port Axo Journal Editor Engine
 
 Repository: `https://github.com/etb190/Avalanche`  
-Reference Source: `c:\Users\PC\Desktop\Coding\Axo\src\components\DailyJournal.jsx`  
+Reference Source (Axo): 
+- GitHub Repository: `https://github.com/etb190/app` (Branch: `master`, File: `src/components/DailyJournal.jsx`)
+- Local Path (if accessible): `c:\Users\PC\Desktop\Coding\Axo\src\components\DailyJournal.jsx`  
 Target Files:
 - `Features/AI/AiSurfaceModels.cs`
 - `Features/AI/AiSettingsViewModel.cs`
