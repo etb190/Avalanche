@@ -23,7 +23,7 @@ namespace Avalanche.Features.AI
     /// survive); anything else gets the canonical nemotron - NVIDIA's NIM
     /// API, the app's first brain - the same way the gpt choice always
     /// summoned its own gpt-oss.
-    internal enum AiSurface { Summary, Sidechat, WebSidechat, Recaller, AiTester, Notes, EditorGrammar, EditorRewrite }
+    internal enum AiSurface { Summary, Sidechat, EditorSidechat, WebSidechat, Recaller, AiTester, Notes, EditorGrammar, EditorRewrite }
 
     internal static class AiSurfaceModels
     {
@@ -97,6 +97,7 @@ namespace Avalanche.Features.AI
         {
             public string Summary { get; set; } = NemotronChoice;
             public string Sidechat { get; set; } = NemotronChoice;
+            public string EditorSidechat { get; set; } = NemotronChoice;   // v1.19.85: the sheet's own chat
             public string WebSidechat { get; set; } = NemotronChoice;
             public string Recaller { get; set; } = NemotronChoice;
             public string AiTester { get; set; } = NemotronChoice;
@@ -130,6 +131,7 @@ namespace Avalanche.Features.AI
                 if (read is null) return;
                 _choices.Summary = Normalize(read.Summary);
                 _choices.Sidechat = Normalize(read.Sidechat);
+                _choices.EditorSidechat = Normalize(read.EditorSidechat);
                 _choices.WebSidechat = Normalize(read.WebSidechat);
                 _choices.Recaller = Normalize(read.Recaller);
                 _choices.AiTester = Normalize(read.AiTester);
@@ -206,6 +208,7 @@ namespace Avalanche.Features.AI
             return surface switch
             {
                 AiSurface.Summary => _choices.Summary,
+                AiSurface.EditorSidechat => _choices.EditorSidechat,
                 AiSurface.WebSidechat => _choices.WebSidechat,
                 AiSurface.Recaller => _choices.Recaller,
                 AiSurface.AiTester => _choices.AiTester,
@@ -223,6 +226,7 @@ namespace Avalanche.Features.AI
             switch (surface)
             {
                 case AiSurface.Summary: _choices.Summary = clean; break;
+                case AiSurface.EditorSidechat: _choices.EditorSidechat = clean; break;
                 case AiSurface.WebSidechat: _choices.WebSidechat = clean; break;
                 case AiSurface.Recaller: _choices.Recaller = clean; break;
                 case AiSurface.AiTester: _choices.AiTester = clean; break;

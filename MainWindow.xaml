@@ -3198,18 +3198,39 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ctrl:RobotIcon Grid.Column="0" Width="16" Height="16"
                                             Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiChatTitle}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
                                        Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/>
+                            <!-- The editor sidechat's own dial (v1.19.85): the model
+                                 that answers inside the text editor's chat, picked
+                                 right here instead of the settings window. -->
+                            <ComboBox Grid.Column="2" x:Name="AiChatEditorModelDial"
+                                      Style="{DynamicResource DarkComboBox}" Height="24" FontSize="11"
+                                      Width="118" Margin="0,0,6,0" VerticalAlignment="Center"
+                                      SelectedValuePath="Tag"
+                                      ToolTip="{DynamicResource Str_AiModelSidechat}"
+                                      SelectedValue="{Binding EditorSidechatModelChoice, Mode=TwoWay}">
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
+                            </ComboBox>
                             <!-- Semantic research (v1.19.5): the embedding pass is opt-in.
                                  Muted while idle, lit in the accent while the index builds,
                                  green once it is ready (v1.19.57); a click builds it for
                                  this document, a second click mid-build cancels the pass,
                                  and a click on a green (ready) button rebuilds it. -->
-                            <Button Grid.Column="2" x:Name="AiSemanticBtn" Content="&#xE945;"
+                            <Button Grid.Column="3" x:Name="AiSemanticBtn" Content="&#xE945;"
                                     ToolTip="{DynamicResource Str_TT_AiSemanticResearch}"
                                     Click="AiSemanticBtn_Click" Width="24" Height="24" Padding="0"
                                     FontSize="10" VerticalAlignment="Center">
@@ -3231,16 +3252,16 @@
                             <!-- New chat: sweeps the conversation (document index kept)
                                  so the next question starts clean. Disabled while a
                                  reply is streaming (CanStartNewChat). -->
-                            <Button Grid.Column="3" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="4" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiSettingsOpen}" Click="AiChatSettingsBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="4" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="5" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatNewChat}" Click="AiChatNewChatBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     IsEnabled="{Binding CanStartNewChat}"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="5" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="6" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>

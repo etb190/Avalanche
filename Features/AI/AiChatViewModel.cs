@@ -233,6 +233,19 @@ namespace Avalanche.Features.AI
         /// text fresh on every call. Grounded directly in the sheet's prose.</summary>
         public Func<string, System.Threading.CancellationToken, Task<string>>? EditorTextReader { get; set; }
 
+        // The editor sidechat's own dial (v1.19.85): the sheet's chat bills
+        // its own brain - separate from the book sidechat's - and the panel
+        // header's dropdown moves it without the trip to settings.
+        public string EditorSidechatModelChoice
+        {
+            get => Features.AI.AiSurfaceModels.Get(Features.AI.AiSurface.EditorSidechat);
+            set
+            {
+                Features.AI.AiSurfaceModels.Set(Features.AI.AiSurface.EditorSidechat, value);
+                OnPropertyChanged();
+            }
+        }
+
         // v1.19.46: "a reply is running" is now a question about the CURRENT
         // conversation, not the whole view model - a reply the reader left
         // behind keeps running without blocking the conversation on screen.
@@ -1275,7 +1288,7 @@ namespace Avalanche.Features.AI
                         catch { docText = ""; }
                     }
 
-                    var editorConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.Sidechat);
+                    var editorConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.EditorSidechat);
                     string docTitle = _editorDocTitle;
                     var editorResponse = await GetProvider(editorConfig).GetChatCompletionAsync(
                         EditorChat.BuildSystemPrompt(docTitle, docText),
