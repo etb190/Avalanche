@@ -1133,6 +1133,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_AiModelTester">AI টেস্টার</sys:String>
     <sys:String x:Key="Str_AiModelNotes">নোট</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">পুনর্লিখন মডেল</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">সম্পাদক সাইডচ্যাট মডেল</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">ব্যাকরণ মডেল</sys:String>
     <sys:String x:Key="Str_AiModelUsed">মডেল: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

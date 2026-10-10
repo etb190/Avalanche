@@ -1135,6 +1135,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI 測試器</sys:String>
     <sys:String x:Key="Str_AiModelNotes">筆記</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">改寫模型</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">編輯器側聊模型</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">語法模型</sys:String>
     <sys:String x:Key="Str_AiModelUsed">模型：{0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

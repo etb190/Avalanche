@@ -566,6 +566,18 @@ namespace Avalanche
                     RestorePaneB();
                 }
 
+                // The pane that led last leads again (v1.19.86): the
+                // editor or the browser reclaims the floor a beat after
+                // the session settles; anything else means the book was
+                // showing, and a file handed on the command line still
+                // wins - this rides only the plain-restore path.
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var lastPane = App.GetSetting("LastLeadPane");
+                    if (lastPane == "editor") ShowEditorPane();
+                    else if (lastPane == "browser") ShowWebPane();
+                }), System.Windows.Threading.DispatcherPriority.Background);
+
                 // Start with the sidebar collapsed when no PDF is open (nothing to show); a document
                 // opened above will have expanded it via FinishOpenFile.
                 SyncSidebarToDocState(hasDoc: _doc != null, startup: true);
@@ -2444,6 +2456,7 @@ namespace Avalanche
             WebPane.OnPaneShown();
             EnterWebSidebarMode();
             ApplyBrowserToolbarFace(leads: true);
+            App.SetSetting("LastLeadPane", "browser");   // the browser led last (v1.19.86)
             // v1.19.22: the browser leads now - an open chat re-binds to the
             // active tab's own session. (A first pane with no tab yet binds
             // when the first view lands, via ActiveTabChanged.)
@@ -2462,6 +2475,7 @@ namespace Avalanche
             WebPane.OnPaneHidden();
             ExitWebSidebarMode();
             ApplyBrowserToolbarFace(leads: false);
+            App.SetSetting("LastLeadPane", "book");   // the book's floor again (v1.19.86)
             // v1.19.22: the browser stepped aside - park the page's transcript
             // and hand the chat back to the active book.
             if (_aiChatViewModel is { } chat && chat.IsWebContext)
@@ -2581,6 +2595,7 @@ namespace Avalanche
             EnterEditorSidebarMode();
             RefreshWebSaveButton(_originalFile ?? _currentFile);
             ApplyEditorToolbarFace(leads: true);
+            App.SetSetting("LastLeadPane", "editor");   // the sheet led last (v1.19.86)
         }
 
         private void HideEditorPane()
@@ -2591,6 +2606,7 @@ namespace Avalanche
             TextPane.OnPaneHidden();
             ExitEditorSidebarMode();
             ApplyEditorToolbarFace(leads: false);
+            App.SetSetting("LastLeadPane", "book");   // the book's floor again (v1.19.86)
             _aiChatViewModel?.HandleEditorContextCleared();
             // The editor stepped aside and the book's windows come back - the
             // same welcome the browser's hide offers (recap first, then the

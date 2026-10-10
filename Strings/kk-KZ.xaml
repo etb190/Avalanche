@@ -1152,6 +1152,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiModelTester">AI тестері</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Жазбалар</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Қайта жазу моделі</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Редактордың бүйірлік чат моделі</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Грамматика моделі</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

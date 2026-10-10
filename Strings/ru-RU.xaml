@@ -1153,6 +1153,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelTester">ИИ-тестер</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Заметки</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Модель перезаписи</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Модель бокового чата редактора</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Модель грамматики</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Модель: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

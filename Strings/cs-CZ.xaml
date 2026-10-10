@@ -1138,6 +1138,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiModelTester">AI testér</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Poznámky</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Model přepisování</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Model bočního chatu editoru</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Model gramatiky</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

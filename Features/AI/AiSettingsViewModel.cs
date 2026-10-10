@@ -38,6 +38,7 @@ namespace Avalanche.Features.AI
         private string _notesModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.34: the sidebar's notes
         private string _editorGrammarModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's proofreader
         private string _editorRewriteModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's rewriter
+        private string _editorSidechatModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.86: the sheet's chat
         private string _embeddingChoice = AiSurfaceModels.EmbeddingDefaultChoice;   // v1.19.55: who embeds
 
         private bool _isEnabled = false;
@@ -180,6 +181,14 @@ namespace Avalanche.Features.AI
         {
             get => _editorRewriteModelChoice;
             set { _editorRewriteModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.EditorRewrite, _editorRewriteModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.19.86: the sheet's sidechat answers with whoever
+        /// the reader seats here - its own surface, its own row.</summary>
+        public string EditorSidechatModelChoice
+        {
+            get => _editorSidechatModelChoice;
+            set { _editorSidechatModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.EditorSidechat, _editorSidechatModelChoice); OnPropertyChanged(); }
         }
 
         /// <summary>v1.19.55: the embedding dial - the app default (the

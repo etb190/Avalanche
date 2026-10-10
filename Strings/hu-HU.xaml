@@ -1140,6 +1140,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_AiModelTester">AI-teszter</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Jegyzetek</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Átírási modell</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Szerkesztő oldali csevegés modellje</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Nyelvtani modell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

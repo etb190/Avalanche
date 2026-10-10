@@ -1153,6 +1153,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelTester">Tester IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Note</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Modello di riscrittura</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Modello chat laterale dell'editor</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Modello di grammatica</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modello: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

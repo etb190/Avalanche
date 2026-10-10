@@ -1133,6 +1133,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_AiModelTester">AI test aracı</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notlar</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Yeniden Yazma Modeli</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Düzenleyici yan sohbet modeli</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Dilbilgisi Modeli</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

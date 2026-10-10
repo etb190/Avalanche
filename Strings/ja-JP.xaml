@@ -1153,6 +1153,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelTester">AIテスター</sys:String>
     <sys:String x:Key="Str_AiModelNotes">ノート</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">リライトモデル</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">エディターサイドチャットモデル</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">文法モデル</sys:String>
     <sys:String x:Key="Str_AiModelUsed">モデル: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

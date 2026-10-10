@@ -1153,6 +1153,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelTester">Trình kiểm thử AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Ghi chú</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Mô hình viết lại</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Mô hình trò chuyện cạnh trình soạn thảo</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Mô hình ngữ pháp</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Mô hình: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

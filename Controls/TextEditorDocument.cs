@@ -166,6 +166,14 @@ namespace Avalanche.Controls
              background:transparent; color:#e8e8e8; cursor:pointer;
              font:12px 'Segoe UI',sans-serif; }
   #ai_bubble button:hover { background:#3d434d; }
+  /* The reader's own instruction (v1.19.86): under the two buttons a
+     row of its own - type the job, press Enter or the arrow, the answer
+     writes itself into the page. */
+  #ai_bubble .ai-row { display:flex; gap:6px; margin-top:6px; }
+  #ai_bubble input { flex:1; min-width:150px; padding:5px 8px; border:1px solid #4a5160;
+                     border-radius:5px; background:#1e2229; color:#e8e8e8;
+                     font:12px 'Segoe UI',sans-serif; outline:none; }
+  #ai_bubble input:focus { border-color:#7aa7d8; }
   #ai_menu { position:fixed; display:none; z-index:66; background:#2b2f36;
              border-radius:8px; box-shadow:0 6px 22px rgba(0,0,0,0.4); padding:4px; }
   #ai_menu button { display:block; width:100%; text-align:left; padding:6px 12px;
@@ -1389,6 +1397,21 @@ function ensureAiBubble(){
     showAiMenu();
   });
   aiBubble.appendChild(fix); aiBubble.appendChild(rw);
+  // the instruction row (v1.19.86): the reader's own words become the job
+  var row = document.createElement('div');
+  row.className = 'ai-row';
+  var instr = document.createElement('input');
+  instr.type = 'text'; instr.id = 'ai_instr';
+  instr.placeholder = 'Tell the AI what to do\u2026';
+  instr.addEventListener('keydown', function(e){
+    e.stopPropagation();
+    if (e.key === 'Enter'){ e.preventDefault(); requestCustom(); }
+  });
+  var go = document.createElement('button');
+  go.type = 'button'; go.id = 'ai_go_btn'; go.textContent = '\u27A4';
+  go.addEventListener('click', function(e){ e.stopPropagation(); requestCustom(); });
+  row.appendChild(instr); row.appendChild(go);
+  aiBubble.appendChild(row);
   aiMenu = document.createElement('div');
   aiMenu.id = 'ai_menu';
   var styles = [['humanize','Humanize'],['professional','Professional'],['simple','Simple'],
@@ -1457,6 +1480,31 @@ function requestAi(kind, style){
   setAiBusy(true);
   if (kind === 'rewrite') post({ type:'ai_rewrite', text: text, style: String(style || 'humanize'), seq: worldSeq });
   else post({ type:'ai_fix_selection', text: text, seq: worldSeq });
+}
+
+// The reader's own instruction (v1.19.86): over a selection it replaces,
+// at a bare caret it writes fresh - the answer lands through the same
+// pipes as the voices, one undo step, straight into the page.
+function requestCustom(){
+  if (aiInFlight) return;
+  var job = '';
+  try { var el = document.getElementById('ai_instr'); if (el) job = el.value.trim(); } catch(e0){}
+  if (!job) return;
+  var sel = quill.getSelection();
+  var index, length, text;
+  if (sel && sel.length > 0){
+    index = sel.index; length = sel.length;
+    text = quill.getText(index, length).trim();
+    if (!text){ showAiNote('Nothing selected.'); return; }
+  } else {
+    index = quill.getLength() > 0 ? quill.getLength() - 1 : 0;
+    length = 0; text = '';
+  }
+  if (text.length > 16000) text = text.slice(0, 16000);
+  aiInFlight = true;
+  aiPending = { index: index, length: length, kind: 'custom' };
+  setAiBusy(true);
+  post({ type:'ai_custom', text: text, instr: job, seq: worldSeq });
 }
 
 function setAiBusy(busy){

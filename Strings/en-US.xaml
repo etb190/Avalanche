@@ -1157,6 +1157,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiModelTester">AI tester</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Rewrite Model</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Editor sidechat model</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Grammar Model</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Model: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

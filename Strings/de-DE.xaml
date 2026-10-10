@@ -1139,6 +1139,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiModelTester">KI-Tester</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notizen</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Umschreibungsmodell</sys:String>
+    <sys:String x:Key="Str_AiModelEditorSidechat">Editor-Seitenchat-Modell</sys:String>
     <sys:String x:Key="Str_AiModelEditorGrammar">Grammatikmodell</sys:String>
     <sys:String x:Key="Str_AiModelUsed">Modell: {0}</sys:String>
     <sys:String x:Key="Str_AiSettingsEvidenceBudget">Evidence character budget</sys:String>

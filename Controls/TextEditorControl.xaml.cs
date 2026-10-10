@@ -58,6 +58,7 @@ namespace Avalanche.Controls
         private sealed class EditorTab : INotifyPropertyChanged
         {
             public string Html = "";
+            public string SourcePath = "";   // the file this tab came home from (v1.19.86)
             private readonly string _untitled;
 
             public EditorTab(string title, string html, string untitled)
@@ -153,6 +154,7 @@ namespace Avalanche.Controls
         {
             public string? Title { get; set; }
             public string? Html { get; set; }
+            public string? SourcePath { get; set; }   // v1.19.86: the tab's home file
         }
 
         private readonly ObservableCollection<EditorTab> _tabs = [];
@@ -280,6 +282,13 @@ namespace Avalanche.Controls
                 case Key.V:
                     e.Handled = true;
                     PasteClipboardIntoPage();
+                    break;
+                // Ctrl+S (v1.19.86): the reader means save - straight to
+                // the tab's own file when it has one, the prompt when it
+                // has none.
+                case Key.S:
+                    e.Handled = true;
+                    SaveEditorDocument();
                     break;
             }
         }
@@ -561,6 +570,10 @@ namespace Avalanche.Controls
 
                 case "ai_rewrite":
                     RunAiSelection(root, "rewrite");
+                    break;
+
+                case "ai_custom":
+                    RunAiCustom(root);
                     break;
             }
         }
@@ -985,7 +998,10 @@ namespace Avalanche.Controls
                     if (data?.Tabs is { Count: > 0 })
                     {
                         foreach (var t in data.Tabs)
-                            _tabs.Add(new EditorTab(t.Title ?? "", t.Html ?? "", _untitledLabel));
+                            _tabs.Add(new EditorTab(t.Title ?? "", t.Html ?? "", _untitledLabel)
+                            {
+                                SourcePath = t.SourcePath ?? "",
+                            });
                         _activeTab = Math.Clamp(data.Active, 0, _tabs.Count - 1);
                         return;
                     }
@@ -1009,7 +1025,7 @@ namespace Avalanche.Controls
             {
                 var data = new SessionData
                 {
-                    Tabs = _tabs.Select(t => new SessionTab { Title = t.Title, Html = t.Html }).ToList(),
+                    Tabs = _tabs.Select(t => new SessionTab { Title = t.Title, Html = t.Html, SourcePath = t.SourcePath }).ToList(),
                     Active = Math.Clamp(_activeTab, 0, Math.Max(0, _tabs.Count - 1)),
                 };
                 string dir = Path.Combine(AppDataPaths.UserRoot, "texteditor");
@@ -1415,18 +1431,31 @@ namespace Avalanche.Controls
         public void SaveEditorDocument()
         {
             if (_activeTab < 0 || _activeTab >= _tabs.Count) return;
+            var tab = _tabs[_activeTab];
+            // A tab that came home from a file saves straight back to it
+            // (v1.19.86) - Ctrl+S and the save button both land without a
+            // word; a tab born in the editor asks where, once, and the
+            // answer becomes its home for every save after.
+            if (!string.IsNullOrEmpty(tab.SourcePath) && File.Exists(tab.SourcePath))
+            {
+                _pendingSavePath = tab.SourcePath;
+                if (_pageReady) { Post(new { cmd = "dump" }); return; }
+                WriteEditorFile(tab.Html, tab.Title);
+                return;
+            }
             var dlg = new FileDialog(FileDialogMode.Save)
             {
                 Filter = "HTML document|*.html;*.htm|Text file|*.txt|All files|*.*",
-                FileName = EditorFileName(_tabs[_activeTab].Title),
+                FileName = EditorFileName(tab.Title),
                 OverwritePrompt = true,
             };
             var owner = Window.GetWindow(this);
             bool ok = owner is not null ? dlg.ShowDialog(owner) == true : dlg.ShowDialog() == true;
             if (!ok) return;
             _pendingSavePath = dlg.FileName;
+            tab.SourcePath = dlg.FileName;   // the chosen file is home now
             if (_pageReady) { Post(new { cmd = "dump" }); return; }
-            WriteEditorFile(_tabs[_activeTab].Html, _tabs[_activeTab].Title);
+            WriteEditorFile(tab.Html, tab.Title);
         }
 
         // Open reads an .html (or plain .txt) back as a document of its own,
@@ -1444,7 +1473,10 @@ namespace Avalanche.Controls
             string text;
             try { text = File.ReadAllText(dlg.FileName); }
             catch { return; }
-            _tabs.Add(new EditorTab(Path.GetFileNameWithoutExtension(dlg.FileName), OpenedHtml(text), _untitledLabel));
+            _tabs.Add(new EditorTab(Path.GetFileNameWithoutExtension(dlg.FileName), OpenedHtml(text), _untitledLabel)
+            {
+                SourcePath = dlg.FileName,   // the tab remembers its file: every save lands straight home (v1.19.86)
+            });
             RebuildTabStrip();
             int to = _tabs.Count - 1;
             if (!_pageReady) { ActivateEditorTabNow(to); SaveSession(); return; }
@@ -1833,6 +1865,65 @@ namespace Avalanche.Controls
             string style = root.TryGetProperty("style", out var st)
                 ? st.GetString() ?? string.Empty : string.Empty;
             _ = RunAiSelectionAsync(seq, text, style, kind);
+        }
+
+        // The reader's own instruction (v1.19.86): whatever the bubble's
+        // input carries becomes the whole job - over a selection it
+        // replaces, at a bare caret it writes fresh - and the answer lands
+        // through the same streaming road the seven voices take.
+        private void RunAiCustom(JsonElement root)
+        {
+            int seq = root.TryGetProperty("seq", out var sqc) ? sqc.GetInt32() : -1;
+            string text = root.TryGetProperty("text", out var txc)
+                ? txc.GetString() ?? string.Empty : string.Empty;
+            string instr = root.TryGetProperty("instr", out var irc)
+                ? irc.GetString() ?? string.Empty : string.Empty;
+            _ = RunAiCustomAsync(seq, text, instr);
+        }
+
+        private async System.Threading.Tasks.Task RunAiCustomAsync(
+            int seq, string text, string instr)
+        {
+            try
+            {
+                string system =
+                    "You are a writing assistant embedded in a rich text editor. " +
+                    "The user gives an instruction to perform on the provided text, " +
+                    "or to write something new when no text is provided. " +
+                    "Return ONLY the resulting text - no quotes, no explanations, no markdown fences.";
+                string user = text.Length > 0
+                    ? "Instruction: " + instr + "\n\nTEXT:\n" + text
+                    : instr;
+                var config = AiConfig(Features.AI.AiSurface.EditorRewrite);
+                string? streamed = await TryStreamAiSelectionAsync(seq, system, user, config, "custom");
+                if (streamed is not null) return;
+                var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)
+                    .GetChatCompletionAsync(
+                        system,
+                        new List<Features.AI.ChatMessage>
+                        {
+                            new Features.AI.ChatMessage
+                            {
+                                MessageRole = Features.AI.ChatMessage.Role.User,
+                                Content = user
+                            }
+                        },
+                        new List<Features.AI.DocumentChunk>(), "", config,
+                        System.Threading.CancellationToken.None);
+                string outText = CleanAiGeneratedText(answer.Answer);
+                if (outText.Length == 0)
+                    Post(new { cmd = "aiResult", seq, kind = "custom", ok = false,
+                               text = (string?)null,
+                               message = "The model came back empty - nothing changed." });
+                else
+                    Post(new { cmd = "aiResult", seq, kind = "custom", ok = true,
+                               text = outText, message = (string?)null });
+            }
+            catch (Exception ex)
+            {
+                Post(new { cmd = "aiResult", seq, kind = "custom", ok = false,
+                           text = (string?)null, message = "AI request failed: " + ex.Message });
+            }
         }
 
         private static string AiRewriteSystem(string style) => style switch
