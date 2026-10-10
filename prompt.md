@@ -1,4 +1,4 @@
-# TASK: Add Grammar/Rewrite Model Dials & Port Axo Journal Editor Engine
+[# TASK: Add Grammar/Rewrite Model Dials & Port Axo Journal Editor Engine
 
 Repository: `https://github.com/etb190/Avalanche`  
 Reference Source (Axo): 
@@ -171,3 +171,4 @@ Adopt Axo's custom CSS rules:
 7. [ ] All shortcuts (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`, `Ctrl+Shift+X`, `Ctrl+Alt+1`, `Ctrl+Alt+2`, `Ctrl+Shift+8`, `Ctrl+Shift+7`, `Ctrl+Shift+B`, `Ctrl+Alt+C`, `Ctrl+E`, `Ctrl+Shift+L`, `Ctrl+Shift+E`, `Ctrl+Shift+R`) work reliably.
 8. [ ] Code blocks render with dark VS Code styling.
 9. [ ] Solution builds with 0 errors and all tests pass.
+](https://github.com/etb190/Axo)
