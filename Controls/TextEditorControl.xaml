@@ -411,6 +411,21 @@
                          every other toolbar button speaks. -->
                     <Button x:Name="SpacingBtn" Content="&#xE8D2;" Style="{StaticResource EditorBtn}"
                             Click="SpacingBtn_Click" ToolTip="{DynamicResource Str_TT_EditorSpacing}"/>
+                    <!-- The alignment trio (v1.19.80): left, center and
+                         justify - Quill's own align format, three presses
+                         away from any paragraph. -->
+                    <Button x:Name="AlignLeftBtn" Content="&#xE730;" Style="{StaticResource EditorBtn}"
+                            Click="AlignLeftBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignLeft}"/>
+                    <Button x:Name="AlignCenterBtn" Content="&#xE731;" Style="{StaticResource EditorBtn}"
+                            Click="AlignCenterBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignCenter}"/>
+                    <Button x:Name="AlignJustifyBtn" Content="&#xE733;" Style="{StaticResource EditorBtn}"
+                            Click="AlignJustifyBtn_Click" ToolTip="{DynamicResource Str_TT_EditorAlignJustify}"/>
+                    <!-- The inverted page (v1.19.80): the sheet wears black
+                         and the text wears white; the choice is remembered. -->
+                    <ToggleButton x:Name="InvertBtn" Style="{StaticResource EditorToggle}"
+                                  Click="InvertBtn_Click" ToolTip="{DynamicResource Str_DocInvertSetting}">
+                        <TextBlock Text="&#xE708;" FontFamily="{DynamicResource IconFont}" FontSize="15" Margin="0,1,0,0"/>
+                    </ToggleButton>
                     <Rectangle Width="1" Fill="{DynamicResource CardBorderBrush}" Margin="6,8"/>
                     <!-- Link, footnote, and the behind-text image. -->
                     <Button x:Name="LinkBtn" Content="&#xE71B;" Style="{StaticResource EditorBtn}"
@@ -475,22 +490,9 @@
                             Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
                             FocusVisualStyle="{x:Null}"
                             ToolTip="{DynamicResource Str_TT_EditorNewTab}" Click="EditorTabNewBtn_Click"/>
-                    <!-- Save and Open (v1.19.75): the reader's own files. Save
-                         asks where with the Windows prompt and writes the sheet;
-                         Open reads an .html (or .txt) back as a document. Both
-                         wear the fresh-tab face, both sit beside the +. -->
-                    <Button x:Name="EditorTabSaveBtn" DockPanel.Dock="Right"
-                            Style="{DynamicResource TabNewButton}"
-                            Content="&#xE74E;" FontFamily="{DynamicResource IconFont}" FontSize="10"
-                            Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
-                            FocusVisualStyle="{x:Null}"
-                            ToolTip="{DynamicResource Str_Editor_SaveDoc}" Click="EditorTabSaveBtn_Click"/>
-                    <Button x:Name="EditorTabOpenBtn" DockPanel.Dock="Right"
-                            Style="{DynamicResource TabNewButton}"
-                            Content="&#xE8E5;" FontFamily="{DynamicResource IconFont}" FontSize="10"
-                            Width="24" Height="16" Margin="0,0,2,0" VerticalAlignment="Center"
-                            FocusVisualStyle="{x:Null}"
-                            ToolTip="{DynamicResource Str_Editor_OpenDoc}" Click="EditorTabOpenBtn_Click"/>
+                    <!-- Save and Open moved up for good (v1.19.80): the file
+                         operations live on the ribbon, next to New and before
+                         the Browser button - the band keeps only the +. -->
                     <!-- No side insets, horizontal scrolling DISABLED (not hidden -
                          hidden measures at infinite width and defeats the
                          UniformGrid), the PDF strip's own plumbing. -->

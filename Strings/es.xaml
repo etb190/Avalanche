@@ -1373,6 +1373,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">Sublista numerada (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Cita</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Espaciado de línea: Compacto, Normal, Amplio</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Alinear a la izquierda</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Centrar</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Justificar</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listas</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Guardar documento</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Abrir documento</sys:String>

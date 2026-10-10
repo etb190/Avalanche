@@ -1393,6 +1393,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_TT_EditorSubnum">Sottoelenco (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citazione</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Interlinea: Compatto, Normale, Ampio</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Allinea a sinistra</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Centra</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Giustifica</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Elenchi</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Salva documento</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Apri documento</sys:String>

@@ -1377,6 +1377,9 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_TT_EditorSubnum">子编号列表（A、B、C）</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">引用</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">行距切换：紧凑、标准、宽松</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">左对齐</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">居中</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">两端对齐</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">列表</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">保存文档</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">打开文档</sys:String>

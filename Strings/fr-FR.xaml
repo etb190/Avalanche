@@ -1393,6 +1393,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_TT_EditorSubnum">Sous-liste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citation</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Interligne : Compact, Normal, Aéré</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Aligner à gauche</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Centrer</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Justifier</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listes</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Enregistrer le document</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Ouvrir le document</sys:String>

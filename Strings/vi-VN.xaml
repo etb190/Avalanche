@@ -1393,6 +1393,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_TT_EditorSubnum">Danh sách con (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Trích dẫn</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Giãn dòng: Chật, Vừa, Rộng</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Căn trái</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Căn giữa</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Căn đều hai bên</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Danh sách</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Lưu tài liệu</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Mở tài liệu</sys:String>

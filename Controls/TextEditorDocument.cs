@@ -91,6 +91,12 @@ namespace Avalanche.Controls
   #imgui .az-se { right:-7px; bottom:-7px; cursor:nwse-resize; }
   .az-bar { position:fixed; width:0; height:28px; border-left:2px solid #4a90d9;
             display:none; z-index:61; pointer-events:none; }
+  /* The inverted page (v1.19.80): one class on the body - the sheet wears
+     black, the text wears white, and the reader's eyes keep their night.
+     The quote's voice lightens with it; the marks keep their blue. */
+  body.az-inv #canvas { background:#000000; }
+  body.az-inv .ql-editor { color:#ffffff; }
+  body.az-inv .ql-editor blockquote { color:#d0d0d0; }
   /* The quote wears italic and bold (v1.19.76): the left bar alone read as
      an indent, not a voice. Declared after the theme's own blockquote rule,
      so the later declaration wins; the thumbnail's raster repeats it below. */
@@ -583,22 +589,55 @@ function deleteSelectedImage(){
 
 // Where the mouse points in the MODEL: the native caret goes under the
 // cursor and Quill maps the selection back to an index.
+// One point, one range: the standard caretPositionFromPoint first, the
+// webkit legacy second - a runtime that dropped either still drops the bar.
+function rangeAtPoint(x, y){
+  try {
+    if (document.caretPositionFromPoint){
+      var p = document.caretPositionFromPoint(x, y);
+      if (p && p.offsetNode){
+        var r = document.createRange();
+        r.setStart(p.offsetNode, p.offset);
+        r.collapse(true);
+        return r;
+      }
+      return null;
+    }
+  } catch(e){}
+  try { return document.caretRangeFromPoint(x, y); } catch(e2){ return null; }
+}
+// The block under the point, read straight from the DOM - the quiet
+// fallback when Quill's own selection mapping stays asleep.
+function blockIndexAtPoint(x, y){
+  try {
+    var range = rangeAtPoint(x, y);
+    if (!range || !range.startContainer) return null;
+    var n = range.startContainer.nodeType === 3 ? range.startContainer.parentElement : range.startContainer;
+    while (n && quill.root.contains(n)){
+      var blot = Quill.find(n, true);
+      if (blot) return quill.getIndex(blot);
+      n = n.parentElement;
+    }
+  } catch(e){ return null; }
+  return null;
+}
 function indexAtPoint(x, y){
   try {
-    var range = document.caretRangeFromPoint(x, y);
+    var range = rangeAtPoint(x, y);
     if (!range || !range.startContainer || !quill.root.contains(range.startContainer)) return null;
     var s = window.getSelection();
     s.removeAllRanges();
     s.addRange(range);
     var b = quill.getSelection();
-    return (b && typeof b.index === 'number') ? b.index : null;
-  } catch(e){ return null; }
+    if (b && typeof b.index === 'number') return b.index;
+  } catch(e){}
+  return blockIndexAtPoint(x, y);   // the silent fallback (v1.19.80)
 }
 
 function placeDropBar(x, y){
   var r = null;
   try {
-    var range = document.caretRangeFromPoint(x, y);
+    var range = rangeAtPoint(x, y);
     if (range){
       var rects = range.getClientRects();
       if (rects.length) r = rects[0];
@@ -647,6 +686,7 @@ document.addEventListener('mousemove', function(e){
     imgDrag.moved = true;
     if (imgui) imgui.style.display = 'none';
     document.body.style.cursor = 'grabbing';
+    if (selImg) selImg.style.opacity = '0.45';   // the picture travels light
   }
   placeDropBar(e.clientX, e.clientY);
 }, true);
@@ -655,6 +695,7 @@ document.addEventListener('mouseup', function(e){
   if (!imgDrag) return;
   var d = imgDrag;
   imgDrag = null;
+  if (selImg) selImg.style.opacity = '';   // the ghost goes home, whatever the ending
   document.body.style.cursor = '';
   if (imgBar) imgBar.style.display = 'none';
   if (d.mode === 'size'){
@@ -1523,12 +1564,12 @@ function quote(){
         (text.charAt(0) === '"' && text.charAt(text.length - 1) === '"')){
       var unquoted = text.slice(1, -1);
       quill.deleteText(sel.index, sel.length, 'user');
-      quill.insertText(sel.index, unquoted, 'user');
+      quill.insertText(sel.index, unquoted, { bold: false, italic: false }, 'user');
       quill.setSelection(sel.index, unquoted.length, 'user');
     } else {
       var quoted = LQ + text + RQ;
       quill.deleteText(sel.index, sel.length, 'user');
-      quill.insertText(sel.index, quoted, 'user');
+      quill.insertText(sel.index, quoted, { bold: true, italic: true }, 'user');
       quill.setSelection(sel.index, quoted.length, 'user');
     }
     reportState();
@@ -1592,6 +1633,10 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'subnumber': subnumber(); break;
       case 'quote': quote(); break;
       case 'spacing': cycleSpacing(); break;
+      case 'alignLeft': quill.format('align', false, 'user'); reportState(); break;
+      case 'alignCenter': quill.format('align', 'center', 'user'); reportState(); break;
+      case 'alignJustify': quill.format('align', 'justify', 'user'); reportState(); break;
+      case 'invert': document.body.classList.toggle('az-inv', !!msg.on); break;
       case 'selectAll': quill.focus(); quill.setSelection(0, quill.getLength(), 'user'); break;
       case 'copy': copySelection(false); break;
       case 'cut': copySelection(true); break;

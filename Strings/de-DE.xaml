@@ -1379,6 +1379,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_TT_EditorSubnum">Unterliste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Zitat</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Zeilenabstand umschalten: Kompakt, Normal, Locker</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Linksbündig</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Zentriert</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Blocksatz</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listen</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Dokument speichern</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Dokument öffnen</sys:String>

@@ -1393,6 +1393,9 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_TT_EditorSubnum">Вложенный список (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Цитата</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Междустрочный интервал: Плотный, Обычный, Свободный</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">По левому краю</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">По центру</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">По ширине</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Списки</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Сохранить документ</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Открыть документ</sys:String>

@@ -162,6 +162,7 @@ namespace Avalanche.Controls
         // so the rail never flashes down to bare labels while the fresh raster
         // is 900ms away - the pictures simply stay where the reader left them.
         private readonly System.Collections.Generic.Dictionary<EditorTab, string[]> _thumbCache = [];
+        private bool _docInverted = App.GetSetting("EditorDocInvert") == "1";   // the sheet's remembered dark page (v1.19.80)
         private int _activeTab;
         private int? _pendingSwitchTo;   // a tab click waiting for the page's dump
         private int _worldSeq;           // which loaded world the page is showing
@@ -429,6 +430,8 @@ namespace Avalanche.Controls
                         remove = Loc("Str_Editor_Remove"),
                         linkUrl = Loc("Str_Editor_LinkUrl"),
                     });
+                    InvertBtn.IsChecked = _docInverted;
+                    Post(new { cmd = "invert", on = _docInverted });   // the remembered face rides every fresh sheet
                     ThumbsChanged?.Invoke(CachedThumbs());   // the tab's own last raster paints now; a fresh one follows
                     var html = _pendingLoadHtml;
                     _pendingLoadHtml = null;
@@ -656,6 +659,19 @@ namespace Avalanche.Controls
         }
         private void QuoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "quote" }); RefocusEditor(); }
         private void SpacingBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "spacing" }); RefocusEditor(); }
+        // The alignment trio (v1.19.80): Quill's own align format answers.
+        private void AlignLeftBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "alignLeft" }); RefocusEditor(); }
+        private void AlignCenterBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "alignCenter" }); RefocusEditor(); }
+        private void AlignJustifyBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "alignJustify" }); RefocusEditor(); }
+        // The inverted page (v1.19.80): one class on the sheet's body, the
+        // choice kept in the settings store so it outlives the run.
+        private void InvertBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _docInverted = InvertBtn.IsChecked == true;   // the toggle already flipped itself
+            App.SetSetting("EditorDocInvert", _docInverted ? "1" : "0");
+            Post(new { cmd = "invert", on = _docInverted });
+            RefocusEditor();
+        }
         private void LinkBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "linkui" }); RefocusEditor(); }
         private void FootnoteBtn_Click(object sender, RoutedEventArgs e) { Post(new { cmd = "footnote" }); RefocusEditor(); }
 
@@ -992,7 +1008,8 @@ namespace Avalanche.Controls
                 using var ms = new MemoryStream();
                 await _web.CoreWebView2.CapturePreviewAsync(
                     CoreWebView2CapturePreviewImageFormat.Png, ms);
-                string dataUrl = "data:image/png;base64," + Convert.ToBase64String(ms.ToArray());
+                ms.Position = 0;
+                string dataUrl = await CropToPageAsync(ms);   // the rail wears a page, not the whole scroll
                 if (_activeTab >= 0 && _activeTab < _tabs.Count)
                     _thumbCache[_tabs[_activeTab]] = new[] { dataUrl };
                 ThumbsChanged?.Invoke(new[] { dataUrl });
@@ -1001,6 +1018,58 @@ namespace Avalanche.Controls
             {
                 // a refused capture keeps the rail as it was
             }
+        }
+
+        // The page, not the whole scroll (v1.19.80): CapturePreviewAsync rides
+        // the full document height, so the raster comes home carved to the
+        // sheet's own Letter geometry - 816 by 1056 CSS pixels, centered,
+        // 24px of breath above. The sheet's own numbers, scaled by whatever
+        // the capture rode in at; a silent answer or a narrow window keeps
+        // the full raster, because the courtesy never outranks the picture.
+        private async System.Threading.Tasks.Task<string> CropToPageAsync(MemoryStream png)
+        {
+            var core = _web?.CoreWebView2;
+            try
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.StreamSource = png;
+                bmp.EndInit();
+                bmp.Freeze();
+                double clientW = 0;
+                string? raw = core is null ? null
+                    : await core.ExecuteScriptAsync("String(document.documentElement.clientWidth)");
+                if (!double.TryParse(raw?.Trim('"'), System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out clientW))
+                    clientW = 0;
+                if (clientW > 0 && bmp.PixelWidth > 16 && bmp.PixelHeight > 16)
+                {
+                    double scale = bmp.PixelWidth / clientW;
+                    int pageW = (int)Math.Round(816.0 * scale);
+                    int pageH = (int)Math.Round(1056.0 * scale);
+                    int top = (int)Math.Round(24.0 * scale);
+                    int x0 = Math.Max(0, (bmp.PixelWidth - pageW) / 2);
+                    int y0 = Math.Max(0, Math.Min(top, bmp.PixelHeight - 16));
+                    int w = Math.Min(pageW, bmp.PixelWidth - x0);
+                    int h = Math.Min(pageH, bmp.PixelHeight - y0);
+                    if (w >= 16 && h >= 16)
+                    {
+                        var cropped = new CroppedBitmap((BitmapSource)bmp, new Int32Rect(x0, y0, w, h));
+                        var enc = new PngBitmapEncoder();
+                        enc.Frames.Add(BitmapFrame.Create(cropped));
+                        using var outMs = new MemoryStream();
+                        enc.Save(outMs);
+                        return "data:image/png;base64," + Convert.ToBase64String(outMs.ToArray());
+                    }
+                }
+            }
+            catch
+            {
+                // a refused carve still paints the full capture below
+            }
+            png.Position = 0;
+            return "data:image/png;base64," + Convert.ToBase64String(png.ToArray());
         }
 
         /// <summary>Bind the strip to the editor's tabs. Called once, from the

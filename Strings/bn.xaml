@@ -1373,6 +1373,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_TT_EditorSubnum">সাব-নম্বর তালিকা (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">উদ্ধৃতি</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">লাইন স্পেসিং পরিবর্তন: কমপ্যাক্ট, স্বাভাবিক, শিথিল</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">বামে সারিবদ্ধ</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">মাঢ়খানে</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">উভয় পাশে সারিবদ্ধ</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">তালিকা</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">নথি সংরক্ষণ করুন</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">নথি খুলুন</sys:String>

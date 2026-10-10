@@ -1381,6 +1381,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_TT_EditorSubnum">Podlista (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Cytat</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Interlinia: Ciasna, Zwykła, Luźna</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Wyrównaj do lewej</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Wyśrodkuj</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Wyjustuj</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listy</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Zapisz dokument</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Otwórz dokument</sys:String>

@@ -1393,6 +1393,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_TT_EditorSubnum">Sub-numbered list (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Quote</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Cycle line spacing: Compact, Normal, Relaxed</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Align left</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Center</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Justify</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Lists</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Save document</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Open document</sys:String>

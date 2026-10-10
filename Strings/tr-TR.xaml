@@ -1373,6 +1373,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_TT_EditorSubnum">Alt liste (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Alıntı</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Satır aralığı döngüsü: Sıkı, Normal, Geniş</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Sola hizala</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Ortala</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">İki yana yasla</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Listeler</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Belgeyi kaydet</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Belgeyi aç</sys:String>

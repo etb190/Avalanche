@@ -1378,6 +1378,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_TT_EditorSubnum">Podřazený seznam (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Citace</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Řádkování: Těsné, Běžné, Prostorové</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Zarovnat vlevo</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Na střed</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Do bloku</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Seznamy</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Uložit dokument</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Otevřít dokument</sys:String>

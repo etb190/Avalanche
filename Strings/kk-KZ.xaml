@@ -1392,6 +1392,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_TT_EditorSubnum">Ішкі тізім (A, B, C)</sys:String>
     <sys:String x:Key="Str_TT_EditorQuote">Дәйексөз</sys:String>
     <sys:String x:Key="Str_TT_EditorSpacing">Жол аралығы: Тығыз, Қалыпты, Кең</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignLeft">Солға туралау</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignCenter">Ортаға туралау</sys:String>
+    <sys:String x:Key="Str_TT_EditorAlignJustify">Ені бойынша туралау</sys:String>
     <sys:String x:Key="Str_TT_EditorLists">Тізімдер</sys:String>
     <sys:String x:Key="Str_Editor_SaveDoc">Құжатты сақтау</sys:String>
     <sys:String x:Key="Str_Editor_OpenDoc">Құжатты ашу</sys:String>
