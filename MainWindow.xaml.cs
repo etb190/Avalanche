@@ -1591,14 +1591,18 @@ namespace Avalanche
                     // every question - nothing of one page ever reaches another
                     // page's conversation.
                     WebPageReader = (tabId, ct) => WebPane.ExtractPageTextAsync(tabId, ct),
+                    EditorTextReader = async (tabId, ct) => await TextPane.GetDocumentPlainTextAsync(),
                 };
                 AiChatOverlay.DataContext = _aiChatViewModel;
             }
 
-            // v1.19.22: the browser leads when it is on screen - the chat binds
-            // to the active tab's own session (its transcript, the page as the
-            // context). Only with the browser away does the chat bind to the book.
-            if (WebPaneHost.Visibility == Visibility.Visible && WebPane.ActiveTabId is { } webTabId)
+            // The editor or browser leads when on screen - the chat binds
+            // to the active session. Only with both away does it bind to the book.
+            if (EditorPaneHost.Visibility == Visibility.Visible)
+            {
+                _aiChatViewModel.HandleEditorContextChanged(TextPane.ActiveTabId, TextPane.ActiveTabTitle);
+            }
+            else if (WebPaneHost.Visibility == Visibility.Visible && WebPane.ActiveTabId is { } webTabId)
             {
                 _aiChatViewModel.HandleWebContextChanged(webTabId, WebPane.ActiveTabTitle, WebPane.ActiveTabUrl);
             }
@@ -2587,6 +2591,7 @@ namespace Avalanche
             TextPane.OnPaneHidden();
             ExitEditorSidebarMode();
             ApplyEditorToolbarFace(leads: false);
+            _aiChatViewModel?.HandleEditorContextCleared();
             // The editor stepped aside and the book's windows come back - the
             // same welcome the browser's hide offers (recap first, then the
             // navigator whose per-book wish survived the switch-away close).
@@ -2647,17 +2652,73 @@ namespace Avalanche
             // The moon under the split-pane button wears the sheet's dark face
             // while the editor leads (v1.19.81): the page's own state lights it.
             TextPane.DocInvertChanged += on => DocInvertBtn.Tag = on ? "on" : null;
-            // The page's own raster of each document page (v1.19.69): the rail's
-            // cards wear it the way the PDF list wears its page thumbnails and
-            // the browser's gallery wears its captured previews. A null set means
-            // the world changed - the cache steps aside until the new world's
-            // pictures arrive.
+            TextPane.ActiveTabChanged += () =>
+            {
+                if (AiChatOverlay?.Visibility == Visibility.Visible)
+                    _aiChatViewModel?.HandleEditorContextChanged(TextPane.ActiveTabId, TextPane.ActiveTabTitle);
+            };
+            // The page's own raster of each document page: in-place card image
+            // update avoids destroying/rebuilding UI controls and eliminates flicker.
             TextPane.ThumbsChanged += thumbs =>
             {
                 _editorThumbs = thumbs;
                 if (EditorPagesPanel.Visibility == Visibility.Visible)
-                    RebuildEditorPageCards();
+                    UpdateOrRebuildEditorPageCards();
             };
+        }
+
+        /// <summary>Updates existing page thumbnail images in place to avoid UI flashing,
+        /// only rebuilding controls when the page count changes.</summary>
+        private void UpdateOrRebuildEditorPageCards()
+        {
+            int n = TextPane.PageCount;
+            if (_editorPageCards.Count != n)
+            {
+                RebuildEditorPageCards();
+                return;
+            }
+
+            for (int i = 0; i < n; i++)
+            {
+                string? thumb = (_editorThumbs != null && i < _editorThumbs.Length)
+                    ? _editorThumbs[i] : null;
+                if (string.IsNullOrEmpty(thumb)) continue;
+
+                var preview = EditorThumbImage(thumb);
+                if (preview == null) continue;
+
+                var card = _editorPageCards[i];
+                if (card.Content is System.Windows.Controls.StackPanel stack)
+                {
+                    var face = stack.Children.OfType<System.Windows.Controls.Border>().FirstOrDefault();
+                    if (face?.Child is System.Windows.Controls.Image img)
+                    {
+                        img.Source = preview;
+                    }
+                    else
+                    {
+                        var newImg = new System.Windows.Controls.Image
+                        {
+                            Source = preview,
+                            Stretch = System.Windows.Media.Stretch.Uniform,
+                            MaxWidth = 142,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                        };
+                        System.Windows.Media.RenderOptions.SetBitmapScalingMode(newImg,
+                            System.Windows.Media.BitmapScalingMode.HighQuality);
+                        var newFace = new System.Windows.Controls.Border
+                        {
+                            Background = System.Windows.Media.Brushes.White,
+                            BorderThickness = new Thickness(1),
+                            MaxWidth = 200,
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            Child = newImg,
+                        };
+                        newFace.SetResourceReference(System.Windows.Controls.Border.BorderBrushProperty, "SurfaceBrush");
+                        stack.Children.Insert(0, newFace);
+                    }
+                }
+            }
         }
 
         /// <summary>The editor's page count moved: the rail mirrors it - one card

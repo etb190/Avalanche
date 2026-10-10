@@ -1265,6 +1265,7 @@ namespace Avalanche
             "CloseFileBtn", "OpenFileBtn", "OpenRecentBtn", "SaveAsBtn", "SaveMenuBtn",
             "OcrBtn", "OcrMenuBtn", "SaveFlattenedBtn", "PrintBtn",
             "WebSavePdfBtn", "ToolsBtn",
+            "GrpCompare", "ComparePdfBtn", "GrpPageOps", "MergeBtn", "ExtractBtn", "GrpPageEdit",
         };
 
         private void ApplyEditorToolbarFace(bool leads)

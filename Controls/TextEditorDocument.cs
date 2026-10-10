@@ -65,15 +65,15 @@ namespace Avalanche.Controls
 <style>__QUILL_CSS__</style>
 <style>
   html, body { margin:0; padding:0; }
-  body { background:#3d4046; overflow-x:hidden; font-family:'Segoe UI',sans-serif; }
+  body { background-color:#2b2d30; overflow-x:hidden; font-family:'Segoe UI',sans-serif; }
   #canvas { width:816px; min-height:1056px; margin:24px auto 48px auto; background:#ffffff;
             box-shadow:0 2px 10px rgba(0,0,0,0.45); border-radius:2px; box-sizing:border-box; }
   /* The snow theme pins the container to height:100% and gives the editor its
      own scrollbar - a pageless sheet wants the opposite: the canvas grows,
      the window scrolls, one unbroken ride. */
-  .ql-container { height:auto; font-family:'Times New Roman',serif; }
+  .ql-container { height:auto; font-family:var(--doc-font, 'Segoe UI', sans-serif); }
   .ql-editor { height:auto; min-height:1056px; overflow-y:visible;
-               font-family:'Times New Roman',serif; font-size:12pt; line-height:var(--line-height,1.6);
+               font-family:var(--doc-font, 'Segoe UI', sans-serif); font-size:12pt; line-height:var(--line-height,1.6);
                color:#1c1c1c; padding:64px 72px 32px 72px; outline:none; }
   .ql-editor.ql-blank::before { content:none; }
   .ql-editor img { max-width:100%; height:auto; -webkit-user-drag:none; }
@@ -240,7 +240,36 @@ namespace Avalanche.Controls
 'use strict';
 function post(o){ try { window.chrome.webview.postMessage(o); } catch(e){} }
 
+// Film grain background on margins: exact procedural noise matching PdfViewer
+(function initNoiseBackground(){
+  try {
+    var size = 256;
+    var c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    var ctx = c.getContext('2d');
+    var imgData = ctx.createImageData(size, size);
+    var d = imgData.data;
+    var seed = 1337;
+    function rnd(){ seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
+    for (var i = 0; i < d.length; i += 4){
+      if (rnd() > 0.33) continue;
+      var bright = rnd() < 0.5;
+      var v = bright ? Math.floor(190 + rnd() * 65) : Math.floor(rnd() * 50);
+      var a = Math.floor(35 + rnd() * 60);
+      d[i] = v;
+      d[i+1] = v;
+      d[i+2] = v;
+      d[i+3] = a;
+    }
+    ctx.putImageData(imgData, 0, 0);
+    var url = c.toDataURL();
+    document.body.style.backgroundImage = 'url(' + url + ')';
+    document.body.style.backgroundRepeat = 'repeat';
+  } catch(e){}
+})();
+
 // ── fonts & sizes ─────────────────────────────────────────────────────────
+var currentDocFont = 'Segoe UI';
 var FONTS = ['Segoe UI','Arial','Calibri','Cambria','Consolas','Courier New','Georgia',
              'Impact','Palatino Linotype','Tahoma','Times New Roman','Trebuchet MS','Verdana'];
 var LADDER = [8,9,10,11,12,14,16,18,20,24,28,32,36,48,72];
@@ -815,7 +844,7 @@ function effFont(){
     var fam = (getComputedStyle(el).fontFamily || '').toLowerCase();
     for (var i=0;i<FONTS.length;i++) if (fam.indexOf(FONTS[i].toLowerCase())>=0) return FONTS[i];
   }
-  return 'Times New Roman';
+  return currentDocFont || 'Segoe UI';
 }
 function effSize(){
   var f = quill.getFormat().size;
@@ -914,7 +943,7 @@ function loadWorld(html, seq){
 // (fonts, sizes, links, images) into a Letter-sized frame; a refusal
 // anywhere degrades to the empty thumb the rail already knows how to wear.
 var THUMB_CSS = '.doc{width:816px;height:1056px;background:#fff;overflow:hidden;position:relative;' +
-  "font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5;color:#1c1c1c;}" +
+  "font-family:var(--doc-font,'Segoe UI',sans-serif);font-size:12pt;line-height:1.5;color:#1c1c1c;}" +
   '.docbody{padding:64px 72px 0 72px;}' +
   '.docbody p,.docbody ol,.docbody ul,.docbody pre,.docbody blockquote,.docbody h1,.docbody h2,.docbody h3,.docbody h4,.docbody h5,.docbody h6{margin:0;padding:0}' +
   '.docbody img{max-width:100%;height:auto;}' +
@@ -989,11 +1018,11 @@ AiErrBlot.tagName = 'SPAN';
 AiErrBlot.className = 'ai-err';
 Quill.register(AiErrBlot);
 
-var SCAN_IDLE_DELAY_MS = 5000;
+var SCAN_IDLE_DELAY_MS = 1500;
 var scanTimer = null, isDirty = false, lastScannedHash = '', scanInFlight = false;
 var ignoredWords = new Set();
 var activeFlags = [];      // { index, length, word, suggestion }
-var errPop = null, aiBubble = null, aiMenu = null, aiNote = null;
+var errPop = null, errPopHideTimer = null, aiBubble = null, aiMenu = null, aiNote = null;
 var aiNoteTimer = null, aiBubbleRect = null, aiInFlight = false, aiPending = null;
 
 function hashString(s){
@@ -1008,9 +1037,134 @@ function aiStripHtml(html){
     .replace(/ data-sug="[^"]*"/g, '');
 }
 
-// The proofreader's marks are stripped from the Delta before the world is
-// saved: an attribute walk over the ops that drops every ai-err and keeps
-// everything else - font, size, width, link, footnote - exactly as it was.
+// ── offline spell checker (no external AI, instant & private) ─────────────
+var TYPO_MAP = {
+  'teh':'the','recieve':'receive','seperate':'separate','definately':'definitely',
+  'occured':'occurred','untill':'until','truely':'truly','wierd':'weird','acheive':'achieve',
+  'beleive':'believe','goverment':'government','wich':'which','thier':'their',
+  'writting':'writing','tommorrow':'tomorrow','tommorow':'tomorrow','alot':'a lot',
+  'calender':'calendar','collegue':'colleague','commited':'committed','concious':'conscious',
+  'embarass':'embarrass','enviroment':'environment','existance':'existence','foward':'forward',
+  'gaurantee':'guarantee','grammer':'grammar','happend':'happened','independant':'independent',
+  'knowlege':'knowledge','liason':'liaison','millenium':'millennium','mispell':'misspell',
+  'neccessary':'necessary','necesary':'necessary','noticable':'noticeable','ocasion':'occasion',
+  'occassion':'occasion','ocurred':'occurred','percieve':'perceive','posession':'possession',
+  'prefered':'preferred','refered':'referred','religous':'religious','remeber':'remember',
+  'resistence':'resistance','rythm':'rhythm','suprise':'surprise','tendancy':'tendency',
+  'realy':'really','alright':'all right','amature':'amateur','catagory':'category',
+  'cemetary':'cemetery','freind':'friend','haras':'harass','peice':'piece','priviledge':'privilege',
+  'publically':'publicly','shedule':'schedule','sieze':'seize','suceed':'succeed',
+  'dont':'don\'t','cant':'can\'t','wont':'won\'t','didnt':'didn\'t','doesnt':'doesn\'t',
+  'isnt':'isn\'t','arent':'aren\'t','wasnt':'wasn\'t','werent':'weren\'t','couldnt':'couldn\'t',
+  'shouldnt':'shouldn\'t','wouldnt':'wouldn\'t','hasnt':'hasn\'t','havent':'haven\'t',
+  'hadnt':'hadn\'t','whats':'what\'s','thats':'that\'s','theres':'there\'s','heres':'here\'s'
+};
+
+var RAW_WORDS = (
+  "the,of,and,a,to,in,is,you,that,it,he,was,for,on,are,as,with,his,they,i,at,be,this,have,from,or,one,had,by,word," +
+  "but,not,what,all,were,we,when,your,can,said,there,use,an,each,which,she,do,how,their,if,will,up,other,about,out,many," +
+  "then,them,these,so,some,her,would,make,like,him,into,time,has,look,two,more,write,go,see,number,no,way,could,people," +
+  "my,than,first,water,been,call,who,oil,its,now,find,long,down,day,did,get,come,made,may,part,over,new,sound,take,only," +
+  "little,work,know,place,year,live,me,back,give,most,very,after,thing,our,just,name,good,sentence,man,think,say,great," +
+  "where,help,through,much,before,line,right,too,mean,old,any,same,tell,boy,follow,came,want,show,also,around,form,three," +
+  "small,set,put,end,does,another,well,large,must,big,even,such,because,turn,here,why,ask,went,men,read,need,land,different," +
+  "home,us,move,try,kind,hand,picture,again,change,off,play,spell,air,away,animal,house,point,page,letter,mother,answer," +
+  "found,study,still,learn,should,America,world,high,every,near,add,food,between,own,below,country,plant,last,school,father," +
+  "keep,tree,never,start,city,earth,eye,light,thought,head,under,story,saw,left,few,while,along,might,close,something,seem," +
+  "next,hard,open,example,begin,life,always,those,both,paper,together,got,group,often,run,important,until,children,side," +
+  "feet,car,mile,night,walk,white,sea,began,grow,took,river,four,carry,state,once,book,hear,stop,without,second,late,miss," +
+  "idea,enough,eat,face,watch,far,Indian,real,almost,let,above,girl,sometimes,mountain,cut,young,talk,soon,list,song,being," +
+  "leave,family,body,music,color,stand,sun,question,fish,area,mark,dog,horse,bird,problem,complete,room,knew,since,ever," +
+  "piece,told,usually,didn't,friends,easy,heard,order,red,door,sure,become,top,ship,across,today,during,short,better,best," +
+  "however,low,hours,black,products,happened,whole,measure,remember,early,waves,reached,listen,wind,rock,space,covered,fast," +
+  "several,hold,himself,toward,five,step,morning,passed,vowel,true,hundred,against,pattern,numeral,table,north,slow,money," +
+  "map,farm,draw,voice,seen,cold,cried,plan,notice,south,sing,war,ground,fall,king,town,unit,figure,certain,field,travel," +
+  "wood,fire,upon,done,English,half,ten,fly,gave,box,finally,wait,correct,oh,quickly,person,became,shown,minutes,strong," +
+  "verb,stars,front,feel,fact,inches,street,decided,contain,course,surface,produce,building,ocean,class,note,nothing,rest," +
+  "carefully,scientists,inside,wheels,stay,green,known,island,week,less,machine,base,ago,stood,plane,system,behind,ran," +
+  "round,boat,game,force,brought,understand,warm,common,bring,explain,dry,though,language,shape,deep,thousands,yes,clear," +
+  "equation,yet,government,filled,heat,full,hot,check,object,am,rule,among,noun,power,cannot,able,six,size,dark,ball,material," +
+  "special,heavy,fine,pair,circle,include,built,can't,matter,square,syllables,perhaps,bill,felt,suddenly,test,direction," +
+  "center,farmers,ready,anything,divided,general,energy,subject,Europe,moon,region,return,believe,dance,members,picked,simple," +
+  "cells,paint,mind,love,cause,rain,exercise,eggs,train,blue,wish,drop,developed,window,difference,distance,heart,sit,sum," +
+  "summer,wall,forest,probably,legs,sat,main,winter,wide,written,length,reason,kept,interest,arms,brother,race,present,beautiful," +
+  "store,job,edge,past,sign,record,finished,discovered,wild,happy,beside,gone,sky,glass,million,west,lay,weather,root,instruments," +
+  "meet,third,months,paragraph,raised,represent,soft,whether,clothes,flowers,shall,drive,cell,held,key,support,office,document," +
+  "editor,text,screen,button,click,select,format,style,font,size,header,footer,quote,bullet,number,align,center,justify," +
+  "margin,table,border,color,image,picture,insert,delete,remove,update,save,load,open,close,cancel,apply,reset,search,find," +
+  "replace,undo,redo,copy,paste,cut,print,share,export,import,code,link,view,window,panel,dialog,menu,item,tab,row,column"
+);
+var DICT = new Set(RAW_WORDS.split(','));
+
+function checkWord(w){
+  if (DICT.has(w)) return true;
+  var len = w.length;
+  if (len < 2) return w === 'a' || w === 'i';
+  if (w.endsWith("'s") && DICT.has(w.slice(0,-2))) return true;
+  if (w.endsWith("s") && DICT.has(w.slice(0,-1))) return true;
+  if (w.endsWith("es") && DICT.has(w.slice(0,-2))) return true;
+  if (w.endsWith("ies") && DICT.has(w.slice(0,-3) + "y")) return true;
+  if (w.endsWith("ed") && (DICT.has(w.slice(0,-2)) || DICT.has(w.slice(0,-1)))) return true;
+  if (w.endsWith("ied") && DICT.has(w.slice(0,-3) + "y")) return true;
+  if (w.endsWith("ing") && (DICT.has(w.slice(0,-3)) || DICT.has(w.slice(0,-3) + "e"))) return true;
+  if (w.endsWith("ly") && (DICT.has(w.slice(0,-2)) || DICT.has(w.slice(0,-3) + "y"))) return true;
+  if (w.endsWith("er") && (DICT.has(w.slice(0,-2)) || DICT.has(w.slice(0,-1)))) return true;
+  if (w.endsWith("est") && (DICT.has(w.slice(0,-3)) || DICT.has(w.slice(0,-2)))) return true;
+  if (w.endsWith("able") && DICT.has(w.slice(0,-4))) return true;
+  if (w.endsWith("ness") && DICT.has(w.slice(0,-4))) return true;
+  if (w.endsWith("ment") && DICT.has(w.slice(0,-4))) return true;
+  if (w.endsWith("ful") && DICT.has(w.slice(0,-3))) return true;
+  if (w.endsWith("less") && DICT.has(w.slice(0,-4))) return true;
+  if (w.startsWith("un") && checkWord(w.slice(2))) return true;
+  if (w.startsWith("re") && checkWord(w.slice(2))) return true;
+  if (w.startsWith("dis") && checkWord(w.slice(3))) return true;
+  if (w.startsWith("in") && checkWord(w.slice(2))) return true;
+  if (w.startsWith("im") && checkWord(w.slice(2))) return true;
+  if (w.startsWith("non") && checkWord(w.slice(3))) return true;
+  if (w.startsWith("pre") && checkWord(w.slice(3))) return true;
+  if (w.startsWith("mis") && checkWord(w.slice(3))) return true;
+  return false;
+}
+
+function suggestWord(raw){
+  var lower = raw.toLowerCase();
+  if (TYPO_MAP[lower]) return preserveCase(raw, TYPO_MAP[lower]);
+  var letters = 'abcdefghijklmnopqrstuvwxyz';
+  var candidates = [];
+  var i, j;
+  for (i = 0; i < lower.length; i++){
+    var del = lower.slice(0, i) + lower.slice(i + 1);
+    if (checkWord(del)) candidates.push(del);
+  }
+  for (i = 0; i < lower.length - 1; i++){
+    var trans = lower.slice(0, i) + lower[i + 1] + lower[i] + lower.slice(i + 2);
+    if (checkWord(trans)) candidates.push(trans);
+  }
+  for (i = 0; i < lower.length; i++){
+    for (j = 0; j < letters.length; j++){
+      var sub = lower.slice(0, i) + letters[j] + lower.slice(i + 1);
+      if (checkWord(sub)) candidates.push(sub);
+    }
+  }
+  for (i = 0; i <= lower.length; i++){
+    for (j = 0; j < letters.length; j++){
+      var ins = lower.slice(0, i) + letters[j] + lower.slice(i);
+      if (checkWord(ins)) candidates.push(ins);
+    }
+  }
+  if (candidates.length > 0){
+    return preserveCase(raw, candidates[0]);
+  }
+  return '';
+}
+
+function preserveCase(orig, sug){
+  if (!sug) return '';
+  if (orig === orig.toUpperCase() && orig.length > 1) return sug.toUpperCase();
+  if (orig[0] === orig[0].toUpperCase()) return sug[0].toUpperCase() + sug.slice(1);
+  return sug;
+}
+
 function stripFlagsFromDelta(){
   try {
     var ops = quill.getContents().ops || [], clean = [], i, k;
@@ -1043,10 +1197,6 @@ function aiReset(){
   hideErrPop(); hideAiBubble(); hideAiNote();
 }
 
-// ── the quiet door: the idle batch scan ───────────────────────────────────
-// Typing resets the timer every keystroke; only five full seconds of
-// stillness open the door, and the document's hash keeps an untouched or
-// already-scanned text from asking again.
 quill.on('text-change', function(delta, oldDelta, source){
   if (source !== 'user') return;
   isDirty = true;
@@ -1057,15 +1207,31 @@ quill.on('text-change', function(delta, oldDelta, source){
 function triggerTimerScan(){
   if (!isDirty) return;
   isDirty = false;
-  var fullText = quill.getText().trim();
-  if (fullText.length < 5) return;
-  fullText = fullText.slice(0, 24000);
+  var fullText = quill.getText();
+  if (fullText.trim().length < 2) { clearGrammarFlags(); return; }
   var hash = hashString(fullText);
   if (hash === lastScannedHash) return;
-  if (scanInFlight){ scanTimer = setTimeout(triggerTimerScan, SCAN_IDLE_DELAY_MS); return; }
   lastScannedHash = hash;
-  scanInFlight = true;
-  post({ type:'ai_timer_grammar_scan', text: fullText, ignored: Array.from(ignoredWords), seq: worldSeq });
+  runOfflineSpellCheck(fullText);
+}
+
+function runOfflineSpellCheck(text){
+  var wordRe = /\b[A-Za-z]+(?:'[A-Za-z]+)?\b/g;
+  var m, seen = new Set(), errors = [];
+  while ((m = wordRe.exec(text)) !== null && errors.length < 60){
+    var raw = m[0];
+    if (raw.length < 2 && raw !== 'a' && raw !== 'A' && raw !== 'i' && raw !== 'I') continue;
+    var lower = raw.toLowerCase();
+    if (ignoredWords.has(lower) || seen.has(lower)) continue;
+    seen.add(lower);
+    if (!checkWord(lower)){
+      var sug = suggestWord(raw);
+      if (sug && sug.toLowerCase() !== lower){
+        errors.push({ word: raw, suggestion: sug });
+      }
+    }
+  }
+  applyScanResult({ errors: errors, seq: worldSeq });
 }
 
 function clearGrammarFlags(){
@@ -1084,17 +1250,13 @@ function clearGrammarFlags(){
 
 function escRe(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-// One answer dresses the whole document at once: every flagged word that is
-// still in the text (and not ignored) gets its silent format, the flags
-// list remembers where each one landed, and the counts keep a runaway
-// model from painting the page red.
 function applyScanResult(msg){
   scanInFlight = false;
   var seq = (msg && typeof msg.seq === 'number') ? msg.seq|0 : worldSeq;
-  if (seq !== worldSeq) return;   // a stale world's answer dresses nobody
+  if (seq !== worldSeq) return;
   var errors = (msg && msg.errors) || [];
-  if (!errors.length) return;
   clearGrammarFlags();
+  if (!errors.length) return;
   var text = quill.getText(), dressed = 0;
   for (var i=0;i<errors.length && dressed < 300;i++){
     var word = String((errors[i] && errors[i].word) || '').trim();
@@ -1112,7 +1274,7 @@ function applyScanResult(msg){
   }
 }
 
-// ── the red word's little card ────────────────────────────────────────────
+// ── the red word's little card with hover & click support ────────────────
 function ensureErrPop(){
   if (errPop) return;
   errPop = document.createElement('div');
@@ -1122,14 +1284,26 @@ function ensureErrPop(){
   var no = document.createElement('button');
   no.className = 'err-x'; no.type = 'button';
   no.textContent = '\u2715'; no.title = 'Ignore';
-  fix.addEventListener('click', function(){ fixErrWord(); });
-  no.addEventListener('click', function(){ ignoreErrWord(); });
+  fix.addEventListener('click', function(e){ e.stopPropagation(); fixErrWord(); });
+  no.addEventListener('click', function(e){ e.stopPropagation(); ignoreErrWord(); });
   errPop.appendChild(fix); errPop.appendChild(no);
+  errPop.addEventListener('mouseenter', function(){
+    if (errPopHideTimer) { clearTimeout(errPopHideTimer); errPopHideTimer = null; }
+  });
+  errPop.addEventListener('mouseleave', function(){
+    scheduleHideErrPop();
+  });
   document.body.appendChild(errPop);
+}
+
+function scheduleHideErrPop(){
+  if (errPopHideTimer) clearTimeout(errPopHideTimer);
+  errPopHideTimer = setTimeout(function(){ hideErrPop(); }, 250);
 }
 
 function openErrPop(span){
   ensureErrPop();
+  if (errPopHideTimer) { clearTimeout(errPopHideTimer); errPopHideTimer = null; }
   var at = null, len = 0;
   try {
     var blot = Quill.find(span);
@@ -1160,7 +1334,6 @@ function openErrPop(span){
 
 function hideErrPop(){ if (errPop) errPop.style.display = 'none'; }
 
-// The swap rides one updateContents, so undo reads it as one step.
 function fixErrWord(){
   if (!errPop) return;
   var at = parseInt(errPop.getAttribute('data-at'), 10);
@@ -1190,6 +1363,19 @@ function ignoreErrWord(){
   }
 }
 
+// Hover over misspelled word triggers popup; leaving triggers delayed hide
+quill.root.addEventListener('mouseover', function(e){
+  var t = e.target;
+  if (t && t.closest && t.closest('span.ai-err')){
+    openErrPop(t.closest('span.ai-err'));
+  }
+});
+quill.root.addEventListener('mouseout', function(e){
+  var t = e.target;
+  if (t && t.closest && t.closest('span.ai-err')){
+    scheduleHideErrPop();
+  }
+});
 quill.root.addEventListener('click', function(e){
   var t = e.target;
   if (t && t.closest && t.closest('span.ai-err')){
@@ -1651,7 +1837,15 @@ if (window.chrome && window.chrome.webview && window.chrome.webview.addEventList
       case 'italic': toggle('italic'); break;
       case 'underline': toggle('underline'); break;
       case 'strike': toggle('strike'); break;
-      case 'font': if (msg.name){ quill.format('font', slug(String(msg.name)), 'user'); reportState(); } break;
+      case 'font':
+        if (msg.name){
+          currentDocFont = String(msg.name);
+          document.documentElement.style.setProperty('--doc-font', "'" + currentDocFont + "', sans-serif");
+          quill.root.style.setProperty('--doc-font', "'" + currentDocFont + "', sans-serif");
+          quill.format('font', slug(currentDocFont), 'user');
+          reportState();
+        }
+        break;
       case 'size': if (msg.pt){ quill.format('size', pt(String(msg.pt)), 'user'); reportState(); } break;
       case 'sizeStep': sizeStep(Number(msg.dir) || 0); break;
       case 'linkui': openLinkPop(); break;

@@ -207,6 +207,9 @@ namespace Avalanche.Controls
         /// rail's cache is stale.</summary>
         public event Action<string[]?>? ThumbsChanged;
 
+        /// <summary>Active tab changed (or active tab's title changed): informs AI sidechat.</summary>
+        public event Action? ActiveTabChanged;
+
         public int PageCount => _pageCount;
 
         private static readonly string[] FontChoices =
@@ -498,6 +501,7 @@ namespace Avalanche.Controls
                             // The tab's own label repaints off the flag - the strip
                             // never rebuilds for a name.
                             _tabs[_activeTab].Title = title;
+                            ActiveTabChanged?.Invoke();
                         }
                     }
                     break;
@@ -513,11 +517,17 @@ namespace Avalanche.Controls
                         if (root.TryGetProperty("thumbs", out var arr) && arr.ValueKind == JsonValueKind.Array)
                             foreach (var el in arr.EnumerateArray())
                                 thumbs.Add(el.ValueKind == JsonValueKind.String ? (el.GetString() ?? "") : "");
-                        if (_activeTab >= 0 && _activeTab < _tabs.Count)
-                            _thumbCache[_tabs[_activeTab]] = thumbs.ToArray();
-                        ThumbsChanged?.Invoke(thumbs.ToArray());
-                        if (thumbs.Contains(string.Empty))
+                        bool hasRealThumbs = thumbs.Count > 0 && !thumbs.All(string.IsNullOrEmpty);
+                        if (hasRealThumbs)
+                        {
+                            if (_activeTab >= 0 && _activeTab < _tabs.Count)
+                                _thumbCache[_tabs[_activeTab]] = thumbs.ToArray();
+                            ThumbsChanged?.Invoke(thumbs.ToArray());
+                        }
+                        else
+                        {
                             _ = RefreshThumbnailsAsync();   // the sheet's canvas refused: the host paints instead
+                        }
                     }
                     break;
 
@@ -1067,30 +1077,57 @@ namespace Avalanche.Controls
                 bmp.StreamSource = png;
                 bmp.EndInit();
                 bmp.Freeze();
-                double clientW = 0;
-                string? raw = core is null ? null
-                    : await core.ExecuteScriptAsync("String(document.documentElement.clientWidth)");
-                if (!double.TryParse(raw?.Trim('"'), System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out clientW))
-                    clientW = 0;
-                if (clientW > 0 && bmp.PixelWidth > 16 && bmp.PixelHeight > 16)
+                if (bmp.PixelWidth > 16 && bmp.PixelHeight > 16 && core is not null)
                 {
-                    double scale = bmp.PixelWidth / clientW;
-                    int pageW = (int)Math.Round(816.0 * scale);
-                    int pageH = (int)Math.Round(1056.0 * scale);
-                    int top = (int)Math.Round(24.0 * scale);
-                    int x0 = Math.Max(0, (bmp.PixelWidth - pageW) / 2);
-                    int y0 = Math.Max(0, Math.Min(top, bmp.PixelHeight - 16));
-                    int w = Math.Min(pageW, bmp.PixelWidth - x0);
-                    int h = Math.Min(pageH, bmp.PixelHeight - y0);
-                    if (w >= 16 && h >= 16)
+                    string? geom = await core.ExecuteScriptAsync(
+                        "(() => { const c = document.getElementById('canvas'); if (!c) return ''; " +
+                        "const r = c.getBoundingClientRect(); return JSON.stringify({ left: r.left, top: r.top, width: r.width, height: r.height, cw: document.documentElement.clientWidth }); })()");
+                    double clientW = 0, left = 0, top = 24, width = 816, height = 1056;
+                    bool parsed = false;
+                    if (!string.IsNullOrWhiteSpace(geom) && geom != "null" && geom != "\"\"")
                     {
-                        var cropped = new CroppedBitmap((BitmapSource)bmp, new Int32Rect(x0, y0, w, h));
-                        var enc = new PngBitmapEncoder();
-                        enc.Frames.Add(BitmapFrame.Create(cropped));
-                        using var outMs = new MemoryStream();
-                        enc.Save(outMs);
-                        return "data:image/png;base64," + Convert.ToBase64String(outMs.ToArray());
+                        try
+                        {
+                            string jsonStr = geom.StartsWith('"') ? JsonDocument.Parse(geom).RootElement.GetString() ?? "{}" : geom;
+                            using var doc = JsonDocument.Parse(jsonStr);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("cw", out var cwp) && cwp.TryGetDouble(out clientW) && clientW > 0)
+                            {
+                                if (root.TryGetProperty("left", out var lp)) left = lp.GetDouble();
+                                if (root.TryGetProperty("top", out var tp)) top = tp.GetDouble();
+                                if (root.TryGetProperty("width", out var wp)) width = wp.GetDouble();
+                                if (root.TryGetProperty("height", out var hp)) height = hp.GetDouble();
+                                parsed = true;
+                            }
+                        }
+                        catch { }
+                    }
+
+                    if (!parsed || clientW <= 0)
+                    {
+                        string? raw = await core.ExecuteScriptAsync("String(document.documentElement.clientWidth)");
+                        _ = double.TryParse(raw?.Trim('"'), System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out clientW);
+                    }
+
+                    if (clientW > 0)
+                    {
+                        double scale = bmp.PixelWidth / clientW;
+                        int x0 = parsed ? Math.Max(0, (int)Math.Floor(left * scale)) : Math.Max(0, (int)Math.Round((bmp.PixelWidth - (width * scale)) / 2));
+                        int y0 = Math.Max(0, Math.Min((int)Math.Floor(top * scale), bmp.PixelHeight - 16));
+                        int pageW = (int)Math.Floor(width * scale);
+                        int pageH = (int)Math.Floor(height * scale);
+                        int w = Math.Min(pageW, bmp.PixelWidth - x0);
+                        int h = Math.Min(pageH, bmp.PixelHeight - y0);
+                        if (w >= 16 && h >= 16)
+                        {
+                            var cropped = new CroppedBitmap((BitmapSource)bmp, new Int32Rect(x0, y0, w, h));
+                            var enc = new PngBitmapEncoder();
+                            enc.Frames.Add(BitmapFrame.Create(cropped));
+                            using var outMs = new MemoryStream();
+                            enc.Save(outMs);
+                            return "data:image/png;base64," + Convert.ToBase64String(outMs.ToArray());
+                        }
                     }
                 }
             }
@@ -1275,6 +1312,7 @@ namespace Avalanche.Controls
             if (to < 0 || to >= _tabs.Count) return;
             _activeTab = to;
             RebuildTabStrip();
+            ActiveTabChanged?.Invoke();
             ThumbsChanged?.Invoke(CachedThumbs());   // the tab's own last raster paints now; a fresh one follows
             if (_pageReady)
             {
@@ -2106,5 +2144,33 @@ namespace Avalanche.Controls
 
         /// <summary>Ctrl+Shift+Z / Ctrl+Y, the same route, the same single fire.</summary>
         public void RedoExt() { Post(new { cmd = "redo" }); RefocusEditor(); }
+
+        /// <summary>Active tab's display title for the AI sidechat context.</summary>
+        public string ActiveTabTitle => (_activeTab >= 0 && _activeTab < _tabs.Count) ? _tabs[_activeTab].Title : "Document";
+
+        /// <summary>Active tab's unique key for chat session binding.</summary>
+        public string ActiveTabId => "tab_" + _activeTab;
+
+        /// <summary>Extracts the live plain text from the active editor document for AI assistance.</summary>
+        public async System.Threading.Tasks.Task<string> GetDocumentPlainTextAsync()
+        {
+            if (_pageReady && _web?.CoreWebView2 is not null)
+            {
+                try
+                {
+                    string? raw = await _web.CoreWebView2.ExecuteScriptAsync("JSON.stringify(quill ? quill.getText() : '')");
+                    if (!string.IsNullOrWhiteSpace(raw))
+                    {
+                        using var doc = JsonDocument.Parse(raw);
+                        if (doc.RootElement.ValueKind == JsonValueKind.String)
+                            return doc.RootElement.GetString() ?? "";
+                    }
+                }
+                catch { }
+            }
+            if (_activeTab >= 0 && _activeTab < _tabs.Count)
+                return _tabs[_activeTab].Html;
+            return "";
+        }
     }
 }

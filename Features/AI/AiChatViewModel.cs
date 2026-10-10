@@ -102,6 +102,13 @@ namespace Avalanche.Features.AI
         private string _webTitle = "";
         private string _webUrl = "";
 
+        // The text editor sidechat (v1.19.83): when the text editor pane leads,
+        // the chat binds to the active editor tab's session ("ed_..." key),
+        // grounded directly in the document's live plain text.
+        private bool _isEditorContext;
+        private string _currentEditorTabId = "";
+        private string _editorDocTitle = "";
+
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
         public bool IsIndexing
@@ -221,6 +228,10 @@ namespace Avalanche.Features.AI
         /// page text fresh on every call (null when there is no page). The view
         /// model knows nothing about WebView2 - the window owns the browser.</summary>
         public Func<string, System.Threading.CancellationToken, Task<WebPageSnapshot?>>? WebPageReader { get; set; }
+
+        /// <summary>The window's editor reader: extracts the active editor tab's live
+        /// text fresh on every call. Grounded directly in the sheet's prose.</summary>
+        public Func<string, System.Threading.CancellationToken, Task<string>>? EditorTextReader { get; set; }
 
         // v1.19.46: "a reply is running" is now a question about the CURRENT
         // conversation, not the whole view model - a reply the reader left
@@ -1249,6 +1260,38 @@ namespace Avalanche.Features.AI
                 // v1.19.46: the reply's key decides the kind - a web session
                 // key stays a web reply even when the reader moved to a book.
                 bool webContext = WebChat.IsWebSessionKey(key);
+                bool editorContext = EditorChat.IsEditorSessionKey(key);
+                if (editorContext)
+                {
+                    string tabId = key.StartsWith(EditorChat.SessionPrefix, StringComparison.Ordinal)
+                        ? key[EditorChat.SessionPrefix.Length..]
+                        : key;
+                    var reader = EditorTextReader;
+                    string docText = "";
+                    if (reader is not null)
+                    {
+                        try { docText = await reader(tabId, ct); }
+                        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+                        catch { docText = ""; }
+                    }
+
+                    var editorConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.Sidechat);
+                    string docTitle = _editorDocTitle;
+                    var editorResponse = await GetProvider(editorConfig).GetChatCompletionAsync(
+                        EditorChat.BuildSystemPrompt(docTitle, docText),
+                        recentHistory,
+                        new List<DocumentChunk>(),
+                        "",
+                        editorConfig,
+                        ct);
+
+                    assistantMsg.Content = editorResponse.Answer;
+                    assistantMsg.IsLoading = false;
+                    PaintReplyAttribution(key,
+                        () => string.Format(_loc("Str_AiChatTook"), AiChatText.FormatDuration(replyClock.Elapsed)),
+                        () => FormatModelUsed(editorConfig.Model));
+                    return;
+                }
                 if (webContext)
                 {
                     // The tab rides the key, not the panel's current context:
@@ -1902,6 +1945,87 @@ namespace Avalanche.Features.AI
             {
                 _isWebContext = false;
                 _currentWebTabId = "";
+            }
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                ContextTitle = "";
+                SemanticStatus = "";
+            });
+        }
+
+        /// <summary>
+        /// Text editor tab active context changed: switch sidechat conversation
+        /// to this tab's own history ("ed_..." session key) and show its title.
+        /// </summary>
+        public void HandleEditorContextChanged(string tabId, string title)
+        {
+            if (string.IsNullOrWhiteSpace(tabId)) return;
+            string key = EditorChat.SessionKey(tabId);
+            bool switchSession;
+            lock (_processingLock)
+                switchSession = !_isEditorContext || _currentEditorTabId != tabId;
+
+            if (!switchSession)
+            {
+                lock (_processingLock) { _editorDocTitle = title; }
+                Application.Current.Dispatcher.Invoke(() =>
+                    ContextTitle = string.IsNullOrWhiteSpace(title) ? "Document" : title);
+                return;
+            }
+
+            SaveHistory();
+            ClearForDocumentSwitch();
+            InflightReply? inflight = null;
+            bool inflightLoading = false;
+            PendingMessage? pending = null;
+            List<ChatMessage> savedSnapshot = new();
+            lock (_processingLock)
+            {
+                _isEditorContext = true;
+                _isWebContext = false;
+                _currentEditorTabId = tabId;
+                _currentDocumentId = key;
+                _currentFilePath = "";
+                _currentIndex = null;
+                _editorDocTitle = title;
+                if (_historyByDocument.TryGetValue(key, out var savedList))
+                    savedSnapshot.AddRange(savedList);
+                if (_inflightByContext.TryGetValue(key, out inflight))
+                    inflightLoading = inflight.Bubble.IsLoading;
+                _pendingByContext.TryGetValue(key, out pending);
+            }
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                foreach (var m in savedSnapshot)
+                    Messages.Add(m);
+                if (inflight is not null && inflightLoading && !Messages.Contains(inflight.Bubble))
+                    Messages.Add(inflight.Bubble);
+                else if (pending is not null && !Messages.Contains(pending.Placeholder))
+                    Messages.Add(pending.Placeholder);
+                ContextTitle = string.IsNullOrWhiteSpace(title) ? "Document" : title;
+                IndexingStatus = "";
+                IndexingProgress = 0.0;
+                SemanticStatus = "";
+                OnSemanticStateChanged();
+                RaiseProcessingStateChanged();
+            });
+        }
+
+        /// <summary>
+        /// The text editor pane was hidden: park the document's chat history.
+        /// </summary>
+        public void HandleEditorContextCleared()
+        {
+            bool was;
+            lock (_processingLock) was = _isEditorContext;
+            if (!was) return;
+            SaveHistory();
+            ClearForDocumentSwitch();
+            lock (_processingLock)
+            {
+                _isEditorContext = false;
+                _currentEditorTabId = "";
             }
             Application.Current.Dispatcher.Invoke(() =>
             {
