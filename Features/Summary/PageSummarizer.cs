@@ -768,128 +768,8 @@ namespace Avalanche.Features.Summary
             - The ONLY exception: if the source text itself uses an abbreviation (e.g., "DNA", "NASA", "MIS 6"), you may use it as the source does.
             """;
 
-        // The extension's nonfiction checklist, transplanted verbatim (prompt_ai_test
-        // Part 1): the old generic "cover the core arguments" rule let models quietly
-        // drop the author's analogies, debate positions and named case studies - the
-        // very tools the argument rides on. It lives in the head of the digest
-        // prompt, so the one pass inherits it with everything else.
-        private const string DetailChecklist =
-            """
-            WHAT COUNTS AS "DETAILS" — ALL of these must be covered:
-            - Facts: names, dates, numbers, places, definitions — reproduced exactly.
-            - Arguments: the author's claims, thesis, and core reasoning.
-            - Evidence: the data, studies, examples, and cases the author uses to support claims.
-            - Interpretations: how the author reads the evidence — what they argue it means.
-            - Comparisons: EVERY comparison the author makes. If the author compares X to Y, your summary must include that comparison.
-            - Parallels and analogies: EVERY parallel or analogy the author draws (historical, biological, or cross-cultural analogies). These are often the author's primary explanatory tools — NEVER omit them.
-            - Counterarguments: positions the author disagrees with, debates, and disproves.
-            - Specific artifacts, sites, and case studies: every named artifact, site, experiment, courtroom trial, or specific case study. If the author names it, it must appear in the summary.
-
-            FORBIDDEN:
-            - Dropping the author's argument and keeping only the raw facts.
-            - Merging multiple distinct arguments, comparisons, or parallels into one vague sentence.
-            - Replacing a specific parallel or case study with a generic statement like "the author draws parallels" or "studies demonstrate".
-            """;
-
-        // ------------------------------------------------------------------
-        // Genre personas: the digest prompt is tailored to the book's genre
-        // (v1.17.0). The nonfiction classic keeps the transplanted extension
-        // prompt and grows the epistemic accuracy rule; the five other genres
-        // swap the detail checklist for their own mandate - role, core rules,
-        // failure modes. The word-ceiling head, the output-language contract,
-        // the anti-meta law, the ground rule, the format block and the
-        // notes/anchors plumbing are shared by every genre, so the pipeline
-        // mechanics stay identical across personas.
-        // ------------------------------------------------------------------
-        private const string EpistemicAccuracy =
-            """
-            EPISTEMIC ACCURACY RULE (CRITICAL): faithfully preserve the author's exact degree of certainty - never flatten a hypothesis into a settled fact.
-            - Verified facts: state them as facts ("The excavations at Eridu revealed eighteen distinct temple strata.").
-            - Hypotheses, speculations, and interpretations: keep their proper qualifiers ("Evidence suggests...", "Archaeologists hypothesize that seasonal flooding caused the abandonment...").
-            - Open debates: name the competing positions and why they clash.
-            """;
-
-        private const string FictionMandate =
-            """
-            ROLE: a dense, chronological event-by-event reteller. You are a condenser, not a literary critic.
-
-            This summary is a SUBSTITUTE for reading the book: the reader is using it INSTEAD of reading the book, so the retelling must stand on its own.
-
-            CORE MANDATE:
-            - Every plot event, scene, and character development appears in chronological order (when the book jumps in time, restore the true order and say the jump explicitly).
-            - Every scene transition, location shift, and time jump stated explicitly.
-            - Every character action, decision, secret, and key line of dialogue reproduced (condensed, but recognizable).
-            - Every plot turn, revelation, and complication preserved.
-            - Track character dynamics: who is with whom, who knows what secret, and who is doing what.
-
-            FORBIDDEN (FAILURE MODES):
-            - Discussing "themes", "symbolism", or "literary devices" - tell the STORY, do not review it.
-            - Skipping an event because it seemed "minor" or "transitional".
-            - Merging distinct scenes into vague generalities ("adventures continue").
-            - Meta-language ("The chapter depicts...").
-            """;
-
-        private const string PhilosophicalFictionMandate =
-            """
-            ROLE: a dual-layer synthesis - non-fiction intellectual rigor fused with narrative drama. Both layers are mandatory.
-
-            This summary is a SUBSTITUTE for reading the book: the reader must get the ideas AND the story.
-
-            LAYER 1 - SUBSTANTIVE PHILOSOPHICAL ARGUMENTS (non-fiction rigor):
-            - Extract the core philosophical, moral, theological, or political arguments articulated in dialogues, monologues, or narration.
-            - Trace the logical steps, premises, and counterarguments debated by the characters or the author.
-            - Name the philosophical positions engaged with (nihilism, determinism, rational egoism, utilitarianism, absurdism, faith) and state what the text concludes about them.
-
-            LAYER 2 - NARRATIVE AND PSYCHOLOGICAL EVENTS:
-            - Chronological plot events, scene shifts, encounters, and decisions, without skipping scenes.
-            - The psychological crises, moral breakdowns, and confessions of the characters, in detail.
-            - Show how the events of the plot directly test, validate, or shatter the philosophical theories the characters hold.
-            """;
-
-        private const string ResearchMandate =
-            """
-            ROLE: an empirical methodology reviewer and quantitative data condenser.
-
-            This summary is a SUBSTITUTE for reading the paper: every claim arrives with its numbers, its test, and its magnitude.
-
-            CORE MANDATE - HIERARCHICAL TIERS (the higher tier wins when space runs short):
-            - Tier 1 - STATISTICS AND QUANTITATIVE DATA (top priority): every quantitative result (n, %, mean, median, SD, p-values, confidence intervals, effect sizes, regression coefficients, hazard ratios) reported verbatim, with exact units and referents.
-            - Tier 2 - INFERENTIAL REASONING AND MODELS: the exact statistical test, model, or logical step used to bridge data to claims (e.g. a two-way ANOVA, a linear regression controlling for age). State the test and its output.
-            - Tier 3 - CONCLUSIONS AND MAGNITUDE: attach every finding to the size of its effect ("reduced infection rate by 24%, 95% CI [16%, 32%]" rather than "had a significant effect").
-            - Tier 4 - METHODOLOGY: sample demographics, control conditions, intervention protocols, and instruments.
-            - Tier 5 - CONTEXT AND THEORY: the background definitions and the gaps in prior literature the work fills.
-            - ADAPTABILITY: if the paper is qualitative or theoretical, report its definitions, frameworks, and qualitative evidence substantively - and never invent numbers.
-            """;
-
-        private const string SelfHelpMandate =
-            """
-            ROLE: a practitioner's executive action notes.
-
-            This summary is a SUBSTITUTE for reading the book: the reader must be able to DO what the book teaches.
-
-            CORE MANDATE:
-            - Direct imperative principles: state every principle and technique as a direct command ("When facing X, execute Y because Z" - never "The author suggests doing X").
-            - Named models and frameworks: when the author names a framework, matrix, or dichotomy ("System 1 vs System 2", "The Eisenhower Matrix", "Fixed vs Growth Mindset"), state its name, its operational rule, and how to execute it.
-            - Exercises and reflection prompts verbatim: reproduce journaling prompts, self-audits, and diagnostic steps verbatim so the reader can actually perform them.
-            - Anecdote compression: compress every case study or story into ONE sentence stating the operational lesson. Skip fluff and filler anecdotes.
-            """;
-
-        private const string LawMandate =
-            """
-            ROLE: a judicial clerk preparing a legal doctrine brief.
-
-            This summary is a SUBSTITUTE for reading the text: the reader must get the rule, its elements, and its reach.
-
-            CORE MANDATE:
-            - Issues and procedural posture: the constitutional, statutory, or common-law question presented.
-            - Holding and rule of law: the binding rule the court established or applied.
-            - Doctrinal and statutory elements: enumerate the mandatory conjunctive or disjunctive conditions (1, 2, 3), the evidentiary thresholds, and the burdens of proof.
-            - Judicial reasoning and canons of interpretation: how the court applied precedent, statutory plain meaning, or constitutional doctrine.
-            - Exceptions and safe harbors: narrowing conditions, affirmative defenses, and statutory exemptions.
-            - Dissents: the core legal divergence and counter-doctrine argued by dissenting judges.
-            - Preserve exact legal terms of art ("strict scrutiny", "mens rea", "proximate cause").
-            """;
-
+        // The dropdowns' ids are canonical genre tags; anything unknown reads
+        // the nonfiction classic - the deck's first voice.
         private static string NormalizeGenre(string? genre)
         {
             return genre switch
@@ -903,56 +783,17 @@ namespace Avalanche.Features.Summary
             };
         }
 
-        // The genre's persona block: substitute-for-reading line + role + core
-        // mandate (no trailing blank line - the caller joins with the anti-meta
-        // law). The nonfiction classic keeps the transplanted CRITICAL RULES and
-        // DetailChecklist and adds the epistemic accuracy rule beside them.
+        // The genre's persona block (v1.19.90): every persona text moved to
+        // the shipped prompt deck - the store's own row wins, an untouched
+        // or deleted row speaks the deck's factory voice, and the {words}
+        // placeholder is fed the real target on the way out.
         private static string GenreMandate(string genre, int targetWords)
         {
-            // v1.19.88: the prompt workshop's stored text outranks the
-            // hardcoded voice - an edited or newly written prompt body
-            // takes the persona's seat, its {words} placeholder fed the
-            // real target on the way out.
-            string? stored = PromptStore.StoredMandate(genre);
-            if (!string.IsNullOrWhiteSpace(stored))
-            {
-                return stored.Replace("{words}", targetWords.ToString(CultureInfo.InvariantCulture));
-            }
-
-            switch (NormalizeGenre(genre))
-            {
-                case "fiction":
-                    return FictionMandate;
-                case "philosophical_fiction":
-                    return PhilosophicalFictionMandate;
-                case "research_papers":
-                    return ResearchMandate;
-                case "self_help":
-                    return SelfHelpMandate;
-                case "law":
-                    return LawMandate;
-                default:
-                    return
-                        "This summary is a SUBSTITUTE for reading these pages. The reader must understand " +
-                        "the key facts, findings, the author's arguments, and the evidence supporting them.\n\n" +
-                        "CRITICAL RULES:\n" +
-                        "1. Cover the core arguments, evidence, definitions, historical facts, and " +
-                        "conclusions directly and factually.\n" +
-                        "2. State content directly as facts and findings — never describe the text or the author.\n" +
-                        "3. Keep the summary focused, dense, and close to " + targetWords +
-                        " words — do NOT exceed " + targetWords + " words.\n\n" +
-                        DetailChecklist + "\n\n" +
-                        EpistemicAccuracy;
-            }
-        }
-
-        // v1.19.88: the persona text as a template for the prompt
-        // workshop's editor - the one place the word count appears
-        // becomes a {words} placeholder, so a stored body never bakes
-        // a number the digest head would contradict.
-        internal static string BuiltinMandateTemplate(string genre)
-        {
-            return GenreMandate(genre, 0).Replace(" 0 words", " {words} words");
+            string? stored = PromptStore.StoredMandate(genre)
+                ?? PromptStore.StoredMandate(NormalizeGenre(genre))
+                ?? PromptStore.StoredMandate("nonfiction_classic");
+            return (stored ?? string.Empty).Replace(
+                "{words}", targetWords.ToString(CultureInfo.InvariantCulture));
         }
 
         private static string DigestSystemPrompt(int targetWords, string language, string genre)

@@ -1836,8 +1836,8 @@ namespace Avalanche
             }
 
             _promptWiring = true;
+            AiPromptPick.DisplayMemberPath = "DisplayName";   // before the items land (v1.19.90)
             AiPromptPick.ItemsSource = rows;
-            AiPromptPick.DisplayMemberPath = "DisplayName";
             AiPromptPick.SelectedItem = pick ?? (rows.Count > 0 ? rows[0] : null);
             _promptEditing = AiPromptPick.SelectedItem as Features.Summary.AiPromptDef;
             FillPromptFields();
@@ -1916,6 +1916,29 @@ namespace Avalanche
             _promptEditing = null;
             Features.Summary.PromptStore.Delete(id);
             RefreshPromptWorkshop();
+        }
+
+        // v1.19.90: the body editor never consumes the wheel - the event
+        // rides up to the settings scroll viewer, so the sidebar keeps
+        // scrolling while the caret still finds its line when the reader types.
+        private void AiPromptBodyBox_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (e.Handled) return;
+            e.Handled = true;
+            var ride = new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+            {
+                RoutedEvent = UIElement.MouseWheelEvent,
+                Source = sender
+            };
+            System.Windows.Controls.ScrollViewer? sidebar = null;
+            for (System.Windows.DependencyObject? node = AiPromptBodyBox.Parent;
+                 node is not null;
+                 node = System.Windows.Media.VisualTreeHelper.GetParent(node))
+            {
+                if (node is System.Windows.Controls.ScrollViewer viewer) { sidebar = viewer; break; }
+            }
+
+            sidebar?.RaiseEvent(ride);
         }
 
         // ---- AI settings overlay (F1) -------------------------------------

@@ -1,13 +1,15 @@
 // Features/Summary/PromptStore.cs - the AI prompts workshop (v1.19.88).
 //
-// The summary prompts stopped being hardcoded wiring: every voice the
-// digest windows speak is a row here - a title, a category (the browser
-// page's digest or the book window's) and a body. The reader edits the
-// built-in voices, writes new ones, deletes what they don't want; Save
-// lands the row in %LocalAppData%\Avalanche\AI\prompts.json and every
-// open window hears the Changed event. A row with an empty body lets the
-// hardcoded voice keep speaking (PageSummarizer's own mandate); the
-// moment a body is saved it takes the seat.
+// v1.19.90: no prompt text lives in the code any more. Every voice the app
+// ships with rides the embedded deck (prompts.default.json, carried inside
+// the exe) - on first run the deck is written to
+// %LocalAppData%\Avalanche\AI\prompts.json and from then on that file is
+// the one source of truth: the reader edits the rows, writes new ones and
+// deletes what they don't want from the AI settings' workshop, and Save
+// lands the change on disk. A deleted row stays deleted - the deck never
+// merges itself back in. The deck's own voice only answers when a feature
+// needs a body and the store has none: the factory default, not a second
+// copy living in code.
 
 namespace Avalanche.Features.Summary
 {
@@ -18,7 +20,7 @@ namespace Avalanche.Features.Summary
     /// <summary>One prompt row: the id that rides the dropdowns' Tag, the
     /// reader-named title (built-ins carry a TitleKey instead and show the
     /// localized name), the window the prompt serves, and the body the
-    /// model is told - empty meaning the built-in voice still speaks.</summary>
+    /// model is told.</summary>
     public sealed class AiPromptDef
     {
         public string Id { get; set; } = "";
@@ -49,12 +51,16 @@ namespace Avalanche.Features.Summary
                 return Id;
             }
         }
+
+        /// <summary>v1.19.90: whatever path a dropdown takes to render the
+        /// row, the reader sees the title - never the type's name.</summary>
+        public override string ToString() => DisplayName;
     }
 
     /// <summary>The store: a flat list persisted as JSON beside the AI
-    /// settings, seeded on first run with the browser's nonfiction classic
-    /// and the book window's six personas. Every mutation saves and raises
-    /// Changed so open windows can rebuild their dropdowns live.</summary>
+    /// settings, born from the shipped deck on first run. Every mutation
+    /// saves and raises Changed so open windows can rebuild their
+    /// dropdowns live.</summary>
     public static class PromptStore
     {
         public const string CatWeb = "web";
@@ -72,6 +78,7 @@ namespace Avalanche.Features.Summary
 
         private static readonly object _gate = new();
         private static List<AiPromptDef>? _prompts;
+        private static List<AiPromptDef>? _deck;   // the shipped voices, parsed once
 
         /// <summary>Raised after every save or delete so open windows can
         /// rebuild their prompt dropdowns while the workshop edits.</summary>
@@ -104,37 +111,92 @@ namespace Avalanche.Features.Summary
                 {
                     var read = System.Text.Json.JsonSerializer.Deserialize<List<AiPromptDef>>(
                         File.ReadAllText(path));
-                    if (read != null)
-                    {
-                        MergeSeeds(read);
-                        return read;
-                    }
+                    if (read != null) return read;   // the reader's file, as it is - deletions included
                 }
             }
             catch
             {
-                // a corrupt store falls back to the seed; the next save rewrites it whole
+                // a corrupt store falls back to the shipped deck; the next save rewrites it whole
             }
 
-            return Seed();
+            ExtractDefaultStore();
+            return DeckCopy();
         }
 
-        // v1.19.89: a store written by an older build lacks the newer
-        // rows - append any seed id that is missing so every category
-        // is always represented; the reader's own rows and edits are
-        // never touched.
-        private static void MergeSeeds(List<AiPromptDef> list)
+        // v1.19.90: first run - the deck rides out of the exe and becomes
+        // the reader's prompts.json. From here on the deck is never merged
+        // back in: a deleted row stays deleted.
+        private static void ExtractDefaultStore()
         {
-            foreach (AiPromptDef seed in Seed())
+            try
             {
-                bool exists = false;
-                foreach (AiPromptDef p in list)
+                string json = DefaultDeckJson();
+                if (json.Length > 2) File.WriteAllText(StorePath(), json);
+            }
+            catch
+            {
+                // a read-only disk still leaves the in-memory deck speaking
+            }
+        }
+
+        // The shipped voices: prompts.default.json, embedded in the exe
+        // (LogicalName Avalanche.Prompts.default.json in the csproj).
+        private static string DefaultDeckJson()
+        {
+            try
+            {
+                var asm = typeof(PromptStore).Assembly;
+                using Stream? stream = asm.GetManifestResourceStream("Avalanche.Prompts.default.json");
+                if (stream is null) return "[]";
+                using var reader = new StreamReader(stream);
+                return reader.ReadToEnd();
+            }
+            catch
+            {
+                return "[]";
+            }
+        }
+
+        private static List<AiPromptDef> DeckCopy()
+        {
+            lock (_gate)
+            {
+                if (_deck is null)
                 {
-                    if (string.Equals(p.Id, seed.Id, StringComparison.Ordinal)) { exists = true; break; }
+                    try
+                    {
+                        _deck = System.Text.Json.JsonSerializer.Deserialize<List<AiPromptDef>>(DefaultDeckJson());
+                    }
+                    catch
+                    {
+                        // a malformed deck leaves the store without factory voices rather than crashing
+                    }
+
+                    _deck ??= new List<AiPromptDef>();
                 }
 
-                if (!exists) list.Add(seed);
+                return new List<AiPromptDef>(_deck);
             }
+        }
+
+        /// <summary>The shipped deck's body for an id - the factory voice a
+        /// feature speaks when the store's own row is untouched or gone.
+        /// Null when the deck never carried the id (the reader's own rows).</summary>
+        public static string? DefaultBody(string? id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            lock (_gate)
+            {
+                foreach (AiPromptDef p in DeckCopy())
+                {
+                    if (string.Equals(p.Id, id, StringComparison.Ordinal))
+                    {
+                        return string.IsNullOrWhiteSpace(p.Body) ? null : p.Body;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static void Save()
@@ -153,39 +215,6 @@ namespace Avalanche.Features.Summary
             try { Changed?.Invoke(); }
             catch { /* a listener must never break the saver */ }
         }
-
-        // The born-with rows: the web window's single voice and the book
-        // navigator's six personas - the ids are the canonical genre tags
-        // PageSummarizer has always understood, so the restore paths and
-        // the hardcoded mandates keep working untouched.
-        private static List<AiPromptDef> Seed() => new()
-        {
-            new AiPromptDef { Id = "web_nonfiction_classic", TitleKey = "Str_Genre_Nonfiction", Category = CatWeb },
-            new AiPromptDef { Id = "nonfiction_classic", TitleKey = "Str_Genre_Nonfiction", Category = CatPdf },
-            new AiPromptDef { Id = "fiction", TitleKey = "Str_Genre_Fiction", Category = CatPdf },
-            new AiPromptDef { Id = "philosophical_fiction", TitleKey = "Str_Genre_Philosophical", Category = CatPdf },
-            new AiPromptDef { Id = "research_papers", TitleKey = "Str_Genre_Research", Category = CatPdf },
-            new AiPromptDef { Id = "self_help", TitleKey = "Str_Genre_SelfHelp", Category = CatPdf },
-            new AiPromptDef { Id = "law", TitleKey = "Str_Genre_Law", Category = CatPdf },
-
-            // v1.19.89: one standard row for each fixed-voice feature,
-            // seven for the rewriter's styles. Empty bodies keep the
-            // hardcoded voices speaking; a saved body takes the seat.
-            new AiPromptDef { Id = "sidechat_standard", TitleKey = "Str_AiModelSidechat", Category = CatSidechat },
-            new AiPromptDef { Id = "websidechat_standard", TitleKey = "Str_AiModelWebSidechat", Category = CatWebSidechat },
-            new AiPromptDef { Id = "recap_standard", TitleKey = "Str_AiModelRecaller", Category = CatRecap },
-            new AiPromptDef { Id = "notes_standard", TitleKey = "Str_AiModelNotes", Category = CatNotes },
-            new AiPromptDef { Id = "tester_standard", TitleKey = "Str_AiModelTester", Category = CatTester },
-            new AiPromptDef { Id = "grammar_standard", TitleKey = "Str_AiModelEditorGrammar", Category = CatGrammar },
-            new AiPromptDef { Id = "editorsidechat_standard", TitleKey = "Str_AiModelEditorSidechat", Category = CatEditorSidechat },
-            new AiPromptDef { Id = "rewrite_humanize", TitleKey = "Str_PromptStyle_Humanize", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_professional", TitleKey = "Str_PromptStyle_Professional", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_simple", TitleKey = "Str_PromptStyle_Simple", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_academic", TitleKey = "Str_PromptStyle_Academic", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_jargon", TitleKey = "Str_PromptStyle_Jargon", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_lengthen", TitleKey = "Str_PromptStyle_Lengthen", Category = CatRewrite },
-            new AiPromptDef { Id = "rewrite_shorten", TitleKey = "Str_PromptStyle_Shorten", Category = CatRewrite }
-        };
 
         /// <summary>Every row, a defensive copy - the caller may do what it
         /// likes with the list it gets.</summary>
@@ -211,16 +240,23 @@ namespace Avalanche.Features.Summary
             }
         }
 
-        /// <summary>The first saved body in a category, store order -
-        /// the fixed-voice features (the side chats, recap, notes,
-        /// tester, grammar, editor side chat) speak it when it exists;
-        /// null sends the built-in voice.</summary>
+        /// <summary>The first body in a category, store order - the
+        /// fixed-voice features (the side chats, recap, notes, tester,
+        /// grammar, editor side chat) speak it; when every row is empty or
+        /// gone the shipped deck's own row answers, and only a category the
+        /// deck never knew returns null.</summary>
         public static string? FirstBody(string category)
         {
             EnsureLoaded();
             lock (_gate)
             {
                 foreach (AiPromptDef p in _prompts!)
+                {
+                    if (!string.Equals(p.Category, category, StringComparison.Ordinal)) continue;
+                    if (!string.IsNullOrWhiteSpace(p.Body)) return p.Body;
+                }
+
+                foreach (AiPromptDef p in DeckCopy())
                 {
                     if (!string.Equals(p.Category, category, StringComparison.Ordinal)) continue;
                     if (!string.IsNullOrWhiteSpace(p.Body)) return p.Body;
@@ -245,8 +281,9 @@ namespace Avalanche.Features.Summary
             return false;
         }
 
-        /// <summary>The stored body for an id, or null when the hardcoded
-        /// voice should keep speaking. PageSummarizer asks here first.</summary>
+        /// <summary>The stored body for an id; an untouched or missing row
+        /// speaks the shipped deck's factory voice. PageSummarizer asks here
+        /// first.</summary>
         public static string? StoredMandate(string? id)
         {
             if (string.IsNullOrEmpty(id)) return null;
@@ -257,12 +294,12 @@ namespace Avalanche.Features.Summary
                 {
                     if (string.Equals(p.Id, id, StringComparison.Ordinal))
                     {
-                        return string.IsNullOrWhiteSpace(p.Body) ? null : p.Body;
+                        return string.IsNullOrWhiteSpace(p.Body) ? DefaultBody(id) : p.Body;
                     }
                 }
             }
 
-            return null;
+            return DefaultBody(id);
         }
 
         /// <summary>Insert or update by id, then save - and the Changed

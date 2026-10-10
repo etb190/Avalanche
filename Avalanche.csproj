@@ -13,10 +13,10 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.19.89</Version>
+    <Version>1.19.90</Version>
 
-    <AssemblyVersion>1.19.89.0</AssemblyVersion>
-    <FileVersion>1.19.89.0</FileVersion>
+    <AssemblyVersion>1.19.90.0</AssemblyVersion>
+    <FileVersion>1.19.90.0</FileVersion>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
          CHANGELOG section; release.ps1 enforces that before packaging. -->
@@ -156,6 +156,10 @@
         <Resource Include="Resources\open_hand.cur" />
         <Resource Include="Resources\closed_hand.cur" />
     <EmbeddedResource Include="Resources\pdf-file.ico" />
+    <!-- v1.19.90: the shipped prompt deck - every AI voice the app speaks,
+         born in JSON, extracted to prompts.json on first run and the
+         reader's to edit or delete from the AI settings' prompt workshop. -->
+    <EmbeddedResource Include="Features\AI\prompts.default.json" LogicalName="Avalanche.Prompts.default.json" />
   </ItemGroup>
 
   <!-- v1.19.10: the riding pdf helper extension - the one-click "open in

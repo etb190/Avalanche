@@ -1321,6 +1321,7 @@ namespace Avalanche
                 NewFileBtn.Visibility = Visibility.Visible;
                 RightContainer.Visibility = Visibility.Collapsed;
                 PdfEditorBtn.Visibility = Visibility.Visible;
+                WebSumBtn.Visibility = Visibility.Visible;   // the browser summary rides its pane (v1.19.90)
             }
             else
             {
@@ -1329,6 +1330,7 @@ namespace Avalanche
                 RightContainer.Visibility = Visibility.Visible;
                 WebBrowserBtn.Visibility = Visibility.Visible;
                 PdfEditorBtn.Visibility = Visibility.Collapsed;
+                WebSumBtn.Visibility = Visibility.Collapsed;   // the summary chip steps down with the pane (v1.19.90)
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             }
             // From the browser, both document faces answer by name: the pencil

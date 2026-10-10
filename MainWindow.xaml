@@ -1547,6 +1547,14 @@
                              the browser's toolbar keeps exactly three buttons - New,
                              Text Editor, PDF Editor - each saying the pane it opens. -->
                         <Button x:Name="PdfEditorBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}" Click="PdfEditorBtn_Click" ToolTip="{DynamicResource Str_TT_EditorPdf}" Visibility="Collapsed"/>
+                        <!-- The browser summary (v1.19.90): the PDF ribbon's own
+                             summary button, sitting where the browser's face lives -
+                             same glyph, same style, the caption engine dressing it
+                             like its twin. Only the browser pane leads it; a click
+                             opens the web summarizer for the page on screen. -->
+                        <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
+                                Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
+                                Visibility="Collapsed"/>
                         <!-- Save Web PDF (v1.19.5): a book the browser downloaded lives in
                              the reader's temp area - this is the one-glance way to keep it.
                              Visible only while the active document IS a web download; the
@@ -1613,14 +1621,6 @@
                              verifier that probes what the model actually saw - the
                              third member of the AI pair, right of the chat clone. -->
                         <Button x:Name="AiTestBtn" Content="&#xE9D9;" Style="{StaticResource ToolbarButton}" Click="AiTestBtn_Click" MouseRightButtonUp="AiTestBtn_RightClick" ToolTip="{DynamicResource Str_TT_AiTest}"/>
-                        <!-- The web summarizer: the navigator's stripped replica for
-                             the browser's page - the globe wearing the digest mark. -->
-                        <Button x:Name="WebSumBtn" Style="{StaticResource ToolbarButton}" Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}" Visibility="Collapsed">
-                            <Grid Width="16" Height="16">
-                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                <TextBlock Text="&#xE8A5;" FontFamily="Segoe MDL2 Assets" FontSize="8" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-2,-1"/>
-                            </Grid>
-                        </Button>
                     </StackPanel>
                     </StackPanel>
                     <!-- Overflow chevron: shown only when the bar is too narrow -->
@@ -3590,6 +3590,50 @@
                                 <Setter Property="BorderThickness" Value="1"/>
                                 <Setter Property="Padding" Value="6,3"/>
                             </Style>
+                            <!-- v1.19.90: the AI settings' own button - a real
+                                 container-backed button the caption can breathe in,
+                                 no toolbar icon frame crushing it down to stray
+                                 letters. Hover and press answers come from the
+                                 same brushes the rest of the shell speaks. -->
+                            <Style x:Key="AiSettingsActionButton" TargetType="Button">
+                                <Setter Property="Background" Value="{DynamicResource PaneBrush}"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource CardBorderBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                <Setter Property="FontFamily" Value="{DynamicResource UiFont}"/>
+                                <Setter Property="FontSize" Value="11.5"/>
+                                <Setter Property="Height" Value="28"/>
+                                <Setter Property="MinWidth" Value="76"/>
+                                <Setter Property="Padding" Value="12,0"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="ActionBd" Background="{TemplateBinding Background}"
+                                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                                    CornerRadius="3" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                  RecognizesAccessKey="True"
+                                                                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="ActionBd" Property="Background" Value="{DynamicResource RowHoverBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="ActionBd" Property="BorderBrush" Value="{DynamicResource TextBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter Property="Opacity" Value="0.4"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
                         </Border.Resources>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
@@ -3858,36 +3902,40 @@
                                 <TextBlock Text="{DynamicResource Str_AiPromptsTitleLbl}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox x:Name="AiPromptTitleBox" Style="{StaticResource AiSettingsBox}"/>
                                 <TextBlock Text="{DynamicResource Str_AiPromptsBodyLbl}" Style="{StaticResource AiSettingsLabel}"/>
+                                <!-- v1.19.90: the editor grows to the workshop's
+                                     full width of attention and never eats the
+                                     wheel - the sidebar's scroll owns the ride. -->
                                 <TextBox x:Name="AiPromptBodyBox" Style="{StaticResource AiSettingsBox}" AcceptsReturn="True"
-                                         TextWrapping="Wrap" Height="132" VerticalScrollBarVisibility="Auto"
-                                         VerticalContentAlignment="Top"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <!-- Width Auto beats the ToolbarButton's icon-width
-                                         setter: the caption renders whole. -->
-                                    <Button Content="{DynamicResource Str_AiPromptsNew}" x:Name="AiPromptNewBtn"
-                                            Click="AiPromptNewBtn_Click" Margin="0,0,8,0" Padding="14,4"
-                                            Width="Auto" Height="28" MinWidth="72"
-                                            Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
-                                    <Button Content="{DynamicResource Str_AiPromptsSave}" x:Name="AiPromptSaveBtn"
-                                            Click="AiPromptSaveBtn_Click" Margin="0,0,8,0" Padding="14,4"
-                                            Width="Auto" Height="28" MinWidth="72"
-                                            Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
-                                    <Button Content="{DynamicResource Str_AiPromptsDelete}" x:Name="AiPromptDeleteBtn"
-                                            Click="AiPromptDeleteBtn_Click" Padding="14,4"
-                                            Width="Auto" Height="28" MinWidth="72"
-                                            Style="{StaticResource ToolbarButton}" FontSize="11" FontFamily="{DynamicResource UiFont}"/>
-                                </StackPanel>
+                                         TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Disabled"
+                                         VerticalContentAlignment="Top"
+                                         PreviewMouseWheel="AiPromptBodyBox_PreviewMouseWheel"/>
+                                <!-- v1.19.90: the workshop's actions live in their
+                                     own strip - New starts a fresh row, Save lands
+                                     what the editors hold, Delete removes the picked
+                                     one - real buttons in a real container. -->
+                                <Border Background="{DynamicResource PaneBrush}"
+                                        BorderBrush="{DynamicResource CardBorderBrush}"
+                                        BorderThickness="1" CornerRadius="4"
+                                        Padding="8,6" Margin="0,8,0,0"
+                                        HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="{DynamicResource Str_AiPromptsNew}" x:Name="AiPromptNewBtn"
+                                                Click="AiPromptNewBtn_Click" Style="{StaticResource AiSettingsActionButton}"
+                                                Margin="0,0,6,0"/>
+                                        <Button Content="{DynamicResource Str_AiPromptsSave}" x:Name="AiPromptSaveBtn"
+                                                Click="AiPromptSaveBtn_Click" Style="{StaticResource AiSettingsActionButton}"
+                                                Margin="0,0,6,0"/>
+                                        <Button Content="{DynamicResource Str_AiPromptsDelete}" x:Name="AiPromptDeleteBtn"
+                                                Click="AiPromptDeleteBtn_Click" Style="{StaticResource AiSettingsActionButton}"/>
+                                    </StackPanel>
+                                </Border>
                                 <StackPanel Orientation="Horizontal" Margin="0,10,0,4">
                                     <Button Content="{DynamicResource Str_AiSettingsTestConnection}"
-                                            Click="AiTestConnectionBtn_Click" Margin="0,0,8,0" Padding="14,4"
-                                            Width="Auto" Height="28" MinWidth="72"
-                                            Style="{StaticResource ToolbarButton}" FontSize="11"
-                                            FontFamily="{DynamicResource UiFont}"/>
+                                            Click="AiTestConnectionBtn_Click" Margin="0,0,8,0"
+                                            Style="{StaticResource AiSettingsActionButton}"/>
                                     <Button Content="{DynamicResource Str_AiSettingsOllamaPreset}"
-                                            Click="AiOllamaPresetBtn_Click" Padding="14,4"
-                                            Width="Auto" Height="28" MinWidth="72"
-                                            Style="{StaticResource ToolbarButton}" FontSize="11"
-                                            FontFamily="{DynamicResource UiFont}"/>
+                                            Click="AiOllamaPresetBtn_Click"
+                                            Style="{StaticResource AiSettingsActionButton}"/>
                                 </StackPanel>
                                 <TextBlock Text="{Binding ConnectionStatus}" TextWrapping="Wrap"
                                            FontFamily="{DynamicResource UiFont}" FontSize="11"
