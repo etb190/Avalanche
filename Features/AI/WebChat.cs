@@ -252,6 +252,7 @@ namespace Avalanche.Features.AI
             sb.AppendLine("{\"answer\": \"<your full answer with inline [SOURCE_n] markers>\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text copied from that segment>\", \"reason\": \"<why it supports the answer>\"}]}");
             sb.AppendLine("The 'quote' must be a short exact excerpt (up to ~300 characters) copied verbatim from the cited segment - it is used to find the passage on the live page.");
             sb.AppendLine("CRITICAL CITATION MANDATE - IMMEDIATE INLINE PLACEMENT: every factual claim, date, name, statistic, or finding carries its [SOURCE_n] marker IMMEDIATELY after that clause or sentence; NEVER cluster citations at the end of a sentence, paragraph, or answer.");
+            sb.AppendLine("If citing multiple sources for one statement, write separate markers like [SOURCE_1] [SOURCE_2]. NEVER write combined brackets like [SOURCE_1, SOURCE_2] or [ , ].");
             return sb.ToString();
         }
 

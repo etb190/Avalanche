@@ -770,7 +770,7 @@ namespace Avalanche
         private void IndexToolbarButtons()
         {
             _toolbarButtons.Clear();
-            foreach (Panel? bar in new Panel?[] { LeftBar, RightBar, BrowserSumBar })
+            foreach (Panel? bar in new Panel?[] { LeftBar, RightBar, BrowserSumBar, EditorAiChatBar })
             {
                 if (bar is null) continue;
                 foreach (var btn in DescendantButtons(bar))
@@ -790,6 +790,10 @@ namespace Avalanche
                         _toolbarButtons.Add((btn, "\uE710", "Str_Lbl_Merge"));
                     else if (ReferenceEquals(btn, PdfEditorBtn))
                         _toolbarButtons.Add((btn, "\uE7C3", "Str_Lbl_PdfEditor"));
+                    // The chat chips answer by reference too (v1.19.96):
+                    // both wear \uE8BD like the PDF ribbon's own button.
+                    else if (ReferenceEquals(btn, WebAiChatBtn) || ReferenceEquals(btn, EditorAiChatBtn))
+                        _toolbarButtons.Add((btn, "\uE8BD", "Str_Lbl_AiChat"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
                     {
                         // the pane toggle reads its destination while the editor leads
@@ -1288,6 +1292,7 @@ namespace Avalanche
                 GrpEditorFiles.Visibility = Visibility.Visible;   // the editor's doors on the bar (v1.19.81)
                 RightContainer.Visibility = Visibility.Collapsed;
                 FooterDocumentControls.Visibility = Visibility.Collapsed;   // A4 badge, view modes and zoom are the PDF's own (v1.19.95)
+                EditorAiChatBar.Visibility = Visibility.Visible;   // the chat rides the editor's far right (v1.19.96)
             }
             else
             {
@@ -1296,6 +1301,7 @@ namespace Avalanche
                 ToolsBtn.Visibility = Visibility.Visible;
                 RightContainer.Visibility = Visibility.Visible;
                 FooterDocumentControls.Visibility = Visibility.Visible;
+                EditorAiChatBar.Visibility = Visibility.Collapsed;   // the chat chip steps down with it (v1.19.96)
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             }
             // A fresh pane, a clean slate: a citation miss from the pane that
@@ -1336,6 +1342,7 @@ namespace Avalanche
                 FooterDocumentControls.Visibility = Visibility.Collapsed;   // the page has no A4 page size to offer (v1.19.95)
                 BrowserSumBar.Visibility = Visibility.Visible;   // the summary lives on the far right (v1.19.94)
                 WebSumBtn.Visibility = Visibility.Visible;   // the browser summary rides its pane (v1.19.90)
+                WebAiChatBtn.Visibility = Visibility.Visible;   // AI chat rides the far right beside it (v1.19.96)
             }
             else
             {
@@ -1347,6 +1354,7 @@ namespace Avalanche
                 FooterDocumentControls.Visibility = Visibility.Visible;
                 BrowserSumBar.Visibility = Visibility.Collapsed;   // the far-right container steps down too (v1.19.94)
                 WebSumBtn.Visibility = Visibility.Collapsed;   // the summary chip steps down with the pane (v1.19.90)
+                WebAiChatBtn.Visibility = Visibility.Collapsed;   // the chat chip steps down with it (v1.19.96)
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             }
             // A fresh pane, a clean slate: the page that just left takes its

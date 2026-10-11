@@ -105,7 +105,22 @@ namespace Avalanche.Features.AI
         public static string StripCitationMarkers(string? text)
         {
             if (string.IsNullOrEmpty(text)) return "";
-            return AiCitations.InlineRx.Replace(text, "").Trim();
+            // v1.19.96: stripping the bare SOURCE_n tokens out of a
+            // combined bracket used to leave "[ , ]" behind, and a removed
+            // marker left "1959  ." - the next turn read that wreckage as
+            // the expected syntax and faithfully reproduced it. History
+            // must leave grammatical, or the corruption compounds.
+            string stripped = AiCitations.InlineRx.Replace(text, "");
+            // leftover empty or comma-only brackets like "[ , ]" or "[,]"
+            stripped = System.Text.RegularExpressions.Regex.Replace(
+                stripped, @"\[\s*(?:,\s*)*\]", "");
+            // "1959  ." -> "1959." - no whitespace before punctuation
+            stripped = System.Text.RegularExpressions.Regex.Replace(
+                stripped, @"\s+([.,;:!?])", "$1");
+            // double spaces collapse to one
+            stripped = System.Text.RegularExpressions.Regex.Replace(
+                stripped, @"\x20{2,}", " ");
+            return stripped.Trim();
         }
     }
 }

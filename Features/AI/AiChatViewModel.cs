@@ -1855,6 +1855,7 @@ namespace Avalanche.Features.AI
             sb.AppendLine("7. Cite multiple sources when appropriate.");
             sb.AppendLine("8. Distinguish the document's claims from your explanation.");
             sb.AppendLine("9. CRITICAL CITATION MANDATE - IMMEDIATE INLINE PLACEMENT: every factual claim, date, name, statistic, or finding carries its [SOURCE_n] marker IMMEDIATELY after that clause or sentence; NEVER cluster citations at the end of a sentence, paragraph, or answer.");
+            sb.AppendLine("   If citing multiple sources for one statement, write separate markers like [SOURCE_1] [SOURCE_2]; NEVER write combined brackets like [SOURCE_1, SOURCE_2] or [ , ].");
             sb.AppendLine("Output ONLY a JSON object:");
             sb.AppendLine("{\"answer\": \"The fee doubles after the first year. [SOURCE_1]\", \"sources\": [{\"sourceId\": \"SOURCE_1\", \"quote\": \"<exact text from that source>\", \"reason\": \"<why it supports the answer>\"}]}");
 

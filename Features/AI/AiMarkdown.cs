@@ -546,6 +546,10 @@ namespace Avalanche.Features.AI
         /// </summary>
         private static void AddInlines(InlineCollection inlines, string text, IReadOnlyList<AiSource> sources, AiCitationNumberer numberer)
         {
+            // v1.19.96: [SOURCE_1, SOURCE_2] splits into two badges before
+            // the marker walk - the combined bracket used to yield one
+            // badge plus a stranded ", SOURCE_2]" of raw text beside it.
+            text = AiCitations.ExpandMultiCitations(text);
             int pos = 0;
             foreach (Match m in AiCitations.InlineRx.Matches(text))
             {

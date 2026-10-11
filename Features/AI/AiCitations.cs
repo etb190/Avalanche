@@ -87,6 +87,17 @@ internal static class AiCitations
     }
 
     /// <summary>Parses any SOURCE_n id spelling to its 1-based number, or -1 when unknown.</summary>
+    // v1.19.96: a combined bracket - [SOURCE_1, SOURCE_2], [1, 2] -
+    // unfolds into separate markers before parsing, so each source
+    // renders as its own clickable badge instead of one bracket
+    // nesting two numbers (and stripping later leaving "[ , ]").
+    private static readonly Regex MultiRx = new(
+        @"\[\s*(?:SOURCE[\s_\-]*)?(\d{1,3})\s*,\s*(?:SOURCE[\s_\-]*)?(\d{1,3})\s*\]",
+        RegexOptions.Compiled);
+
+    internal static string ExpandMultiCitations(string? text)
+        => string.IsNullOrEmpty(text) ? text : MultiRx.Replace(text, "[SOURCE_$1] [SOURCE_$2]");
+
     internal static int ParseSourceId(string? sourceId)
     {
         if (string.IsNullOrWhiteSpace(sourceId))

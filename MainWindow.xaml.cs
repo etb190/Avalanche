@@ -2022,13 +2022,44 @@ namespace Avalanche
 
             var input = _aiChatViewModel.CurrentInput;
             _aiChatViewModel.CurrentInput = "";
+
+            // v1.19.96: the question and its pending reply must be on
+            // screen the moment they exist - SendMessageAsync awaits the
+            // WHOLE stream (15-30s), so the old post-await scroll left
+            // the reader staring at older turns for the entire run.
+            _aiChatAutoScroll = true;
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded,
+                () => AiChatScrollViewer?.ScrollToBottom());
+
             await _aiChatViewModel.SendMessageAsync(input);
+
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded,
+                () => AiChatScrollViewer?.ScrollToBottom());
 
             // Scroll to bottom - fire-and-forget UI update
             _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
             {
                 AiChatScrollViewer?.ScrollToBottom();
             });
+        }
+
+        // v1.19.96: streaming grows the conversation's extent many times a
+        // second; the view follows the newest words unless the reader climbed
+        // up to reread - then their position wins until they return to bottom.
+        private bool _aiChatAutoScroll = true;
+
+        private void AiChatScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (e.ExtentHeightChange > 0)
+            {
+                if (_aiChatAutoScroll || e.VerticalOffset + e.ViewportHeight >=
+                        e.ExtentHeight - e.ExtentHeightChange - 25)
+                    AiChatScrollViewer?.ScrollToBottom();
+            }
+            else if (e.VerticalChange < -5)
+            {
+                _aiChatAutoScroll = false;   // the reader climbed: pause the pin
+            }
         }
 
         // PreviewKeyDown (not KeyDown) is required here: with AcceptsReturn on, the
@@ -2109,8 +2140,15 @@ namespace Avalanche
             // Clear any existing AI highlight
             ClearAiSourceHighlight();
 
-            // Navigate to the page
-            PageList.SelectedIndex = pageIndex;
+            // Navigate to the page. v1.19.96: setting SelectedIndex is a
+            // no-op when the page is already current - SelectionChanged
+            // never fires, the continuous view stays wherever it was, and
+            // the click lands inert. An equal selection still walks the
+            // viewer to the passage.
+            if (PageList.SelectedIndex == pageIndex)
+                viewer?.NavigateToPageAnimatedExt(pageIndex);
+            else
+                PageList.SelectedIndex = pageIndex;
 
             // Wait for the page to render, then highlight using exact coordinates
             // Use a retry loop for continuous view and far-away pages

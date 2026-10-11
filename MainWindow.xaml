@@ -1735,6 +1735,19 @@
                     <Button x:Name="WebSumBtn" Content="&#xE8A5;" Style="{StaticResource ToolbarButton}"
                             Click="WebSumBtn_Click" ToolTip="{DynamicResource Str_TT_WebSummarize}"
                             Visibility="Collapsed"/>
+                    <Button x:Name="WebAiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}"
+                            Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
+                            Visibility="Collapsed"/>
+                </StackPanel>
+                <!-- The editor's far-right chat chip (v1.19.96): the text
+                     editor leads with its own AI Chat beside the summary bar's
+                     law - visible only while the editor leads, wired to the
+                     same toggle the PDF ribbon's button answers. -->
+                <StackPanel x:Name="EditorAiChatBar" Orientation="Horizontal"
+                            HorizontalAlignment="Right" Visibility="Collapsed">
+                    <Button x:Name="EditorAiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}"
+                            Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
+                            Visibility="Collapsed"/>
                 </StackPanel>
             </Grid>
             </Grid>
@@ -3270,6 +3283,7 @@
                     <!-- Conversation Area -->
                     <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  ScrollChanged="AiChatScrollViewer_ScrollChanged"
                                   Background="Transparent" FocusVisualStyle="{x:Null}"
                                   Padding="8,8,8,0">
                         <ItemsControl x:Name="AiChatMessages" ItemsSource="{Binding Messages}">

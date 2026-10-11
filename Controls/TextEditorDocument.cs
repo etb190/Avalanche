@@ -184,6 +184,14 @@ namespace Avalanche.Controls
                         padding:5px 8px; border:1px solid #4a5160; border-radius:4px;
                         background:#1e2229; color:#e8e8e8; font:12px 'Segoe UI',sans-serif; outline:none; }
   #ai_bubble textarea:focus { border-color:#7aa7d8; }
+  /* v1.19.96: at max height the box scrolls - Chromium's default 16px
+     white bar would wreck the dark bubble, so the scrollbar is thin,
+     translucent and dark like the rest of the chrome. */
+  #ai_bubble textarea { scrollbar-width:thin; scrollbar-color:rgba(255,255,255,0.25) transparent; }
+  #ai_bubble textarea::-webkit-scrollbar { width:5px; }
+  #ai_bubble textarea::-webkit-scrollbar-track { background:transparent; }
+  #ai_bubble textarea::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.22); border-radius:3px; }
+  #ai_bubble textarea::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.45); }
   #ai_menu { position:fixed; display:none; z-index:66; background:#2b2f36;
              border-radius:8px; box-shadow:0 6px 22px rgba(0,0,0,0.4); padding:4px; }
   #ai_menu button { display:block; width:100%; text-align:left; padding:6px 12px;
