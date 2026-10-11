@@ -279,6 +279,14 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         {
             Responder = r =>
             {
+                // The capability probe (a single input) must succeed - only the
+                // real batch (multi-input) earns a 429.
+                var probeBody = r.Content!.ReadAsStringAsync(CancellationToken.None).Result;
+                var probeDoc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(probeBody);
+                if (probeDoc.GetProperty("input").GetArrayLength() <= 1)
+                {
+                    return Json("{\"embeddings\":[[1,0,0,0]]}");
+                }
                 if (Interlocked.Increment(ref fourTwenties) <= 2)
                     return Json("{\"error\":\"slow down\"}", HttpStatusCode.TooManyRequests);
                 var body = r.Content!.ReadAsStringAsync(CancellationToken.None).Result;
