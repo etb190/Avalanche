@@ -1385,10 +1385,16 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_BookmarkHint">Dodawaj strony przez ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Rozszerzenia przeglądarki</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Zainstaluj z pliku…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Zainstaluj z Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Wklej link ze Chrome Web Store lub identyfikator rozszerzenia:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Zainstaluj</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Rozszerzenie zainstalowane.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">To rozszerzenie jest już zainstalowane.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">To nie wygląda jak link ze Chrome Web Store ani identyfikator rozszerzenia.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Sklep nie chce udostępnić tego rozszerzenia.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Otwórz folder rozszerzeń</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Nie ma jeszcze rozszerzeń — upuść plik .crx do folderu inbox albo zainstaluj z pliku.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozszerzenie przeglądarki (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">To rozszerzenie nie ma okienka - działa bez niego.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Przenieś do folderu…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Przenieś na pasek zakładek</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Jego okienko nie mogło się tu otworzyć.</sys:String>

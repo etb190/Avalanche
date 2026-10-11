@@ -1397,10 +1397,16 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_BookmarkHint">Lưu trang bằng ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Tiện ích mở rộng trình duyệt</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Cài đặt từ tệp…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Cài đặt từ Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Dán liên kết Chrome Web Store hoặc id tiện ích:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Cài đặt</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Đã cài đặt tiện ích.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Tiện ích này đã được cài đặt.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Đây không giống liên kết Chrome Web Store hay id tiện ích.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Cửa hàng không cung cấp tiện ích này.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Mở thư mục tiện ích</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Chưa có tiện ích nào — thả tệp .crx vào thư mục inbox hoặc cài đặt từ tệp.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Tiện ích mở rộng trình duyệt (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Tiện ích này không có cửa sổ bật lên - nó chạy mà không cần.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Chuyển vào thư mục…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Trả về dải đánh dấu</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Cửa sổ bật lên của nó không mở được ở đây.</sys:String>

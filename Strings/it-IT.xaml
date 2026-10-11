@@ -1397,10 +1397,16 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_BookmarkHint">Salva le pagine con ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Estensioni del browser</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Installa da file…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Installa dal Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Incolla un link del Chrome Web Store o un id di estensione:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Installa</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Estensione installata.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Questa estensione è già installata.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Non sembra un link del Chrome Web Store né un id di estensione.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Lo store non vuole servire questa estensione.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Apri la cartella delle estensioni</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Ancora nessuna estensione — trascina un .crx nella cartella inbox o installa da un file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Estensione del browser (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Questa estensione non ha popup - funziona senza.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Sposta nella cartella…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Sposta nella barra dei segnalibri</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Il suo popup non si è aperto qui.</sys:String>

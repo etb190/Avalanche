@@ -1397,10 +1397,16 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_BookmarkHint">Ajoutez des pages avec ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Extensions du navigateur</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Installer depuis un fichier…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Installer depuis le Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Collez un lien du Chrome Web Store ou un identifiant d'extension :</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Installer</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Extension installée.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Cette extension est déjà installée.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Cela ne ressemble pas à un lien du Chrome Web Store ni à un identifiant d'extension.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Le magasin ne veut pas servir cette extension.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Ouvrir le dossier des extensions</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Aucune extension pour l'instant — déposez un .crx dans le dossier inbox ou installez depuis un fichier.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Extension de navigateur (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Cette extension n'a pas de popup - elle fonctionne sans.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Déplacer vers un dossier…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Remettre dans la barre de favoris</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Son popup n'a pas pu s'ouvrir ici.</sys:String>

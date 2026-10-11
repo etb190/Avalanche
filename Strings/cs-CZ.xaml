@@ -1382,10 +1382,16 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_BookmarkHint">Stránky si uložíte pomocí ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Rozšíření prohlížeče</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Nainstalovat ze souboru…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Instalovat z Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Vložte odkaz z Chrome Web Store nebo ID rozšíření:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Instalovat</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Rozšíření nainstalováno.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Toto rozšíření už je nainstalováno.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">To nevypadá jako odkaz z Chrome Web Store ani ID rozšíření.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Obchod toto rozšíření neposkytne.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Otevřít složku rozšíření</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Zatím žádná rozšíření — vložte soubor .crx do složky inbox nebo nainstalujte ze souboru.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozšíření prohlížeče (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Toto rozšíření nemá vyskakovací okno - funguje bez něj.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Přesunout do složky…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Přesunout na pruh záložek</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Jeho vyskakovací okno se zde neotevřelo.</sys:String>

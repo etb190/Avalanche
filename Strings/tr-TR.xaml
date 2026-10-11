@@ -1377,10 +1377,16 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_BookmarkHint">Sayfaları ☆ ile işaretleyin</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Tarayıcı uzantıları</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Dosyadan yükle…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Chrome Web Store'dan yükle…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Chrome Web Store bağlantısı veya uzantı kimliği yapıştır:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Yükle</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Uzantı yüklendi.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Bu uzantı zaten yüklü.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Bu bir Chrome Web Store bağlantısına veya uzantı kimliğine benzemiyor.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Mağaza bu uzantıyı vermiyor.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Uzantılar klasörünü aç</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Henüz uzantı yok — bir .crx dosyasını inbox klasörüne bırakın veya dosyadan yükleyin.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Tarayıcı uzantısı (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Bu uzantının açılır penceresi yok - onsuz çalışır.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Klasöre taşı…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Yer imleri şeridine taşı</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Açılır penceresi burada açılamadı.</sys:String>

@@ -1383,10 +1383,16 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_BookmarkHint">Seiten mit ☆ als Lesezeichen hinzufügen</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Browsererweiterungen</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Aus Datei installieren…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Aus dem Chrome Web Store installieren…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Chrome Web Store-Link oder Erweiterungs-ID einfügen:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Installieren</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Erweiterung installiert.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Diese Erweiterung ist bereits installiert.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Das sieht nicht nach einem Chrome Web Store-Link oder einer Erweiterungs-ID aus.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Der Store würde diese Erweiterung nicht ausliefern.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Erweiterungsordner öffnen</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Noch keine Erweiterungen — eine .crx in den Inbox-Ordner legen oder aus einer Datei installieren.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Browsererweiterung (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Diese Erweiterung hat kein Popup - es läuft ohne.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">In Ordner verschieben…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">In die Lesezeichenleiste verschieben</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Sein Popup ließ sich hier nicht öffnen.</sys:String>

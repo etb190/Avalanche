@@ -1384,10 +1384,16 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_BookmarkHint">Oldalak mentése ☆ gombbal</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Bővítmények</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Telepítés fájlból…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Telepítés a Chrome Web Storeból…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Illessz be egy Chrome Web Store linket vagy bővítményazonosítót:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Telepítés</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">A bővítmény telepítve.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Ez a bővítmény már telepítve van.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Ez nem tűnik Chrome Web Store linknek vagy bővítményazonosítónak.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Az áruház nem szolgálja ki ezt a bővítményt.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Bővítménymappa megnyitása</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Még nincsenek bővítmények — tegyen egy .crx fájlt a inbox mappába, vagy telepítsen fájlból.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Bővítmény (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Ennek a kiterjesztésnek nincs felugró ablaka - nélküle működik.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Áthelyezés mappába…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Vissza a könyvjelzősávra</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">A felugró ablaka itt nem nyitható meg.</sys:String>

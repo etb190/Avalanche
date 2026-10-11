@@ -1397,10 +1397,16 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_BookmarkHint">Добавляйте страницы кнопкой ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Расширения браузера</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Установить из файла…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Установить из Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Вставьте ссылку Chrome Web Store или идентификатор расширения:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Установить</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Расширение установлено.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Это расширение уже установлено.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Это не похоже на ссылку Chrome Web Store или идентификатор расширения.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Магазин не выдаёт это расширение.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Открыть папку расширений</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Расширений пока нет — положите .crx в папку inbox или установите из файла.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Расширение браузера (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">У этого расширения нет всплывающего окна - оно работает без него.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Переместить в папку…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Вернуть на панель закладок</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Его всплывающее окно не открылось здесь.</sys:String>

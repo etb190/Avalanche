@@ -1396,10 +1396,16 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_BookmarkHint">Беттерді ☆ арқылы сақтаңыз</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Браузер кеңейтімдері</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Файлдан орнату…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Chrome Web Store дүкенінен орнату…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Chrome Web Store сілтемесін немесе кеңейтім идентификаторын қойыңыз:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Орнату</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Кеңейтім орнатылды.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">Бұл кеңейтім бұрыннан орнатылған.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">Бұл Chrome Web Store сілтемесіне немесе кеңейтім идентификаторына ұқсамайды.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">Дүкен бұл кеңейтімді бере алмайды.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Кеңейтімдер қалтасын ашу</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Кеңейтімдер әзірге жоқ — .crx файлын inbox қалтасына салыңыз немесе файлдан орнатыңыз.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Браузер кеңейтімі (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">Бұл кеңейтімде қалқымалы терезе жоқ - онымен жұмыс істейді.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Қалтаға жылжыту…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Бетбелгілер жолағына қайту</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Оның қалқымалы терезесі мұнда ашылмады.</sys:String>

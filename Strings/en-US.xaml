@@ -1397,10 +1397,16 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_BookmarkHint">Bookmark pages with ☆</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">Browser extensions</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">Install from file…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">Install from Chrome Web Store…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">Paste a Chrome Web Store link or an extension id:</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">Install</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">Extension installed.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">That extension is already installed.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">That does not look like a Chrome Web Store link or an extension id.</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">The store would not serve that extension.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Open extensions folder</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">No extensions yet — drop a .crx into the inbox folder, or install from a file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Browser extension (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">This extension has no popup - it runs without one.</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">Move to folder…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">Move to bookmarks strip</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">Its popup would not open here.</sys:String>

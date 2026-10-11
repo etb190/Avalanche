@@ -3188,6 +3188,8 @@ namespace Avalanche.Controls
         private ContextMenu BuildExtInstallMenu()
         {
             ContextMenu menu = new();
+            MenuItem store = new() { Header = TryLoc("Str_Web_ExtInstallStore") ?? "Install from Chrome Web Store…" };
+            store.Click += WebExtInstallStore_Click;
             MenuItem install = new() { Header = TryLoc("Str_Web_ExtInstall") ?? "Install from file…" };
             install.Click += WebExtInstall_Click;
             MenuItem folder = new() { Header = TryLoc("Str_Web_ExtOpenFolder") ?? "Open extensions folder" };
@@ -3449,8 +3451,13 @@ namespace Avalanche.Controls
             }
             if (vm.PopupPath.Length == 0)
             {
-                ShowExtActionNote(TryLoc("Str_Web_ExtNoPopup")
-                    ?? "This extension has no popup - it runs without one.");
+                // v1.23.0: no popup to drop - and the row only exists when the
+                // extension owns a surface (IsActionableRow), so the click opens
+                // the extension's own page instead of apologizing. The trigger
+                // Chrome fires from its real toolbar has no host-side hook the
+                // SDK would lend us; the moment one ships, this is its seat.
+                if (vm.OptionsPath.Length > 0)
+                    _ = ShowExtensionActionViewAsync(vm.Extension, vm.OptionsPath, optionsPage: true);
                 return;
             }
             _ = ShowExtensionActionViewAsync(vm.Extension, vm.PopupPath, optionsPage: false);
@@ -3825,8 +3832,87 @@ namespace Avalanche.Controls
                 try { InstallCrxFile(path); }
                 catch { /* one crate that will not open changes nothing else */ }
             }
+
             RefreshExtensionSurfaces();
             _ = MergeLiveExtensionsAsync();
+        }
+
+        // v1.23.0: the store's front door - paste a Chrome Web Store link
+        // (or a bare 32-letter id) and the crate the store itself would serve
+        // is fetched, peeled and dressed on the toolbar. The same official
+        // endpoint the bundled riders use; nothing third-party is asked.
+        private void WebExtInstallStore_Click(object sender, RoutedEventArgs e)
+        {
+            WebExtStoreBox.Text = "";
+            WebExtStorePopup.IsOpen = true;
+            WebExtStoreBox.Focus();
+        }
+
+        private void WebExtStoreBox_GotFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.TextBox box) box.SelectAll();
+        }
+
+        private void WebExtStoreBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                e.Handled = true;
+                WebExtStorePopup.IsOpen = false;
+            }
+            else if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                e.Handled = true;
+                InstallFromStoreBox();
+            }
+        }
+
+        private void WebExtStoreGo_Click(object sender, RoutedEventArgs e) => InstallFromStoreBox();
+
+        private void InstallFromStoreBox()
+        {
+            string input = WebExtStoreBox.Text;
+            WebExtStorePopup.IsOpen = false;
+            if (!Avalanche.Services.StoreLink.TryParseExtId(input, out string extId))
+            {
+                ShowExtActionNote(TryLoc("Str_Web_ExtStoreBad")
+                    ?? "That does not look like a Chrome Web Store link or an extension id.");
+                return;
+            }
+            InstallFromStore(extId);
+        }
+
+        private async void InstallFromStore(string extId)
+        {
+            string dir = Path.Combine(ExtensionsRoot, extId);
+            if (Directory.Exists(dir))
+            {
+                ShowExtActionNote(TryLoc("Str_Web_ExtStoreThere")
+                    ?? "That extension is already installed.");
+                return;
+            }
+            if (!_storeCrxFetching.Add(dir)) return;   // one fetch per crate, mid-air
+            try
+            {
+                byte[] crx = await WbHttp.GetByteArrayAsync(StoreCrxUrl(extId));
+                UnpackCrx(crx, dir);
+                _storeCrxSettled.Add(dir);   // on disk - the generic loader owns it from here
+                if (_activeView?.CoreWebView2 is { } core) LoadPendingExtensions(core);
+                RefreshExtensionSurfaces();
+                _ = MergeLiveExtensionsAsync();
+                ShowExtActionNote(TryLoc("Str_Web_ExtStoreOk") ?? "Extension installed.");
+            }
+            catch
+            {
+                // a crate the store would not serve - nothing is remembered,
+                // the next paste tries again
+                ShowExtActionNote(TryLoc("Str_Web_ExtStoreFail")
+                    ?? "The store would not serve that extension.");
+            }
+            finally
+            {
+                _storeCrxFetching.Remove(dir);
+            }
         }
 
         private void WebExtOpenFolder_Click(object sender, RoutedEventArgs e)

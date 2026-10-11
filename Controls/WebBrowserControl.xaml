@@ -478,6 +478,30 @@
             </Border>
         </Popup>
 
+        <!-- v1.23.0: the store's front door - a paste box for a Chrome Web
+             Store link (or a bare extension id). Enter installs, Escape
+             closes, a click outside dismisses. -->
+        <Popup x:Name="WebExtStorePopup" PlacementTarget="{Binding ElementName=WebExtIconRow}"
+               Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+            <Border Background="{DynamicResource WebFlyoutBrush}"
+                    BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                    CornerRadius="{DynamicResource ControlCornerRadius}" Padding="10" Margin="0,0,0,6">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.35"/>
+                </Border.Effect>
+                <StackPanel MinWidth="270">
+                    <TextBlock Text="{DynamicResource Str_Web_ExtStorePrompt}" FontSize="11"
+                               Foreground="{DynamicResource MutedTextBrush}" Margin="0,0,0,4" TextWrapping="Wrap"/>
+                    <TextBox x:Name="WebExtStoreBox" Background="{DynamicResource PaneBrush}"
+                             Foreground="{DynamicResource TextBrush}" BorderBrush="{DynamicResource CardBorderBrush}"
+                             BorderThickness="1" Padding="6,4" FontSize="12" CaretBrush="{DynamicResource PrimaryBrush}"
+                             KeyDown="WebExtStoreBox_KeyDown" GotFocus="WebExtStoreBox_GotFocus"/>
+                    <Button Content="{DynamicResource Str_Web_ExtStoreGo}" Style="{StaticResource WebBookmarkChip}"
+                            HorizontalAlignment="Right" Margin="0,8,0,0" Click="WebExtStoreGo_Click"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
         <!-- v1.19.31: the drag's shadow - the page chip being carried follows
              the cursor as a quiet ghost, and the folder that would catch it
              glows. The carrying is manual (mouse capture plus rectangle

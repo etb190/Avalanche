@@ -1381,10 +1381,16 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Web_BookmarkHint">使用 ☆ 收藏页面</sys:String>
     <sys:String x:Key="Str_TT_WebExtensions">浏览器扩展</sys:String>
     <sys:String x:Key="Str_Web_ExtInstall">从文件安装…</sys:String>
+    <sys:String x:Key="Str_Web_ExtInstallStore">从 Chrome 应用商店安装…</sys:String>
+    <sys:String x:Key="Str_Web_ExtStorePrompt">粘贴 Chrome 应用商店链接或扩展 ID：</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreGo">安装</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreOk">扩展已安装。</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreThere">该扩展已安装过了。</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreBad">这看起来不是 Chrome 应用商店链接或扩展 ID。</sys:String>
+    <sys:String x:Key="Str_Web_ExtStoreFail">商店不提供该扩展。</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">打开扩展文件夹</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">还没有扩展——将 .crx 放入 inbox 文件夹，或从文件安装。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">浏览器扩展 (*.crx)</sys:String>
-    <sys:String x:Key="Str_Web_ExtNoPopup">此扩展没有弹窗——它本来就不带弹窗。</sys:String>
     <sys:String x:Key="Str_Web_MoveToFolder">移动到文件夹…</sys:String>
     <sys:String x:Key="Str_Web_MoveToStrip">移回书签条</sys:String>
     <sys:String x:Key="Str_Web_ExtPopupFail">它的弹窗无法在此打开。</sys:String>
