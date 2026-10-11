@@ -92,6 +92,28 @@ namespace Avalanche.Features.AI
         /// loading placeholders or error bubbles.</summary>
         private readonly Dictionary<string, List<ChatMessage>> _historyByDocument = new();
 
+        // v1.21.0: the history store. Every conversation is a row in
+        // chat_history.db - the transcript the reader sees is just the
+        // newest one for its context. Swept conversations (New chat) land
+        // here instead of dying, restarts reload the newest row per context,
+        // and the history picker resurrects any of them. Rows are keyed by
+        // the SOURCE identity (book path / page URL / note title), never by
+        // the ephemeral session keys.
+        private readonly ChatHistoryStore _historyStore;
+        private readonly Dictionary<string, string> _activeConversationIdByContext = new();
+
+        // v1.21.0: archive view - the transcript on screen belongs to a
+        // conversation whose source is not the chat's live context (the book
+        // is closed, the page is not the current tab, the note is not open).
+        // Sending, New chat and the research button stand down while it shows;
+        // leaving the view restores the live transcript untouched.
+        private bool _isViewingArchive;
+        private string _archiveConversationId = "";
+        // The conversation the reader picked from history while its document
+        // was closed; consumed by InitializeForDocumentAsync once the book is
+        // actually open (the Reopen flow).
+        private string _pendingRestoreConversationId = "";
+
         // v1.19.22: the browser sidechat. When the web pane leads, the chat's
         // context is the active browser TAB: its transcript lives under its own
         // "wt_" key in this dictionary (never a document's "doc_" key), no index
@@ -278,9 +300,25 @@ namespace Avalanche.Features.AI
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, WebPageSnapshot> WebPageMemory
             = new();
 
-        public bool CanStartNewChat => !IsProcessing;
+        // v1.21.0: an archived conversation on screen is read-only - no New
+        // chat, no send, until the reader returns to the live context.
+        public bool CanStartNewChat => !IsProcessing && !_isViewingArchive;
 
-        public bool CanSend => !IsProcessing && !IsIndexing && !string.IsNullOrWhiteSpace(CurrentInput);
+        /// <summary>One-line notice above the conversation while an archived
+        /// conversation is on screen ("This PDF is not open - Reopen", ...).
+        /// Empty = live conversation, no banner.</summary>
+        public string ArchiveNotice
+        {
+            get => _archiveNotice;
+            set { _archiveNotice = value; OnPropertyChanged(); }
+        }
+        private string _archiveNotice = "";
+
+        /// <summary>True while the transcript on screen belongs to an
+        /// archived conversation rather than the live context.</summary>
+        public bool IsViewingArchive => _isViewingArchive;
+
+        public bool CanSend => !IsProcessing && !IsIndexing && !_isViewingArchive && !string.IsNullOrWhiteSpace(CurrentInput);
 
         public string CurrentInput 
         { 
@@ -311,6 +349,7 @@ namespace Avalanche.Features.AI
             _embeddingClient = new OllamaEmbeddingClient(_configProvider);
             _retriever = new HybridRetriever(_vectorIndex, _embeddingClient, _retrievalOptions);
             _indexer = new DocumentIndexer(_vectorIndex);
+            _historyStore = new ChatHistoryStore(GetChatHistoryDbPath());
 
             // Inline citation footnotes inside answer bubbles route their
             // clicks through this bridge into this conversation's navigation.
@@ -379,6 +418,16 @@ namespace Avalanche.Features.AI
             return Path.Combine(dir, "vector_index.db");
         }
 
+        // v1.21.0: the conversation store lives next to the vector index -
+        // one AI folder, one place to back up or wipe.
+        private static string GetChatHistoryDbPath()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var dir = Path.Combine(appData, "Avalanche", "AI");
+            Directory.CreateDirectory(dir);
+            return Path.Combine(dir, "chat_history.db");
+        }
+
         /// <summary>
         /// Initializes the AI chat for the current document.
         /// </summary>
@@ -409,6 +458,11 @@ namespace Avalanche.Features.AI
                 // v1.19.46: the ask is REMEMBERED per document, so a book the
                 // reader left mid-research picks its pass back up here.
             }
+
+            // v1.21.0: nothing in memory for this book - its newest conversation
+            // comes back off the history store, or the exact one the reader
+            // picked from the history picker while the book was closed.
+            TryRestoreConversationForDocument(filePath);
 
             string docId = _currentDocumentId;
             InflightReply? inflight = null;
@@ -497,6 +551,11 @@ namespace Avalanche.Features.AI
                     _currentIndex = index;
                 }
                 IndexingStatus = _loc("Str_AiChatReady");
+
+                // v1.21.0: a conversation restored from history carries citations
+                // whose chunk references were never persisted - re-locate every
+                // quote against the freshly loaded index so footnotes live again.
+                ReResolveRestoredCitations();
 
                 // Partially scanned PDFs: pages without a text layer are
                 // silently unsearchable - say so instead of hiding it (D8).
@@ -918,6 +977,9 @@ namespace Avalanche.Features.AI
         /// line says research is coming.</summary>
         public void ToggleSemanticResearch()
         {
+            // v1.21.0: the research button belongs to the live context - not to
+            // the archived conversation the reader may be reading.
+            if (_isViewingArchive) return;
             DocumentIndex? index;
             string docId;
             lock (_processingLock)
@@ -1674,7 +1736,18 @@ namespace Avalanche.Features.AI
                 Application.Current.Dispatcher.Invoke(() => displayed = Messages.Contains(assistantMsg));
             }
             catch { return; /* app shutting down */ }
-            if (displayed) return;
+            if (displayed)
+            {
+                // v1.21.0: the answer is on screen - snapshot it into the
+                // history store now, so the next context switch is not the
+                // only thing that saves it.
+                try { PersistContextTranscript(key, SnapshotCurrentMessages()); }
+                catch (Exception ex)
+                {
+                    Avalanche.Services.AiHighlightLog.Log($"history persist failed: {ex.Message}");
+                }
+                return;
+            }
             lock (_processingLock)
             {
                 if (_deadSessions.Contains(key)) return;
@@ -1685,6 +1758,21 @@ namespace Avalanche.Features.AI
                     : new List<ChatMessage>();
                 list.Add(assistantMsg);
                 _historyByDocument[key] = list;
+            }
+
+            // v1.21.0: the background answer is part of the transcript now -
+            // land it in the history store while the reader may be elsewhere.
+            try
+            {
+                List<ChatMessage> snap;
+                lock (_processingLock)
+                    snap = new List<ChatMessage>(_historyByDocument.TryGetValue(key, out var saved)
+                        ? saved : (IEnumerable<ChatMessage>)Array.Empty<ChatMessage>());
+                PersistContextTranscript(key, snap);
+            }
+            catch (Exception ex)
+            {
+                Avalanche.Services.AiHighlightLog.Log($"history persist failed: {ex.Message}");
             }
         }
 
@@ -1728,6 +1816,10 @@ namespace Avalanche.Features.AI
         {
             AiMarkdown.CitationClicked -= OnInlineCitationClicked;
             CancelReply();
+            // v1.21.0: the open conversation's last state lands in the history
+            // store before anything tears down - a restart must not lose the
+            // answer that was on screen.
+            try { SaveHistory(); } catch { }
             try { _semanticPassCts?.Cancel(); } catch (ObjectDisposedException) { }
             lock (_processingLock)
             {
@@ -1739,6 +1831,7 @@ namespace Avalanche.Features.AI
             _vectorIndex.Dispose();
             _embeddingClient.Dispose();
             (_aiProvider as IDisposable)?.Dispose();
+            try { _historyStore.Dispose(); } catch { }
         }
 
         /// <summary>
@@ -1920,6 +2013,9 @@ namespace Avalanche.Features.AI
             {
                 Avalanche.Services.AiHighlightLog.Log(
                     $"navigate BAIL: source {source.SourceId} has no ResolvedChunk (unresolved or dropped)");
+                // v1.21.0: say WHY instead of dying silently - the reader just
+                // clicked a footnote and nothing happened.
+                try { _mainWindow.ShowAiChatStatusLine(_loc("Str_AiHistorySourceMissing")); } catch { }
                 return;
             }
 
@@ -1952,6 +2048,11 @@ namespace Avalanche.Features.AI
                 _currentWebTabId = "";
                 _webTitle = "";
                 _webUrl = "";
+                // v1.21.0: whatever archive view was up dies with the leaving
+                // context. The pending restore survives - it was set for the
+                // context that is about to arrive.
+                _isViewingArchive = false;
+                _archiveConversationId = "";
             }
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -1960,6 +2061,7 @@ namespace Avalanche.Features.AI
                 SemanticStatus = "";
                 LastDurationText = "";   // no answer of this context is on screen
                 LastAnswerModel = "";
+                ArchiveNotice = "";      // no archive banner survives a switch
                 OnSemanticStateChanged();   // the research face follows the leaving document
             });
             RaiseProcessingStateChanged();
@@ -1974,10 +2076,22 @@ namespace Avalanche.Features.AI
         /// </summary>
         public void StartNewChat()
         {
+            // v1.21.0: an archive view has nothing live to sweep.
+            if (_isViewingArchive) return;
             // v1.19.92: a new side chat forgets the page it had read - the
             // next question extracts the live page fresh, once, and the
             // memory starts over for this conversation.
             WebPageMemory.Clear();
+
+            // v1.21.0: the swept conversation is ARCHIVED, not destroyed - it
+            // lands in the history store as its own row (the picker brings it
+            // back), and the next message opens a fresh row for this context.
+            try { SaveHistory(); } catch { }
+            lock (_processingLock)
+            {
+                if (_currentDocumentId.Length > 0)
+                    _activeConversationIdByContext.Remove(_currentDocumentId);
+            }
             PendingMessage? parked = null;
             lock (_processingLock)
             {
@@ -2062,6 +2176,10 @@ namespace Avalanche.Features.AI
 
             SaveHistory();
             ClearForDocumentSwitch();   // bump generation, re-bind identity, clear bubbles
+            // v1.21.0: a fresh session key - the page's newest conversation
+            // comes back off the history store (rows are keyed by URL, so the
+            // conversation survives tab churn and restarts).
+            TryRestoreConversationForWeb(WebChat.SessionKey(tabId), url);
             InflightReply? inflight = null;
             bool inflightLoading = false;
             PendingMessage? pending = null;
@@ -2155,6 +2273,10 @@ namespace Avalanche.Features.AI
 
             SaveHistory();
             ClearForDocumentSwitch();
+            // v1.21.0: the note's newest conversation comes back off the
+            // history store (keyed by the note's title - the only identity an
+            // editor tab carries).
+            TryRestoreConversationForEditor(EditorChat.SessionKey(tabId), title);
             InflightReply? inflight = null;
             bool inflightLoading = false;
             PendingMessage? pending = null;
@@ -2270,12 +2392,8 @@ namespace Avalanche.Features.AI
         /// <summary>Snapshots the current transcript (without placeholders or
         /// error bubbles) under the current document id so switching back
         /// restores the conversation (C6).</summary>
-        private void SaveHistory()
+        private List<ChatMessage> SnapshotCurrentMessages()
         {
-            string docId;
-            lock (_processingLock) docId = _currentDocumentId;
-            if (string.IsNullOrEmpty(docId)) return;
-
             List<ChatMessage> snapshot = new();
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -2286,7 +2404,446 @@ namespace Avalanche.Features.AI
                     snapshot.Add(m);
                 }
             });
+            return snapshot;
+        }
+
+        private void SaveHistory()
+        {
+            string docId;
+            lock (_processingLock) docId = _currentDocumentId;
+            if (string.IsNullOrEmpty(docId)) return;
+            // v1.21.0: the transcript on screen belongs to an archived
+            // conversation - it must never be written into the live context's
+            // row. The archive's own row was saved when the view opened.
+            if (_isViewingArchive) return;
+
+            List<ChatMessage> snapshot = SnapshotCurrentMessages();
             lock (_processingLock) _historyByDocument[docId] = snapshot;
+            try { PersistContextTranscript(docId, snapshot); }
+            catch (Exception ex)
+            {
+                Avalanche.Services.AiHighlightLog.Log($"history persist failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>v1.21.0: writes one context's transcript into the history
+        /// store. The CURRENT context's row is created on demand (kind, title
+        /// and source identity ride the live context); a background context
+        /// only ever updates the row it already owns. An empty snapshot never
+        /// wipes a row - rows fill, they are never emptied: New chat archives
+        /// the filled row and opens a fresh one instead.</summary>
+        private void PersistContextTranscript(string contextKey, List<ChatMessage> snapshot)
+        {
+            if (string.IsNullOrEmpty(contextKey) || snapshot.Count == 0) return;
+
+            string kind, sourceRef, title;
+            bool isCurrent;
+            lock (_processingLock) isCurrent = contextKey == _currentDocumentId && !_isViewingArchive;
+            if (isCurrent)
+            {
+                lock (_processingLock)
+                {
+                    if (_isWebContext)
+                    {
+                        kind = ChatHistoryStore.KindWeb;
+                        sourceRef = _webUrl;
+                        title = string.IsNullOrWhiteSpace(_webTitle) ? _webUrl : _webTitle;
+                    }
+                    else if (_isEditorContext)
+                    {
+                        kind = ChatHistoryStore.KindEditor;
+                        sourceRef = _editorDocTitle;
+                        title = string.IsNullOrWhiteSpace(_editorDocTitle) ? "Document" : _editorDocTitle;
+                    }
+                    else
+                    {
+                        kind = ChatHistoryStore.KindDocument;
+                        sourceRef = _currentFilePath;
+                        title = Path.GetFileName(_currentFilePath);
+                    }
+                }
+            }
+            else
+            {
+                // A background context: identity already sits on its row. No
+                // row yet means the context was never on screen - its
+                // transcript persists when the reader next visits it.
+                if (!_activeConversationIdByContext.TryGetValue(contextKey, out var known)) return;
+                var row = _historyStore.GetConversation(known);
+                if (row is null) return;
+                kind = row.Kind;
+                sourceRef = row.SourceRef;
+                title = row.Title;
+            }
+
+            string rowId = _activeConversationIdByContext.TryGetValue(contextKey, out var mapped)
+                ? mapped
+                : _historyStore.EnsureConversation(kind, sourceRef, title);
+            if (string.IsNullOrEmpty(rowId)) return;   // store disabled - nothing to write
+            _activeConversationIdByContext[contextKey] = rowId;
+            _historyStore.UpsertConversation(rowId, kind, sourceRef, title, snapshot);
+        }
+
+        /// <summary>The history picker is opening: make sure the conversation
+        /// on screen has a row, so it shows in the list marked current even
+        /// when nothing was switched away yet.</summary>
+        public void PersistActiveTranscriptForHistory()
+        {
+            try
+            {
+                if (_isViewingArchive) return;
+                string key;
+                lock (_processingLock) key = _currentDocumentId;
+                if (key.Length == 0) return;
+                PersistContextTranscript(key, SnapshotCurrentMessages());
+            }
+            catch (Exception ex)
+            {
+                Avalanche.Services.AiHighlightLog.Log($"history persist failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>v1.21.0: the in-memory transcript for this book is gone
+        /// (fresh session) - load its newest conversation from the history
+        /// store, or the exact one the reader picked from history (the pending
+        /// restore of the Reopen flow). The index build right after
+        /// re-resolves the restored citations against real chunks.</summary>
+        private void TryRestoreConversationForDocument(string filePath)
+        {
+            string docId = DocumentIndexer.ComputeDocumentId(filePath);
+            lock (_processingLock)
+                if (_historyByDocument.ContainsKey(docId)) return;   // session memory wins
+
+            ChatConversationRecord? row = null;
+            string pending;
+            lock (_processingLock) pending = _pendingRestoreConversationId;
+            if (pending.Length > 0)
+            {
+                var picked = _historyStore.GetConversation(pending);
+                if (picked is not null && picked.Kind == ChatHistoryStore.KindDocument
+                    && string.Equals(picked.SourceRef, filePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    row = picked;   // the reader asked for THIS one
+                }
+                lock (_processingLock) _pendingRestoreConversationId = "";   // consumed or stale
+            }
+            row ??= _historyStore.GetLatestConversation(ChatHistoryStore.KindDocument, filePath);
+            if (row is null) return;
+
+            var messages = _historyStore.GetMessages(row.Id) ?? new List<ChatMessage>();
+            lock (_processingLock)
+            {
+                _historyByDocument[docId] = messages;
+                _activeConversationIdByContext[docId] = row.Id;
+            }
+            Avalanche.Services.AiHighlightLog.Log(
+                $"history restore: doc={TruncLog(docId)} conv={row.Id.Substring(0, Math.Min(8, row.Id.Length))} messages={messages.Count}");
+        }
+
+        private void TryRestoreConversationForWeb(string sessionKey, string url)
+        {
+            if (string.IsNullOrWhiteSpace(url)) return;
+            lock (_processingLock)
+                if (_historyByDocument.ContainsKey(sessionKey)) return;
+            var row = _historyStore.GetLatestConversation(ChatHistoryStore.KindWeb, url);
+            if (row is null) return;
+            var messages = _historyStore.GetMessages(row.Id) ?? new List<ChatMessage>();
+            lock (_processingLock)
+            {
+                _historyByDocument[sessionKey] = messages;
+                _activeConversationIdByContext[sessionKey] = row.Id;
+            }
+            Avalanche.Services.AiHighlightLog.Log(
+                $"history restore: web conv={row.Id.Substring(0, Math.Min(8, row.Id.Length))} messages={messages.Count}");
+        }
+
+        private void TryRestoreConversationForEditor(string sessionKey, string title)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return;
+            lock (_processingLock)
+                if (_historyByDocument.ContainsKey(sessionKey)) return;
+            var row = _historyStore.GetLatestConversation(ChatHistoryStore.KindEditor, title);
+            if (row is null) return;
+            var messages = _historyStore.GetMessages(row.Id) ?? new List<ChatMessage>();
+            lock (_processingLock)
+            {
+                _historyByDocument[sessionKey] = messages;
+                _activeConversationIdByContext[sessionKey] = row.Id;
+            }
+        }
+
+        /// <summary>v1.21.0: re-locates restored citations against the live
+        /// index. Restored sources render fine (quote + page ride the store);
+        /// the resolved chunk is what was never persisted, and without it the
+        /// footnote click stays inert. Resolved sources are re-published so
+        /// the chip row repaints.</summary>
+        private void ReResolveRestoredCitations()
+        {
+            DocumentIndex? index;
+            lock (_processingLock) index = _currentIndex;
+            if (index is null || index.Chunks.Count == 0) return;
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    int resolved = ChatHistoryCitations.ReResolve(Messages.ToList(), index.Chunks);
+                    if (resolved > 0)
+                        Avalanche.Services.AiHighlightLog.Log($"history re-resolve: {resolved} citation(s) relocated");
+                });
+            }
+            catch { /* app shutting down */ }
+        }
+
+        private void SwapInRestoredMessages(List<ChatMessage> messages)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                foreach (var m in messages) Messages.Add(m);
+            });
+        }
+
+        private void BeginArchiveView(ChatConversationRecord row, List<ChatMessage> messages)
+        {
+            lock (_processingLock)
+            {
+                _isViewingArchive = true;
+                _archiveConversationId = row.Id;
+            }
+            string notice = row.Kind switch
+            {
+                ChatHistoryStore.KindDocument => File.Exists(row.SourceRef)
+                    ? _loc("Str_AiHistoryDocNotOpen")
+                    : _loc("Str_AiHistoryDocMissing"),
+                ChatHistoryStore.KindWeb => _loc("Str_AiHistoryPageNotOpen"),
+                _ => _loc("Str_AiHistoryNoteNotOpen"),
+            };
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                foreach (var m in messages) Messages.Add(m);
+                ArchiveNotice = notice;
+                RaiseProcessingStateChanged();
+            });
+            Avalanche.Services.AiHighlightLog.Log(
+                $"archive view: conv={row.Id.Substring(0, Math.Min(8, row.Id.Length))} kind={row.Kind}");
+        }
+
+        private void EndArchiveViewSilently()
+        {
+            lock (_processingLock)
+            {
+                _isViewingArchive = false;
+                _archiveConversationId = "";
+            }
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                ArchiveNotice = "";
+                RaiseProcessingStateChanged();
+            });
+        }
+
+        /// <summary>The reader backed out of an archived conversation: the
+        /// live context's own transcript comes back - it was parked in memory
+        /// the whole time; the archive never wrote over it.</summary>
+        public void LeaveArchiveView()
+        {
+            bool was;
+            string key;
+            lock (_processingLock)
+            {
+                was = _isViewingArchive;
+                _isViewingArchive = false;
+                _archiveConversationId = "";
+                key = _currentDocumentId;
+            }
+            if (!was) return;
+            List<ChatMessage> live = new();
+            lock (_processingLock)
+                if (key.Length > 0 && _historyByDocument.TryGetValue(key, out var l))
+                    live.AddRange(l);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Messages.Clear();
+                foreach (var m in live) Messages.Add(m);
+                ArchiveNotice = "";
+                RaiseProcessingStateChanged();
+            });
+        }
+
+        /// <summary>One row of the history picker: what the conversation was
+        /// about, when it was last spoken in, how much is in it.</summary>
+        public sealed record ChatHistoryEntry(
+            string Id, string Kind, string Title, string SourceRef,
+            DateTime UpdatedAtUtc, int MessageCount, bool IsCurrent);
+
+        public enum ChatHistoryOpenMode { Live, Archive, Blocked }
+
+        /// <summary>What opening a history row did: Live = the conversation
+        /// replaced the current transcript (its context leads); Archive =
+        /// read-only view with a banner (source not open / missing) and the
+        /// reopen affordance's kind; Blocked = a reply is streaming.</summary>
+        public sealed record ChatHistoryOpenResult(ChatHistoryOpenMode Mode, string ActionKind, string SourceRef)
+        {
+            public static ChatHistoryOpenResult Live { get; } = new(ChatHistoryOpenMode.Live, "", "");
+            public static ChatHistoryOpenResult Blocked { get; } = new(ChatHistoryOpenMode.Blocked, "", "");
+        }
+
+        public IReadOnlyList<ChatHistoryEntry> GetHistorySummaries()
+        {
+            string currentActive = "";
+            lock (_processingLock)
+            {
+                if (!_isViewingArchive)
+                    _activeConversationIdByContext.TryGetValue(_currentDocumentId, out currentActive!);
+            }
+            var rows = _historyStore.GetSummaries() ?? new List<ChatConversationRecord>();
+            return rows
+                .OrderByDescending(r => r.UpdatedAtUtc)
+                .Select(r => new ChatHistoryEntry(
+                    r.Id, r.Kind, r.Title, r.SourceRef, r.UpdatedAtUtc, r.MessageCount,
+                    r.Id == currentActive))
+                .ToList();
+        }
+
+        /// <summary>The heart of the picker (v1.21.0): open a past
+        /// conversation. Its context leads -> the conversation replaces the
+        /// current transcript live, citations re-resolve, footnotes navigate.
+        /// Its source is gone -> the conversation opens read-only with a
+        /// banner saying exactly what is not there (book closed, page not
+        /// open, note not open, file missing).</summary>
+        public ChatHistoryOpenResult OpenConversationFromHistory(string conversationId)
+        {
+            if (IsProcessing) return ChatHistoryOpenResult.Blocked;
+            var row = _historyStore.GetConversation(conversationId);
+            if (row is null) return ChatHistoryOpenResult.Blocked;
+            var messages = _historyStore.GetMessages(row.Id) ?? new List<ChatMessage>();
+            SaveHistory();   // the live transcript is parked with everything it has
+
+            if (row.Kind == ChatHistoryStore.KindDocument)
+            {
+                bool isCurrent;
+                lock (_processingLock) isCurrent = string.Equals(_currentFilePath, row.SourceRef, StringComparison.OrdinalIgnoreCase);
+                if (isCurrent)
+                {
+                    string docId = DocumentIndexer.ComputeDocumentId(row.SourceRef);
+                    lock (_processingLock)
+                    {
+                        _historyByDocument[docId] = messages;
+                        _activeConversationIdByContext[docId] = row.Id;
+                    }
+                    SwapInRestoredMessages(messages);
+                    ReResolveRestoredCitations();
+                    return ChatHistoryOpenResult.Live;
+                }
+                BeginArchiveView(row, messages);
+                return new ChatHistoryOpenResult(ChatHistoryOpenMode.Archive, "doc",
+                    File.Exists(row.SourceRef) ? row.SourceRef : "");
+            }
+
+            if (row.Kind == ChatHistoryStore.KindWeb)
+            {
+                bool pageCurrent;
+                string webKey = "";
+                lock (_processingLock)
+                {
+                    pageCurrent = _isWebContext
+                        && string.Equals(_webUrl, row.SourceRef, StringComparison.OrdinalIgnoreCase);
+                    if (pageCurrent) webKey = _currentDocumentId;
+                }
+                if (pageCurrent)
+                {
+                    lock (_processingLock)
+                    {
+                        _historyByDocument[webKey] = messages;
+                        _activeConversationIdByContext[webKey] = row.Id;
+                    }
+                    SwapInRestoredMessages(messages);
+                    return ChatHistoryOpenResult.Live;
+                }
+                BeginArchiveView(row, messages);
+                return new ChatHistoryOpenResult(ChatHistoryOpenMode.Archive, "web", row.SourceRef);
+            }
+
+            // Editor conversations: same law, keyed by the note's title.
+            bool noteCurrent;
+            string edKey = "";
+            lock (_processingLock)
+            {
+                noteCurrent = _isEditorContext && _editorDocTitle == row.SourceRef;
+                if (noteCurrent) edKey = _currentDocumentId;
+            }
+            if (noteCurrent)
+            {
+                lock (_processingLock)
+                {
+                    _historyByDocument[edKey] = messages;
+                    _activeConversationIdByContext[edKey] = row.Id;
+                }
+                SwapInRestoredMessages(messages);
+                return ChatHistoryOpenResult.Live;
+            }
+            BeginArchiveView(row, messages);
+            return new ChatHistoryOpenResult(ChatHistoryOpenMode.Archive, "editor", "");
+        }
+
+        public void DeleteConversationFromHistory(string conversationId)
+        {
+            if (string.IsNullOrEmpty(conversationId)) return;
+            _historyStore.DeleteConversation(conversationId);
+            lock (_processingLock)
+            {
+                foreach (var kv in _activeConversationIdByContext.Where(kv => kv.Value == conversationId).ToList())
+                    _activeConversationIdByContext.Remove(kv.Key);
+                if (_archiveConversationId == conversationId)
+                {
+                    _isViewingArchive = false;
+                    _archiveConversationId = "";
+                }
+            }
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (ArchiveNotice.Length > 0 && !_isViewingArchive)
+                {
+                    ArchiveNotice = "";
+                    Messages.Clear();   // the deleted archive was on screen
+                }
+                RaiseProcessingStateChanged();
+            });
+            Avalanche.Services.AiHighlightLog.Log(
+                $"history delete: conv={conversationId.Substring(0, Math.Min(8, conversationId.Length))}");
+        }
+
+        /// <summary>The banner's Reopen / Open page button (v1.21.0): brings
+        /// the archived conversation's source back. The document opens as a
+        /// tab (an existing tab wins, no duplicate), the page opens in the
+        /// browser pane - and the conversation drops back in once the context
+        /// binds. Missing files refuse politely (the banner already said so).</summary>
+        public void ReopenArchiveSource()
+        {
+            ChatConversationRecord? row = null;
+            string archiveId;
+            lock (_processingLock)
+            {
+                archiveId = _archiveConversationId;
+                if (archiveId.Length > 0) row = _historyStore.GetConversation(archiveId);
+            }
+            if (row is null) return;
+
+            if (row.Kind == ChatHistoryStore.KindDocument)
+            {
+                if (!File.Exists(row.SourceRef)) return;
+                lock (_processingLock) _pendingRestoreConversationId = row.Id;
+                Application.Current.Dispatcher.Invoke(() => _mainWindow.OpenFromExternal(row.SourceRef));
+                EndArchiveViewSilently();
+                return;
+            }
+            if (row.Kind == ChatHistoryStore.KindWeb)
+            {
+                Application.Current.Dispatcher.Invoke(() => _mainWindow.WebPane.OpenLinkInNewTab(row.SourceRef));
+                EndArchiveViewSilently();
+            }
         }
 
         /// <summary>

@@ -3631,5 +3631,166 @@ namespace Avalanche
         /// the AI chat's embedding pass is opt-in since v1.19.5.</summary>
         private void AiSemanticBtn_Click(object sender, RoutedEventArgs e)
             => _aiChatViewModel?.ToggleSemanticResearch();
+
+        /// <summary>The AI sidechat's one-line word in the status bar
+        /// (v1.21.0): an inert citation click says why nothing moved.
+        /// SetStatus is the window's private mouth - the chat reaches it
+        /// through this door.</summary>
+        internal void ShowAiChatStatusLine(string text) => SetStatus(text);
+
+        // ============================================================
+        // Chat history (v1.21.0): the picker beside the research button.
+        // The overlay lists every stored conversation under its section;
+        // opening a row hands the decision to the view model - live swap
+        // when the source leads, banner + reopen affordance otherwise.
+        // ============================================================
+
+        private void AiChatHistoryBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_aiChatViewModel is null) return;
+            if (AiHistoryOverlay.Visibility == Visibility.Visible)
+            {
+                AiHistoryOverlay.Visibility = Visibility.Collapsed;
+                return;
+            }
+            // The conversation on screen gets its row before the list builds,
+            // so it shows up marked current even when nothing was saved yet.
+            _aiChatViewModel.PersistActiveTranscriptForHistory();
+            BuildAiHistoryList();
+            AiHistoryOverlay.Visibility = Visibility.Visible;
+        }
+
+        private void AiHistoryBackBtn_Click(object sender, RoutedEventArgs e)
+            => AiHistoryOverlay.Visibility = Visibility.Collapsed;
+
+        private void BuildAiHistoryList()
+        {
+            AiHistoryList.Children.Clear();
+            var chat = _aiChatViewModel;
+            if (chat is null) return;
+            var entries = chat.GetHistorySummaries();
+            AiHistoryEmptyText.Visibility = entries.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+
+            AddHistorySection(Loc("Str_AiHistorySectionDocs"),
+                entries.Where(en => en.Kind == Avalanche.Features.AI.ChatHistoryStore.KindDocument));
+            AddHistorySection(Loc("Str_AiHistorySectionWeb"),
+                entries.Where(en => en.Kind == Avalanche.Features.AI.ChatHistoryStore.KindWeb));
+            AddHistorySection(Loc("Str_AiHistorySectionNotes"),
+                entries.Where(en => en.Kind == Avalanche.Features.AI.ChatHistoryStore.KindEditor));
+        }
+
+        private void AddHistorySection(string title,
+            IEnumerable<Avalanche.Features.AI.AiChatViewModel.ChatHistoryEntry> items)
+        {
+            var list = items.ToList();
+            if (list.Count == 0) return;
+
+            AiHistoryList.Children.Add(new TextBlock
+            {
+                Text = title,
+                FontFamily = (FontFamily)FindResource("UiFont"),
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = (Brush)FindResource("MutedTextBrush"),
+                Margin = new Thickness(8, 10, 8, 4),
+            });
+
+            foreach (var entry in list)
+                AiHistoryList.Children.Add(BuildHistoryRow(entry));
+        }
+
+        private Border BuildHistoryRow(Avalanche.Features.AI.AiChatViewModel.ChatHistoryEntry entry)
+        {
+            string when = entry.UpdatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+            string subtitle = $"{when}  \u00b7  {string.Format(Loc("Str_AiHistoryMessages"), entry.MessageCount)}";
+            if (entry.IsCurrent) subtitle += $"  \u00b7  {Loc("Str_AiHistoryCurrent")}";
+
+            var textCol = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            textCol.Children.Add(new TextBlock
+            {
+                Text = string.IsNullOrEmpty(entry.Title) ? entry.SourceRef : entry.Title,
+                FontFamily = (FontFamily)FindResource("UiFont"),
+                FontSize = 12,
+                Foreground = (Brush)FindResource("TextBrush"),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+            textCol.Children.Add(new TextBlock
+            {
+                Text = subtitle,
+                FontFamily = (FontFamily)FindResource("UiFont"),
+                FontSize = 10.5,
+                Foreground = (Brush)FindResource("MutedTextBrush"),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            });
+
+            var trash = new Button
+            {
+                Content = "\uE74D",
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 10,
+                Width = 24,
+                Height = 24,
+                Padding = new Thickness(0),
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Background = Brushes.Transparent,
+                BorderBrush = Brushes.Transparent,
+                ToolTip = Loc("Str_TT_AiHistoryDelete"),
+            };
+            trash.Click += (_, _) =>
+            {
+                _aiChatViewModel?.DeleteConversationFromHistory(entry.Id);
+                BuildAiHistoryList();
+            };
+
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(textCol, 0);
+            Grid.SetColumn(trash, 1);
+            grid.Children.Add(textCol);
+            grid.Children.Add(trash);
+
+            var row = new Border
+            {
+                Background = Brushes.Transparent,
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(8, 6, 4, 6),
+                Margin = new Thickness(0, 1, 0, 1),
+                Child = grid,
+                Cursor = System.Windows.Input.Cursors.Hand,
+            };
+            row.MouseEnter += (_, _) => row.Background = (Brush)FindResource("PaneBrush");
+            row.MouseLeave += (_, _) => row.Background = Brushes.Transparent;
+            row.MouseLeftButtonUp += (_, _) =>
+            {
+                var chat = _aiChatViewModel;
+                if (chat is null) return;
+                var result = chat.OpenConversationFromHistory(entry.Id);
+                if (result.Mode == Avalanche.Features.AI.AiChatViewModel.ChatHistoryOpenMode.Blocked) return;
+                AiHistoryOverlay.Visibility = Visibility.Collapsed;
+                ApplyArchiveAction(result.ActionKind);
+            };
+            return row;
+        }
+
+        private void ApplyArchiveAction(string actionKind)
+        {
+            if (string.IsNullOrEmpty(actionKind))
+            {
+                AiArchiveActionBtn.Visibility = Visibility.Collapsed;
+                return;
+            }
+            AiArchiveActionBtn.Content = actionKind == "web"
+                ? Loc("Str_AiHistoryOpenPage")
+                : Loc("Str_AiHistoryReopen");
+            AiArchiveActionBtn.Visibility = Visibility.Visible;
+        }
+
+        private void AiArchiveActionBtn_Click(object sender, RoutedEventArgs e)
+        {
+            AiArchiveActionBtn.Visibility = Visibility.Collapsed;
+            _aiChatViewModel?.ReopenArchiveSource();
+        }
     }
 }

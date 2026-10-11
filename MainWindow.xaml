@@ -3195,6 +3195,7 @@
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- Header -->
+                        <RowDefinition Height="Auto"/>   <!-- Archive banner (v1.21.0) -->
                         <RowDefinition Height="*"/>      <!-- Conversation -->
                         <RowDefinition Height="Auto"/>   <!-- Indexing status -->
                         <RowDefinition Height="Auto"/>   <!-- Semantic status -->
@@ -3204,7 +3205,7 @@
                     <!-- Edge bevels, the pages/outline sidebar's SidebarBorder
                          treatment: directional bevels on 98SE, transparent elsewhere.
                          Hit-test transparent, above the (transparent) strips. -->
-                    <Control Grid.RowSpan="4" Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
+                    <Control Grid.RowSpan="5" Panel.ZIndex="20" Style="{StaticResource PaneBevelOverlay}"/>
 
                     <!-- Header -->
                     <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
@@ -3218,6 +3219,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="Auto"/>
@@ -3252,26 +3254,32 @@
                                     </Style>
                                 </Button.Style>
                             </Button>
+                            <!-- v1.21.0: chat history - past conversations, per
+                                 document and per page, with delete and reopen. -->
+                            <Button Grid.Column="3" x:Name="AiChatHistoryBtn" Content="&#xE81C;" Style="{StaticResource ToolbarButton}"
+                                    ToolTip="{DynamicResource Str_TT_AiChatHistory}" Click="AiChatHistoryBtn_Click"
+                                    Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
+                                    Foreground="{DynamicResource MutedTextBrush}"/>
                             <!-- New chat: sweeps the conversation (document index kept)
                                  so the next question starts clean. Disabled while a
                                  reply is streaming (CanStartNewChat). -->
-                            <Button Grid.Column="3" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="4" x:Name="AiChatSettingsBtn" Content="&#xE713;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiSettingsOpen}" Click="AiChatSettingsBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="4" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="5" x:Name="AiChatNewChatBtn" Content="&#xE710;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatNewChat}" Click="AiChatNewChatBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     IsEnabled="{Binding CanStartNewChat}"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
-                            <Button Grid.Column="5" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
+                            <Button Grid.Column="6" x:Name="AiChatCloseBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}"
                                     ToolTip="{DynamicResource Str_AiChatClose}" Click="AiChatCloseBtn_Click"
                                     Width="24" Height="24" Padding="0" FontSize="10" VerticalAlignment="Center"
                                     Foreground="{DynamicResource MutedTextBrush}"/>
                             <!-- v1.19.22: what this chat is about - the web page's
                                  title when the browser leads, the book's file name
                                  otherwise. Nothing shown = the book. -->
-                            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6"
+                            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="7"
                                        Text="{Binding ContextTitle}"
                                        FontFamily="{DynamicResource UiFont}" FontSize="11"
                                        Foreground="{DynamicResource MutedTextBrush}"
@@ -3280,8 +3288,30 @@
                         </Grid>
                     </Border>
 
+                    <!-- v1.21.0: the archive banner - a conversation opened from
+                         history whose source is not on screen says so here, and
+                         (when the file still exists) offers the way back. -->
+                    <Border Grid.Row="1" x:Name="AiArchiveBanner" Padding="12,5"
+                            Background="{DynamicResource PaneBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                            Visibility="{Binding ArchiveNotice, Converter={StaticResource StringToVisibilityConverter}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{Binding ArchiveNotice}" TextTrimming="CharacterEllipsis"
+                                       FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                       Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                            <Button x:Name="AiArchiveActionBtn" Grid.Column="1" Style="{StaticResource ToolbarButton}"
+                                    Click="AiArchiveActionBtn_Click" FontSize="10" Padding="6,2" MinWidth="0"
+                                    Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"
+                                    Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+
                     <!-- Conversation Area -->
-                    <ScrollViewer Grid.Row="1" x:Name="AiChatScrollViewer"
+                    <ScrollViewer Grid.Row="2" x:Name="AiChatScrollViewer"
                                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                   ScrollChanged="AiChatScrollViewer_ScrollChanged"
                                   Background="Transparent" FocusVisualStyle="{x:Null}"
@@ -3473,7 +3503,7 @@
                          row (a sibling of the ScrollViewer, same Grid.Row) - the
                          inverted count converter keeps it on only while Messages is
                          empty, so the first message sweeps it away at once. -->
-                    <StackPanel Grid.Row="1" x:Name="AiChatEmptyState" IsHitTestVisible="False" Margin="24,0"
+                    <StackPanel Grid.Row="2" x:Name="AiChatEmptyState" IsHitTestVisible="False" Margin="24,0"
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Visibility="{Binding Messages.Count, Converter={StaticResource CountToVisibilityConverter}, ConverterParameter=invert}">
                         <ctrl:RobotIcon Width="42" Height="42" HorizontalAlignment="Center" Opacity="0.8"
@@ -3492,7 +3522,7 @@
                          Nothing in the UI was bound to these properties before, so a
                          slow or stuck index build looked like an endless "Preparing
                          document..." wait. -->
-                    <Border Grid.Row="2" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                    <Border Grid.Row="3" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Background="Transparent" Padding="12,5"
                             Visibility="{Binding IsIndexing, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid>
@@ -3511,7 +3541,7 @@
 
                     <!-- One-line semantic-retrieval status: building / ready /
                          embedding model missing / keyword-only fallback. -->
-                    <Border Grid.Row="3" Padding="12,3"
+                    <Border Grid.Row="4" Padding="12,3"
                             Visibility="{Binding SemanticStatus, Converter={StaticResource StringToVisibilityConverter}}">
                         <TextBlock Text="{Binding SemanticStatus}" TextTrimming="CharacterEllipsis"
                                    FontFamily="{DynamicResource UiFont}" FontSize="11"
@@ -3521,7 +3551,7 @@
                     <!-- v1.19.25: how long the last reply took - a quiet line
                          above the input, living from the first completed answer
                          until the next question goes out. -->
-                    <Border Grid.Row="4" Padding="12,3"
+                    <Border Grid.Row="5" Padding="12,3"
                             Visibility="{Binding LastDurationText, Converter={StaticResource StringToVisibilityConverter}}">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -3540,7 +3570,7 @@
                     </Border>
 
                     <!-- Input Area -->
-                    <Border Grid.Row="5" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                    <Border Grid.Row="6" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Background="Transparent" CornerRadius="0"
                             Padding="8">
                         <Grid>
@@ -3580,6 +3610,50 @@
                         </Grid>
                     </Border>
 
+                    <!-- v1.21.0: the history overlay - past conversations in
+                         place of the chat face, the same opaque seat the
+                         settings wear. Sections are built in code-behind
+                         (documents / web pages / notes); a row opens its
+                         conversation, the trash deletes it, the back arrow
+                         returns to the live chat. -->
+                    <Border x:Name="AiHistoryOverlay" Grid.Row="2" Grid.RowSpan="5" Panel.ZIndex="60"
+                            Background="{DynamicResource BackgroundBrush}"
+                            BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
+                            Visibility="Collapsed">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,0,0,1"
+                                    Background="Transparent" Padding="12,6">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="AiHistoryBackBtn" Grid.Column="0" Content="&#xE72B;" Style="{StaticResource ToolbarButton}"
+                                            Click="AiHistoryBackBtn_Click" Width="24" Height="24" Padding="0" FontSize="10"
+                                            VerticalAlignment="Center" Foreground="{DynamicResource MutedTextBrush}"
+                                            ToolTip="{DynamicResource Str_AiHistoryBack}"/>
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource Str_AiHistoryTitle}"
+                                               FontFamily="{DynamicResource UiFont}" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                </Grid>
+                            </Border>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                          Background="Transparent" Padding="6,6,6,6">
+                                <StackPanel>
+                                    <TextBlock x:Name="AiHistoryEmptyText" Text="{DynamicResource Str_AiHistoryEmpty}"
+                                               FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                               Foreground="{DynamicResource MutedTextBrush}" Margin="8,12"
+                                               HorizontalAlignment="Center"/>
+                                    <StackPanel x:Name="AiHistoryList"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+
                     <!-- AI settings overlay (F1): minimal panel over the conversation.
                          Fields bind to AiSettingsViewModel; persisted to
                          %LocalAppData%\Avalanche\AI\settings.json. -->
@@ -3588,7 +3662,7 @@
                          under every other theme the panel rendered with no
                          background at all and the conversation showed straight
                          through it: "transparent, overlapping, can't be seen". -->
-                    <Border x:Name="AiSettingsOverlay" Grid.Row="1" Grid.RowSpan="3" Panel.ZIndex="60"
+                    <Border x:Name="AiSettingsOverlay" Grid.Row="2" Grid.RowSpan="3" Panel.ZIndex="60"
                             Background="{DynamicResource BackgroundBrush}"
                             BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="0,1,0,0"
                             Visibility="Collapsed" Padding="12,8">

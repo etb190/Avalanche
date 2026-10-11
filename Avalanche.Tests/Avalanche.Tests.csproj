@@ -100,6 +100,7 @@
     <Compile Include="..\Features\AI\AiSurfaceModels.cs" Link="Features\AI\AiSurfaceModels.cs" />
     <Compile Include="..\Features\AI\DocumentIndexer.cs" Link="Features\AI\DocumentIndexer.cs" />
     <Compile Include="..\Features\AI\HybridRetriever.cs" Link="Features\AI\HybridRetriever.cs" />
+    <Compile Include="..\Features\AI\ChatHistoryStore.cs" Link="Features\AI\ChatHistoryStore.cs" />
     <Compile Include="..\Services\AiHighlightLog.cs" Link="Services\AiHighlightLog.cs" />
     <Compile Include="..\Services\UndoHistoryBudget.cs" Link="Services\UndoHistoryBudget.cs" />
     <Compile Include="..\Packaging\KillerLauncher\PortableProcessIdentity.cs" Link="Packaging\PortableProcessIdentity.cs" />
