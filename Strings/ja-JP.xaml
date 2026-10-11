@@ -1404,6 +1404,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreThere">この拡張機能は既にインストールされています。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Chrome Web Store のリンクにも拡張機能 ID にも見えません。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">ストアはこの拡張機能を提供しません。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">その拡張機能には、発火できるクリック動作が登録されていません。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche はその拡張機能を発火できませんでした。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">この拡張機能のクリック トリガーはまだ準備ができていません。ブラウザーを一度再起動すると準備されます。</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">拡張機能フォルダーを開く</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">拡張機能はまだありません — .crx を inbox フォルダーに入れるか、ファイルからインストールしてください。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">ブラウザー拡張機能 (*.crx)</sys:String>

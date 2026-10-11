@@ -1404,6 +1404,9 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_ExtStoreThere">Это расширение уже установлено.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Это не похоже на ссылку Chrome Web Store или идентификатор расширения.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Магазин не выдаёт это расширение.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Это расширение не зарегистрировало действий по щелчку для запуска.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche не удалось запустить это расширение.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Триггер щелчка этого расширения ещё не взведён - перезапустите браузер один раз, чтобы взвести его.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Открыть папку расширений</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Расширений пока нет — положите .crx в папку inbox или установите из файла.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Расширение браузера (*.crx)</sys:String>

@@ -1384,6 +1384,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_ExtStoreThere">Bu uzantı zaten yüklü.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Bu bir Chrome Web Store bağlantısına veya uzantı kimliğine benzemiyor.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Mağaza bu uzantıyı vermiyor.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Bu uzantı tetiklenecek tıklama eylemi kaydetmemiş.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche bu uzantıyı tetikleyemedi.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Bu uzantının tıklama tetikleyicisi henüz hazırlanmadı - hazırlamak için tarayıcıyı bir kez yeniden başlatın.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Uzantılar klasörünü aç</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Henüz uzantı yok — bir .crx dosyasını inbox klasörüne bırakın veya dosyadan yükleyin.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Tarayıcı uzantısı (*.crx)</sys:String>

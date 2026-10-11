@@ -1403,6 +1403,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_ExtStoreThere">Бұл кеңейтім бұрыннан орнатылған.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Бұл Chrome Web Store сілтемесіне немесе кеңейтім идентификаторына ұқсамайды.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Дүкен бұл кеңейтімді бере алмайды.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Бұл кеңейтім іске қосуға арналған шерту әрекетін тіркеген жоқ.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche бұл кеңейтімді іске қоса алмады.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Бұл кеңейтімнің шерту триггері әлі дайын емес - дайындау үшін браузерді бір рет қайта іске қосыңыз.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Кеңейтімдер қалтасын ашу</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Кеңейтімдер әзірге жоқ — .crx файлын inbox қалтасына салыңыз немесе файлдан орнатыңыз.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Браузер кеңейтімі (*.crx)</sys:String>

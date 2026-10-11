@@ -416,7 +416,11 @@ namespace Avalanche.Controls
                     string extPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
                         "Resources", "WebExtensions", "avalanche-pdf");
                     if (Directory.Exists(extPath))
+                    {
+                        try { ExtensionTrigger.EnsureArmed(extPath); }
+                        catch { /* arming is a courtesy, like the load itself */ }
                         _ = core.Profile.AddBrowserExtensionAsync(extPath);
+                    }
                 }
                 catch { /* extension loading is a courtesy */ }
                 // v1.19.29: the door is everybody's now - every folder under the
@@ -2939,13 +2943,7 @@ namespace Avalanche.Controls
                     if (string.Equals(Path.GetFileName(dir), "inbox", StringComparison.OrdinalIgnoreCase)) continue;
                     if (!File.Exists(Path.Combine(dir, "manifest.json"))) continue;
                     if (!_extensionsLoaded.Add(dir)) continue;
-                    try
-                    {
-                        _ = core.Profile.AddBrowserExtensionAsync(dir).ContinueWith(
-                            _ => Dispatcher.BeginInvoke(() => _ = MergeLiveExtensionsAsync()),
-                            System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
-                    }
-                    catch { _extensionsLoaded.Remove(dir); }   // the next visit retries
+                    LoadExtensionFolder(core, dir);
                 }
                 _ = MergeLiveExtensionsAsync();   // the toolbar wears what is already riding
             }
@@ -2960,15 +2958,7 @@ namespace Avalanche.Controls
             string target = Path.Combine(ExtensionsRoot, stem);
             UnpackCrx(File.ReadAllBytes(crxPath), target);
             if (_activeView?.CoreWebView2 is { } core && _extensionsLoaded.Add(target))
-            {
-                try
-                {
-                    _ = core.Profile.AddBrowserExtensionAsync(target).ContinueWith(
-                        _ => Dispatcher.BeginInvoke(() => _ = MergeLiveExtensionsAsync()),
-                        System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
-                }
-                catch { _extensionsLoaded.Remove(target); }
-            }
+                LoadExtensionFolder(core, target);
             _ = MergeLiveExtensionsAsync();   // the folder scan shows the crate at once
         }
 
@@ -2979,6 +2969,164 @@ namespace Avalanche.Controls
             string clean = string.Join("_",
                 stem.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
             return clean.Length == 0 ? "extension" : clean;
+        }
+
+        // ── v1.24.0: the click trigger ────────────────────────────────────────
+        // A popup-less extension's behavior lives in listeners the extension
+        // itself registers on chrome.action.onClicked inside its service
+        // worker. The SDK lends the host no way to fire that event, so the
+        // folder is armed at load time - the worker becomes a wrapper whose
+        // shim records every registration - and a click opens the extension's
+        // own bridge page in a hidden window, which asks its worker, over the
+        // extension's own message channel, to run those listeners with the
+        // real active tab. Success is silence, the way a toolbar click is;
+        // only a failure says anything.
+
+        /// <summary>The one loading door: arm the folder for the click
+        /// trigger, then hand it to the profile once. A folder armed THIS
+        /// call changed on disk after the profile may have been holding its
+        /// older copy - the armed copy is loaded again after the add, so the
+        /// trigger rides from the first restart on.</summary>
+        private void LoadExtensionFolder(CoreWebView2 core, string dir)
+        {
+            bool rearm = false;
+            try { rearm = ExtensionTrigger.EnsureArmed(dir); }
+            catch { /* a folder that will not arm rides as it is */ }
+            try
+            {
+                _ = core.Profile.AddBrowserExtensionAsync(dir).ContinueWith(
+                    _ => Dispatcher.BeginInvoke(async () =>
+                    {
+                        if (rearm) await ReloadArmedExtensionAsync(core, dir);
+                        _ = MergeLiveExtensionsAsync();
+                    }),
+                    System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
+            }
+            catch { _extensionsLoaded.Remove(dir); }   // the next visit retries
+        }
+
+        /// <summary>Retire whatever copy the profile still rides under this
+        /// folder's name and load the armed files again - once per folder,
+        /// the run it first armed.</summary>
+        private async Task ReloadArmedExtensionAsync(CoreWebView2 core, string dir)
+        {
+            try
+            {
+                string name = ReadExtManifest(dir)?.Name ?? "";
+                if (name.Length == 0) return;
+                var live = await core.Profile.GetBrowserExtensionsAsync();
+                foreach (CoreWebView2BrowserExtension ext in live)
+                {
+                    bool matches =
+                        string.Equals(ext.Name, name, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(ExtNameKey(ext.Name), ExtNameKey(name), StringComparison.Ordinal);
+                    if (!matches) continue;
+                    try { await ext.RemoveAsync(); }
+                    catch { return; }   // the runtime refused; the old copy stays
+                    _ = core.Profile.AddBrowserExtensionAsync(dir);
+                    return;
+                }
+            }
+            catch { /* a refresh that fails leaves the older copy riding */ }
+        }
+
+        private Window? _extFireWindow;
+        private bool _extFiring;
+
+        /// <summary>The trigger: the extension's own bridge page, opened in
+        /// a hidden owned window, asks its own worker to fire the click the
+        /// toolbar would have. The answer rides back through the host
+        /// channel; the window closes itself either way. A click that worked
+        /// says nothing - only a failure does.</summary>
+        private async Task FireExtensionActionAsync(ExtVm vm)
+        {
+            if (_extFiring) return;
+            if (vm.Extension is null)
+            {
+                ShowExtActionNote(TryLoc("Str_Web_ExtAsleep")
+                    ?? "Open a page first - the extension wakes with the browser.");
+                return;
+            }
+            string extId = "";
+            try { extId = vm.Extension.Id ?? ""; } catch { /* a gone id stays gone */ }
+            if (extId.Length == 0 || vm.Folder.Length == 0
+                || !ExtensionTrigger.IsArmed(vm.Folder))
+            {
+                ShowExtActionNote(TryLoc("Str_Web_ExtFireStale")
+                    ?? "This extension's click trigger is not armed yet - restart the browser once to arm it.");
+                return;
+            }
+            _extFiring = true;
+            try
+            {
+                var tcs = new TaskCompletionSource<string>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                var view = new WebView2();
+                var win = new Window
+                {
+                    ShowInTaskbar = false,
+                    ShowActivated = false,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    Width = 2,
+                    Height = 2,
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    Left = -32000,
+                    Top = -32000,
+                    Content = view,
+                };
+                if (Window.GetWindow(this) is { } owner) win.Owner = owner;
+                _extFireWindow = win;
+                win.Closed += (_, _) =>
+                {
+                    try { view.Dispose(); }
+                    catch { /* a view already going away is no one's emergency */ }
+                    if (ReferenceEquals(_extFireWindow, win)) _extFireWindow = null;
+                    tcs.TrySetResult("");
+                };
+                win.Show();
+                await view.EnsureCoreWebView2Async(_env);
+                if (!ReferenceEquals(_extFireWindow, win)) return;   // closed while the engine warmed
+                view.CoreWebView2.WebMessageReceived += (_, args) =>
+                {
+                    try { tcs.TrySetResult(args.WebMessageAsJson); } catch { }
+                };
+                view.CoreWebView2.Navigate("chrome-extension://" + extId + "/"
+                    + ExtensionTrigger.BridgePage);
+                string reply = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
+                (bool ok, int fired) = ParseFireReply(reply);
+                if (ok && fired > 0) return;   // the extension did its thing
+                ShowExtActionNote(TryLoc(ok ? "Str_Web_ExtFireNone" : "Str_Web_ExtFireFail")
+                    ?? (ok ? "That extension registered no click action to fire."
+                           : "Avalanche could not trigger that extension."));
+            }
+            catch
+            {
+                ShowExtActionNote(TryLoc("Str_Web_ExtFireFail")
+                    ?? "Avalanche could not trigger that extension.");
+            }
+            finally
+            {
+                try { _extFireWindow?.Close(); }
+                catch { /* a window already going away is no one's emergency */ }
+                _extFiring = false;
+            }
+        }
+
+        private static (bool Ok, int Fired) ParseFireReply(string json)
+        {
+            try
+            {
+                using System.Text.Json.JsonDocument doc =
+                    System.Text.Json.JsonDocument.Parse(json);
+                System.Text.Json.JsonElement root = doc.RootElement;
+                bool ok = root.TryGetProperty("ok", out System.Text.Json.JsonElement o)
+                    && o.ValueKind == System.Text.Json.JsonValueKind.True;
+                int fired = root.TryGetProperty("fired", out System.Text.Json.JsonElement f)
+                    && f.TryGetInt32(out int n) ? n : 0;
+                return (ok, fired);
+            }
+            catch { return (false, 0); }
         }
 
         /// <summary>The store riders on disk: each fetches once if it is
@@ -3095,6 +3243,7 @@ namespace Avalanche.Controls
             public string Folder { get; init; } = "";
             public string PopupPath { get; init; } = "";
             public string OptionsPath { get; init; } = "";
+            public bool HasClickListener { get; init; }
             public ImageSource? IconSource { get; init; }
             public CoreWebView2BrowserExtension? Extension { get; set; }
             public bool LiveEnabled { get; set; }
@@ -3106,7 +3255,8 @@ namespace Avalanche.Controls
         }
 
         private sealed record ExtManifest(
-            string Name, string Version, string PopupPath, string OptionsPath, string IconPath);
+            string Name, string Version, string PopupPath, string OptionsPath,
+            string IconPath, bool HasClickListener);
 
         private void WebExtPuzzleBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -3194,6 +3344,7 @@ namespace Avalanche.Controls
             install.Click += WebExtInstall_Click;
             MenuItem folder = new() { Header = TryLoc("Str_Web_ExtOpenFolder") ?? "Open extensions folder" };
             folder.Click += WebExtOpenFolder_Click;
+            menu.Items.Add(store);   // v1.24.0: the store's door actually ON the menu
             menu.Items.Add(install);
             menu.Items.Add(folder);
             return menu;
@@ -3206,7 +3357,7 @@ namespace Avalanche.Controls
         // click with an apology. The puzzle (the install door) returns the
         // moment no clickable extension remains.
         private static bool IsActionableRow(ExtVm row)
-            => row.PopupPath.Length > 0 || row.OptionsPath.Length > 0;
+            => row.PopupPath.Length > 0 || row.OptionsPath.Length > 0 || row.HasClickListener;
 
         private void RefreshExtensionSurfaces()
         {
@@ -3299,6 +3450,7 @@ namespace Avalanche.Controls
                         Folder = dir,
                         PopupPath = manifest?.PopupPath ?? "",
                         OptionsPath = manifest?.OptionsPath ?? "",
+                        HasClickListener = manifest?.HasClickListener ?? false,
                         IconSource = LoadExtIcon(dir, manifest?.IconPath),
                     });
                 }
@@ -3351,7 +3503,11 @@ namespace Avalanche.Controls
                     options = GetManifestString(oui, "options_page");
                 if (options.Length == 0)
                     options = GetManifestString(root, "options_page");
-                return new ExtManifest(name, ver, popup, options, icon);
+                // v1.24.0: a popup-less row's third surface - its own click
+                // listener - is read from the worker's own words.
+                bool click = popup.Length == 0
+                    && ExtensionTrigger.RefersToActionClick(dir);
+                return new ExtManifest(name, ver, popup, options, icon, click);
             }
             catch { return null; }
         }
@@ -3451,13 +3607,12 @@ namespace Avalanche.Controls
             }
             if (vm.PopupPath.Length == 0)
             {
-                // v1.23.0: no popup to drop - and the row only exists when the
-                // extension owns a surface (IsActionableRow), so the click opens
-                // the extension's own page instead of apologizing. The trigger
-                // Chrome fires from its real toolbar has no host-side hook the
-                // SDK would lend us; the moment one ships, this is its seat.
-                if (vm.OptionsPath.Length > 0)
-                    _ = ShowExtensionActionViewAsync(vm.Extension, vm.OptionsPath, optionsPage: true);
+                // v1.24.0: the click IS the trigger. The extension's own
+                // onClicked listeners ride inside its service worker; the
+                // armed folder lets the host deliver the click Chrome's
+                // toolbar would have. Options stays where it belongs - the
+                // right-click menu - never a substitute for the trigger.
+                _ = FireExtensionActionAsync(vm);
                 return;
             }
             _ = ShowExtensionActionViewAsync(vm.Extension, vm.PopupPath, optionsPage: false);

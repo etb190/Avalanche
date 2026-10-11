@@ -1384,6 +1384,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_ExtStoreThere">এই এক্সটেনশনটি ইতিমধ্যে ইনস্টল করা আছে।</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">এটি Chrome Web Store লিঙ্ক বা এক্সটেনশন আইডির মতো দেখাচ্ছে না।</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">স্টোর এই এক্সটেনশনটি দেবে না।</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">এই এক্সটেনশনটি চালু করার জন্য কোনো ক্লিক অ্যাকশন নিবন্ধিত করেনি।</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche সেই এক্সটেনশনটি চালু করতে পারেনি।</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">এই এক্সটেনশনের ক্লিক ট্রিগার এখনও প্রস্তুত নয় - এটি প্রস্তুত করতে ব্রাউজার একবার রিস্টার্ট করুন।</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">এক্সটেনশন ফোল্ডার খুলুন</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">এখনো কোনো এক্সটেনশন নেই — .crx ফাইলটি inbox ফোল্ডারে রাখুন বা ফাইল থেকে ইনস্টল করুন।</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">ব্রাউজার এক্সটেনশন (*.crx)</sys:String>

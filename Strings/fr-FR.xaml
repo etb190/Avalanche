@@ -1404,6 +1404,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_ExtStoreThere">Cette extension est déjà installée.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Cela ne ressemble pas à un lien du Chrome Web Store ni à un identifiant d'extension.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Le magasin ne veut pas servir cette extension.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Cette extension n'a enregistré aucune action de clic à déclencher.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche n'a pas pu déclencher cette extension.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Le déclencheur de clic de cette extension n'est pas encore armé - redémarrez le navigateur une fois pour l'armer.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Ouvrir le dossier des extensions</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Aucune extension pour l'instant — déposez un .crx dans le dossier inbox ou installez depuis un fichier.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Extension de navigateur (*.crx)</sys:String>

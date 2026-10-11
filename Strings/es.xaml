@@ -1384,6 +1384,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreThere">Esa extensión ya está instalada.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Eso no parece un enlace de Chrome Web Store ni un id de extensión.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">La tienda no quiere servir esa extensión.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Esa extensión no registró ninguna acción de clic que disparar.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche no pudo activar esa extensión.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">El disparador de clic de esta extensión aún no está armado: reinicie el navegador una vez para armarlo.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Abrir la carpeta de extensiones</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Aún no hay extensiones: suelta un .crx en la carpeta de entrada o instala desde un archivo.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Extensión de navegador (*.crx)</sys:String>

@@ -1391,6 +1391,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_ExtStoreThere">Ez a bővítmény már telepítve van.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Ez nem tűnik Chrome Web Store linknek vagy bővítményazonosítónak.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Az áruház nem szolgálja ki ezt a bővítményt.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Ennek a kiterjesztésnek nincs regisztrált kattintási művelete.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Az Avalanche nem tudta elindítani ezt a kiterjesztést.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">A kiterjesztés kattintási kiváltója még nincs készenlétben - indítsa újra egyszer a böngészőt, hogy készenlétbe kerüljön.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Bővítménymappa megnyitása</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Még nincsenek bővítmények — tegyen egy .crx fájlt a inbox mappába, vagy telepítsen fájlból.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Bővítmény (*.crx)</sys:String>

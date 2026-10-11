@@ -1404,6 +1404,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_ExtStoreThere">Questa estensione è già installata.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Non sembra un link del Chrome Web Store né un id di estensione.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Lo store non vuole servire questa estensione.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Questa estensione non ha registrato alcuna azione di clic da attivare.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche non è riuscito ad attivare questa estensione.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">L'attivatore di clic di questa estensione non è ancora pronto: riavvia il browser una volta per armarlo.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Apri la cartella delle estensioni</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Ancora nessuna estensione — trascina un .crx nella cartella inbox o installa da un file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Estensione del browser (*.crx)</sys:String>

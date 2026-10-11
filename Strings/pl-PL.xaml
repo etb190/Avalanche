@@ -1392,6 +1392,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_ExtStoreThere">To rozszerzenie jest już zainstalowane.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">To nie wygląda jak link ze Chrome Web Store ani identyfikator rozszerzenia.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Sklep nie chce udostępnić tego rozszerzenia.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">To rozszerzenie nie zarejestrowało żadnej akcji kliknięcia do wywołania.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche nie mógł wywołać tego rozszerzenia.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Wyzwalacz kliknięcia tego rozszerzenia nie jest jeszcze uzbrojony - uruchom przeglądarkę ponownie, aby go uzbroić.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Otwórz folder rozszerzeń</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Nie ma jeszcze rozszerzeń — upuść plik .crx do folderu inbox albo zainstaluj z pliku.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozszerzenie przeglądarki (*.crx)</sys:String>

@@ -1404,6 +1404,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_ExtStoreThere">Tiện ích này đã được cài đặt.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">Đây không giống liên kết Chrome Web Store hay id tiện ích.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Cửa hàng không cung cấp tiện ích này.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Tiện ích này chưa đăng ký hành động nhấp nào để kích hoạt.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche không thể kích hoạt tiện ích này.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Bộ kích hoạt nhấp của tiện ích này chưa sẵn sàng - hãy khởi động lại trình duyệt một lần để chuẩn bị.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Mở thư mục tiện ích</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Chưa có tiện ích nào — thả tệp .crx vào thư mục inbox hoặc cài đặt từ tệp.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Tiện ích mở rộng trình duyệt (*.crx)</sys:String>

@@ -1389,6 +1389,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_ExtStoreThere">Toto rozšíření už je nainstalováno.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">To nevypadá jako odkaz z Chrome Web Store ani ID rozšíření.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">Obchod toto rozšíření neposkytne.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">Toto rozšíření nemá registrovánu žádnou akci kliknutí ke spuštění.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche toto rozšíření nemohl spustit.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">Spouštěč kliknutí tohoto rozšíření ještě není připraven - pro jeho připravení jednou restartujte prohlížeč.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Otevřít složku rozšíření</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">Zatím žádná rozšíření — vložte soubor .crx do složky inbox nebo nainstalujte ze souboru.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Rozšíření prohlížeče (*.crx)</sys:String>

@@ -1386,6 +1386,9 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreThere">該擴充功能已經安裝過了。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">這看起來不是 Chrome 線上應用程式商店連結或擴充功能 ID。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">商店不提供該擴充功能。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">該擴充功能沒有註冊任何可觸發的點擊動作。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche 無法觸發該擴充功能。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">該擴充功能的點擊觸發器尚未就緒——重新啟動瀏覽器一次即可就緒。</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">開啟擴充功能資料夾</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">還沒有擴充功能——將 .crx 放入 inbox 資料夾，或從檔案安裝。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">瀏覽器擴充功能 (*.crx)</sys:String>

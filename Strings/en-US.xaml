@@ -1404,6 +1404,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_ExtStoreThere">That extension is already installed.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">That does not look like a Chrome Web Store link or an extension id.</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">The store would not serve that extension.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">That extension registered no click action to fire.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche could not trigger that extension.</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">This extension's click trigger is not armed yet - restart the browser once to arm it.</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">Open extensions folder</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">No extensions yet — drop a .crx into the inbox folder, or install from a file.</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">Browser extension (*.crx)</sys:String>

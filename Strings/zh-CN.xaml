@@ -1388,6 +1388,9 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreThere">该扩展已安装过了。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreBad">这看起来不是 Chrome 应用商店链接或扩展 ID。</sys:String>
     <sys:String x:Key="Str_Web_ExtStoreFail">商店不提供该扩展。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireNone">该扩展没有注册任何可触发的点击动作。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireFail">Avalanche 无法触发该扩展。</sys:String>
+    <sys:String x:Key="Str_Web_ExtFireStale">该扩展的点击触发器尚未就绪——重启浏览器一次即可就绪。</sys:String>
     <sys:String x:Key="Str_Web_ExtOpenFolder">打开扩展文件夹</sys:String>
     <sys:String x:Key="Str_Web_ExtEmpty">还没有扩展——将 .crx 放入 inbox 文件夹，或从文件安装。</sys:String>
     <sys:String x:Key="Str_Web_ExtFilter">浏览器扩展 (*.crx)</sys:String>
