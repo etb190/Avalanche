@@ -1491,6 +1491,7 @@
                     <StackPanel x:Name="GrpEditorFiles" Orientation="Horizontal" Visibility="Collapsed">
                         <Button x:Name="EditorRibbonOpenBtn" Content="&#xE8DA;" Style="{StaticResource ToolbarButton}" Click="EditorRibbonOpen_Click" ToolTip="{DynamicResource Str_Editor_OpenDoc}"/>
                         <Button x:Name="EditorRibbonSaveBtn" Content="&#xE74E;" Style="{StaticResource ToolbarButton}" Click="EditorRibbonSave_Click" ToolTip="{DynamicResource Str_Editor_SaveDoc}"/>
+                        <Button x:Name="EditorAiChatLeftBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}" Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
                     </StackPanel>
                     <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="{DynamicResource Str_TT_CloseFile}" IsEnabled="False"/>
                     <Button x:Name="OpenFileBtn" Content="&#xE8DA;" Style="{StaticResource ToolbarSplitMain}" Click="Open_Click" MouseRightButtonUp="OpenRecent_Click" ToolTip="{DynamicResource Str_TT_Open}"/>
@@ -1746,8 +1747,7 @@
                 <StackPanel x:Name="EditorAiChatBar" Orientation="Horizontal"
                             HorizontalAlignment="Right" Visibility="Collapsed">
                     <Button x:Name="EditorAiChatBtn" Content="&#xE8BD;" Style="{StaticResource ToolbarButton}"
-                            Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"
-                            Visibility="Collapsed"/>
+                            Click="AiChatBtn_Click" ToolTip="{DynamicResource Str_TT_AiChat}"/>
                 </StackPanel>
             </Grid>
             </Grid>
@@ -3675,6 +3675,7 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
@@ -3694,6 +3695,7 @@
                                     <!-- v1.19.47: NIM guests - the dial's third and fourth names. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
@@ -3713,6 +3715,7 @@
                                     <!-- v1.19.47: NIM guests - the dial's third and fourth names. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
@@ -3732,6 +3735,7 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
@@ -3753,6 +3757,7 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
@@ -3772,6 +3777,7 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
@@ -3796,6 +3802,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
@@ -3812,6 +3819,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
@@ -3831,6 +3839,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
@@ -3850,6 +3859,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>

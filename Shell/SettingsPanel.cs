@@ -792,7 +792,8 @@ namespace Avalanche
                         _toolbarButtons.Add((btn, "\uE7C3", "Str_Lbl_PdfEditor"));
                     // The chat chips answer by reference too (v1.19.96):
                     // both wear \uE8BD like the PDF ribbon's own button.
-                    else if (ReferenceEquals(btn, WebAiChatBtn) || ReferenceEquals(btn, EditorAiChatBtn))
+                    else if (ReferenceEquals(btn, WebAiChatBtn) || ReferenceEquals(btn, EditorAiChatBtn)
+                        || ReferenceEquals(btn, EditorAiChatLeftBtn))
                         _toolbarButtons.Add((btn, "\uE8BD", "Str_Lbl_AiChat"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
                     {

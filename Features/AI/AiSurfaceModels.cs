@@ -41,7 +41,14 @@ namespace Avalanche.Features.AI
         // carries the two guests - their calls bill this key, not the
         // nemotron key the settings panel holds.
         public const string KimiModel = "moonshotai/kimi-k3";
-        public const string GlmModel = "z-ai/glm-5.3-flash";
+        public const string GlmFlashModel = "z-ai/glm-5.3-flash";
+        public const string GlmModel = GlmFlashModel;   // backwards-compatible alias
+
+        // v1.19.98: the full GLM 5.3 sits beside the flash on the same
+        // NIM table - one identity, two sizes.
+        public const string GlmFlashChoice = "glm-flash";
+        public const string Glm53Choice = "glm-5.3";
+        public const string Glm53Model = "z-ai/glm-5.3";
         public const string NimGuestApiKey = "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";
 
         // v1.19.97: deepseek moved in with the NIM guests - OrcaRouter
@@ -179,7 +186,9 @@ namespace Avalanche.Features.AI
             if (string.IsNullOrEmpty(value)) return NemotronChoice;
             if (string.Equals(value, GptChoice, StringComparison.OrdinalIgnoreCase)) return GptChoice;
             if (string.Equals(value, KimiChoice, StringComparison.OrdinalIgnoreCase)) return KimiChoice;
-            if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
+            if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, GlmFlashChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
+            if (string.Equals(value, Glm53Choice, StringComparison.OrdinalIgnoreCase)) return Glm53Choice;
             if (string.Equals(value, Gemma4Choice, StringComparison.OrdinalIgnoreCase)) return Gemma4Choice;
             if (string.Equals(value, DeepseekChoice, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(value, "deepseek-v4.1", StringComparison.OrdinalIgnoreCase)) return DeepseekChoice;
@@ -270,6 +279,7 @@ namespace Avalanche.Features.AI
                 case GptChoice: return GptIdentity(baseConfig);
                 case KimiChoice: return NimIdentity(baseConfig, KimiModel);
                 case GlmChoice: return NimIdentity(baseConfig, GlmModel);
+                case Glm53Choice: return NimIdentity(baseConfig, Glm53Model);
                 case Gemma4Choice: return NimIdentity(baseConfig, Gemma4Model);
                 case DeepseekChoice: return NimIdentity(baseConfig, DeepseekModel);
                 case GeminiChoice: return GoogleIdentity(baseConfig, GeminiModel);

@@ -3228,13 +3228,20 @@ namespace Avalanche.Controls
         private static string PickIconEntry(System.Text.Json.JsonElement container)
         {
             if (container.ValueKind != System.Text.Json.JsonValueKind.Object) return "";
-            if (!container.TryGetProperty("default_icon", out System.Text.Json.JsonElement di)) return "";
-            if (di.ValueKind == System.Text.Json.JsonValueKind.String)
-                return di.GetString() ?? "";
-            if (di.ValueKind != System.Text.Json.JsonValueKind.Object) return "";
+            // v1.19.98: SNDL's root "icons" IS the size map - no
+            // default_icon child anywhere - so an absent default_icon
+            // means the container itself is the map, not an empty face.
+            System.Text.Json.JsonElement map = container;
+            if (container.TryGetProperty("default_icon", out System.Text.Json.JsonElement di))
+            {
+                if (di.ValueKind == System.Text.Json.JsonValueKind.String)
+                    return di.GetString() ?? "";
+                if (di.ValueKind != System.Text.Json.JsonValueKind.Object) return "";
+                map = di;
+            }
             string? best = null;
             int bestSize = -1;
-            foreach (System.Text.Json.JsonProperty p in di.EnumerateObject())
+            foreach (System.Text.Json.JsonProperty p in map.EnumerateObject())
             {
                 if (p.Value.ValueKind != System.Text.Json.JsonValueKind.String) continue;
                 int size = int.TryParse(p.Name, out int s) ? s : 0;
@@ -3249,12 +3256,31 @@ namespace Avalanche.Controls
 
         private static ImageSource? LoadExtIcon(string dir, string? rel)
         {
-            if (string.IsNullOrWhiteSpace(rel)) return null;
+            string? path = null;
+            if (!string.IsNullOrWhiteSpace(rel))
+            {
+                try { path = Path.GetFullPath(Path.Combine(dir, rel.Replace('/', Path.DirectorySeparatorChar))); }
+                catch { path = null; }
+            }
+            if (path is null || !File.Exists(path))
+            {
+                // v1.19.98: the manifest gave up nothing - knock on the
+                // usual icon doors before the extension wears a blank face.
+                string[] iconCandidates =
+                {
+                    "icon128.png", "icon48.png", "icon32.png", "icon16.png", "icon.png",
+                    "assets/icon128.png", "assets/icon48.png", "assets/icon.png",
+                    "images/icon128.png", "images/icon48.png", "images/icon.png",
+                };
+                foreach (string c in iconCandidates)
+                {
+                    string cand = Path.Combine(dir, c.Replace('/', Path.DirectorySeparatorChar));
+                    if (File.Exists(cand)) { path = cand; break; }
+                }
+            }
+            if (path is null || !File.Exists(path)) return null;
             try
             {
-                string path = Path.GetFullPath(
-                    Path.Combine(dir, rel.Replace('/', Path.DirectorySeparatorChar)));
-                if (!File.Exists(path)) return null;
                 BitmapImage bmp = new();
                 bmp.BeginInit();
                 bmp.CacheOption = BitmapCacheOption.OnLoad;

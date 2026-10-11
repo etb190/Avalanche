@@ -1130,7 +1130,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
     <sys:String x:Key="Str_AiModelGptOss">GPT-OSS (Ollama)</sys:String>
     <sys:String x:Key="Str_AiModelKimi">Kimi</sys:String>
-    <sys:String x:Key="Str_AiModelGlm">Glm</sys:String>
+    <sys:String x:Key="Str_AiModelGlm">GLM 5.3 Flash (NIM)</sys:String>
+    <sys:String x:Key="Str_AiModelGlm53">GLM 5.3 (NIM)</sys:String>
 <sys:String x:Key="Str_AiModelDeepseek">DeepSeek V4.1 Flash (NIM)</sys:String>
 <sys:String x:Key="Str_AiEmbeddingNemotronItem">Nemotron 3 Embed (NIM)</sys:String>
 <sys:String x:Key="Str_AiModelGemma4">Gemma 4 31B (NIM)</sys:String>
