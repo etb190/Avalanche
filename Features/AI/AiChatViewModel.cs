@@ -1359,17 +1359,13 @@ namespace Avalanche.Features.AI
                     }
 
                     var webConfig = Features.AI.AiSurfaceModels.Configure(_configProvider(), AiSurface.WebSidechat);
-                    // v1.19.93: the page anchors ONCE. The conversation's first
-                    // model call carries the full prompt - head, page evidence,
-                    // contract - and every follow-up rides the rolling history
-                    // with the head and the contract only. Re-attaching up to
-                    // 160,000 characters on every turn blew through tokens
-                    // quadratically and hit the context ceiling on long pages.
-                    bool firstWebTurn = !recentHistory.Any(
-                        m => m.MessageRole == ChatMessage.Role.Assistant);
-                    string webSystem = firstWebTurn
-                        ? WebChat.BuildSystemPrompt(page)
-                        : WebChat.InstructionHead() + "\n" + WebChat.CitationContract();
+                    // v1.19.95: the page rides EVERY turn. The endpoints are
+                    // stateless - a follow-up that carried only the head and the
+                    // contract asked the model to answer from page text it had
+                    // never seen, and the same question flipped between answered
+                    // and "not in the text". The rolling history still carries
+                    // the conversation; the evidence rides beside it every time.
+                    string webSystem = WebChat.BuildSystemPrompt(page);
                     string webRaw = await StreamReplyIntoAsync(
                         GetProvider(webConfig), webConfig, webSystem,
                         recentHistory,
@@ -1509,6 +1505,59 @@ namespace Avalanche.Features.AI
         /// RAW text; the caller parses structure and citations from it at the
         /// end, exactly as the buffered path did.
         /// </summary>
+        /// <summary>
+        /// The live answer behind the JSON scaffolding (v1.19.94): the sidechat
+        /// speaks {"answer": ...} and the reader must never see a brace. Before
+        /// the answer key opens, nothing; while it streams, the unescaped prose
+        /// up to the cursor; non-JSON replies stream verbatim as always.
+        /// </summary>
+        private static string ExtractStreamingAnswer(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "";
+            string clean = StripThinkSpans(raw).TrimStart();
+            if (!clean.StartsWith("{", StringComparison.Ordinal))
+                return clean; // not JSON, stream directly
+
+            int keyIdx = clean.IndexOf("\"answer\"", StringComparison.OrdinalIgnoreCase);
+            if (keyIdx < 0) return ""; // still waiting for answer field
+
+            int colonIdx = clean.IndexOf(':', keyIdx + 8);
+            if (colonIdx < 0) return "";
+
+            int quoteStart = clean.IndexOf('"', colonIdx + 1);
+            if (quoteStart < 0) return "";
+
+            // Find end of string, handling escape sequences
+            var sb = new System.Text.StringBuilder();
+            bool escape = false;
+            for (int i = quoteStart + 1; i < clean.Length; i++)
+            {
+                char c = clean[i];
+                if (escape)
+                {
+                    if (c == 'n') sb.Append('\n');
+                    else if (c == 'r') sb.Append('\r');
+                    else if (c == 't') sb.Append('\t');
+                    else sb.Append(c);
+                    escape = false;
+                }
+                else if (c == '\\')
+                {
+                    escape = true;
+                }
+                else if (c == '"')
+                {
+                    // End of "answer" string - do not show trailing "sources" JSON
+                    break;
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
+        }
+
         private async Task<string> StreamReplyIntoAsync(
             IAiProvider provider,
             AiProviderConfig config,
@@ -1530,7 +1579,7 @@ namespace Avalanche.Features.AI
                 {
                     if (!dirty) return;
                     dirty = false;
-                    string next = StripThinkSpans(raw.ToString());
+                    string next = ExtractStreamingAnswer(raw.ToString());   // v1.19.95: the braces never show
                     if (string.Equals(next, visible, StringComparison.Ordinal)) return;
                     visible = next;
                     try { assistantMsg.Content = visible; } catch { /* the bubble left the view */ }

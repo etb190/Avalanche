@@ -111,6 +111,79 @@ namespace Avalanche.Features.AI
             PageSlot = 0
         };
 
+        // -- the web jump's quote kit (v1.19.95) ----------------------------------
+        // The model's quote rarely lands verbatim: smart quotes for ASCII,
+        // doubled spaces, trimmed punctuation. The jump walks three faces of
+        // the same quote - raw, normalized, and the quote's first key words -
+        // and the first face the page answers wins.
+
+        /// <summary>The quote's search faces: raw, normalized, key words.</summary>
+        public static IEnumerable<string> QuoteAttempts(string? quote)
+        {
+            if (string.IsNullOrWhiteSpace(quote)) yield break;
+            yield return quote;
+            string norm = NormalizeQuote(quote);
+            if (!string.IsNullOrWhiteSpace(norm) && norm != quote)
+                yield return norm;
+            string key = KeyWords(norm);
+            if (!string.IsNullOrWhiteSpace(key) && key != norm)
+                yield return key;
+        }
+
+        /// <summary>Smart quotes fold to ASCII, whitespace runs collapse,
+        /// surrounding punctuation trims - the shape a page find accepts.</summary>
+        public static string NormalizeQuote(string? quote)
+        {
+            if (string.IsNullOrWhiteSpace(quote)) return string.Empty;
+            var sb = new System.Text.StringBuilder(quote.Length);
+            bool lastSpace = false;
+            foreach (var ch in quote.Trim())
+            {
+                char c = ch switch
+                {
+                    '\u2018' or '\u2019' or '\u201A' or '\u201B' => '\'',
+                    '\u201C' or '\u201D' or '\u201E' or '\u201F' => '"',
+                    '\u2013' or '\u2014' or '\u2212' => '-',
+                    '\u2026' => '.',
+                    '\u00A0' or '\u2007' or '\u202F' => ' ',
+                    _ => ch
+                };
+                if (char.IsWhiteSpace(c))
+                {
+                    if (!lastSpace) { sb.Append(' '); lastSpace = true; }
+                    continue;
+                }
+                lastSpace = false;
+                sb.Append(c);
+            }
+            return sb.ToString().Trim(' ', '"', '\'', '(', ')', '[', ']', '.', ',', ';', ':', '!', '?');
+        }
+
+        /// <summary>The quote's first non-stop words (up to 8): the face
+        /// that still finds the passage when the model rewrote the words
+        /// around them.</summary>
+        public static string KeyWords(string? quote, int max = 8)
+        {
+            if (string.IsNullOrWhiteSpace(quote)) return string.Empty;
+            var words = NormalizeQuote(quote)
+                .ToLowerInvariant()
+                .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+                .Select(w => new string(w.Where(char.IsLetterOrDigit).ToArray()))
+                .Where(w => w.Length > 0 && !_stopWords.Contains(w))
+                .Take(max)
+                .ToArray();
+            return string.Join(" ", words);
+        }
+
+        private static readonly HashSet<string> _stopWords = new(StringComparer.Ordinal)
+        {
+            "the", "a", "an", "of", "and", "or", "to", "in", "on", "for", "with",
+            "was", "is", "are", "were", "be", "been", "being", "at", "by", "it",
+            "its", "as", "that", "this", "these", "those", "from", "but", "not",
+            "has", "had", "have", "he", "she", "they", "we", "you", "i", "his",
+            "her", "their"
+        };
+
         private static string[] SplitNormalize(string? text)
         {
             if (string.IsNullOrWhiteSpace(text)) return Array.Empty<string>();

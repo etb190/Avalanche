@@ -1287,6 +1287,7 @@ namespace Avalanche
                 NewFileBtn.Visibility = Visibility.Visible;
                 GrpEditorFiles.Visibility = Visibility.Visible;   // the editor's doors on the bar (v1.19.81)
                 RightContainer.Visibility = Visibility.Collapsed;
+                FooterDocumentControls.Visibility = Visibility.Collapsed;   // A4 badge, view modes and zoom are the PDF's own (v1.19.95)
             }
             else
             {
@@ -1294,8 +1295,12 @@ namespace Avalanche
                 ApplyToolsMode();                        // the ordinary law returns
                 ToolsBtn.Visibility = Visibility.Visible;
                 RightContainer.Visibility = Visibility.Visible;
+                FooterDocumentControls.Visibility = Visibility.Visible;
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             }
+            // A fresh pane, a clean slate: a citation miss from the pane that
+            // just left never outlives the switch (v1.19.95).
+            SetStatus(Loc("Str_Ready"));
             // The toggle wears its destination: caption and tooltip both speak
             // the pane the reader would reach by pressing it.
             for (int i = 0; i < _toolbarButtons.Count; i++)
@@ -1328,6 +1333,7 @@ namespace Avalanche
                 NewFileBtn.Visibility = Visibility.Visible;
                 RightContainer.Visibility = Visibility.Collapsed;
                 PdfEditorBtn.Visibility = Visibility.Visible;
+                FooterDocumentControls.Visibility = Visibility.Collapsed;   // the page has no A4 page size to offer (v1.19.95)
                 BrowserSumBar.Visibility = Visibility.Visible;   // the summary lives on the far right (v1.19.94)
                 WebSumBtn.Visibility = Visibility.Visible;   // the browser summary rides its pane (v1.19.90)
             }
@@ -1338,10 +1344,14 @@ namespace Avalanche
                 RightContainer.Visibility = Visibility.Visible;
                 WebBrowserBtn.Visibility = Visibility.Visible;
                 PdfEditorBtn.Visibility = Visibility.Collapsed;
+                FooterDocumentControls.Visibility = Visibility.Visible;
                 BrowserSumBar.Visibility = Visibility.Collapsed;   // the far-right container steps down too (v1.19.94)
                 WebSumBtn.Visibility = Visibility.Collapsed;   // the summary chip steps down with the pane (v1.19.90)
                 RefreshWebSaveButton(_originalFile ?? _currentFile);
             }
+            // A fresh pane, a clean slate: the page that just left takes its
+            // citation misses with it (v1.19.95).
+            SetStatus(Loc("Str_Ready"));
             // From the browser, both document faces answer by name: the pencil
             // reads "Text Editor" and its neighbor reads "PDF Editor".
             for (int i = 0; i < _toolbarButtons.Count; i++)

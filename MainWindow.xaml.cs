@@ -893,6 +893,21 @@ namespace Avalanche
 
         private void ShowCurrentFileSize()
         {
+            // v1.19.95: the line answers to the pane on screen - the writer's
+            // document name and word count, the browser's page - and the book's
+            // size when a book is what is open.
+            if (_editorLeads)
+            {
+                _ = ShowEditorStatusAsync();
+                return;
+            }
+            if (_browserLeads)
+            {
+                string page = WebPane.ActiveTabTitle;
+                if (!string.IsNullOrWhiteSpace(page))
+                    SetStatusHeld(page, 2500);
+                return;
+            }
             string? path = _originalFile ?? _currentFile;
             if (path is null || !System.IO.File.Exists(path)) return;
             string prior = StatusText.Text;
@@ -901,6 +916,32 @@ namespace Avalanche
                         : bytes >= 1L << 10 ? $"{bytes / (double)(1 << 10):0.#} KB"
                         : $"{bytes} B";
             SetStatusHeld($"{System.IO.Path.GetFileName(path)} - {size}", 2500);
+            var restore = new System.Windows.Threading.DispatcherTimer
+                { Interval = TimeSpan.FromMilliseconds(2550) };
+            restore.Tick += (_, _) =>
+            {
+                restore.Stop();
+                if (DateTime.UtcNow >= _statusHoldUntil) SetStatus(prior);
+            };
+            restore.Start();
+        }
+
+        // The writer's flash (v1.19.95): the active document's name and its
+        // word count, counted from the live page the way the reader sees it.
+        private async System.Threading.Tasks.Task ShowEditorStatusAsync()
+        {
+            string prior = StatusText.Text;
+            string name = TextPane.ActiveTabTitle;
+            if (string.IsNullOrWhiteSpace(name)) name = "Document";
+            int words = 0;
+            try
+            {
+                string text = await TextPane.GetDocumentPlainTextAsync();
+                words = string.IsNullOrWhiteSpace(text) ? 0
+                    : text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            }
+            catch { /* a quiet page counts as zero */ }
+            SetStatusHeld($"{name} - {words:N0} words", 2500);
             var restore = new System.Windows.Threading.DispatcherTimer
                 { Interval = TimeSpan.FromMilliseconds(2550) };
             restore.Tick += (_, _) =>

@@ -179,6 +179,11 @@ namespace Avalanche.Controls
                      border-radius:5px; background:#1e2229; color:#e8e8e8;
                      font:12px 'Segoe UI',sans-serif; outline:none; }
   #ai_bubble input:focus { border-color:#7aa7d8; }
+  #ai_bubble textarea { flex:1; width:220px; min-width:150px; min-height:28px; max-height:140px;
+                        resize:none; overflow-y:auto; box-sizing:border-box; line-height:1.4;
+                        padding:5px 8px; border:1px solid #4a5160; border-radius:4px;
+                        background:#1e2229; color:#e8e8e8; font:12px 'Segoe UI',sans-serif; outline:none; }
+  #ai_bubble textarea:focus { border-color:#7aa7d8; }
   #ai_menu { position:fixed; display:none; z-index:66; background:#2b2f36;
              border-radius:8px; box-shadow:0 6px 22px rgba(0,0,0,0.4); padding:4px; }
   #ai_menu button { display:block; width:100%; text-align:left; padding:6px 12px;
@@ -1489,16 +1494,39 @@ function ensureAiBubble(){
   // the instruction row (v1.19.86): the reader's own words become the job
   var row = document.createElement('div');
   row.className = 'ai-row';
-  var instr = document.createElement('input');
-  instr.type = 'text'; instr.id = 'ai_instr';
+  // v1.19.95: a textarea, not a one-line input - long jobs wrap, the box
+  // grows to the words (capped at 140px), Enter sends and clears,
+  // Shift+Enter makes the newline.
+  var instr = document.createElement('textarea');
+  instr.id = 'ai_instr';
+  instr.rows = 1;
   instr.placeholder = 'Tell the AI what to do\u2026';
+  instr.addEventListener('input', function(){
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 140) + 'px';
+    positionAiBubble();
+  });
   instr.addEventListener('keydown', function(e){
     e.stopPropagation();
-    if (e.key === 'Enter'){ e.preventDefault(); requestCustom(); }
+    if (e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      var val = this.value;
+      this.value = '';
+      this.style.height = 'auto';
+      requestCustom(val);
+      hideAiBubble();
+    }
   });
   var go = document.createElement('button');
   go.type = 'button'; go.id = 'ai_go_btn'; go.textContent = '\u27A4';
-  go.addEventListener('click', function(e){ e.stopPropagation(); requestCustom(); });
+  go.addEventListener('click', function(e){
+    e.stopPropagation();
+    var el = document.getElementById('ai_instr');
+    var val = el ? el.value : '';
+    if (el){ el.value = ''; el.style.height = 'auto'; }
+    requestCustom(val);
+    hideAiBubble();
+  });
   row.appendChild(instr); row.appendChild(go);
   aiBubble.appendChild(row);
   aiMenu = document.createElement('div');
@@ -1574,10 +1602,10 @@ function requestAi(kind, style){
 // The reader's own instruction (v1.19.86): over a selection it replaces,
 // at a bare caret it writes fresh - the answer lands through the same
 // pipes as the voices, one undo step, straight into the page.
-function requestCustom(){
+function requestCustom(forced){
   if (aiInFlight) return;
-  var job = '';
-  try { var el = document.getElementById('ai_instr'); if (el) job = el.value.trim(); } catch(e0){}
+  var job = (typeof forced === 'string') ? forced.trim() : '';
+  if (!job){ try { var el = document.getElementById('ai_instr'); if (el) job = el.value.trim(); } catch(e0){} }
   if (!job) return;
   var sel = quill.getSelection();
   if (!sel && aiSavedSel) sel = aiSavedSel;   // the input's focus blurred Quill; the bubble remembers
@@ -1610,6 +1638,41 @@ function setAiBusy(busy){
 
 // One answer, one range: the rewrite lands as a single updateContents, so
 // undo reads it as one step - and the note whispers when nothing was needed.
+// -- markdown lands rich (v1.19.95) ----------------------------------------
+// The model answers in markdown; the page wants formatting. A light
+// converter turns the markers into HTML and the clipboard reads it into a
+// real Delta - bold bolds, headings head, bullets list - while plain prose
+// keeps the raw path it always rode.
+function mdToHtml(md){
+  if (!md) return '';
+  var html = md
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+    .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+    .replace(/`([^`]+)`/gim, '<code>$1</code>')
+    .replace(/^\s*[-*]\s+(.*$)/gim, '<ul><li>$1</li></ul>')
+    .replace(/\n\n/gim, '<p></p>');
+  html = html.replace(/<\/ul>\s*<ul>/gim, '');
+  return html;
+}
+function looksLikeMarkdown(t){
+  return /(\*\*|(^|\n)\s*#{1,6}\s|\*[^*\n]+\*|^\s*[-*]\s+|`[^`]+`)/.test(t || '');
+}
+function insertRich(index, delLen, text){
+  if (looksLikeMarkdown(text)){
+    try {
+      var delta = quill.clipboard.convert({ html: mdToHtml(text) });
+      quill.updateContents(new Delta().retain(index).delete(delLen).concat(delta), 'user');
+      return delta.length();
+    } catch(e){}
+  }
+  try { quill.updateContents(new Delta().retain(index).delete(delLen).insert(text), 'user'); } catch(e){}
+  return text.length;
+}
+
 function applyAiResult(msg){
   aiInFlight = false;
   setAiBusy(false);
@@ -1626,7 +1689,7 @@ function applyAiResult(msg){
     return;
   }
   if (text.length > 16000) text = text.slice(0, 16000);
-  try { quill.updateContents(new Delta().retain(p.index).delete(p.length).insert(text), 'user'); } catch(e){}
+  insertRich(p.index, p.length, text);
 }
 
 // -- the typewriter (v1.19.79) --------------------------------------------
@@ -1708,12 +1771,12 @@ function finishAiStream(msg){
     return;
   }
   var typedLen = streamTargetIdx - streamStartIdx;
-  if (text !== quill.getText(streamStartIdx, typedLen)){
-    try {
-      quill.updateContents(new Delta().retain(streamStartIdx).delete(typedLen).insert(text), 'user');
-    } catch(e){}
+  var endIdx = streamStartIdx + text.length;
+  if (looksLikeMarkdown(text) || text !== quill.getText(streamStartIdx, typedLen)){
+    // the typed run showed raw markers; the rich answer replaces it whole
+    endIdx = streamStartIdx + insertRich(streamStartIdx, typedLen, text);
   }
-  try { quill.setSelection(streamStartIdx + text.length, 0, 'silent'); } catch(e){}
+  try { quill.setSelection(endIdx, 0, 'silent'); } catch(e){}
   reportState();
 }
 

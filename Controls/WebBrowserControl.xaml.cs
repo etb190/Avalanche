@@ -3835,7 +3835,7 @@ namespace Avalanche.Controls
             "(function(){try{var q=__Q__;"
             + "if(typeof q!=='string'||!q.trim())return JSON.stringify({ok:false,reason:'empty'});"
             + "try{if(window.CSS&&CSS.highlights){CSS.highlights.delete('avalanche-cite');}}catch(e){}"
-            + "var norm=function(s){return (s||'').replace(/\\s+/g,' ').trim();};"
+            + "var norm=function(s){return (s||'').replace(/[\\u2018\\u2019\\u201A\\u201B]/g,'\\'').replace(/[\\u201C\\u201D\\u201E\\u201F]/g,'\\\"').replace(/[\\u2013\\u2014]/g,'-').replace(/\\s+/g,' ').trim();};"   // v1.19.95: smart quotes and dashes fold before the match
             + "var target=norm(q);"
             + "if(!target)return JSON.stringify({ok:false,reason:'empty'});"
             + "var root=document.body;"
@@ -3904,14 +3904,23 @@ namespace Avalanche.Controls
                 CoreWebView2? core = view?.CoreWebView2;
                 if (core is null) return null;
 
-                var execution = core.ExecuteScriptAsync(BuildHighlightScript(quote));
-                var finished = await Task.WhenAny(execution, Task.Delay(10000, ct));
-                if (finished != execution)
+                // v1.19.95: the quote rarely lands verbatim. Walk the quote's
+                // faces (raw, normalized, key words); the first face the page
+                // answers wins, the last verdict answers for them all.
+                Features.AI.WebHighlightResult? verdict = null;
+                foreach (string attempt in Features.AI.QuoteLocator.QuoteAttempts(quote))
                 {
-                    try { execution.Dispose(); } catch { /* a page answering into the void */ }
-                    return null;   // timeout or abandoned context
+                    var execution = core.ExecuteScriptAsync(BuildHighlightScript(attempt));
+                    var finished = await Task.WhenAny(execution, Task.Delay(10000, ct));
+                    if (finished != execution)
+                    {
+                        try { execution.Dispose(); } catch { /* a page answering into the void */ }
+                        return null;   // timeout or abandoned context
+                    }
+                    verdict = Features.AI.WebChat.ParseHighlightResult(execution.Result);
+                    if (verdict is { Ok: true }) return verdict;
                 }
-                return Features.AI.WebChat.ParseHighlightResult(execution.Result);
+                return verdict;
             }
             catch
             {

@@ -39,9 +39,9 @@ internal sealed class AiCitationNumberer
 /// </summary>
 internal static class AiCitations
 {
-    private const string Open = @"[\[\uFF3B\u3010]";
-    private const string Close = @"[\]\uFF3D\u3011]";
-    private const string Digits = @"[\d\uFF10-\uFF19]{1,3}";
+    private const string Open = @"[\[\uFF3B\u3010\(\uFF08]";   // v1.19.95: parens - cloud models cite (1) as often as [1]
+    private const string Close = @"[\]\uFF3D\u3011\)\uFF09]";
+    private const string Digits = @"[\d\uFF10-\uFF19\u2460-\u2473]{1,3}";   // circled 1-20 ride too
 
     // [SOURCE_3] / 【SOURCE_3】 / [3] / 【3】 (the bare-number form must
     // not swallow markdown links like [3](https://...) hence the lookahead,
@@ -50,7 +50,8 @@ internal static class AiCitations
     internal static readonly Regex InlineRx = new(
         Open + @"\s*SOURCE[\s_\-]*(?<s>" + Digits + @")\s*" + Close +
         @"|" + @"(?<!\w)" + Open + @"\s*(?<p>" + Digits + @")\s*" + Close + @"(?!\s*\()" +
-        @"|\bSOURCE[\s_\-]*(?<b>" + Digits + @")(?![\w\uFF10-\uFF19\-])",
+        @"|\bSOURCE[\s_\-]*(?<b>" + Digits + @")(?![\w\uFF10-\uFF19\-])" +
+        @"|(?<c>[\u2460-\u2473])",   // a bare circled number IS a citation marker
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     // Same vocabulary for the ids inside 'sources' ("SOURCE_3", "source 3",
@@ -70,7 +71,7 @@ internal static class AiCitations
     /// text (array indexes) to promote into a citation.</summary>
     internal static int MatchToNumber(Match m)
     {
-        foreach (var name in new[] { "s", "p", "b" })
+        foreach (var name in new[] { "s", "p", "b", "c" })
         {
             var g = m.Groups[name];
             if (g.Success)
@@ -104,6 +105,7 @@ internal static class AiCitations
         foreach (var ch in text.Trim())
         {
             int d = ch >= '\uFF10' && ch <= '\uFF19' ? ch - '\uFF10'
+                  : ch >= '\u2460' && ch <= '\u2473' ? ch - '\u2460' + 1
                   : ch >= '0' && ch <= '9' ? ch - '0'
                   : -1;
             if (d < 0)
