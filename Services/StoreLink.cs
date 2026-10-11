@@ -16,6 +16,14 @@ public static class StoreLink
     private static readonly Regex IdPattern =
         new("(?<![a-p])[a-p]{32}(?![a-p])", RegexOptions.Compiled);
 
+    /// <summary>Percent-escapes are the transport's clothes: the crate
+    /// endpoint wraps the id as id%3D&lt;id&gt;%26uc, and the letter that
+    /// encoding leaves touching the id ('d') is itself an id letter. Each
+    /// triplet becomes a separator, so a run can neither be refused its
+    /// neighbour nor read as longer than it is.</summary>
+    private static readonly Regex PercentPattern =
+        new("%[0-9a-f]{2}", RegexOptions.Compiled);
+
     /// <summary>Accepts a chromewebstore.google.com detail link (current or
     /// legacy chrome.google.com/webstore shape), the crate endpoint's own
     /// query form, or a bare id; yields the id or nothing.</summary>
@@ -24,6 +32,7 @@ public static class StoreLink
         extId = "";
         if (string.IsNullOrWhiteSpace(input)) return false;
         string s = input.Trim().ToLowerInvariant();
+        s = PercentPattern.Replace(s, " ");
         if (s.Length == 32 && IsIdShaped(s)) { extId = s; return true; }
         Match m = IdPattern.Match(s);
         if (!m.Success) return false;
