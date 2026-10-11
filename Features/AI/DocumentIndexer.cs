@@ -186,7 +186,12 @@ namespace Avalanche.Features.AI
             }
 
             int dim = 0;
-            const int batchSize = 32;
+            // v1.20.0: the missing chunks ride to the embedding client in one
+            // group - the client packs them by token budget and flies several
+            // requests at once (was: 32, one sequential request each). The
+            // resume/checkpoint rules above are untouched; progress now steps
+            // in wider beats as each group lands.
+            const int batchSize = 256;
             for (int offset = 0; offset < missing.Count; offset += batchSize)
             {
                 cancellationToken.ThrowIfCancellationRequested();

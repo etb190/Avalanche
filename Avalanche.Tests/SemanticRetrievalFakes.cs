@@ -21,6 +21,10 @@ internal sealed class FakeEmbedHandler : HttpMessageHandler
 {
     public int RequestCount;
     public readonly List<string> RequestBodies = new();
+
+    // v1.20.0: the client now flies several batch requests at once, so the
+    // recorder must survive concurrent SendAsync calls.
+    private readonly object _recordGate = new object();
     public Func<HttpRequestMessage, HttpResponseMessage>? Responder;
 
     // Async variant (takes precedence over Responder) - lets tests simulate
@@ -35,8 +39,12 @@ internal sealed class FakeEmbedHandler : HttpMessageHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Interlocked.Increment(ref RequestCount);
+        string? ownBody = null;
         if (request.Content is not null)
-            RequestBodies.Add(request.Content.ReadAsStringAsync(cancellationToken).Result);
+        {
+            ownBody = request.Content.ReadAsStringAsync(cancellationToken).Result;
+            lock (_recordGate) { RequestBodies.Add(ownBody); }
+        }
 
         if (AsyncResponder is not null)
             return await AsyncResponder(request, cancellationToken);
@@ -44,8 +52,10 @@ internal sealed class FakeEmbedHandler : HttpMessageHandler
             return Responder(request);
 
         // Default: serve deterministic vectors from the map; unknown texts get
-        // a distinct unit vector keyed by the text hash.
-        var body = JsonSerializer.Deserialize<JsonElement>(RequestBodies[^1]);
+        // a distinct unit vector keyed by the text hash. v1.20.0: THIS request's
+        // own body - under concurrent flights the last-recorded body may belong
+        // to another request.
+        var body = JsonSerializer.Deserialize<JsonElement>(ownBody!);
         var model = body.GetProperty("model").GetString();
         Assert.Equal("embeddinggemma:latest", model);
         var inputs = body.GetProperty("input").EnumerateArray().Select(e => e.GetString()!).ToList();

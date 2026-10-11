@@ -40,6 +40,30 @@ namespace Avalanche.Features.AI
         private readonly HttpClient _httpClient;
         private readonly int _batchSize;
 
+        // v1.20.0: the fast path. Requests are packed by an estimated TOKEN
+        // BUDGET (chars/4) instead of a fixed chunk count - chunks ride
+        // together until the budget or the _batchSize input cap is crossed -
+        // and up to MaxConcurrency packed requests are in flight at once,
+        // stitched back in input order (the 1:1 alignment contract is
+        // untouched). The budget ADAPTS to the endpoint: a timeout-split or
+        // an HTTP 413 halves it (floor 8K chars), a clean request grows it a
+        // quarter (cap 400K) - fat cloud pipes ride big requests while a
+        // CPU-only Ollama settles where its 60s deadline is comfortable. A
+        // rate-limited door (HTTP 429) is waited out, never split and never
+        // failed early, so politeness costs seconds instead of a pass.
+        internal int TokenBudgetChars { get; set; } = 200_000;
+        internal int MaxConcurrency { get; set; } = 4;
+        private const int MinTokenBudgetChars = 8_000;
+        private const int MaxTokenBudgetChars = 400_000;
+
+        private void HalveBudget() => TokenBudgetChars = Math.Max(MinTokenBudgetChars, TokenBudgetChars / 2);
+        private void GrowBudget() => TokenBudgetChars = Math.Min(MaxTokenBudgetChars, TokenBudgetChars + TokenBudgetChars / 4);
+
+        // Rate-limit waits, escalating per consecutive 429 on the SAME batch
+        // (attempt 1..3). Instance hook so tests shrink the waits to nothing.
+        internal Func<int, TimeSpan> RateLimitDelay { get; set; } =
+            a => a <= 1 ? TimeSpan.FromSeconds(3) : a == 2 ? TimeSpan.FromSeconds(10) : TimeSpan.FromSeconds(25);
+
         // Capability probe state (see class doc). A negative probe is retried
         // after EmbeddingRetryCoolDown so a temporarily-down Ollama does not
         // disable semantic search for the whole process run. The state is
@@ -67,10 +91,10 @@ namespace Avalanche.Features.AI
         // endpoint, not a slow model - fail instead of splitting forever.
         private const int MinSplitBatchSize = 4;
 
-        public OllamaEmbeddingClient(Func<AiProviderConfig> configProvider, int batchSize = 32, HttpMessageHandler? handler = null)
+        public OllamaEmbeddingClient(Func<AiProviderConfig> configProvider, int batchSize = 256, HttpMessageHandler? handler = null)
         {
             _configProvider = configProvider ?? throw new ArgumentNullException(nameof(configProvider));
-            _batchSize = batchSize > 0 ? batchSize : 32;
+            _batchSize = batchSize > 0 ? batchSize : 256;
             _httpClient = handler is not null
                 ? new HttpClient(handler, disposeHandler: false) { Timeout = TimeSpan.FromMinutes(5) }
                 : new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
@@ -126,18 +150,54 @@ namespace Avalanche.Features.AI
 
             await EnsureEmbeddingsAvailableAsync(cancellationToken).ConfigureAwait(false);
 
-            var results = new List<float[]>(texts.Count);
-            for (int i = 0; i < texts.Count; i += _batchSize)
+            // v1.20.0: pack by estimated tokens (chars/4) under a hard input
+            // cap - one request carries as much as the endpoint's budget
+            // allows - then fly up to MaxConcurrency of those requests at
+            // once. Results merge in input order.
+            var batches = new List<List<string>>();
+            var current = new List<string>();
+            long currentTokens = 0;
+            foreach (var text in texts)
             {
-                int end = Math.Min(i + _batchSize, texts.Count);
-                var batch = new List<string>(end - i);
-                for (int j = i; j < end; j++)
-                    batch.Add(texts[j] ?? "");
+                int tokens = ((text ?? "").Length + 3) / 4 + 8;   // estimate + framing
+                if (current.Count > 0
+                    && (current.Count >= _batchSize || currentTokens + tokens > TokenBudgetChars))
+                {
+                    batches.Add(current);
+                    current = new List<string>();
+                    currentTokens = 0;
+                }
+                current.Add(text ?? "");
+                currentTokens += tokens;
+            }
+            if (current.Count > 0) batches.Add(current);
 
-                var batchResults = await SendBatchWithSplitRetryAsync(batch, cancellationToken).ConfigureAwait(false);
-                results.AddRange(batchResults);
+            var results = new List<float[]>(texts.Count);
+            if (batches.Count == 1 || MaxConcurrency <= 1)
+            {
+                foreach (var batch in batches)
+                    results.AddRange(await SendBatchWithSplitRetryAsync(batch, cancellationToken).ConfigureAwait(false));
+                return results.ToArray();
             }
 
+            using var gate = new SemaphoreSlim(MaxConcurrency, MaxConcurrency);
+            var flights = new Task<List<float[]>>[batches.Count];
+            for (int i = 0; i < batches.Count; i++)
+            {
+                var batch = batches[i];
+                flights[i] = Task.Run(async () =>
+                {
+                    await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        return await SendBatchWithSplitRetryAsync(batch, cancellationToken).ConfigureAwait(false);
+                    }
+                    finally { gate.Release(); }
+                }, cancellationToken);
+            }
+
+            foreach (var part in await Task.WhenAll(flights).ConfigureAwait(false))
+                results.AddRange(part);
             return results.ToArray();
         }
 
@@ -154,19 +214,49 @@ namespace Avalanche.Features.AI
         /// </summary>
         private async Task<List<float[]>> SendBatchWithSplitRetryAsync(List<string> batch, CancellationToken ct)
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            cts.CancelAfter(BatchTimeout);
-            try
-            {
-                return await GenerateBatchAsync(batch, cts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested && batch.Count >= MinSplitBatchSize)
+            // Splits the batch in half and rides both halves through the same
+            // machinery (deadline and 413 land here; the budget was already
+            // halved by the catch that called this).
+            async Task<List<float[]>> SplitAndJoin()
             {
                 int half = batch.Count / 2;
                 var first = await SendBatchWithSplitRetryAsync(batch.Take(half).ToList(), ct).ConfigureAwait(false);
                 var second = await SendBatchWithSplitRetryAsync(batch.Skip(half).ToList(), ct).ConfigureAwait(false);
                 first.AddRange(second);
                 return first;
+            }
+
+            // v1.20.0: one attempt covers three fates - a clean answer (the
+            // budget grows), a deadline or HTTP 413 (the budget halves and the
+            // batch splits), and HTTP 429 (wait, then the SAME batch rides
+            // again; three escalating waits, then the typed failure surfaces
+            // to the caller's own retry).
+            for (int attempt = 1; ; attempt++)
+            {
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                cts.CancelAfter(BatchTimeout);
+                try
+                {
+                    var vectors = await GenerateBatchAsync(batch, cts.Token).ConfigureAwait(false);
+                    GrowBudget();
+                    return vectors;
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested && batch.Count >= MinSplitBatchSize)
+                {
+                    HalveBudget();
+                    return await SplitAndJoin().ConfigureAwait(false);
+                }
+                catch (AiProviderException ex) when (ex.HttpStatus == System.Net.HttpStatusCode.RequestEntityTooLarge
+                                                     && batch.Count >= MinSplitBatchSize && !ct.IsCancellationRequested)
+                {
+                    HalveBudget();
+                    return await SplitAndJoin().ConfigureAwait(false);
+                }
+                catch (AiProviderException ex) when (ex.HttpStatus == System.Net.HttpStatusCode.TooManyRequests
+                                                     && attempt <= 3 && !ct.IsCancellationRequested)
+                {
+                    await Task.Delay(RateLimitDelay(attempt), ct).ConfigureAwait(false);
+                }
             }
         }
 

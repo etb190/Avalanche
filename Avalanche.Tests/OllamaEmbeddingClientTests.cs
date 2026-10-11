@@ -268,6 +268,66 @@ public sealed class OllamaEmbeddingClientTests : IDisposable
         c.Dispose();
     }
 
+    // v1.20.0: a rate-limited endpoint is waited out - the SAME batch rides
+    // again after the (test-shrunk) delay, and only the probe + retried
+    // calls appear in the record.
+    [Fact]
+    public async Task RateLimitedBatch_WaitsAndRetries_SameBatch()
+    {
+        int fourTwenties = 0;
+        var handler = new FakeEmbedHandler
+        {
+            Responder = r =>
+            {
+                if (Interlocked.Increment(ref fourTwenties) <= 2)
+                    return Json("{\"error\":\"slow down\"}", HttpStatusCode.TooManyRequests);
+                var body = r.Content!.ReadAsStringAsync(CancellationToken.None).Result;
+                var doc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body);
+                int count = doc.GetProperty("input").GetArrayLength();
+                var vectors = Enumerable.Range(0, count).Select(_ => new float[] { 1f, 0f, 0f, 0f }).ToArray();
+                return Json(System.Text.Json.JsonSerializer.Serialize(new { embeddings = vectors }));
+            }
+        };
+        var c = NewClient(handler, batchSize: 8);
+        c.RateLimitDelay = a => TimeSpan.FromMilliseconds(20);
+
+        var texts = Enumerable.Range(0, 8).Select(i => $"text {i}").ToList();
+        var vectors = await c.GenerateEmbeddingsAsync(texts);
+        c.Dispose();
+
+        Assert.Equal(8, vectors.Length);
+        Assert.All(vectors, v => Assert.Equal(4, v.Length));
+        Assert.Equal(1 + 3, handler.RequestCount);   // probe + 429, 429, success
+    }
+
+    // v1.20.0: a payload the door refuses (HTTP 413) splits like a timeout.
+    [Fact]
+    public async Task PayloadTooLarge_SplitsUntilItFits()
+    {
+        var handler = new FakeEmbedHandler
+        {
+            Responder = r =>
+            {
+                var body = r.Content!.ReadAsStringAsync(CancellationToken.None).Result;
+                var doc = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(body);
+                int count = doc.GetProperty("input").GetArrayLength();
+                if (count > 2)
+                    return Json("{\"error\":\"too large\"}", HttpStatusCode.RequestEntityTooLarge);
+                var vectors = Enumerable.Range(0, count).Select(_ => new float[] { 1f, 0f, 0f, 0f }).ToArray();
+                return Json(System.Text.Json.JsonSerializer.Serialize(new { embeddings = vectors }));
+            }
+        };
+        var c = NewClient(handler, batchSize: 8);
+
+        var texts = Enumerable.Range(0, 8).Select(i => $"text {i}").ToList();
+        var vectors = await c.GenerateEmbeddingsAsync(texts);
+        c.Dispose();
+
+        Assert.Equal(8, vectors.Length);
+        Assert.All(vectors, v => Assert.Equal(4, v.Length));
+        Assert.Equal(1 + 1 + 2 + 4, handler.RequestCount);   // probe + 8, 4+4, 2+2+2+2
+    }
+
     [Fact]
     public async Task MappedVectors_FlowThroughEndToEnd()
     {
