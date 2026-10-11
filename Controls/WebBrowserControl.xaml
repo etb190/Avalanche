@@ -273,9 +273,25 @@
                                     PreviewMouseLeftButtonUp="BookmarkChip_DragRelease"
                                     LostMouseCapture="BookmarkChip_DragLostCapture">
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                               Margin="0,1,5,0" VerticalAlignment="Center"
-                                               Foreground="{DynamicResource MutedTextBrush}"/>
+                                    <Grid Width="14" Height="14" Margin="0,1,5,0" VerticalAlignment="Center">
+                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                   Foreground="{DynamicResource MutedTextBrush}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding FaviconImage}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <!-- v1.22.0: the page's own icon, handed over in
+                                             memory by the page itself; the globe keeps
+                                             the seat until one arrives. -->
+                                        <Image Source="{Binding FaviconImage}" Width="14" Height="14"/>
+                                    </Grid>
                                     <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <Button.ContextMenu>
@@ -391,9 +407,23 @@
                                         LostMouseCapture="BookmarkChip_DragLostCapture"
                                         HorizontalAlignment="Stretch">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
-                                                   Margin="0,1,5,0" VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource MutedTextBrush}"/>
+                                        <Grid Width="14" Height="14" Margin="0,1,5,0" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                                       Foreground="{DynamicResource MutedTextBrush}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding FaviconImage}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- v1.22.0: the page's own icon, as on the strip. -->
+                                            <Image Source="{Binding FaviconImage}" Width="14" Height="14"/>
+                                        </Grid>
                                         <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <Button.ContextMenu>

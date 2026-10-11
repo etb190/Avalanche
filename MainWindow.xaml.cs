@@ -1013,6 +1013,10 @@ namespace Avalanche
             // Fresh conversation: sweep bubbles, any deferred reply and the
             // citation highlight. The document index is deliberately KEPT so
             // the next question answers immediately instead of re-indexing.
+            // v1.22.0: a fresh conversation is itself the surface - whatever
+            // the reader was looking at steps aside so the clean chat shows.
+            AiHistoryOverlay.Visibility = Visibility.Collapsed;
+            CloseAiSettings();
             ClearAiSourceHighlight();
             _aiChatViewModel?.StartNewChat();
         }
@@ -1984,6 +1988,9 @@ namespace Avalanche
                 return;
             }
 
+            // v1.22.0: the surfaces trade - history steps aside so settings
+            // shows in one click instead of two.
+            AiHistoryOverlay.Visibility = Visibility.Collapsed;
             if (_aiSettingsViewModel is not null)
             {
                 _aiSettingsViewModel.Load();
@@ -3653,6 +3660,9 @@ namespace Avalanche
                 AiHistoryOverlay.Visibility = Visibility.Collapsed;
                 return;
             }
+            // v1.22.0: the surfaces trade - settings (which saves on close)
+            // steps aside so the list shows in one click instead of two.
+            if (AiSettingsOverlay.Visibility == Visibility.Visible) CloseAiSettings();
             // The conversation on screen gets its row before the list builds,
             // so it shows up marked current even when nothing was saved yet.
             _aiChatViewModel.PersistActiveTranscriptForHistory();
@@ -3781,9 +3791,28 @@ namespace Avalanche
                 AiArchiveActionBtn.Visibility = Visibility.Collapsed;
                 return;
             }
-            AiArchiveActionBtn.Content = actionKind == "web"
-                ? Loc("Str_AiHistoryOpenPage")
-                : Loc("Str_AiHistoryReopen");
+            // v1.22.0: the banner's button wears its own face again - a glyph
+            // and a label, each in its own font. The toolbar style paints every
+            // word in Segoe MDL2 Assets, which turned the plain-text "Reopen"
+            // into stranger symbols than any icon we ever meant to draw.
+            bool web = actionKind == "web";
+            var face = new StackPanel { Orientation = Orientation.Horizontal };
+            face.Children.Add(new TextBlock
+            {
+                Text = web ? "\uE8A7" : "\uE8E5",
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 10,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 5, 1),
+            });
+            face.Children.Add(new TextBlock
+            {
+                Text = web ? Loc("Str_AiHistoryOpenPage") : Loc("Str_AiHistoryReopen"),
+                FontFamily = (FontFamily)FindResource("UiFont"),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            AiArchiveActionBtn.Content = face;
             AiArchiveActionBtn.Visibility = Visibility.Visible;
         }
 

@@ -2951,10 +2951,25 @@
                                                                 ToolTip="{DynamicResource Str_TT_CloseTab}"
                                                                 Tag="{Binding Url}" Click="WebTabStripClose_Click"/>
                                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <!-- The little globe: this strip is the web's, not the reader's. -->
-                                                            <TextBlock x:Name="webTabIcon" Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="10"
-                                                                       Margin="0,1,5,0" VerticalAlignment="Center"
-                                                                       Foreground="{DynamicResource MutedTextBrush}" Opacity="0.75"/>
+                                                            <!-- The little globe: this strip is the web's, not the reader's.
+                                                                 v1.22.0: when the page has drawn its own icon, the icon
+                                                                 stands in the globe's place instead. -->
+                                                            <Grid Width="12" Height="12" Margin="0,1,5,0" VerticalAlignment="Center">
+                                                                <TextBlock x:Name="webTabIcon" Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                                           Foreground="{DynamicResource MutedTextBrush}" Opacity="0.75">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Favicon}" Value="{x:Null}">
+                                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                                <Image Source="{Binding Favicon}" Width="12" Height="12"/>
+                                                            </Grid>
                                                             <TextBlock x:Name="webTabLabel" Text="{Binding Title}"
                                                                        FontFamily="{DynamicResource UiFont}" FontSize="11"
                                                                        Foreground="{DynamicResource MutedTextBrush}"
@@ -3304,7 +3319,8 @@
                                        FontFamily="{DynamicResource UiFont}" FontSize="11"
                                        Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
                             <Button x:Name="AiArchiveActionBtn" Grid.Column="1" Style="{StaticResource ToolbarButton}"
-                                    Click="AiArchiveActionBtn_Click" FontSize="10" Padding="6,2" MinWidth="0"
+                                    Click="AiArchiveActionBtn_Click" Padding="8,3" MinWidth="0"
+                                    Width="Auto" Height="22"
                                     Foreground="{DynamicResource PrimaryBrush}" VerticalAlignment="Center"
                                     Visibility="Collapsed"/>
                         </Grid>

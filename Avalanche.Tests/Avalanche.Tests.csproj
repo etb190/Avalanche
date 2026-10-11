@@ -63,6 +63,7 @@
     <Compile Include="..\Services\PrintColorConverter.cs" Link="Services\PrintColorConverter.cs" />
     <Compile Include="..\Services\PrintOrientationPolicy.cs" Link="Services\PrintOrientationPolicy.cs" />
     <Compile Include="..\Services\PageQualityConverter.cs" Link="Services\PageQualityConverter.cs" />
+    <Compile Include="..\Services\FaviconCodec.cs" Link="Services\FaviconCodec.cs" />
     <Compile Include="..\Services\MeasurementCalculator.cs" Link="Services\MeasurementCalculator.cs" />
     <Compile Include="..\Services\OutputPixelDimensions.cs" Link="Services\OutputPixelDimensions.cs" />
     <Compile Include="..\Services\BitonalPageDetector.cs" Link="Services\BitonalPageDetector.cs" />

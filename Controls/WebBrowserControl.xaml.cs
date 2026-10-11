@@ -424,6 +424,12 @@ namespace Avalanche.Controls
                 LoadPendingExtensions(core);
             }
             core.WebMessageReceived += OnWebMessageReceived;
+            // v1.22.0: the page draws its own tab icon. The probe waits for the
+            // page's declared favicon, reads it back out of the page's own cache
+            // through a same-origin canvas and posts one data URI - nothing is
+            // fetched twice, nothing is written down, nobody else is told.
+            try { _ = core.AddScriptToExecuteOnDocumentCreatedAsync(FaviconProbeScript); }
+            catch { /* a runtime that refuses the probe keeps the globe */ }
         }
 
         // ── Navigation ────────────────────────────────────────────────────────────────────
@@ -1889,8 +1895,10 @@ namespace Avalanche.Controls
                 catch { /* already a JSON object - parse as-is */ }
                 using System.Text.Json.JsonDocument doc = System.Text.Json.JsonDocument.Parse(payload);
                 if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Object
-                    || !doc.RootElement.TryGetProperty("type", out System.Text.Json.JsonElement type)
-                    || type.GetString() != "avalanche-open-pdf") return;
+                    || !doc.RootElement.TryGetProperty("type", out System.Text.Json.JsonElement type)) return;
+                // v1.22.0: the page's own icon arrives before the helper's word.
+                if (type.GetString() == "avalanche-favicon") { HandleFaviconMessage(sender, doc.RootElement); return; }
+                if (type.GetString() != "avalanche-open-pdf") return;
                 string? url = doc.RootElement.TryGetProperty("url", out System.Text.Json.JsonElement u)
                     ? u.GetString() : null;
                 if (string.IsNullOrEmpty(url)) return;
@@ -1902,6 +1910,136 @@ namespace Avalanche.Controls
                 _ = FetchAndHandOffAsync(url, alt, v);
             }
             catch { /* a message that stumbles is never worth a crash */ }
+        }
+
+        // ── The page's own icon (v1.22.0) ────────────────────────────────────────
+        // The probe below rides every view: it waits for the page to declare its
+        // icon, reads the bytes back out of the page's own cache through a
+        // same-origin canvas, and posts one data URI to the host. The host
+        // decodes it in memory, dresses the tab that sent it, and every saved
+        // chip of the same host wears it too. No second fetch ever leaves the
+        // app, nothing is written to disk, and no service is ever told.
+
+        /// <summary>The probe itself. Same-origin only - a cross-origin icon
+        /// would taint the canvas - so a site that serves its face from another
+        /// domain keeps the globe unless its own /favicon.ico answers; honest
+        /// degradation, never a broken tab. The canvas cap (98304) is tighter
+        /// than the decoder's, so an oversized answer never even travels.</summary>
+        private const string FaviconProbeScript =
+            """
+            (function () {
+              if (window.top !== window.self) return;
+              var done = false;
+              function post(u) {
+                if (done) return;
+                done = true;
+                try { window.chrome.webview.postMessage(JSON.stringify({ type: 'avalanche-favicon', data: u })); } catch (e) { }
+              }
+              function run() {
+                try {
+                  var p = location.protocol;
+                  if (p !== 'http:' && p !== 'https:') return;
+                  var cands = [];
+                  var links = document.querySelectorAll('link[href]');
+                  for (var i = 0; i < links.length; i++) {
+                    var rel = (links[i].rel || '').toLowerCase();
+                    if (rel.indexOf('icon') < 0 || rel.indexOf('apple') >= 0) continue;
+                    var h = links[i].href;
+                    if (!h) continue;
+                    if (h.indexOf('data:image/') === 0) { post(h); return; }
+                    try { if (new URL(h).origin === location.origin) cands.push(h); } catch (e) { }
+                  }
+                  cands.push(location.origin + '/favicon.ico');
+                  var n = 0;
+                  function next() {
+                    if (done || n >= cands.length) return;
+                    var img = new Image();
+                    img.onload = function () {
+                      try {
+                        var c = document.createElement('canvas');
+                        c.width = 32; c.height = 32;
+                        c.getContext('2d').drawImage(img, 0, 0, 32, 32);
+                        var d = c.toDataURL('image/png');
+                        if (d && d.length > 6 && d.length < 98304) post(d); else next();
+                      } catch (e) { next(); }
+                    };
+                    img.onerror = function () { next(); };
+                    img.src = cands[n++];
+                  }
+                  next();
+                } catch (e) { }
+              }
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', run);
+                window.addEventListener('load', function () { setTimeout(run, 1500); });
+              } else {
+                run();
+                window.addEventListener('load', function () { setTimeout(run, 1500); });
+              }
+            })();
+            """;
+
+        /// <summary>The page's word: here is my icon. Decoded once in memory,
+        /// painted on the tab that sent it, and shared with every saved chip of
+        /// the same host that never earned one. Nothing touches the disk here -
+        /// a bookmark's copy rides inside bookmarks.json only because the
+        /// reader chose to keep that bookmark (v1.22.0).</summary>
+        private void HandleFaviconMessage(object? sender, System.Text.Json.JsonElement root)
+        {
+            try
+            {
+                string? data = root.TryGetProperty("data", out System.Text.Json.JsonElement d)
+                    ? d.GetString() : null;
+                if (string.IsNullOrEmpty(data)) return;
+                ImageSource? icon = Avalanche.Services.FaviconCodec.Decode(data);
+                if (icon is null) return;
+                WebView2? v = ViewOfCore(sender as CoreWebView2);
+                if (v is null) return;
+                WebTabCardVm? card = CardFor(v);
+                if (card is not null)
+                {
+                    card.FaviconData = data;
+                    card.Favicon = icon;
+                }
+                string host = TryHostOf(v.Source?.ToString());
+                if (host.Length == 0) return;
+                bool changed = false;
+                foreach (BookmarkVm b in Bookmarks)
+                {
+                    if (b.Favicon.Length == 0 && string.Equals(TryHostOf(b.Url), host, StringComparison.OrdinalIgnoreCase))
+                    {
+                        b.Favicon = data;   // the setter decodes; the next save carries it
+                        changed = true;
+                    }
+                }
+                if (changed) PersistBookmarks();
+            }
+            catch { /* an icon that stumbles is never worth a crash */ }
+        }
+
+        /// <summary>The icon a new bookmark of this host should wear (v1.22.0):
+        /// the data URI any open tab of the site already handed over, or none -
+        /// the globe stands in until a favicon earns its keep.</summary>
+        private string? FaviconDataForHost(string? host)
+        {
+            if (string.IsNullOrEmpty(host)) return null;
+            foreach (WebTabCardVm t in Tabs)
+                if (t.FaviconData.Length > 0 && string.Equals(TryHostOf(t.Url), host, StringComparison.OrdinalIgnoreCase))
+                    return t.FaviconData;
+            return null;
+        }
+
+        /// <summary>The host of an address, for the icon-sharing match - and
+        /// empty string for anything that is not a web address.</summary>
+        private static string TryHostOf(string? url)
+        {
+            if (string.IsNullOrEmpty(url)) return "";
+            try
+            {
+                return Uri.TryCreate(url, UriKind.Absolute, out Uri? u)
+                    && (u.Scheme == Uri.UriSchemeHttp || u.Scheme == Uri.UriSchemeHttps) ? u.Host : "";
+            }
+            catch { return ""; }
         }
 
         /// <summary>The extension button's road: the credentialed out-of-process
@@ -2415,7 +2553,7 @@ namespace Avalanche.Controls
             {
                 Name = name.Length > 0 ? name : (Browser?.Source?.Host ?? url),
                 Url = url,
-                Favicon = string.Empty,   // the globe stands in until a favicon earns its keep
+                Favicon = FaviconDataForHost(Browser?.Source?.Host) ?? string.Empty,   // the session's own look at this site, if it earned one
                 Folder = folder,
             });
             PersistBookmarks();
@@ -4000,6 +4138,16 @@ namespace Avalanche.Controls
         /// <summary>The captured preview; null keeps the previous frame.</summary>
         public ImageSource? Thumb { get => _thumb; set { _thumb = value; OnPropertyChanged(); } }
 
+        private ImageSource? _favicon;
+        /// <summary>The page's own icon (v1.22.0), handed over in memory by the
+        /// page itself; null keeps the globe glyph in the tab strip.</summary>
+        public ImageSource? Favicon { get => _favicon; set { _favicon = value; OnPropertyChanged(); } }
+
+        private string _faviconData = "";
+        /// <summary>The raw data URI behind Favicon - what a bookmark of this
+        /// host tucks into bookmarks.json when it is saved (v1.22.0).</summary>
+        public string FaviconData { get => _faviconData; set { _faviconData = value; OnPropertyChanged(); } }
+
         private bool _isActive;
         /// <summary>The view currently on screen - the accent ring's paint flag.</summary>
         public bool IsActive { get => _isActive; set { _isActive = value; OnPropertyChanged(); } }
@@ -4063,8 +4211,25 @@ namespace Avalanche.Controls
         /// <summary>The address the chip opens - the bookmark's identity.</summary>
         public string Url { get; set; } = "";
 
-        /// <summary>Reserved for the site's icon; empty keeps the globe glyph.</summary>
-        public string Favicon { get; set; } = "";
+        private string _favicon = "";
+        /// <summary>The site's icon as a data URI; empty keeps the globe glyph.
+        /// v1.22.0: the page itself hands the bytes over, and the setter decodes
+        /// them once so every chip of the site paints without rework.</summary>
+        public string Favicon
+        {
+            get => _favicon;
+            set
+            {
+                _favicon = value ?? "";
+                _faviconImage = Avalanche.Services.FaviconCodec.Decode(_favicon);
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(FaviconImage));
+            }
+        }
+
+        private ImageSource? _faviconImage;
+        /// <summary>The decoded icon; null while Favicon is empty (the globe's turn).</summary>
+        public ImageSource? FaviconImage => _faviconImage;
 
         /// <summary>The folder this bookmark lives in (v1.19.28); empty means
         /// the loose strip. Folders are names, persisted beside the bookmarks.</summary>
