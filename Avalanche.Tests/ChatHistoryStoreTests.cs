@@ -230,6 +230,10 @@ public sealed class ChatHistoryCitationTests
             ChunkId = $"c{pageIndex}",
             Text = text,
             PageIndices = new List<int> { pageIndex },
+            // QuoteLocator maps its word-range hit through WordRanges - real
+            // indexer chunks always carry one slot per page, so the fixture
+            // does too (a single slot covering the whole chunk text).
+            WordRanges = new List<int[]> { new[] { 0, 100_000 } },
         };
 
     [Fact]
