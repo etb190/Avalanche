@@ -1244,6 +1244,14 @@ namespace Avalanche
 
         private void ApplyToolsMode()
         {
+            // v1.19.99: the face-stranded children stand back up. The faces once hid
+            // these three by NAME while every restore path only knew their GROUPS, so
+            // the pair could go dark mid-session, deaf to the Tools switch and to every
+            // resize. The mode law owns the children through their groups alone - it
+            // keeps them upright on every pass, in every mode, in every face.
+            ComparePdfBtn.Visibility = Visibility.Visible;
+            MergeBtn.Visibility = Visibility.Visible;
+            ExtractBtn.Visibility = Visibility.Visible;
             foreach (string name in ToolsModeElements)
             {
                 if (FindName(name) is FrameworkElement el)
@@ -1277,7 +1285,11 @@ namespace Avalanche
             "CloseFileBtn", "OpenFileBtn", "OpenRecentBtn", "SaveAsBtn", "SaveMenuBtn",
             "OcrBtn", "OcrMenuBtn", "SaveFlattenedBtn", "PrintBtn",
             "WebSavePdfBtn", "ToolsBtn",
-            "GrpCompare", "ComparePdfBtn", "GrpPageOps", "MergeBtn", "ExtractBtn", "GrpPageEdit",
+            // v1.19.99: groups ONLY. A face that collapsed a group's children by name
+            // stranded them - the restore law knows the groups, never the children -
+            // so one visit to the editor or browser left Merge, Extract and Compare
+            // dark until the app restarted. A collapsed group already silences its own.
+            "GrpCompare", "GrpPageOps", "GrpPageEdit",
         };
 
         private void ApplyEditorToolbarFace(bool leads)
