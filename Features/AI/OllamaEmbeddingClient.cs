@@ -193,6 +193,10 @@ namespace Avalanche.Features.AI
             if (AiSurfaceModels.GetEmbeddingChoice() == AiSurfaceModels.EmbeddingGeminiChoice)
                 return AiSurfaceModels.GeminiEmbeddingModel;
 
+            // v1.19.97: NVIDIA's embedding guest answers to its dial.
+            if (AiSurfaceModels.GetEmbeddingChoice() == AiSurfaceModels.EmbeddingNemotronChoice)
+                return AiSurfaceModels.NemotronEmbeddingModel;
+
             string root = (config.BaseUrl ?? string.Empty).Trim().TrimEnd('/');
             if (IsCloudHost(root))
             {
@@ -223,6 +227,17 @@ namespace Avalanche.Features.AI
             {
                 return new EmbedTarget(AiSurfaceModels.GeminiEmbeddingUrl,
                     AiSurfaceModels.GeminiEmbeddingModel, AiSurfaceModels.GoogleGuestApiKey);
+            }
+
+            // v1.19.97: NVIDIA's own embeddings door - the reader's nvapi-
+            // key when one is configured, the guest key otherwise.
+            if (AiSurfaceModels.GetEmbeddingChoice() == AiSurfaceModels.EmbeddingNemotronChoice)
+            {
+                string nimKey = !string.IsNullOrWhiteSpace(config.ApiKey) && config.ApiKey.StartsWith("nvapi-", StringComparison.OrdinalIgnoreCase)
+                    ? config.ApiKey
+                    : AiSurfaceModels.NimGuestApiKey;
+                return new EmbedTarget(AiSurfaceModels.NemotronEmbeddingUrl,
+                    AiSurfaceModels.NemotronEmbeddingModel, nimKey);
             }
 
             // v1.19.93: a CLOUD chat host serves its own embeddings - the
@@ -256,6 +271,11 @@ namespace Avalanche.Features.AI
                 ["model"] = target.Model,
                 ["input"] = batch
             };
+            // v1.19.97: NVIDIA NIM's embeddings endpoint rejects any request
+            // without the input_type tag (HTTP 422) - indexing chunks ride
+            // as "passage".
+            if (target.Model.Contains("nemotron", StringComparison.OrdinalIgnoreCase))
+                body["input_type"] = "passage";
             var json = JsonSerializer.Serialize(body);
             using var request = new HttpRequestMessage(HttpMethod.Post, target.Url)
             {

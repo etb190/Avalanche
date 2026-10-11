@@ -3675,8 +3675,8 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
-                                    <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <!-- v1.19.55: the Flash family - same door, same key. -->
@@ -3694,8 +3694,8 @@
                                     <!-- v1.19.47: NIM guests - the dial's third and fourth names. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
-                                    <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <!-- v1.19.55: the Flash family - same door, same key. -->
@@ -3713,8 +3713,8 @@
                                     <!-- v1.19.47: NIM guests - the dial's third and fourth names. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
-                                    <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <!-- v1.19.55: the Flash family - same door, same key. -->
@@ -3732,8 +3732,8 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
-                                    <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <!-- v1.19.55: the Flash family - same door, same key. -->
@@ -3753,8 +3753,8 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
-                                    <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <!-- v1.19.55: the Flash family - same door, same key. -->
@@ -3772,8 +3772,8 @@
                                     <!-- v1.19.48: NIM guests - the same two names, on every dial. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
-                                    <!-- v1.19.49: the OrcaRouter guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <!-- v1.19.50: the Google guest. -->
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <!-- v1.19.55: the Flash family - same door, same key. -->
@@ -3797,6 +3797,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
@@ -3812,6 +3813,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
@@ -3830,6 +3832,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
@@ -3848,6 +3851,7 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
@@ -3875,6 +3879,7 @@
                                          default), bound live from the settings VM. -->
                                     <ComboBoxItem Content="{Binding EmbeddingModel}" Tag="default"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiEmbeddingGeminiItem}" Tag="embed-gemini"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiEmbeddingNemotronItem}" Tag="embed-nemotron"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiSettingsChatTemperature}" Style="{StaticResource AiSettingsLabel}"/>
                                 <TextBox Text="{Binding GenTemperature, Mode=TwoWay}" Style="{StaticResource AiSettingsBox}"/>

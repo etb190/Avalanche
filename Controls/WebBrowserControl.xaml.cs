@@ -176,6 +176,11 @@ namespace Avalanche.Controls
         // carry.
         private const string FreeDownloadManagerExtId = "ahmpjcflkgiildlgicmcieglgoilbfdp";
         private const string FreeVpnExtId = "majdfhpaihoncoakbjgbdhglocklcgno";
+        // v1.19.97: the SNDL rider the reader asked for by store id -
+        // the crate comes from the same official update endpoint, the
+        // payload lands in its own folder, the generic loader registers
+        // it like every other rider.
+        private const string SndlExtId = "ghbpooidfbjigoogmpjemckcpabalfpb";
 
         /// <summary>The official update endpoint's crate for a store extension
         /// id: the very CRX the Chrome Web Store itself would serve.</summary>
@@ -191,6 +196,7 @@ namespace Avalanche.Controls
         private static string AdGuardExtDir => Path.Combine(ExtensionsRoot, "adguard");
         private static string FdmExtDir => Path.Combine(ExtensionsRoot, "free-download-manager");
         private static string FreeVpnExtDir => Path.Combine(ExtensionsRoot, "free-vpn");
+        private static string SndlExtDir => Path.Combine(ExtensionsRoot, "sndl");
         private static readonly System.Net.Http.HttpClient WbHttp = new()
         {
             Timeout = TimeSpan.FromSeconds(120),
@@ -2850,6 +2856,7 @@ namespace Avalanche.Controls
                 (StoreCrxUrl(AdGuardExtId), AdGuardExtDir),
                 (StoreCrxUrl(FreeDownloadManagerExtId), FdmExtDir),
                 (StoreCrxUrl(FreeVpnExtId), FreeVpnExtDir),
+                (StoreCrxUrl(SndlExtId), SndlExtDir),   // v1.19.97
             };
             foreach ((string url, string dir) in riders)
             {

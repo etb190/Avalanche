@@ -44,14 +44,21 @@ namespace Avalanche.Features.AI
         public const string GlmModel = "z-ai/glm-5.3-flash";
         public const string NimGuestApiKey = "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";
 
-        // v1.19.49: a fifth guest, and a different cloud - OrcaRouter's
-        // OpenAI-compatible /v1 API wearing the deepseek model the
-        // reader asked for by name, under its own key. Same shape as
-        // the NIM guests: only the model and its host are rewritten;
-        // the reader's tuning copies over verbatim.
+        // v1.19.97: deepseek moved in with the NIM guests - OrcaRouter
+        // is gone from the codebase entirely, and the dial name survives
+        // so every saved surface choice upgrades in place. Gemma 4 31B
+        // IT sits at the same table.
         public const string DeepseekChoice = "deepseek";
-        public const string DeepseekModel = "deepseek/deepseek-v4-flash-free";
-        public const string OrcaRouterApiKey = "sk-orca-aBisZa9PYPmkRFEJmSvVE6KJ5zjYYADv2Xvjd8sMc3T";
+        public const string DeepseekModel = "deepseek-ai/deepseek-v4.1-flash";
+        public const string Gemma4Choice = "gemma-4";
+        public const string Gemma4Model = "google/gemma-4-31b-it";
+
+        // v1.19.97: NVIDIA's embedding guest - NIM's embeddings endpoint
+        // demands an input_type the chat models never need, so it carries
+        // its own constants.
+        public const string EmbeddingNemotronChoice = "embed-nemotron";
+        public const string NemotronEmbeddingModel = "nvidia/nemotron-3-embed-1b";
+        public const string NemotronEmbeddingUrl = "https://integrate.api.nvidia.com/v1/embeddings";
 
         // v1.19.50: a sixth guest - Google's Gemini. The reader's
         // example spoke the native GenAI SDK, but Google ships the
@@ -173,7 +180,9 @@ namespace Avalanche.Features.AI
             if (string.Equals(value, GptChoice, StringComparison.OrdinalIgnoreCase)) return GptChoice;
             if (string.Equals(value, KimiChoice, StringComparison.OrdinalIgnoreCase)) return KimiChoice;
             if (string.Equals(value, GlmChoice, StringComparison.OrdinalIgnoreCase)) return GlmChoice;
-            if (string.Equals(value, DeepseekChoice, StringComparison.OrdinalIgnoreCase)) return DeepseekChoice;
+            if (string.Equals(value, Gemma4Choice, StringComparison.OrdinalIgnoreCase)) return Gemma4Choice;
+            if (string.Equals(value, DeepseekChoice, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(value, "deepseek-v4.1", StringComparison.OrdinalIgnoreCase)) return DeepseekChoice;
             if (string.Equals(value, GeminiChoice, StringComparison.OrdinalIgnoreCase)) return GeminiChoice;
             if (string.Equals(value, Gemini37Choice, StringComparison.OrdinalIgnoreCase)) return Gemini37Choice;
             if (string.Equals(value, Gemini36Choice, StringComparison.OrdinalIgnoreCase)) return Gemini36Choice;
@@ -188,6 +197,8 @@ namespace Avalanche.Features.AI
         {
             if (string.Equals(value, EmbeddingGeminiChoice, StringComparison.OrdinalIgnoreCase))
                 return EmbeddingGeminiChoice;
+            if (string.Equals(value, EmbeddingNemotronChoice, StringComparison.OrdinalIgnoreCase))
+                return EmbeddingNemotronChoice;
             return EmbeddingDefaultChoice;
         }
 
@@ -259,7 +270,8 @@ namespace Avalanche.Features.AI
                 case GptChoice: return GptIdentity(baseConfig);
                 case KimiChoice: return NimIdentity(baseConfig, KimiModel);
                 case GlmChoice: return NimIdentity(baseConfig, GlmModel);
-                case DeepseekChoice: return OrcaIdentity(baseConfig);
+                case Gemma4Choice: return NimIdentity(baseConfig, Gemma4Model);
+                case DeepseekChoice: return NimIdentity(baseConfig, DeepseekModel);
                 case GeminiChoice: return GoogleIdentity(baseConfig, GeminiModel);
                 case Gemini37Choice: return GoogleIdentity(baseConfig, Gemini37Model);
                 case Gemini36Choice: return GoogleIdentity(baseConfig, Gemini36Model);
@@ -280,7 +292,9 @@ namespace Avalanche.Features.AI
         {
             ProviderType = "NVIDIA NIM",
             BaseUrl = "https://integrate.api.nvidia.com/v1",
-            ApiKey = NimGuestApiKey,
+            ApiKey = !string.IsNullOrWhiteSpace(baseConfig.ApiKey) && baseConfig.ApiKey.StartsWith("nvapi-", StringComparison.OrdinalIgnoreCase)
+                ? baseConfig.ApiKey
+                : NimGuestApiKey,
             Model = model,
             EmbeddingModel = baseConfig.EmbeddingModel,
             TopK = baseConfig.TopK,
@@ -295,29 +309,7 @@ namespace Avalanche.Features.AI
             RequestJsonOutput = baseConfig.RequestJsonOutput,
         };
 
-        /// <summary>The canonical OrcaRouter guest (v1.19.49): OrcaRouter's
-        /// OpenAI-compatible cloud API wearing the deepseek model id and
-        /// the guest key. The reader's tuning (temperature, tokens,
-        /// retrieval, prefixes) copies over verbatim, the same ride the
-        /// other identities give.</summary>
-        private static AiProviderConfig OrcaIdentity(AiProviderConfig baseConfig) => new AiProviderConfig
-        {
-            ProviderType = "OrcaRouter",
-            BaseUrl = "https://api.orcarouter.ai/v1",
-            ApiKey = OrcaRouterApiKey,
-            Model = DeepseekModel,
-            EmbeddingModel = baseConfig.EmbeddingModel,
-            TopK = baseConfig.TopK,
-            EvidenceCharBudget = baseConfig.EvidenceCharBudget,
-            MaxHistoryMessages = baseConfig.MaxHistoryMessages,
-            EmbeddingDocumentPrefix = baseConfig.EmbeddingDocumentPrefix,
-            EmbeddingQueryPrefix = baseConfig.EmbeddingQueryPrefix,
-            Temperature = baseConfig.Temperature,
-            MaxTokens = baseConfig.MaxTokens,
-            TopP = baseConfig.TopP,
-            ReasoningEffort = baseConfig.ReasoningEffort,
-            RequestJsonOutput = baseConfig.RequestJsonOutput,
-        };
+        // v1.19.97: OrcaIdentity retired - deepseek rides NimIdentity now.
 
         /// <summary>The canonical Google guest (v1.19.50): Google's
         /// OpenAI-compatible Gemini endpoint wearing a gemini model
