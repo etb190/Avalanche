@@ -60,6 +60,7 @@ public sealed class ExtensionTriggerTests
             Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.ShimFile)));
             Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.ShimModuleFile)));
             Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.BridgePage)));
+            Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.BridgeScriptFile)));
             Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.MarkerFile)));
             var perms = man.GetProperty("permissions").EnumerateArray()
                 .Select(p => p.GetString()).ToList();
@@ -261,6 +262,179 @@ public sealed class ExtensionTriggerTests
             Assert.False(plan.HasPopup);
             Assert.Equal("sw.js", plan.WorkerPath);
             Assert.True(plan.Eligible);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void Bridge_Page_Is_Csp_Safe_For_Mv3()
+    {
+        // every MV3 extension page runs under script-src 'self' - an inline
+        // script would never run, and v1.24.0's trigger died in exactly
+        // that silence. The logic rides in its own file now, and the page
+        // wears nothing but the tag that names it.
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"sw.js\"}}"),
+            ("sw.js", "chrome.action.onClicked.addListener(() => {});"));
+        try
+        {
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            string html = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.BridgePage));
+            Assert.Contains("<script src=\"" + ExtensionTrigger.BridgeScriptFile + "\"></script>", html);
+            Assert.DoesNotContain("<script>", html);
+            string js = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.BridgeScriptFile));
+            Assert.Contains(ExtensionTrigger.MessageTag, js);
+            Assert.Contains("postMessage", js);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void Shim_Covers_The_Mv2_Browser_Action_Too()
+    {
+        // the shim once bowed out the moment chrome.action was missing,
+        // leaving every manifest-v2 rider with nobody to answer the bridge
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":2,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"browser_action\":{},\"background\":{\"scripts\":[\"a.js\"],\"persistent\":false}}"),
+            ("a.js", "chrome.browserAction.onClicked.addListener(() => {});"));
+        try
+        {
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            string shim = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.ShimFile));
+            Assert.Contains("browserAction", shim);
+            Assert.Contains("chrome.runtime.onMessage.addListener", shim);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void Mv3_Worker_In_A_Subdirectory_Wraps_Beside_The_Worker()
+    {
+        // a classic worker's own relative importScripts resolve against the
+        // worker's base URL - the wrapper must share its directory, or the
+        // worker's neighbors are torn away from it
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"bg/worker.js\"}}"),
+            ("bg/worker.js", "importScripts('helper.js');"
+                + "chrome.action.onClicked.addListener(() => {});"),
+            ("bg/helper.js", ""));
+        try
+        {
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            JsonElement man = ManifestOf(dir);
+            Assert.Equal("bg/" + ExtensionTrigger.WrapperFile,
+                man.GetProperty("background").GetProperty("service_worker").GetString());
+            string wrapper = File.ReadAllText(
+                Path.Combine(dir, "bg", ExtensionTrigger.WrapperFile));
+            Assert.Contains("importScripts('../avalanche_trigger_shim.js')", wrapper);
+            Assert.Contains("importScripts('worker.js')", wrapper);
+            Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.ShimFile)));
+            Assert.True(ExtensionTrigger.IsArmed(dir));
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void Module_Worker_In_A_Subdirectory_Keeps_Relative_Specifiers()
+    {
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"bg/worker.js\",\"type\":\"module\"}}"),
+            ("bg/worker.js", "import './dep.js';"
+                + "chrome.action.onClicked.addListener(() => {});"),
+            ("bg/dep.js", "export const x = 1;"));
+        try
+        {
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            JsonElement man = ManifestOf(dir);
+            Assert.Equal("bg/" + ExtensionTrigger.WrapperFile,
+                man.GetProperty("background").GetProperty("service_worker").GetString());
+            Assert.Equal("module",
+                man.GetProperty("background").GetProperty("type").GetString());
+            string wrapper = File.ReadAllText(
+                Path.Combine(dir, "bg", ExtensionTrigger.WrapperFile));
+            Assert.Contains("import '../avalanche_trigger_shim.mjs';", wrapper);
+            Assert.Contains("import './worker.js';", wrapper);
+            Assert.DoesNotContain("importScripts", wrapper);
+            Assert.True(ExtensionTrigger.IsArmed(dir));
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void V1_Armed_Folder_Upgrades_Without_Wrapping_The_Wrapper()
+    {
+        // a folder armed by the earlier build: the manifest already wears
+        // the wrapper, the marker stands at v1, the bridge holds an inline
+        // script that no MV3 page was ever allowed to run. The upgrade
+        // recovers the origin worker and rebuilds - it must never point
+        // the wrapper at itself.
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"avalanche_trigger_sw.js\",\"type\":\"classic\"},"
+                + "\"permissions\":[\"tabs\"]}"),
+            ("avalanche_trigger_sw.js",
+                "importScripts('avalanche_trigger_shim.js');\nimportScripts('sw.js');\n"),
+            ("sw.js", "chrome.action.onClicked.addListener(() => {});"),
+            ("avalanche_trigger_shim.js", "/* the old shim's seat */"),
+            ("avalanche_bridge.html",
+                "<!DOCTYPE html><html><body><script>OLD INLINE WORD</script></body></html>"),
+            ("avalanche_trigger.json", "{\"v\":1,\"armed\":\"2026-10-11T00:00:00Z\"}"));
+        try
+        {
+            Assert.False(ExtensionTrigger.IsArmed(dir));   // a v1 marker no longer counts
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            string wrapper = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.WrapperFile));
+            Assert.Contains("importScripts('avalanche_trigger_shim.js')", wrapper);
+            Assert.Contains("importScripts('sw.js')", wrapper);
+            Assert.DoesNotContain("importScripts('avalanche_trigger_sw.js')", wrapper);
+            JsonElement man = ManifestOf(dir);
+            Assert.Equal(ExtensionTrigger.WrapperFile,
+                man.GetProperty("background").GetProperty("service_worker").GetString());
+            string html = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.BridgePage));
+            Assert.DoesNotContain("OLD INLINE WORD", html);
+            Assert.Contains(ExtensionTrigger.BridgeScriptFile, html);
+            Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.BridgeScriptFile)));
+            using JsonDocument marker = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(dir, ExtensionTrigger.MarkerFile)));
+            Assert.Equal(2, marker.RootElement.GetProperty("v").GetInt32());
+            Assert.Equal("sw.js", marker.RootElement.GetProperty("origin").GetString());
+            Assert.True(ExtensionTrigger.IsArmed(dir));
+            Assert.False(ExtensionTrigger.EnsureArmed(dir));   // the next pass rests
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void V1_Subdirectory_Wrapper_Moves_Beside_Its_Worker()
+    {
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"avalanche_trigger_sw.js\",\"type\":\"classic\"}}"),
+            ("avalanche_trigger_sw.js",
+                "importScripts('avalanche_trigger_shim.js');\nimportScripts('bg/worker.js');\n"),
+            ("bg/worker.js", "importScripts('dep.js');"
+                + "chrome.action.onClicked.addListener(() => {});"),
+            ("bg/dep.js", ""),
+            ("avalanche_trigger_shim.js", "/* the old shim's seat */"),
+            ("avalanche_bridge.html", "<html></html>"),
+            ("avalanche_trigger.json", "{\"v\":1}"));
+        try
+        {
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            JsonElement man = ManifestOf(dir);
+            Assert.Equal("bg/" + ExtensionTrigger.WrapperFile,
+                man.GetProperty("background").GetProperty("service_worker").GetString());
+            string wrapper = File.ReadAllText(
+                Path.Combine(dir, "bg", ExtensionTrigger.WrapperFile));
+            Assert.Contains("importScripts('../avalanche_trigger_shim.js')", wrapper);
+            Assert.Contains("importScripts('worker.js')", wrapper);
+            Assert.False(File.Exists(Path.Combine(dir, ExtensionTrigger.WrapperFile)),
+                "the old root seat should be empty");
+            Assert.True(ExtensionTrigger.IsArmed(dir));
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
