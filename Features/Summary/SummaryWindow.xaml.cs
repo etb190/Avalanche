@@ -595,6 +595,7 @@ namespace Avalanche.Features.Summary
                 }
 
                 InvalidatePrefetch();   // the clock and the flight die with the window
+                UnhookWindowWheel();    // v1.32.0: the hwnd dies with the window; the hook goes with it
                 DismissActionPopup();   // the popup dies with the window
                 if (!_generating)
                 {
@@ -2683,6 +2684,12 @@ namespace Avalanche.Features.Summary
 
             _wordHighlights = new DigestWordHighlightAdorner(DocBox);
             layer.Add(_wordHighlights);
+            // v1.32.0: a rebuilt window's digest was painted in the constructor,
+            // while this adorner did not exist yet - the TextChanged that
+            // carries the restore ran with _wordHighlights null and the plate
+            // never came back after the search round trip. The memory's word
+            // asks for its plate the moment the surface is live.
+            TryRestorePinnedWord();
         }
 
         private void DetachWordHighlights()
@@ -3291,6 +3298,56 @@ namespace Avalanche.Features.Summary
                 _wordHighlights?.ClearPin();
                 ForgetPinnedWord();
                 DismissActionPopup();
+            }
+
+            return IntPtr.Zero;
+        }
+
+        // v1.32.0: the missing ear. The popup's own hwnd hears the rolls whose
+        // pointer rests ON the popup; a roll whose pointer rests on the digest
+        // is delivered to THIS window's hwnd - the focus (or hover) window -
+        // and WPF, seeing the mouse captured across hwnds, swallowed it whole:
+        // no PreviewMouseWheel, no scroll, no dismissal (the reader's own
+        // report: the page froze but the popup stayed). The hook answers at
+        // this window's Win32 floor too: while the popup lives or the plate
+        // holds, every wheel here releases the word and closes the popup, and
+        // the page beneath never moves. A clean field scrolls untouched.
+        private System.Windows.Interop.HwndSource? _windowSource;
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            try
+            {
+                if (PresentationSource.FromVisual(this) is System.Windows.Interop.HwndSource src)
+                {
+                    _windowSource = src;
+                    src.AddHook(SummaryWheelHook);
+                }
+            }
+            catch { /* a decoration's plumbing never takes the window down */ }
+        }
+
+        private void UnhookWindowWheel()
+        {
+            System.Windows.Interop.HwndSource? src = _windowSource;
+            _windowSource = null;
+            try { src?.RemoveHook(SummaryWheelHook); } catch { }
+        }
+
+        private IntPtr SummaryWheelHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == 0x020A || msg == 0x020E)     // WM_MOUSEWHEEL, WM_MOUSEHWHEEL
+            {
+                bool popupOpen = _actionPopup is { IsOpen: true };
+                bool pinned = _wordHighlights is { } alive && alive.HasPin;
+                if (popupOpen || pinned)
+                {
+                    handled = true;     // the highlighted word locks the page
+                    _wordHighlights?.ClearPin();
+                    ForgetPinnedWord();
+                    DismissActionPopup();
+                }
             }
 
             return IntPtr.Zero;

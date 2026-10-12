@@ -1670,7 +1670,8 @@ namespace Avalanche.Controls
         // bare URL - reduced to a clean file name for the save prompt.
         private static string SafeDownloadName(string pathOrUrl)
         {
-            string name = Uri.UnescapeDataString(pathOrUrl);
+            string name = pathOrUrl;
+            try { name = Uri.UnescapeDataString(pathOrUrl); } catch { /* a mangled escape rides as it is */ }
             int cut = name.IndexOfAny(new[] { '?', '#' });
             if (cut >= 0) name = name[..cut];
             name = Path.GetFileName(name.Replace('\\', '/'));
@@ -1781,29 +1782,42 @@ namespace Avalanche.Controls
             {
                 // v1.31.0: an ordinary download stops dying in silence - the
                 // reader is asked where the file belongs (the Explorer save
-                // prompt), and the bytes land exactly there.
-                e.Handled = true;   // no Edge download flyout: the save prompt is the UI
-                string name = SafeDownloadName(suggested.Length > 0 ? suggested : dlUrl);
-                var dlg = new Microsoft.Win32.SaveFileDialog
+                // prompt), and the bytes land exactly there. v1.32.0: the
+                // prompt wears its own net - any stumble inside (a dialog the
+                // window cannot host, a name the URL mangled) hands the file
+                // back to the engine's own download instead of eating it in
+                // silence: the flyout shows and the OS Downloads folder
+                // receives.
+                try
                 {
-                    FileName = name,
-                    InitialDirectory = DownloadHome(),
-                    Filter = "All files (*.*)|*.*",
-                    Title = TryLoc("Str_Web_DownloadSaveTitle")
-                };
-                bool? ok = dlg.ShowDialog(Window.GetWindow(view));
-                if (ok != true)
-                {
-                    if (counted) { counted = false; _activeDownloads--; }   // the reader refused: nothing to strand
-                    e.Cancel = true;
+                    e.Handled = true;   // no Edge download flyout: the save prompt is the UI
+                    string name = SafeDownloadName(suggested.Length > 0 ? suggested : dlUrl);
+                    var dlg = new Microsoft.Win32.SaveFileDialog
+                    {
+                        FileName = name,
+                        InitialDirectory = DownloadHome(),
+                        Filter = "All files (*.*)|*.*",
+                        Title = TryLoc("Str_Web_DownloadSaveTitle")
+                    };
+                    bool? ok = dlg.ShowDialog(Window.GetWindow(view));
+                    if (ok != true)
+                    {
+                        if (counted) { counted = false; _activeDownloads--; }   // the reader refused: nothing to strand
+                        e.Cancel = true;
+                        return;
+                    }
+
+                    savePath = dlg.FileName;
+                    try { AppDataPaths.SetSetting("web.download.dir", Path.GetDirectoryName(dlg.FileName) ?? string.Empty); } catch { }
+                    e.ResultFilePath = savePath;
+                    ShowStatus(string.Format(TryLoc("Str_Web_Downloading") ?? "Downloading {0}...", name));
                     return;
                 }
-
-                savePath = dlg.FileName;
-                try { AppDataPaths.SetSetting("web.download.dir", Path.GetDirectoryName(dlg.FileName) ?? string.Empty); } catch { }
-                e.ResultFilePath = savePath;
-                ShowStatus(string.Format(TryLoc("Str_Web_Downloading") ?? "Downloading {0}...", name));
-                return;
+                catch
+                {
+                    e.Handled = false;   // the engine's own download answers instead
+                    return;
+                }
             }
 
             e.Handled = true;   // no Edge download flyout for a file the reader is about to eat

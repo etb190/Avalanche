@@ -2664,9 +2664,6 @@ namespace Avalanche
         private void OpenSummarySearchInBrowser(string url)
         {
             ShowWebPane();
-            // v1.19.26: every search rides the one search tab - africa then
-            // europe is one tab overwritten, never a strip of one-off tabs.
-            WebPane.OpenSearchTab(url);
             // The navigator steps out for the search's duration - strictly
             // the search's doing, no other path here - and HideWebPane
             // brings it back when the browser steps away.
@@ -2676,6 +2673,15 @@ namespace Avalanche
                 _summaryHiddenForSearchPath = _currentFile;
                 navigator.Close();   // the Closed hook clears the field and the per-doc wish
             }
+
+            // v1.32.0: the search tab lands one tick late - the pane's chrome
+            // and the navigator's exit compose first, so the engine's first
+            // paint no longer beats the browser's own face onto the screen
+            // (the page-then-everything flash the reader caught).
+            // v1.19.26: every search rides the one search tab - africa then
+            // europe is one tab overwritten, never a strip of one-off tabs.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                () => WebPane.OpenSearchTab(url));
         }
 
         private void ToggleWebPane()
