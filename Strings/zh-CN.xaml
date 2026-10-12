@@ -1283,6 +1283,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
 	<sys:String x:Key="Str_KS_TextEditor">切换文本编辑器</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">切换网页浏览器</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">返回 PDF 编辑器</sys:String>
+	<sys:String x:Key="Str_KS_Recap">切换回顾窗口</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

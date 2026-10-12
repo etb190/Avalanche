@@ -1298,6 +1298,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
 	<sys:String x:Key="Str_KS_TextEditor">Мәтіндік редакторды қосу/өшіру</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Веб-браузерді қосу/өшіру</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">PDF редакторына оралу</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Recap терезесін қосу/өшіру</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

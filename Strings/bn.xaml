@@ -1279,6 +1279,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_KS_TextEditor">টেক্সট এডিটর টগল করুন</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">ওয়েব ব্রাউজার টগল করুন</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">PDF এডিটরে ফিরে যান</sys:String>
+	<sys:String x:Key="Str_KS_Recap">রিক্যাপ উইন্ডো টগল করুন</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

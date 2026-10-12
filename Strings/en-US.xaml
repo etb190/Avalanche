@@ -1299,6 +1299,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_KS_TextEditor">Toggle text editor</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Toggle web browser</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">Back to the PDF editor</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Toggle recap window</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

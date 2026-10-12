@@ -110,7 +110,7 @@ namespace Avalanche
             B("4",               "Str_Lbl_Shape",     "Tools", Cap("D4")),
             B("5 (%or% D)",      "Str_Lbl_Draw",      "Tools", Cap("D5"), Cap("D")),
             B("6 (%or% I)",      "Str_Lbl_Image",     "Tools", Cap("D6"), Cap("I")),
-            B("7 (%or% G)",      "Str_Lbl_Signature", "Tools", Cap("D7"), Cap("G")),
+            B("7",               "Str_Lbl_Signature", "Tools", Cap("D7")),
             B("8 (%or% C)",      "Str_Lbl_Crop",      "Tools", Cap("D8"), Cap("C")),
             B("9 (%or% R)",      "Str_Lbl_Rotate",    "Tools", Cap("D9"), Cap("R")),
             B("%ctrl%+R",        "Str_Ctx_RotateCW", "Tools", Cap("Ctrl:R")),
@@ -168,10 +168,13 @@ namespace Avalanche
             // button's own toggle: pressed again, it goes back. F follows the
             // surface that leads - the browser's digest while the browser
             // leads, the book's navigator otherwise (the window Ctrl+G toggles).
+            // v1.28.0: G is the recap window's own key, and all five letters
+            // answer from the summary windows' focus too.
             B("F",             "Str_KS_Summary",      "View", Cap("F")),
             B("T",             "Str_KS_TextEditor",   "View", Cap("T")),
             B("B",             "Str_KS_WebBrowser",   "View", Cap("B")),
             B("P",             "Str_KS_PdfEditor",    "View", Cap("P")),
+            B("G",             "Str_KS_Recap",        "View", Cap("G")),
             B("%ctrl%+%shift%+A", "Str_Lbl_AiChat",   "View", Cap("CtrlShift:A")),
             B("%ctrl%+%shift%+T", "Str_Lbl_AiTest",   "View", Cap("CtrlShift:T")),
             B("F8",            "Str_View_Grid",       "View", Cap("F8")),

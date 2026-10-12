@@ -1299,6 +1299,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 	<sys:String x:Key="Str_KS_TextEditor">Attiva/disattiva l'editor di testo</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Attiva/disattiva il browser web</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">Torna all'editor PDF</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Attiva/disattiva la finestra di recap</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

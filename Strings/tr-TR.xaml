@@ -1279,6 +1279,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
 	<sys:String x:Key="Str_KS_TextEditor">Metin düzenleyiciyi aç/kapat</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Web tarayıcısını aç/kapat</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">PDF düzenleyiciye geri dön</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Recap penceresini aç/kapat</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

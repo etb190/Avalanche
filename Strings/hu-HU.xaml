@@ -1286,6 +1286,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
 	<sys:String x:Key="Str_KS_TextEditor">Szövegszerkesztő be/ki</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Webböngésző be/ki</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">Vissza a PDF-szerkesztőhöz</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Recap ablak be/ki</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

@@ -1299,6 +1299,7 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_KS_TextEditor">Переключить текстовый редактор</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Переключить веб-браузер</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">Вернуться в редактор PDF</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Переключить окно recap</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

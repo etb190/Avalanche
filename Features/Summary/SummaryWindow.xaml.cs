@@ -299,12 +299,13 @@ namespace Avalanche.Features.Summary
             Opacity = 0;
             Loaded += (_, _) => WindowFx.PlayOpenPop(this);
 
-            // F belongs to the AI summary windows now - never to the PDF
-            // editor (the reader asked for exactly that): while the navigator
-            // holds the focus, one press toggles the recap companion - open
-            // over the stretch on screen, or put away. Typing in the start
-            // field types; F stays a letter there.
-            PreviewKeyDown += TryRecapHotkeyFromNavigator;
+            // The pane keys belong to the summary windows too - never to
+            // the PDF editor (the reader asked for exactly that): while the
+            // navigator holds the focus, F closes this window, G toggles
+            // the recap companion, and T, B and P move the floor - the
+            // same voices the main window answers. Typing in the start
+            // field types; no pane key takes a letter from a caret.
+            PreviewKeyDown += TryPaneShortcutFromNavigator;
             // The reader's hands on the digest: bare W/S ease it up/down, bare
             // A/D step the reading range (the arrows' own move). Only while
             // THIS window holds the focus - the editor never hears them - and
@@ -3354,20 +3355,28 @@ namespace Avalanche.Features.Summary
         /// returns to its default spot (centered on the owner) - position ONLY, the
         /// size and every reading parameter stay as the reader left them. The saved
         /// coordinates are dropped, so future opens center again too.</summary>
-        // The F key, forwarded while the navigator holds the focus: toggle the
-        // recap companion over the stretch on screen. A caret inside an
-        // editable field (the range start box) keeps its letters.
-        private void TryRecapHotkeyFromNavigator(object sender, KeyEventArgs e)
+        // The pane keys, forwarded while the navigator holds the focus: F
+        // closes this window (the main window's F follows the leading
+        // surface, and the book's surface leads here), G toggles the recap
+        // companion, and T, B and P move the floor. A caret inside an
+        // editable field (the range start box) keeps its letters, an open
+        // combo keeps its own typing, and a held-down key repeats nothing.
+        private void TryPaneShortcutFromNavigator(object sender, KeyEventArgs e)
         {
-            if (e.Key != Key.F
+            if (e.Key is not (Key.F or Key.G or Key.T or Key.B or Key.P)
                 || Keyboard.Modifiers != ModifierKeys.None
-                || Keyboard.FocusedElement is TextBoxBase { IsReadOnly: false })
+                || e.IsRepeat
+                || Keyboard.FocusedElement is TextBoxBase { IsReadOnly: false }
+                || Keyboard.FocusedElement is System.Windows.Controls.PasswordBox
+                || Keyboard.FocusedElement is System.Windows.Controls.ComboBox)
             {
                 return;
             }
 
-            e.Handled = true;
-            (Owner as MainWindow)?.ToggleRecapCompanion();
+            if ((Owner as MainWindow)?.TryPaneShortcutFromCompanion(e.Key) == true)
+            {
+                e.Handled = true;
+            }
         }
 
         // The reading keys, forwarded while the navigator holds the focus.

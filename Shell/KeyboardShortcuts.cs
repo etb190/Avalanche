@@ -131,7 +131,11 @@ namespace Avalanche
             // "no matter what" is the law: no input surface anywhere loses a
             // letter to a pane switch. And a key held down repeats nothing: one
             // press, one move of the floor.
-            if ((e.Key is Key.F or Key.T or Key.B or Key.P)
+            // v1.28.0: G joins the row as the recap companion's own key
+            // (the Signature tool keeps its digit 7), and the AI summary
+            // windows forward all five letters here, so they answer from a
+            // popup's focus too - TryPaneShortcutFromCompanion is their door.
+            if ((e.Key is Key.F or Key.T or Key.B or Key.P or Key.G)
                 && Keyboard.Modifiers == ModifierKeys.None
                 && !e.IsRepeat
                 && ShortcutOverlay.Visibility != Visibility.Visible
@@ -852,8 +856,12 @@ namespace Avalanche
         // the surface that leads: the browser's digest while the browser
         // leads, the book's navigator otherwise (the same window Ctrl+G
         // toggles). The text editor never asked for a summary key, so F rests
-        // while the sheet leads. Returns false for any other key so the
-        // caller's chain continues.
+        // while the sheet leads. G is the recap companion's own key - one
+        // press puts the recap window away, the next brings it back over
+        // the stretch on screen (the AI summary windows forward their
+        // letters to TryPaneShortcutFromCompanion below, so these voices
+        // answer from a popup's focus too). Returns false for any other
+        // key so the caller's chain continues.
         private bool TryPaneShortcut(Key key, RoutedEventArgs e)
         {
             switch (key)
@@ -872,6 +880,9 @@ namespace Avalanche
                     return false;   // the editor leads - F never belonged to it
                 case Key.T: ToggleEditorPane(); return true;
                 case Key.B: ToggleWebPane(); return true;
+                // The recap companion's own key: one press puts the window
+                // away, the next brings it back over the stretch on screen.
+                case Key.G: ToggleRecapCompanion(); return true;
                 // The floor returns to the reader's PDF - the same switch the
                 // toolbar's PDF editor button is. Already home: nothing to
                 // close, nothing to move.
@@ -881,6 +892,63 @@ namespace Avalanche
                     return true;
                 default: return false;
             }
+        }
+
+        // v1.28.0: the same five letters answered from the AI summary
+        // windows. The navigator, the browser's digest and the recap
+        // window forward their pane keys here while one of them holds the
+        // focus, so the reader never has to click home first: F follows
+        // the leading surface exactly like the main window's F - which,
+        // with a summary window holding the focus, closes that very
+        // window - G toggles the recap companion, and T, B and P move the
+        // floor and hand the focus back to the main window, the same
+        // voices pressed at home. The forwarding side keeps its own input
+        // vow (an editable caret in the popup keeps its letters) and
+        // repeats nothing.
+        internal bool TryPaneShortcutFromCompanion(Key key)
+        {
+            switch (key)
+            {
+                case Key.F:
+                    if (WebPaneHost.Visibility == Visibility.Visible)
+                    {
+                        WebSumBtn_Click(this, new RoutedEventArgs());
+                        return true;
+                    }
+                    if (EditorPaneHost.Visibility != Visibility.Visible)
+                    {
+                        SummarizeBtn_Click(this, new RoutedEventArgs());
+                        return true;
+                    }
+                    return false;   // the editor leads - F never belonged to it
+                case Key.G:
+                    ToggleRecapCompanion();
+                    return true;
+                case Key.T:
+                    ToggleEditorPane();
+                    ReturnFloorFromCompanion();
+                    return true;
+                case Key.B:
+                    ToggleWebPane();
+                    ReturnFloorFromCompanion();
+                    return true;
+                case Key.P:
+                    if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
+                    if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
+                    ReturnFloorFromCompanion();
+                    return true;
+                default: return false;
+            }
+        }
+
+        // A popup held the focus while its reader routed: the floor lives
+        // in the main window now, so the keys come home with it -
+        // activation moves the win32 focus a WPF Focus() cannot reach
+        // across windows.
+        private void ReturnFloorFromCompanion()
+        {
+            try { Activate(); } catch { /* the window is closing */ }
+            Focus();
         }
 
         // The pane shortcuts' own input vow, on top of the guards the chain
@@ -916,7 +984,8 @@ namespace Avalanche
                 // Illustrator / Figma convention) - its digit went to Text so Shapes could take 4 and
                 // the digits keep mirroring the toolbar order. v1.27.0: T left the map - the pane
                 // shortcuts took the letter (it opens the text editor now); the Text tool keeps
-                // its digit.
+                // its digit. v1.28.0: G left the map the same way - the recap
+                // companion took the letter; the Signature tool keeps its digit.
                 case Key.V: SetTool(EditTool.Select); return true;
                 case Key.D1: case Key.NumPad1: SetTool(EditTool.Text); return true;
                 case Key.H: case Key.D2: case Key.NumPad2: SetTool(EditTool.Highlight); return true;
@@ -924,7 +993,7 @@ namespace Avalanche
                 case Key.D4: case Key.NumPad4: SetTool(EditTool.Shape); return true;
                 case Key.D: case Key.D5: case Key.NumPad5: SetTool(EditTool.Draw); return true;
                 case Key.I: case Key.D6: case Key.NumPad6: SetTool(EditTool.Image); return true;
-                case Key.G: case Key.D7: case Key.NumPad7: ToolSignature_Click(this, new RoutedEventArgs()); return true;
+                case Key.D7: case Key.NumPad7: ToolSignature_Click(this, new RoutedEventArgs()); return true;
                 case Key.C: case Key.D8: case Key.NumPad8: SetTool(EditTool.Crop); return true;
                 case Key.R: case Key.D9: case Key.NumPad9: ToolRotate_Click(this, new RoutedEventArgs()); return true;
                 case Key.S: case Key.D0: case Key.NumPad0: ToolStamp_Click(this, new RoutedEventArgs()); return true;

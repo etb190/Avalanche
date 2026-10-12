@@ -110,6 +110,14 @@ namespace Avalanche.Features.Summary
             Deactivated += (_, _) => FloatFocusLedger.NoteFloatDismissed();
             Closed += (_, _) => FloatFocusLedger.NoteFloatDismissed();
 
+            // The pane keys, forwarded while the digest holds the focus -
+            // the same voices the navigator answers: F closes this window
+            // (the browser leads here, so the summary window of the hour is
+            // the digest itself), G toggles the recap companion, and T, B
+            // and P move the floor. A caret in the prompt, word or language
+            // combo keeps its letters.
+            PreviewKeyDown += TryPaneShortcutFromDigest;
+
             // The entrance: born transparent, raised on Loaded, first painted
             // frame already animating from zero.
             Opacity = 0;
@@ -890,6 +898,30 @@ namespace Avalanche.Features.Summary
             DocBox.FlowDirection = string.Equals(_language, "Arabic", StringComparison.Ordinal)
                 ? FlowDirection.RightToLeft
                 : FlowDirection.LeftToRight;
+        }
+
+        // The pane keys, forwarded while the digest holds the focus: F
+        // closes the window, G toggles the recap companion, T, B and P
+        // move the floor. A caret inside an editable field keeps its
+        // letters, and a held-down key repeats nothing.
+        private void TryPaneShortcutFromDigest(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key is not (System.Windows.Input.Key.F or System.Windows.Input.Key.G
+                    or System.Windows.Input.Key.T or System.Windows.Input.Key.B
+                    or System.Windows.Input.Key.P)
+                || System.Windows.Input.Keyboard.Modifiers != System.Windows.Input.ModifierKeys.None
+                || e.IsRepeat
+                || System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase { IsReadOnly: false }
+                || System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.PasswordBox
+                || System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.ComboBox)
+            {
+                return;
+            }
+
+            if ((Owner as MainWindow)?.TryPaneShortcutFromCompanion(e.Key) == true)
+            {
+                e.Handled = true;
+            }
         }
 
         private static void SelectCombo(ComboBox combo, object value)

@@ -1287,6 +1287,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_KS_TextEditor">Przełącz edytor tekstu</sys:String>
 	<sys:String x:Key="Str_KS_WebBrowser">Przełącz przeglądarkę internetową</sys:String>
 	<sys:String x:Key="Str_KS_PdfEditor">Wróć do edytora PDF</sys:String>
+	<sys:String x:Key="Str_KS_Recap">Przełącz okno recap</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
