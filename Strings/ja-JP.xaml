@@ -1315,6 +1315,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryR60p">60p</sys:String>
 	<sys:String x:Key="Str_SummaryR80p">80p</sys:String>
 	<sys:String x:Key="Str_SummaryR100p">100p</sys:String>
+	<sys:String x:Key="Str_SummaryRAllp">すべて</sys:String>
 	<sys:String x:Key="Str_SummaryExcluded">プロバイダーのタイムアウトのため、概要には {0} ページを含めていません。</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>

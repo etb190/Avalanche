@@ -1300,6 +1300,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
 	<sys:String x:Key="Str_SummaryR60p">60p</sys:String>
 	<sys:String x:Key="Str_SummaryR80p">80p</sys:String>
 	<sys:String x:Key="Str_SummaryR100p">100p</sys:String>
+	<sys:String x:Key="Str_SummaryRAllp">Vše</sys:String>
 	<sys:String x:Key="Str_SummaryExcluded">Shrnutí nezahrnuje stránky {0} — vypršel časový limit poskytovatele.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>

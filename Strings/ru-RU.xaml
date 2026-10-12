@@ -1315,6 +1315,7 @@ Avalanche не будет создавать две установленные �
 	<sys:String x:Key="Str_SummaryR60p">60p</sys:String>
 	<sys:String x:Key="Str_SummaryR80p">80p</sys:String>
 	<sys:String x:Key="Str_SummaryR100p">100p</sys:String>
+	<sys:String x:Key="Str_SummaryRAllp">Всё</sys:String>
 	<sys:String x:Key="Str_SummaryExcluded">В сводке пропущены страницы {0} — превышено время ожидания провайдера.</sys:String>
 	<sys:String x:Key="Str_SummaryWordsTT">Summary length in words</sys:String>
 	<sys:String x:Key="Str_SummaryLangTT">Summary language</sys:String>

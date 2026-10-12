@@ -8,7 +8,7 @@
 //     between them shows the range ("41-80") and edits the start page,
 //   * Start and Reset under the field: together with the arrows they are the
 //     ONLY controls that may begin or end a generation,
-//   * range chips (1p..100p) that reshape the displayed range without generating,
+//   * range chips (1p..100p, All) that reshape the displayed range without generating,
 //   * a word-limit dropdown telling the model how long the digest should be,
 //   * a summary-language dropdown; Arabic flips the digest right-to-left.
 // The arrows never overlap: forward lands on the first page after the stretch
@@ -50,7 +50,13 @@ namespace Avalanche.Features.Summary
     {
         // The navigator's fixed vocabularies: range chips, word ceilings, and the
         // languages the digest can be written in (labels exist in every Strings file).
-        private static readonly int[] RangeChoices = { 1, 5, 20, 40, 60, 80, 100 };
+        // The "All" chip's span: a sentinel far above any real document's page
+        // count, so every existing piece of range arithmetic keeps working
+        // untouched - RangeEnd clips at the document's last page, the forward
+        // arrow finds no stretch beyond it, and the pages-left counter reads zero.
+        private const int AllPages = 1_000_000;
+
+        private static readonly int[] RangeChoices = { 1, 5, 20, 40, 60, 80, 100, AllPages };
         private static readonly int[] WordChoices = { 500, 750, 1000, 1500, 2000, 3000, 4500 };
         private static readonly string[] LanguageChoices = { "English", "French", "Spanish", "Italian", "Arabic" };
 
@@ -419,10 +425,12 @@ namespace Avalanche.Features.Summary
             // Range chips: label from Strings, page count from Tag. A click checks the
             // chip (accent state) and reshapes the displayed range - deliberately NOT
             // a generation trigger: only the arrows, Start and Reset may start a run.
-            foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60, RangeChip80, RangeChip100 })
+            foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60, RangeChip80, RangeChip100, RangeChipAll })
             {
                 int pages = int.Parse((string)chip.Tag, CultureInfo.InvariantCulture);
-                chip.Content = loc("Str_SummaryR" + pages + "p");
+                chip.Content = pages == AllPages
+                    ? loc("Str_SummaryRAllp")
+                    : loc("Str_SummaryR" + pages + "p");
                 chip.Checked += (_, _) => OnRangeChanged(pages);
             }
 
@@ -743,7 +751,7 @@ namespace Avalanche.Features.Summary
 
         private void SelectChip(int pages)
         {
-            foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60, RangeChip80, RangeChip100 })
+            foreach (var chip in new[] { RangeChip1, RangeChip5, RangeChip20, RangeChip40, RangeChip60, RangeChip80, RangeChip100, RangeChipAll })
             {
                 chip.IsChecked = int.Parse((string)chip.Tag, CultureInfo.InvariantCulture) == pages;
             }
