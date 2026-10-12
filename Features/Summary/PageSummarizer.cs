@@ -1136,6 +1136,19 @@ namespace Avalanche.Features.Summary
             }
         }
 
+        /// <summary>v1.33.0: the AI tester's door. The probe used to carry its
+        /// own local copy of this wire shape - and the copy was showing its
+        /// age: an Ollama-only `options` field and `max_completion_tokens`
+        /// beside `max_tokens` travelled to every endpoint, and every
+        /// OpenAI-compatible bridge that rejects unknown fields answered
+        /// HTTP 400 before one word left. The probe now sends exactly what
+        /// the digest sends - same body, same effort gate, the provider's
+        /// own body on failure - at the probe's own shape: buffered, cold
+        /// (temperature 0), no stream.</summary>
+        internal static Task<HttpResponseMessage> SendProbeAsync(
+            AiProviderConfig config, string system, string user, int maxTokens, CancellationToken ct)
+            => SendGatedAsync(config, system, user, maxTokens, stream: false, temperature: 0, ct);
+
         /// <summary>SendGatedAsync with the pass clock translated: a cancellation the
         /// reader did not issue becomes the honest sentence the card can quote,
         /// instead of a bare "Stopped" for a timeout the reader never chose.

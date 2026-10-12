@@ -2628,6 +2628,14 @@ namespace Avalanche.Features.Summary
         private static readonly Dictionary<string, string> PinnedWordByDoc =
             new(StringComparer.OrdinalIgnoreCase);
 
+        // v1.33.0: which occurrence of the word the reader pinned. "Tomb" can
+        // stand ten times in one digest, and the round trip owes the reader
+        // the very one the popup stood over, not the first the plain search
+        // trips on. -1 means the ordinal could not be placed; the restore
+        // then falls back to the first occurrence, the law it always knew.
+        private static readonly Dictionary<string, int> PinnedIndexByDoc =
+            new(StringComparer.OrdinalIgnoreCase);
+
         private void WireActionPopup()
         {
             // The word click. PreviewMouseLeftButtonUp: the editor has not yet
@@ -2699,16 +2707,20 @@ namespace Avalanche.Features.Summary
         }
 
         // v1.29.0: the per-document memory the browser round trip reads.
-        private void RememberPinnedWord(string word)
+        // v1.33.0: the memory carries the occurrence ordinal beside the word
+        // (the click places it; -1 when the placement stumbles).
+        private void RememberPinnedWord(string word, int occurrence = -1)
         {
             if (string.IsNullOrEmpty(_filePath)) return;
             PinnedWordByDoc[_filePath] = word;
+            PinnedIndexByDoc[_filePath] = occurrence;
         }
 
         private void ForgetPinnedWord()
         {
             if (string.IsNullOrEmpty(_filePath)) return;
             PinnedWordByDoc.Remove(_filePath);
+            PinnedIndexByDoc.Remove(_filePath);   // v1.33.0: the ordinal goes with the word
         }
 
         private void TryRestorePinnedWord()
@@ -2716,10 +2728,13 @@ namespace Avalanche.Features.Summary
             if (_wordHighlights is { } alive && alive.HasPin) return;   // a live pin owns the field
             if (_closed || _wordHighlights is null || string.IsNullOrEmpty(_filePath)) return;
             if (!PinnedWordByDoc.TryGetValue(_filePath, out string? word) || string.IsNullOrEmpty(word)) return;
+            int ordinal = PinnedIndexByDoc.TryGetValue(_filePath, out int at) ? at : -1;
 
             // The word must exist in THIS digest: a regenerated summary
             // may no longer carry it, and the plate never lands on a guess.
-            if (TryFindWordPointers(word, out TextPointer? start, out TextPointer? end)
+            // v1.33.0: the remembered ordinal picks WHICH occurrence lights -
+            // the click's own, whenever the fresh digest can honor it.
+            if (TryFindWordPointers(word, ordinal, out TextPointer? start, out TextPointer? end)
                 && start is { } s && end is { } e)
             {
                 _wordHighlights.Pin(s, e);
@@ -2733,12 +2748,60 @@ namespace Avalanche.Features.Summary
         // keeps one checkpoint per run, so the flat index maps back to
         // pointers without a second pass. A cap on the walk keeps a
         // pathological document from looping.
-        private bool TryFindWordPointers(string word, out TextPointer? start, out TextPointer? end)
+        private bool TryFindWordPointers(string word, int occurrence, out TextPointer? start, out TextPointer? end)
         {
             start = null;
             end = null;
             if (word.Length == 0) return false;
 
+            (string text, var checkpoints) = BuildFlatDocument();
+
+            // v1.33.0: the search no longer stops at the first hit - the
+            // ordinal the click remembered picks the occurrence, and a fresh
+            // digest that cannot honor it (a regenerated summary with fewer
+            // mentions) falls back to the first, the law the round trip knew.
+            int chosen = -1;
+            int seen = 0;
+            for (int hit = text.IndexOf(word, StringComparison.OrdinalIgnoreCase);
+                 hit >= 0;
+                 hit = text.IndexOf(word, hit + Math.Max(1, word.Length), StringComparison.OrdinalIgnoreCase))
+            {
+                if (occurrence == seen)
+                {
+                    chosen = hit;
+                    break;
+                }
+
+                if (chosen < 0) chosen = hit;   // the first stands in when the ordinal cannot
+                seen++;
+            }
+
+            if (chosen < 0) return false;
+
+            TextPointer? Locate(int index)
+            {
+                TextPointer? owner = null;
+                int ownerOffset = 0;
+                foreach ((int offset, TextPointer pointer) in checkpoints)
+                {
+                    if (offset <= index) { owner = pointer; ownerOffset = offset; }
+                    else break;
+                }
+
+                return owner?.GetPositionAtOffset(index - ownerOffset);
+            }
+
+            start = Locate(chosen);
+            end = Locate(chosen + word.Length);
+            return start is not null && end is not null;
+        }
+
+        // v1.33.0: the flat walk the word search and the occurrence memory
+        // share - every text run of the digest concatenated in order, one
+        // checkpoint per run so a flat index maps back to pointers without
+        // a second pass. The pass cap keeps a pathological document looping.
+        private (string Text, List<(int Offset, TextPointer Pointer)> Checkpoints) BuildFlatDocument()
+        {
             var checkpoints = new List<(int Offset, TextPointer Pointer)>();
             var flat = new System.Text.StringBuilder();
             TextPointer? cursor = DocBox.Document.ContentStart;
@@ -2758,26 +2821,44 @@ namespace Avalanche.Features.Summary
                 }
             }
 
-            string text = flat.ToString();
-            int hit = text.IndexOf(word, StringComparison.OrdinalIgnoreCase);
-            if (hit < 0) return false;
+            return (flat.ToString(), checkpoints);
+        }
 
-            TextPointer? Locate(int index)
+        // v1.33.0: which occurrence of the target the clicked pointer stands
+        // on. The pin's start maps to a flat index (the last checkpoint at or
+        // before it, plus the symbol distance into that run - within a single
+        // text run, symbols are characters), and the occurrence whose stretch
+        // holds that index is the answer. Anything that cannot be placed
+        // comes back -1, and the restore falls back to the first occurrence.
+        private int FlatOccurrenceOf(string word, TextPointer pinStart)
+        {
+            try
             {
-                TextPointer? owner = null;
-                int ownerOffset = 0;
+                if (word.Length == 0) return -1;
+                (string text, var checkpoints) = BuildFlatDocument();
+                int flatAt = -1;
                 foreach ((int offset, TextPointer pointer) in checkpoints)
                 {
-                    if (offset <= index) { owner = pointer; ownerOffset = offset; }
-                    else break;
+                    if (pointer.CompareTo(pinStart) > 0) break;
+                    flatAt = offset + pointer.GetOffsetToPosition(pinStart);
                 }
 
-                return owner?.GetPositionAtOffset(index - ownerOffset);
-            }
+                if (flatAt < 0) return -1;
+                int seen = 0;
+                for (int hit = text.IndexOf(word, StringComparison.OrdinalIgnoreCase);
+                     hit >= 0;
+                     hit = text.IndexOf(word, hit + Math.Max(1, word.Length), StringComparison.OrdinalIgnoreCase))
+                {
+                    if (flatAt >= hit && flatAt < hit + word.Length) return seen;
+                    seen++;
+                }
 
-            start = Locate(hit);
-            end = Locate(hit + word.Length);
-            return start is not null && end is not null;
+                return -1;
+            }
+            catch
+            {
+                return -1;   // a placement that stumbles costs the ordinal, never the plate
+            }
         }
 
         private void DocBox_KeyDownForPopup(object sender, KeyEventArgs e)
@@ -2924,7 +3005,11 @@ namespace Avalanche.Features.Summary
             // v1.29.0: a word anchor is remembered for the document; a
             // passage anchor rides the native selection instead and
             // retires the word.
-            if (pinStart is not null && pinEnd is not null) RememberPinnedWord(target);
+            if (pinStart is not null && pinEnd is not null)
+            {
+                // v1.33.0: the pin remembers WHICH occurrence it stood on.
+                RememberPinnedWord(target, FlatOccurrenceOf(target, pinStart));
+            }
             else ForgetPinnedWord();
 
             Popup popup = _actionPopup ??= BuildActionPopup();

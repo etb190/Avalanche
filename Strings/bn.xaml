@@ -1370,6 +1370,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_Downloading">{0} ডাউনলোড হচ্ছে...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">সংরক্ষিত হয়েছে: {0}</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">ডাউনলোড বাধাপ্রাপ্ত হয়েছে।</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">ডাউনলোড বাতিল করা হয়েছে।</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">এই PDF আনা যায়নি - সাইটটি ডাউনলোড আটকে দিয়েছে।</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">এই নথির জন্য শব্দার্থিক গবেষণা সূচি তৈরি করুন (তৈরি হওয়ার সময় আবার ক্লিক করলে বাতিল হবে)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">এই ওয়েব PDF আপনার কম্পিউটারে সংরক্ষণ করুন</sys:String>

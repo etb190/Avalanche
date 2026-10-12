@@ -1799,11 +1799,18 @@ namespace Avalanche.Controls
                         Filter = "All files (*.*)|*.*",
                         Title = TryLoc("Str_Web_DownloadSaveTitle")
                     };
-                    bool? ok = dlg.ShowDialog(Window.GetWindow(view));
+                    // v1.33.0: the owner is THIS control's window, never the
+                    // view's - a download answered from the offscreen shell
+                    // would otherwise own the prompt to a window parked at
+                    // -32000, and the dialog would rise where no eye is.
+                    bool? ok = dlg.ShowDialog(Window.GetWindow(this) ?? Window.GetWindow(view));
                     if (ok != true)
                     {
                         if (counted) { counted = false; _activeDownloads--; }   // the reader refused: nothing to strand
                         e.Cancel = true;
+                        // v1.33.0: a refused (or never-rendered) prompt says so -
+                        // silence was indistinguishable from a swallowed request.
+                        ShowTransientStatus(TryLoc("Str_Web_DownloadCancel") ?? "Download cancelled.");
                         return;
                     }
 
@@ -1913,6 +1920,61 @@ namespace Avalanche.Controls
             }
         }
 
+        // v1.33.0: the offscreen shell a scripted new window lives in. Warmed
+        // once with the first tab, kept for the control's lifetime, never
+        // shown, never a tab: the 2x2 window parks at -32000 with ShowActivated
+        // off, and the engine behind it wears the full tab wiring -
+        // DownloadStarting, the pdf hand-off, the whole watchtower set - so
+        // whatever the page launches from inside the shell takes the same
+        // road a visible download would.
+        private Window? _shellWindow;
+        private WebView2? _shellView;
+        private bool _shellWarming;
+
+        /// <summary>v1.33.0: builds and warms the shell once. Every failure is
+        /// a shrug - a shell that never warms leaves the old swallow in place,
+        /// which is exactly the v1.19.12 answer.</summary>
+        private async Task EnsureShellAsync()
+        {
+            if (_shellView is not null || _shellWarming || _env is null) return;
+            _shellWarming = true;
+            try
+            {
+                WebView2 view = new() { Visibility = Visibility.Collapsed };
+                Window win = new()
+                {
+                    ShowInTaskbar = false,
+                    ShowActivated = false,
+                    WindowStyle = WindowStyle.None,
+                    ResizeMode = ResizeMode.NoResize,
+                    Width = 2,
+                    Height = 2,
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    Left = -32000,
+                    Top = -32000,
+                    Content = view,
+                };
+                if (Window.GetWindow(this) is { } owner) win.Owner = owner;
+                _shellWindow = win;
+                _shellView = view;
+                _views.Add(view);
+                win.Show();
+                await view.EnsureCoreWebView2Async(_env).ConfigureAwait(true);
+                WireView(view);   // the shell's downloads ride the same save prompt
+                view.Visibility = Visibility.Collapsed;   // a shown home never shows
+            }
+            catch
+            {
+                try { _shellWindow?.Close(); } catch { /* already going away */ }
+                _shellWindow = null;
+                _shellView = null;
+            }
+            finally
+            {
+                _shellWarming = false;
+            }
+        }
+
         private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
         {
             // A page asking for a popup gets this view instead of a stranded offscreen
@@ -1925,7 +1987,27 @@ namespace Avalanche.Controls
             WebView2? v = ViewOfCore(sender as CoreWebView2);
             if (v is null) return;
             string popup = e.Uri ?? string.Empty;
-            if (popup.Length == 0 || popup.Equals("about:blank", StringComparison.OrdinalIgnoreCase)) return;
+            if (popup.Length == 0 || popup.Equals("about:blank", StringComparison.OrdinalIgnoreCase))
+            {
+                // v1.33.0: the blank shell stops being a dead end. The request
+                // used to die here whole - and with it every download those
+                // scaffolds carry: the "your download will begin shortly"
+                // pattern opens an empty window, writes into it and points it
+                // at the file, and a swallowed window meant the write went
+                // nowhere, the navigation never happened and DownloadStarting
+                // never fired - the reader's click answered with nothing at
+                // all. The shell's engine answers the request instead: a real
+                // window the page can write into, offscreen and invisible,
+                // whose wired DownloadStarting catches the download the
+                // moment the scaffold navigates it to the file.
+                if (_shellView?.CoreWebView2 is { } shellCore
+                    && !ReferenceEquals(shellCore, sender))
+                {
+                    e.NewWindow = shellCore;
+                }
+
+                return;   // no shell yet (or the shell itself asked): the old swallow stands
+            }
             try { v.CoreWebView2?.Navigate(popup); }
             catch { /* a navigation that throws is the next one's problem */ }
         }
@@ -2472,6 +2554,7 @@ namespace Avalanche.Controls
             {
                 await view.EnsureCoreWebView2Async(_env);
                 WireView(view);
+                _ = EnsureShellAsync();   // v1.33.0: the shell warms with the first tab, long before a scaffold needs it
             }
             return view;
         }

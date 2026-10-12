@@ -1377,6 +1377,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_Downloading">{0} letöltése...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">Mentve ide: {0}</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">A letöltés megszakadt.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">A letöltés megszakítva.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Ezt a PDF-et nem sikerült letölteni - az oldal letiltotta a letöltést.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Szemantikus kutatási index létrehozása ehhez a dokumentumhoz (építés közben kattintson újra a megszakításhoz)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Ezen webes PDF mentése a számítógépre</sys:String>

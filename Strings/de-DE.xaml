@@ -1376,6 +1376,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_Downloading">{0} wird heruntergeladen...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">Gespeichert unter {0}</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">Der Download wurde unterbrochen.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">Download abgebrochen.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Dieses PDF konnte nicht geladen werden - die Seite hat den Download blockiert.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Semantischen Recherche-Index für dieses Dokument aufbauen (während des Aufbaus erneut klicken zum Abbrechen)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Dieses Web-PDF auf Ihrem Computer speichern</sys:String>

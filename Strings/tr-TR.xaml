@@ -1370,6 +1370,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_Downloading">{0} indiriliyor...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">Şuraya kaydedildi: {0}</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">İndirme kesildi.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">İndirme iptal edildi.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Bu PDF alınamadı - site indirmeyi engelledi.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Bu belge için anlamsal araştırma dizinini oluştur (oluşturma sırasında iptal etmek için tekrar tıklayın)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Bu web PDF'sini bilgisayarınıza kaydedin</sys:String>

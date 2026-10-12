@@ -1389,6 +1389,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_Downloading">{0} жүктелуде...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">Сақталды: {0}</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">Жүктеу үзілді.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">Жүктеу тоқтатылды.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Бұл PDF жүктеп алу мүмкін болмады - сайт жүктеп алуға тыйым салды.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Осы құжат үшін семантикалық зерттеу индексін құру (құру кезінде тоқтату үшін қайта басыңыз)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Бұл веб-PDF компьютеріңізге сақтаңыз</sys:String>

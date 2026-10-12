@@ -1390,6 +1390,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Web_Downloading">Download di {0}...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">Salvato in {0}</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">Il download è stato interrotto.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">Download annullato.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Impossibile scaricare questo PDF - il sito ha bloccato il download.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Crea l'indice di ricerca semantica di questo documento (clicca di nuovo durante la creazione per annullare)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Salva questo PDF web sul computer</sys:String>

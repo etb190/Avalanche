@@ -84,7 +84,6 @@ namespace Avalanche.Features.AI
 
     internal static class AiContextTester
     {
-        private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
 
         // The probe's contract with the model: verbatim recall, JSON only. The
         // marker note matters - the extracted text is seeded with [p. N] page
@@ -158,9 +157,14 @@ namespace Avalanche.Features.AI
 
             progress?.Report("probe");
             var clock = Stopwatch.StartNew();
-            using var request = BuildProbeRequest(config, rangeText);
-            using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            // v1.33.0: the probe travels the digest's own gated send - the
+            // tester's local wire copy had grown Ollama-only fields (`options`,
+            // `max_completion_tokens`) that every unknown-field-rejecting
+            // bridge answered with HTTP 400 before one word left, and the
+            // effort gate the digest earned never rode along.
+            using var response = await PageSummarizer.SendProbeAsync(
+                config, ProbeSystemPrompt, rangeText, ProbeTokenBudget(config), ct)
+                .ConfigureAwait(false);
             string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             clock.Stop();
             SurfaceHealthLog.Log(string.Format(
@@ -273,51 +277,16 @@ namespace Avalanche.Features.AI
             return rangeText[start..end];
         }
 
-        // Same wire shape as the summary's BuildRequest (OpenAI-compatible chat
-        // completions against the configured base URL, Bearer key defaulting to
-        // the Ollama placeholder) - a deliberate local copy: the probe's budget
-        // and temperature are its own, and the summarizer's HTTP plumbing stays
-        // untouched.
         // The probe's output budget: the configured ceiling, floored at 16384 -
         // a reasoning model's deliberation shares this budget with the answer,
         // and a large document needs the answer to survive the deliberation.
+        // v1.33.0: the request itself is the digest's own (SendProbeAsync) -
+        // the local builder's Ollama-only `options` and `max_completion_tokens`
+        // fields were exactly what the unknown-field-rejecting bridges answered
+        // with HTTP 400; the floored budget rides the digest's cloud cap, and
+        // temperature 0 comes with the probe's door.
         private static int ProbeTokenBudget(AiProviderConfig config) =>
             Math.Max(config.MaxTokens, 16384);
-
-        private static HttpRequestMessage BuildProbeRequest(AiProviderConfig config, string userText)
-        {
-            var body = new Dictionary<string, object?>
-            {
-                ["model"] = config.Model,
-                ["messages"] = new object[]
-                {
-                    new { role = "system", content = ProbeSystemPrompt },
-                    new { role = "user", content = userText }
-                },
-                // A recall probe wants determinism: temperature 0, no sampling games
-                // between the text and the verdict about the text.
-                ["temperature"] = 0,
-                // Reasoning models split the output budget between hidden
-                // deliberation and the answer: an 80k-token probe died at the old
-                // 8192 ceiling with finish_reason=length and an empty content -
-                // "no answer". 16384 gives the deliberation room to end, and the
-                // second and third spellings reach every bridge (OpenAI's newer
-                // name; Ollama's native options.num_predict).
-                ["max_tokens"] = ProbeTokenBudget(config),
-                ["max_completion_tokens"] = ProbeTokenBudget(config),
-                ["options"] = new Dictionary<string, object?> { ["num_predict"] = ProbeTokenBudget(config) },
-                ["stream"] = false
-            };
-            var request = new HttpRequestMessage(
-                HttpMethod.Post,
-                (config.BaseUrl ?? string.Empty).TrimEnd('/') + "/chat/completions")
-            {
-                Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json")
-            };
-            string key = string.IsNullOrWhiteSpace(config.ApiKey) ? "ollama" : config.ApiKey;
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-            return request;
-        }
     }
 
     /// <summary>Pure scoring logic of the context probe: boundary-sentence extraction,

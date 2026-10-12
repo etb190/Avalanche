@@ -1390,6 +1390,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_Downloading">{0} をダウンロード中...</sys:String>
     <sys:String x:Key="Str_Web_DownloadDone">{0} に保存しました</sys:String>
     <sys:String x:Key="Str_Web_DownloadFail">ダウンロードが中断されました。</sys:String>
+    <sys:String x:Key="Str_Web_DownloadCancel">ダウンロードをキャンセルしました。</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">このPDFは取得できませんでした - サイトがダウンロードをブロックしています。</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">この文書のセマンティック研究インデックスを構築します（構築中に再度クリックすると中止します）</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">このウェブPDFをコンピューターに保存します</sys:String>
