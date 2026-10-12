@@ -400,7 +400,8 @@ public sealed class ExtensionTriggerTests
             Assert.True(File.Exists(Path.Combine(dir, ExtensionTrigger.BridgeScriptFile)));
             using JsonDocument marker = JsonDocument.Parse(
                 File.ReadAllText(Path.Combine(dir, ExtensionTrigger.MarkerFile)));
-            Assert.Equal(2, marker.RootElement.GetProperty("v").GetInt32());
+            // a v1 folder rides the CURRENT law: the marker lands at v3
+            Assert.Equal(3, marker.RootElement.GetProperty("v").GetInt32());
             Assert.Equal("sw.js", marker.RootElement.GetProperty("origin").GetString());
             Assert.True(ExtensionTrigger.IsArmed(dir));
             Assert.False(ExtensionTrigger.EnsureArmed(dir));   // the next pass rests
