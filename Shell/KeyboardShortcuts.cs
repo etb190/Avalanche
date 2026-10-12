@@ -117,6 +117,31 @@ namespace Avalanche
                     e.Key, Keyboard.Modifiers, e.SystemKey))
                 return;
 
+            // v1.27.0: the pane shortcuts - the floor the reader jumps to. T opens
+            // or closes the text editor, B opens or closes the browser, P hands
+            // the floor back to the PDF, F opens or closes the summary window of
+            // whichever surface leads. Each key is its toolbar button's own
+            // toggle, so pressing it again goes back. They sit BEFORE the tool
+            // map (bare T used to arm the Text tool - the digit 1 keeps that
+            // tool one press away) and behind every guard this handler already
+            // ran: a box being typed into returned above, a page that owns the
+            // keyboard returned above, and the master switch returned above.
+            // The one thing left to swear on is the REST of the input estate -
+            // a password field, a read-only box, a type-ahead combo - because
+            // "no matter what" is the law: no input surface anywhere loses a
+            // letter to a pane switch. And a key held down repeats nothing: one
+            // press, one move of the floor.
+            if ((e.Key is Key.F or Key.T or Key.B or Key.P)
+                && Keyboard.Modifiers == ModifierKeys.None
+                && !e.IsRepeat
+                && ShortcutOverlay.Visibility != Visibility.Visible
+                && AboutOverlay.Visibility != Visibility.Visible
+                && !PaneShortcutInputOwns(e.OriginalSource)
+                && TryPaneShortcut(e.Key, e))
+            {
+                e.Handled = true;
+            }
+
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 // An annotation selection copies the annotation(s); otherwise copy page text.
@@ -425,16 +450,9 @@ namespace Avalanche
                 BeginOcrRegion();
                 e.Handled = true;
             }
-            else if (e.Key == Key.B && Keyboard.Modifiers == ModifierKeys.None && _doc is not null
-                     && _viewMode == ViewMode.TwoPage
-                     && ShortcutOverlay.Visibility != Visibility.Visible
-                     && AboutOverlay.Visibility != Visibility.Visible)
-            {
-                // #193: bare B = book layout toggle, only while Two-Page is active (single-key
-                // house style; the sidebar is F9). Same guards as the bare-key switches.
-                ToggleBookMode();
-                e.Handled = true;
-            }
+            // v1.27.0: bare B moved to the pane shortcuts (the browser toggle).
+            // The book layout it used to switch in Two-Page mode keeps its home
+            // on the reading view's context menu - View, Book layout.
             else if (e.Key == Key.N && Keyboard.Modifiers == ModifierKeys.None && _doc is not null
                      && ShortcutOverlay.Visibility != Visibility.Visible
                      && AboutOverlay.Visibility != Visibility.Visible)
@@ -827,6 +845,63 @@ namespace Avalanche
             }
         }
 
+        // ── Pane shortcuts (v1.27.0): T / B / P / F ─────────────────────────────
+        // One key per floor of the reading room. Each one is its toolbar
+        // button's own toggle, so pressing it again goes back - the browser
+        // closes, the editor closes, the PDF returns. The summary key follows
+        // the surface that leads: the browser's digest while the browser
+        // leads, the book's navigator otherwise (the same window Ctrl+G
+        // toggles). The text editor never asked for a summary key, so F rests
+        // while the sheet leads. Returns false for any other key so the
+        // caller's chain continues.
+        private bool TryPaneShortcut(Key key, RoutedEventArgs e)
+        {
+            switch (key)
+            {
+                case Key.F:
+                    if (WebPaneHost.Visibility == Visibility.Visible)
+                    {
+                        WebSumBtn_Click(this, e);
+                        return true;
+                    }
+                    if (EditorPaneHost.Visibility != Visibility.Visible)
+                    {
+                        SummarizeBtn_Click(this, e);
+                        return true;
+                    }
+                    return false;   // the editor leads - F never belonged to it
+                case Key.T: ToggleEditorPane(); return true;
+                case Key.B: ToggleWebPane(); return true;
+                // The floor returns to the reader's PDF - the same switch the
+                // toolbar's PDF editor button is. Already home: nothing to
+                // close, nothing to move.
+                case Key.P:
+                    if (EditorPaneHost.Visibility == Visibility.Visible) HideEditorPane();
+                    if (WebPaneHost.Visibility == Visibility.Visible) HideWebPane();
+                    return true;
+                default: return false;
+            }
+        }
+
+        // The pane shortcuts' own input vow, on top of the guards the chain
+        // already ran: the editable box returned above (the annotation edit
+        // box with it), and a page that owns the keyboard never let the event
+        // this far - the web pane checks WPF's focus AND the win32 truth, and
+        // the editor pane checks its whole subtree. What is left is every
+        // OTHER surface a letter can be typed into - the password field, the
+        // read-only box, the type-ahead combo - and "no matter what" is the
+        // law: none of them loses a letter to a pane switch. A WebView2
+        // holding WPF focus cannot reach this handler at all (those two
+        // subtree guards return first), and a page holding the win32 focus
+        // never raises it.
+        private bool PaneShortcutInputOwns(object? source)
+        {
+            if (source is System.Windows.Controls.Primitives.TextBoxBase   // TextBox, RichTextBox, read-only included
+                or PasswordBox
+                or System.Windows.Controls.ComboBox) return true;
+            return _activeTextBox is not null && _activeTextBox.IsFocused;
+        }
+
         // Maps a bare key to an editing tool. Returns false for any other key so the caller's
         // shortcut chain continues. Mirrors the toolbar tool buttons exactly - Signature routes
         // through its button handler so the signature picker opens (a bare SetTool would only arm
@@ -839,9 +914,11 @@ namespace Avalanche
                 // left to right); the original letter keys stay as fallbacks. Both the number-row and
                 // numpad digits map. 1.6.6 remap (#127 Phase 3): Select is V-only (the Photoshop /
                 // Illustrator / Figma convention) - its digit went to Text so Shapes could take 4 and
-                // the digits keep mirroring the toolbar order.
+                // the digits keep mirroring the toolbar order. v1.27.0: T left the map - the pane
+                // shortcuts took the letter (it opens the text editor now); the Text tool keeps
+                // its digit.
                 case Key.V: SetTool(EditTool.Select); return true;
-                case Key.T: case Key.D1: case Key.NumPad1: SetTool(EditTool.Text); return true;
+                case Key.D1: case Key.NumPad1: SetTool(EditTool.Text); return true;
                 case Key.H: case Key.D2: case Key.NumPad2: SetTool(EditTool.Highlight); return true;
                 case Key.L: case Key.U: case Key.D3: case Key.NumPad3: SetTool(EditTool.Line); return true;
                 case Key.D4: case Key.NumPad4: SetTool(EditTool.Shape); return true;

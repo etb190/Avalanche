@@ -1296,6 +1296,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
 	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_KS_TextEditor">Toggle text editor</sys:String>
+	<sys:String x:Key="Str_KS_WebBrowser">Toggle web browser</sys:String>
+	<sys:String x:Key="Str_KS_PdfEditor">Back to the PDF editor</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

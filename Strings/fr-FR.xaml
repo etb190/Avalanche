@@ -1296,6 +1296,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_KS_TextEditor">Basculer l'éditeur de texte</sys:String>
+	<sys:String x:Key="Str_KS_WebBrowser">Basculer le navigateur web</sys:String>
+	<sys:String x:Key="Str_KS_PdfEditor">Revenir à l'éditeur PDF</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

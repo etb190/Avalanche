@@ -1296,6 +1296,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
 	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_KS_TextEditor">テキストエディターの切り替え</sys:String>
+	<sys:String x:Key="Str_KS_WebBrowser">Web ブラウザーの切り替え</sys:String>
+	<sys:String x:Key="Str_KS_PdfEditor">PDF エディターに戻る</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

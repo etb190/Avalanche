@@ -1296,6 +1296,9 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
 	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_KS_TextEditor">Bật/tắt trình soạn thảo văn bản</sys:String>
+	<sys:String x:Key="Str_KS_WebBrowser">Bật/tắt trình duyệt web</sys:String>
+	<sys:String x:Key="Str_KS_PdfEditor">Quay lại trình soạn thảo PDF</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

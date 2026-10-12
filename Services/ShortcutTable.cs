@@ -104,7 +104,7 @@ namespace Avalanche
             B("%shift%+F4",           "Str_KS_FileSize",    "File", Cap("Shift:F4")),
 
             B("V",               "Str_Lbl_Select",    "Tools", Cap("V")),
-            B("1 (%or% T)",      "Str_Lbl_Text",      "Tools", Cap("D1"), Cap("T")),
+            B("1",               "Str_Lbl_Text",      "Tools", Cap("D1")),
             B("2 (%or% H)",      "Str_Lbl_Highlight", "Tools", Cap("D2"), Cap("H")),
             B("3 (%or% L %or% U)", "Str_Lbl_Line",    "Tools", Cap("D3"), Cap("L"), Cap("U")),
             B("4",               "Str_Lbl_Shape",     "Tools", Cap("D4")),
@@ -164,9 +164,16 @@ namespace Avalanche
             B("F6",            "Str_View_Single",     "View", Cap("F6")),
             B("F7",            "Str_View_TwoPage",    "View", Cap("F7")),
             B("%ctrl%+G",       "Str_KS_Summary",     "View", Cap("Ctrl:G")),
+            // v1.27.0: the pane shortcuts - one key per floor, each its toolbar
+            // button's own toggle: pressed again, it goes back. F follows the
+            // surface that leads - the browser's digest while the browser
+            // leads, the book's navigator otherwise (the window Ctrl+G toggles).
+            B("F",             "Str_KS_Summary",      "View", Cap("F")),
+            B("T",             "Str_KS_TextEditor",   "View", Cap("T")),
+            B("B",             "Str_KS_WebBrowser",   "View", Cap("B")),
+            B("P",             "Str_KS_PdfEditor",    "View", Cap("P")),
             B("%ctrl%+%shift%+A", "Str_Lbl_AiChat",   "View", Cap("CtrlShift:A")),
             B("%ctrl%+%shift%+T", "Str_Lbl_AiTest",   "View", Cap("CtrlShift:T")),
-            B("B",             "Str_View_BookMode",   "View", Cap("B")),   // #193: Two-Page only
             B("F8",            "Str_View_Grid",       "View", Cap("F8")),
             B("F10",           "Str_KS_SplitPane",    "View", Cap("F10")),
             // Esc belongs to Cancel on the base layer, so full screen only claims F11.

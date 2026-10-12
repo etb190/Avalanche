@@ -1284,6 +1284,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
 	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_KS_TextEditor">Przełącz edytor tekstu</sys:String>
+	<sys:String x:Key="Str_KS_WebBrowser">Przełącz przeglądarkę internetową</sys:String>
+	<sys:String x:Key="Str_KS_PdfEditor">Wróć do edytora PDF</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>

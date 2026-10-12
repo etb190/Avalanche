@@ -1276,6 +1276,9 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
 	<sys:String x:Key="Str_SummaryJumpHint">Click a page chip to jump to that page</sys:String>
 	<sys:String x:Key="Str_SummaryUntouched">dim = not covered in summary - click to expand</sys:String>
 	<sys:String x:Key="Str_KS_Summary">Page summary window</sys:String>
+	<sys:String x:Key="Str_KS_TextEditor">টেক্সট এডিটর টগল করুন</sys:String>
+	<sys:String x:Key="Str_KS_WebBrowser">ওয়েব ব্রাউজার টগল করুন</sys:String>
+	<sys:String x:Key="Str_KS_PdfEditor">PDF এডিটরে ফিরে যান</sys:String>
 	<sys:String x:Key="Str_SummaryOpenBook">Open a document first.</sys:String>
 	<sys:String x:Key="Str_SummaryPrevPage">Previous page</sys:String>
 	<sys:String x:Key="Str_SummaryNextPage">Next page</sys:String>
