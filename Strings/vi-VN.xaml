@@ -1417,6 +1417,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Web_ExtRemove">Gỡ bỏ</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Đang bật</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Hãy mở một trang trước - tiện ích thức dậy cùng trình duyệt.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche không thể mở tiện ích này - hiện nó chưa được tải.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Thêm vào thư mục</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Thư mục mới…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Không có thư mục</sys:String>

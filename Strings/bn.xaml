@@ -1397,6 +1397,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Web_ExtRemove">সরান</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">সক্রিয়</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">প্রথমে একটি পৃষ্ঠা খুলুন - এক্সটেনশন ব্রাউজারের সাথে জেগে ওঠে।</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche সেই এক্সটেনশনটি খুলতে পারেনি - এটি এখন লোড হয়নি।</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">ফোল্ডারে যোগ করুন</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">নতুন ফোল্ডার…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">কোনো ফোল্ডার নেই</sys:String>

@@ -1417,6 +1417,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_ExtRemove">Remove</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Enabled</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Open a page first - the extension wakes with the browser.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche could not open that extension - it is not riding right now.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Add to folder</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">New folder…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">No folder</sys:String>

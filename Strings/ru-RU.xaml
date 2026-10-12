@@ -1417,6 +1417,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_Web_ExtRemove">Удалить</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Включено</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Сначала откройте страницу - расширение просыпается вместе с браузером.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche не смог открыть это расширение - сейчас оно не установлено.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Добавить в папку</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Новая папка…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Без папки</sys:String>

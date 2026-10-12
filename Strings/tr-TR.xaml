@@ -1397,6 +1397,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Web_ExtRemove">Kaldır</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Etkin</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Önce bir sayfa açın - uzantı tarayıcıyla birlikte uyanır.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche bu uzantıyı açamadı - şu anda yüklü değil.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Klasöre ekle</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Yeni klasör…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Klasör yok</sys:String>

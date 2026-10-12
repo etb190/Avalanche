@@ -1404,6 +1404,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Web_ExtRemove">Eltávolítás</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Engedélyezve</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Először nyisson meg egy oldalt - a kiterjesztés a böngészővel ébred.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Az Avalanche nem tudta megnyitni ezt a kiterjesztést - most éppen nincs fent.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Hozzáadás mappához</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Új mappa…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Nincs mappa</sys:String>

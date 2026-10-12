@@ -2995,11 +2995,19 @@ namespace Avalanche.Controls
             try
             {
                 _ = core.Profile.AddBrowserExtensionAsync(dir).ContinueWith(
-                    _ => Dispatcher.BeginInvoke(async () =>
+                    t =>
                     {
-                        if (rearm) await ReloadArmedExtensionAsync(core, dir);
-                        _ = MergeLiveExtensionsAsync();
-                    }),
+                        try
+                        {
+                            if (t.Result is { } ext) _liveByFolder[FolderKey(dir)] = ext;
+                        }
+                        catch { /* an add that failed writes no map */ }
+                        Dispatcher.BeginInvoke(async () =>
+                        {
+                            if (rearm) await ReloadArmedExtensionAsync(core, dir);
+                            _ = MergeLiveExtensionsAsync();
+                        });
+                    },
                     System.Threading.Tasks.TaskScheduler.FromCurrentSynchronizationContext());
             }
             catch { _extensionsLoaded.Remove(dir); }   // the next visit retries
@@ -3023,11 +3031,33 @@ namespace Avalanche.Controls
                     if (!matches) continue;
                     try { await ext.RemoveAsync(); }
                     catch { return; }   // the runtime refused; the old copy stays
-                    _ = core.Profile.AddBrowserExtensionAsync(dir);
+                    try
+                    {
+                        if (await core.Profile.AddBrowserExtensionAsync(dir) is { } fresh)
+                            _liveByFolder[FolderKey(dir)] = fresh;
+                    }
+                    catch { /* a re-add that fails leaves the map's older word */ }
                     return;
                 }
             }
             catch { /* a refresh that fails leaves the older copy riding */ }
+        }
+
+        /// <summary>The folders the loader watched go by, and the live
+        /// extension each folder became: the direct word on who is who, so
+        /// a localized name the disk and the profile spell differently can
+        /// never split a row in two. Keyed by full path.</summary>
+        private readonly Dictionary<string, CoreWebView2BrowserExtension> _liveByFolder
+            = new(StringComparer.OrdinalIgnoreCase);
+
+        private static string FolderKey(string dir)
+        {
+            try
+            {
+                return Path.GetFullPath(dir)
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+            catch { return dir; }
         }
 
         private Window? _extFireWindow;
@@ -3041,10 +3071,15 @@ namespace Avalanche.Controls
         private async Task FireExtensionActionAsync(ExtVm vm)
         {
             if (_extFiring) return;
+            // v1.26.0: an empty hand is asked for again on the spot - the
+            // profile's own word - before anything is confessed. And the
+            // old confession ("open a page first") was a lie about pages:
+            // the check never looked at a page, only at the row's hand.
+            if (vm.Extension is null) await ResolveLiveExtensionAsync(vm);
             if (vm.Extension is null)
             {
-                ShowExtActionNote(TryLoc("Str_Web_ExtAsleep")
-                    ?? "Open a page first - the extension wakes with the browser.");
+                ShowExtActionNote(TryLoc("Str_Web_ExtFireFail")
+                    ?? "Avalanche could not trigger that extension.");
                 return;
             }
             string extId = "";
@@ -3091,8 +3126,24 @@ namespace Avalanche.Controls
                 {
                     try { tcs.TrySetResult(args.WebMessageAsJson); } catch { }
                 };
+                // the host knows the page that is open - the active view
+                // is the tab Chrome's toolbar would have sat on - so the
+                // host names it; the worker fires the listeners with THAT
+                // tab, never with the bridge's own hidden page.
+                string tabUrl = "", tabTitle = "";
+                try
+                {
+                    if (_activeView?.CoreWebView2 is { } active)
+                    {
+                        tabUrl = active.Source?.ToString() ?? "";
+                        tabTitle = active.DocumentTitle ?? "";
+                    }
+                }
+                catch { /* a source that will not read leaves the tab unnamed */ }
                 view.CoreWebView2.Navigate("chrome-extension://" + extId + "/"
-                    + ExtensionTrigger.BridgePage);
+                    + ExtensionTrigger.BridgePage
+                    + "?avUrl=" + Uri.EscapeDataString(tabUrl)
+                    + "&avTitle=" + Uri.EscapeDataString(tabTitle));
                 string reply = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(8));
                 (bool ok, int fired) = ParseFireReply(reply);
                 if (ok && fired > 0) return;   // the extension did its thing
@@ -3250,8 +3301,10 @@ namespace Avalanche.Controls
             public Visibility HasIconVisibility => IconSource is null ? Visibility.Collapsed : Visibility.Visible;
             public Visibility NoIconVisibility => IconSource is null ? Visibility.Visible : Visibility.Collapsed;
             public Visibility ToggleVisibility => Extension is null ? Visibility.Collapsed : Visibility.Visible;
+            // v1.26.0: an options page is the manifest's own word - the
+            // row needs no live hand to offer it; the click resolves one.
             public Visibility HasOptionsVisibility =>
-                Extension is not null && OptionsPath.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+                OptionsPath.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private sealed record ExtManifest(
@@ -3362,9 +3415,11 @@ namespace Avalanche.Controls
         private void RefreshExtensionSurfaces()
         {
             List<ExtVm> visible = CollectInstalledExtensions().Where(IsActionableRow).ToList();
+            CarryLiveState(visible);
             WebExtIconRow.ItemsSource = visible;
             WebExtPuzzleBtn.Visibility = visible.Count == 0
                 ? Visibility.Visible : Visibility.Collapsed;
+            _ = MergeLiveExtensionsAsync();   // v1.26.0: every refresh re-asks the profile
         }
 
         /// <summary>The profile's own answer: every extension riding right now,
@@ -3373,23 +3428,44 @@ namespace Avalanche.Controls
         /// row - the riding pdf helper, an install the folder scan missed -
         /// joins as its own row; the toggle and the menu come alive with it.</summary>
         private bool _extMerging;
+        private bool _extMergeQueued;
 
+        /// <summary>A merge asked while one runs no longer vanishes - it
+        /// queues: an install's own merge and the loader's follow-up could
+        /// both land while the profile's first answer was still in the
+        /// air, and the loser used to walk away leaving rows with empty
+        /// hands forever.</summary>
         private async Task MergeLiveExtensionsAsync()
         {
-            if (_extMerging) return;
+            if (_extMerging) { _extMergeQueued = true; return; }
             _extMerging = true;
             try
             {
+                while (true)
+                {
+                    _extMergeQueued = false;
+                    await MergeLiveExtensionsOnceAsync();
+                    if (!_extMergeQueued) break;
+                }
+            }
+            finally
+            {
+                _extMerging = false;
+            }
+        }
+
+        private async Task MergeLiveExtensionsOnceAsync()
+        {
+            try
+            {
                 List<ExtVm> rows = CollectInstalledExtensions();
+                CarryLiveState(rows);
                 if (_activeView?.CoreWebView2 is { } core)
                 {
                     var live = await core.Profile.GetBrowserExtensionsAsync();
                     foreach (CoreWebView2BrowserExtension ext in live)
                     {
-                        ExtVm? row = rows.FirstOrDefault(r =>
-                            string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase))
-                            ?? rows.FirstOrDefault(r =>
-                            string.Equals(ExtNameKey(r.Name), ExtNameKey(ext.Name), StringComparison.Ordinal));
+                        ExtVm? row = RowForLiveExtension(rows, ext);
                         if (row is null)
                         {
                             row = new ExtVm { Name = ext.Name };
@@ -3409,10 +3485,88 @@ namespace Avalanche.Controls
                 // an older runtime without the query API (or no engine awake
                 // yet) keeps the folder-scan list exactly as it was
             }
-            finally
+        }
+
+        /// <summary>The row a live extension belongs to: the folder map's
+        /// own word first - the loader watched every folder it added, so
+        /// folder and extension need no name guessing - and the name key's
+        /// polite match second, for copies the profile brought from an
+        /// earlier run.</summary>
+        private ExtVm? RowForLiveExtension(List<ExtVm> rows, CoreWebView2BrowserExtension ext)
+        {
+            foreach ((string dir, CoreWebView2BrowserExtension mapped) in _liveByFolder)
             {
-                _extMerging = false;
+                if (!ReferenceEquals(mapped, ext)) continue;
+                ExtVm? byFolder = rows.FirstOrDefault(r =>
+                    string.Equals(r.Folder, dir, StringComparison.OrdinalIgnoreCase));
+                if (byFolder is not null) return byFolder;
             }
+            return rows.FirstOrDefault(r =>
+                    string.Equals(r.Name, ext.Name, StringComparison.OrdinalIgnoreCase))
+                ?? rows.FirstOrDefault(r =>
+                    string.Equals(ExtNameKey(r.Name), ExtNameKey(ext.Name), StringComparison.Ordinal));
+        }
+
+        /// <summary>Fresh rows inherit the live hands the strip already
+        /// wears: a refresh that raced a merge must not leave the icons
+        /// holding rows the profile was never asked about.</summary>
+        private void CarryLiveState(List<ExtVm> fresh)
+        {
+            if (WebExtIconRow.ItemsSource is not System.Collections.IEnumerable worn) return;
+            foreach (object o in worn)
+            {
+                if (o is not ExtVm old || old.Extension is null) continue;
+                ExtVm? target = null;
+                if (old.Folder.Length > 0)
+                    target = fresh.FirstOrDefault(r =>
+                        string.Equals(r.Folder, old.Folder, StringComparison.OrdinalIgnoreCase));
+                target ??= fresh.FirstOrDefault(r =>
+                    string.Equals(ExtNameKey(r.Name), ExtNameKey(old.Name), StringComparison.Ordinal));
+                if (target is not null && target.Extension is null)
+                {
+                    target.Extension = old.Extension;
+                    target.LiveEnabled = old.LiveEnabled;
+                }
+            }
+        }
+
+        /// <summary>The live extension behind a row, asked for on the spot
+        /// when the row's hand is empty: the folder map's word first, then
+        /// the profile's own answer by name - so a click never has to
+        /// confess what a lookup can heal. A find feeds the row back and
+        /// re-merges, so the strip's bindings wake with it.</summary>
+        private async Task<CoreWebView2BrowserExtension?> ResolveLiveExtensionAsync(ExtVm vm)
+        {
+            if (vm.Extension is not null) return vm.Extension;
+            if (vm.Folder.Length > 0
+                && _liveByFolder.TryGetValue(FolderKey(vm.Folder),
+                    out CoreWebView2BrowserExtension? known))
+            {
+                vm.Extension = known;
+                vm.LiveEnabled = known.IsEnabled;
+                return known;
+            }
+            try
+            {
+                if (_activeView?.CoreWebView2 is { } core)
+                {
+                    var live = await core.Profile.GetBrowserExtensionsAsync();
+                    foreach (CoreWebView2BrowserExtension ext in live)
+                    {
+                        bool matches =
+                            string.Equals(ext.Name, vm.Name, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(ExtNameKey(ext.Name), ExtNameKey(vm.Name), StringComparison.Ordinal);
+                        if (!matches) continue;
+                        vm.Extension = ext;
+                        vm.LiveEnabled = ext.IsEnabled;
+                        if (vm.Folder.Length > 0) _liveByFolder[FolderKey(vm.Folder)] = ext;
+                        _ = MergeLiveExtensionsAsync();   // the strip's bindings wake with the find
+                        return ext;
+                    }
+                }
+            }
+            catch { /* the profile is asleep; the row answers honestly below */ }
+            return null;
         }
 
         /// <summary>A name's matching key: letters and digits only, case
@@ -3497,12 +3651,13 @@ namespace Avalanche.Controls
                 string icon = hasAction ? PickIconEntry(action) : "";
                 if (icon.Length == 0 && root.TryGetProperty("icons", out System.Text.Json.JsonElement icons))
                     icon = PickIconEntry(icons);
-                string options = "";
-                if (root.TryGetProperty("options_ui", out System.Text.Json.JsonElement oui)
-                    && oui.ValueKind == System.Text.Json.JsonValueKind.Object)
-                    options = GetManifestString(oui, "options_page");
-                if (options.Length == 0)
-                    options = GetManifestString(root, "options_page");
+                // v1.26.0: the options page where every manifest actually
+                // spells it - options_ui.page - with the old spellings
+                // tolerated behind it. The reader once asked options_ui for
+                // options_page, a key no manifest wears, so every extension
+                // that declared its options the standard MV3 way offered a
+                // right-click menu with no Options row at all.
+                string options = Avalanche.Services.ExtensionOptionsPath.Resolve(root);
                 // v1.24.0: a popup-less row's third surface - its own click
                 // listener - is read from the worker's own words.
                 bool click = popup.Length == 0
@@ -3597,12 +3752,13 @@ namespace Avalanche.Controls
             OpenExtensionPopup(vm);
         }
 
-        private void OpenExtensionPopup(ExtVm vm)
+        private async void OpenExtensionPopup(ExtVm vm)
         {
+            if (vm.Extension is null) await ResolveLiveExtensionAsync(vm);
             if (vm.Extension is null)
             {
-                ShowExtActionNote(TryLoc("Str_Web_ExtAsleep")
-                    ?? "Open a page first - the extension wakes with the browser.");
+                ShowExtActionNote(TryLoc("Str_Web_ExtPopupGone")
+                    ?? "Avalanche could not open that extension - it is not riding right now.");
                 return;
             }
             if (vm.PopupPath.Length == 0)
@@ -3618,10 +3774,17 @@ namespace Avalanche.Controls
             _ = ShowExtensionActionViewAsync(vm.Extension, vm.PopupPath, optionsPage: false);
         }
 
-        private void WebExtOptions_Click(object sender, RoutedEventArgs e)
+        private async void WebExtOptions_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not FrameworkElement { DataContext: ExtVm vm }) return;
-            if (vm.Extension is null || vm.OptionsPath.Length == 0) return;
+            if (vm.OptionsPath.Length == 0) return;
+            if (vm.Extension is null) await ResolveLiveExtensionAsync(vm);
+            if (vm.Extension is null)
+            {
+                ShowExtActionNote(TryLoc("Str_Web_ExtPopupGone")
+                    ?? "Avalanche could not open that extension - it is not riding right now.");
+                return;
+            }
             _ = ShowExtensionActionViewAsync(vm.Extension, vm.OptionsPath, optionsPage: true);
         }
 

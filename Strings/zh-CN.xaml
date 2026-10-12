@@ -1401,6 +1401,7 @@ Avalanche 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">移除</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">已启用</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">请先打开一个页面——扩展随浏览器一起启动。</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche 无法打开该扩展——它现在没有在运行。</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">添加到文件夹</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新建文件夹…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">无文件夹</sys:String>

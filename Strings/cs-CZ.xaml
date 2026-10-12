@@ -1402,6 +1402,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_ExtRemove">Odebrat</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Povoleno</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Nejdříve otevřete stránku - rozšíření se probouzí spolu s prohlížečem.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche toto rozšíření nemohl otevřít - právě teď není na palubě.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Přidat do složky</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nová složka…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Bez složky</sys:String>

@@ -1416,6 +1416,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Web_ExtRemove">Жою</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Қосылған</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Алдымен бет ашыңыз - кеңейтім браузермен бірге оянады.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche бұл кеңейтімді аша алмады - ол қазір жүктелмеген.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Қалтаға қосу</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Жаңа қалта…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Қалта жоқ</sys:String>

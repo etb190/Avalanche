@@ -1399,6 +1399,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">移除</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">已啟用</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">請先開啟一個頁面——擴充功能會隨瀏覽器啟動。</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche 無法開啟該擴充功能——它現在沒有在執行。</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">新增至資料夾</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新增資料夾…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">無資料夾</sys:String>

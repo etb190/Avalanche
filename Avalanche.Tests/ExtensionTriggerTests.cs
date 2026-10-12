@@ -438,4 +438,82 @@ public sealed class ExtensionTriggerTests
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
+
+    [Fact]
+    public void The_Shim_Fires_With_The_Tab_The_Host_Handed_It()
+    {
+        // Chrome hands the listener the tab the toolbar sat on. The
+        // bridge's hidden window is nobody's toolbar: the query a worker
+        // makes on its own would name the bridge page or nobody at all.
+        // The host knows the open page, so the host names it, and the
+        // shim prefers the real tab whose url matches, synthesizing a
+        // faithful stand-in only when the profile keeps no such tab.
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"sw.js\"}}"),
+            ("sw.js", "chrome.action.onClicked.addListener(tab => console.log(tab.url));"));
+        try
+        {
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            string shim = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.ShimFile));
+            Assert.Contains("msg.url", shim);
+            Assert.Contains("msg.title", shim);
+            Assert.Contains("tabs[i].url === url", shim);
+            Assert.Contains("standIn(url, title)", shim);
+            Assert.Contains("id: -1", shim);
+            string bridge = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.BridgeScriptFile));
+            Assert.Contains("location.search", bridge);
+            Assert.Contains("avUrl", bridge);
+            Assert.Contains("avTitle", bridge);
+            Assert.Contains(ExtensionTrigger.MessageTag, bridge);
+            using JsonDocument marker = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(dir, ExtensionTrigger.MarkerFile)));
+            Assert.Equal(3, marker.RootElement.GetProperty("v").GetInt32());
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
+    public void V2_Armed_Folder_Upgrades_To_The_Host_Tab_Law()
+    {
+        // a folder armed by the previous build: the manifest already
+        // wears the wrapper, the marker stands at v2, and the shim on
+        // disk never heard of the host's named tab. The upgrade recovers
+        // the origin worker and rewrites the law in place - it must
+        // never wrap a wrapper.
+        string dir = WriteDir(
+            ("manifest.json", "{\"manifest_version\":3,\"name\":\"T\",\"version\":\"1.0\","
+                + "\"action\":{},\"background\":{\"service_worker\":\"avalanche_trigger_sw.js\",\"type\":\"classic\"},"
+                + "\"permissions\":[\"tabs\"]}"),
+            ("avalanche_trigger_sw.js",
+                "importScripts('avalanche_trigger_shim.js');\nimportScripts('sw.js');\n"),
+            ("sw.js", "chrome.action.onClicked.addListener(() => {});"),
+            ("avalanche_trigger_shim.js", "/* the old shim: it never heard of the host's tab */"),
+            ("avalanche_bridge.js", "/* the old bridge: it never named a page */"),
+            ("avalanche_bridge.html", "<html></html>"),
+            ("avalanche_trigger.json",
+                "{\"v\":2,\"armed\":\"2026-10-11T00:00:00Z\",\"kind\":\"worker\","
+                + "\"origin\":\"sw.js\",\"wrapper\":\"avalanche_trigger_sw.js\"}"));
+        try
+        {
+            Assert.False(ExtensionTrigger.IsArmed(dir));   // a v2 marker no longer counts
+            Assert.True(ExtensionTrigger.EnsureArmed(dir));
+            string shim = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.ShimFile));
+            Assert.Contains("msg.url", shim);
+            Assert.DoesNotContain("never heard of the host's tab", shim);
+            string bridge = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.BridgeScriptFile));
+            Assert.Contains("avUrl", bridge);
+            string wrapper = File.ReadAllText(Path.Combine(dir, ExtensionTrigger.WrapperFile));
+            Assert.Contains("importScripts('avalanche_trigger_shim.js')", wrapper);
+            Assert.Contains("importScripts('sw.js')", wrapper);
+            Assert.DoesNotContain("importScripts('avalanche_trigger_sw.js')", wrapper);
+            using JsonDocument marker = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(dir, ExtensionTrigger.MarkerFile)));
+            Assert.Equal(3, marker.RootElement.GetProperty("v").GetInt32());
+            Assert.Equal("sw.js", marker.RootElement.GetProperty("origin").GetString());
+            Assert.True(ExtensionTrigger.IsArmed(dir));
+            Assert.False(ExtensionTrigger.EnsureArmed(dir));   // the next pass rests
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
 }

@@ -1405,6 +1405,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_ExtRemove">Usuń</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Włączone</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Najpierw otwórz stronę - rozszerzenie budzi się razem z przeglądarką.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche nie mógł otworzyć tego rozszerzenia - teraz nie ma go na pokładzie.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">Dodaj do folderu</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Nowy folder…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Brak folderu</sys:String>

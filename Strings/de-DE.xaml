@@ -1403,6 +1403,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Web_ExtRemove">Entfernen</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">Aktiviert</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">Öffnen Sie zuerst eine Seite - die Erweiterung erwacht mit dem Browser.</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche konnte diese Erweiterung nicht öffnen - sie fährt gerade nicht mit.</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">In Ordner legen</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">Neuer Ordner…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">Kein Ordner</sys:String>

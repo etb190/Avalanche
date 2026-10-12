@@ -42,6 +42,14 @@ namespace Avalanche.Services;
 /// earlier build upgrades in place: the origin worker is remembered in
 /// the marker and confessed by the old wrapper's own import lines, so
 /// the upgrade never wraps a wrapper.
+/// v1.26.0's lesson: the worker's own tab query could only ever meet
+/// the bridge's hidden window - the last-focused window a service
+/// worker sees is nobody's toolbar. The host knows which page is open,
+/// so the host names it in the bridge's one message; the shim fires
+/// the listeners with THAT tab - the profile's real tab whose url
+/// matches first, a faithful stand-in built from the host's word
+/// second - and the marker moved to v3 so every armed folder picks
+/// the new law up in place.
 /// </summary>
 public static class ExtensionTrigger
 {
@@ -56,7 +64,7 @@ public static class ExtensionTrigger
     public const string WrapperFile = "avalanche_trigger_sw.js";
     /// <summary>The message tag the bridge page sends and the shim answers.</summary>
     public const string MessageTag = "avalanche-fire-action";
-    public const int MarkerVersion = 2;
+    public const int MarkerVersion = 3;
 
     private const string TabsPermission = "tabs";
 
@@ -466,17 +474,23 @@ public static class ExtensionTrigger
 
     /// <summary>The shim: records every click registration (and honors its
     /// removeListener), then answers the bridge's one message by firing the
-    /// record with the real active tab - the tab query a toolbar click
-    /// would have answered with. Both click events of both manifest eras
+    /// record with the tab Chrome's own toolbar would have handed over -
+    /// the host names the open page in that message, and the worker's
+    /// own tab query serves only when no name came. Both click events
+    /// of both manifest eras
     /// are armed, every swap is guarded so a refused patch cannot take the
     /// worker down, and the onMessage listener stands at the top of the
     /// worker regardless - a message that wakes a sleeping worker finds it.</summary>
-    private const string ShimScript = @"// Avalanche click-trigger shim: the host browser armed this folder.
+        private const string ShimScript = @"// Avalanche click-trigger shim: the host browser armed this folder.
 // It records every click listener this extension registers on
 // chrome.action.onClicked (or chrome.browserAction.onClicked, for the
-// manifest-v2 era) and fires them, with the real active tab, when the
-// host's bridge page asks - the click Chrome's own toolbar would have
-// delivered.
+// manifest-v2 era) and fires them, with the tab Chrome's own toolbar
+// would have handed over, when the host's bridge page asks. The host
+// knows which page is open - it names that page in the bridge's one
+// message; the shim prefers the real tab whose url matches and
+// settles for a faithful stand-in only when the profile keeps no such
+// tab, because the bridge's hidden window is nobody's idea of a
+// focused one.
 (function () {
   'use strict';
   if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) return;
@@ -498,25 +512,49 @@ public static class ExtensionTrigger
   };
   if (chrome.action && chrome.action.onClicked) arm(chrome.action.onClicked);
   if (chrome.browserAction && chrome.browserAction.onClicked) arm(chrome.browserAction.onClicked);
+  // one query, both dialects: the promise the modern runtime returns,
+  // or the callback the older pages still speak
+  var q = function (opts) {
+    return new Promise(function (resolve) {
+      try {
+        var r = chrome.tabs.query(opts);
+        if (r && typeof r.then === 'function') { r.then(resolve, function () { resolve([]); }); return; }
+      } catch (e) { resolve([]); return; }
+      try { chrome.tabs.query(opts, function (tabs) { resolve(tabs || []); }); }
+      catch (e) { resolve([]); }
+    });
+  };
+  var standIn = function (url, title) {
+    return {
+      id: -1, index: 0, windowId: -1, highlighted: true, active: true,
+      pinned: false, incognito: false, selected: true, audible: false,
+      autoDiscardable: true, discarded: false, mutedInfo: { muted: false },
+      status: 'complete', url: url, title: title || '', favIconUrl: ''
+    };
+  };
   chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (!msg || msg.type !== 'avalanche-fire-action') return;
     (function () {
-      var pick = function (tabs) { return (tabs && tabs.length) ? tabs[0] : null; };
+      var url = typeof msg.url === 'string' ? msg.url : '';
+      var title = typeof msg.title === 'string' ? msg.title : '';
       var tabPromise;
-      try {
-        var first = chrome.tabs.query({ active: true, lastFocusedWindow: true });
-        if (first && typeof first.then === 'function') {
-          tabPromise = first.then(pick).then(function (t) {
-            return t || chrome.tabs.query({ active: true, currentWindow: true }).then(pick);
-          }).catch(function () { return null; });
-        } else {
-          tabPromise = new Promise(function (resolve) {
-            chrome.tabs.query({ active: true, lastFocusedWindow: true }, function (tabs) {
-              resolve(pick(tabs));
-            });
-          });
-        }
-      } catch (e) { tabPromise = Promise.resolve(null); }
+      if (url.length > 0) {
+        // the host named the open page: the real tab whose url matches
+        // first, the host's own word dressed as a tab second
+        tabPromise = q({}).then(function (tabs) {
+          for (var i = 0; i < tabs.length; i++) {
+            if (tabs[i] && tabs[i].url === url) return tabs[i];
+          }
+          return standIn(url, title);
+        });
+      } else {
+        tabPromise = q({ active: true, lastFocusedWindow: true }).then(function (tabs) {
+          return tabs.length ? tabs[0]
+            : q({ active: true, currentWindow: true }).then(function (t2) {
+                return t2.length ? t2[0] : standIn('', '');
+              });
+        });
+      }
       tabPromise.then(function (tab) {
         var fired = 0;
         for (var i = 0; i < listeners.length; i++) {
@@ -548,17 +586,27 @@ public static class ExtensionTrigger
     /// <summary>The bridge's logic, in the file the page's own CSP allows:
     /// it holds the extension's own message rights, asks its worker once,
     /// and reports the answer back through the host channel.</summary>
-    private const string BridgeJs = @"// Avalanche bridge: an extension page like any other, opened by the host
+        private const string BridgeJs = @"// Avalanche bridge: an extension page like any other, opened by the host
 // in a hidden window. It holds the extension's own message rights, asks
 // its worker once, and reports the answer back through the host channel.
 // The logic lives in this file because an extension page's CSP
 // (script-src 'self') silences every inline script - the previous
-// bridge never said a word for exactly that reason.
+// bridge never said a word for exactly that reason. And the host names
+// the page that is open in its own query string: the worker's tab
+// query alone would meet only this hidden window, so the open page
+// rides to it as avUrl and avTitle.
 (function () {
   'use strict';
   var send = function (m) { try { window.chrome.webview.postMessage(m); } catch (e) { } };
+  var q = null;
+  try { q = new URLSearchParams(location.search); } catch (e) { q = null; }
+  var arg = function (k) { try { return (q && q.get(k)) || ''; } catch (e) { return ''; } };
   try {
-    chrome.runtime.sendMessage({ type: 'avalanche-fire-action' }, function (res) {
+    chrome.runtime.sendMessage({
+      type: 'avalanche-fire-action',
+      url: arg('avUrl'),
+      title: arg('avTitle')
+    }, function (res) {
       var err = chrome.runtime.lastError;
       if (err) { send({ type: 'avalanche-fire-result', ok: false, error: String(err.message || err) }); return; }
       send({

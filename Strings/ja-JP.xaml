@@ -1417,6 +1417,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Web_ExtRemove">削除</sys:String>
     <sys:String x:Key="Str_Web_ExtEnabled">有効</sys:String>
     <sys:String x:Key="Str_Web_ExtAsleep">まずページを開いてください - 拡張機能はブラウザーと共に起動します。</sys:String>
+    <sys:String x:Key="Str_Web_ExtPopupGone">Avalanche はその拡張機能を開けませんでした - 現在搭載されていません。</sys:String>
     <sys:String x:Key="Str_Web_AddToFolder">フォルダーに追加</sys:String>
     <sys:String x:Key="Str_Web_FolderNew">新しいフォルダー…</sys:String>
     <sys:String x:Key="Str_Web_FolderNone">フォルダーなし</sys:String>

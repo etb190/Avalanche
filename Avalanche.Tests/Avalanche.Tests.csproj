@@ -65,6 +65,7 @@
     <Compile Include="..\Services\PageQualityConverter.cs" Link="Services\PageQualityConverter.cs" />
     <Compile Include="..\Services\FaviconCodec.cs" Link="Services\FaviconCodec.cs" />
     <Compile Include="..\Services\StoreLink.cs" Link="Services\StoreLink.cs" />
+    <Compile Include="..\Services\ExtensionOptionsPath.cs" Link="Services\ExtensionOptionsPath.cs" />
     <Compile Include="..\Services\ExtensionTrigger.cs" Link="Services\ExtensionTrigger.cs" />
     <Compile Include="..\Services\MeasurementCalculator.cs" Link="Services\MeasurementCalculator.cs" />
     <Compile Include="..\Services\OutputPixelDimensions.cs" Link="Services\OutputPixelDimensions.cs" />
