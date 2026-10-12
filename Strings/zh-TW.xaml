@@ -1136,6 +1136,8 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">模型 - 每個介面由哪個 AI 回答</sys:String>
     <sys:String x:Key="Str_AiModelSummary">摘要</sys:String>
+<sys:String x:Key="Str_AiModelDefine">定義模型</sys:String>
+<sys:String x:Key="Str_AiModelExplain">解釋模型</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">邊聊</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">瀏覽器邊聊</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1155,6 +1157,7 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_AiModelTester">AI 測試器</sys:String>
     <sys:String x:Key="Str_AiModelNotes">筆記</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">改寫模型</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">指令模型</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">編輯器側聊模型</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">瀏覽器摘要模型</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">AI 提示詞</sys:String>

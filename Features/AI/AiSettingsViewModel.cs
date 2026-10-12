@@ -40,6 +40,9 @@ namespace Avalanche.Features.AI
         private string _editorGrammarModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's proofreader
         private string _editorRewriteModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's rewriter
         private string _editorSidechatModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.86: the sheet's chat
+        private string _defineModelChoice = AiSurfaceModels.NemotronChoice;   // v1.30.0: the popup's definition voice
+        private string _explainModelChoice = AiSurfaceModels.NemotronChoice;   // v1.30.0: the popup's explanation voice
+        private string _editorCustomModelChoice = AiSurfaceModels.NemotronChoice;   // v1.30.0: the sheet's tell-AI input
         private string _embeddingChoice = AiSurfaceModels.EmbeddingDefaultChoice;   // v1.19.55: who embeds
 
         private bool _isEnabled = false;
@@ -190,6 +193,32 @@ namespace Avalanche.Features.AI
         {
             get => _editorRewriteModelChoice;
             set { _editorRewriteModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.EditorRewrite, _editorRewriteModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.30.0: the action popup's definition voice - which
+        /// model answers Define, seated right under the summary dial it
+        /// used to inherit.</summary>
+        public string DefineModelChoice
+        {
+            get => _defineModelChoice;
+            set { _defineModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Define, _defineModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.30.0: the action popup's explanation voice - which
+        /// model answers Explain, seated beside Define under the summary
+        /// dial.</summary>
+        public string ExplainModelChoice
+        {
+            get => _explainModelChoice;
+            set { _explainModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.Explain, _explainModelChoice); OnPropertyChanged(); }
+        }
+
+        /// <summary>v1.30.0: the text editor's floating tell-AI input stops
+        /// sharing the rewriter's dial - its own seat, its own model.</summary>
+        public string EditorCustomModelChoice
+        {
+            get => _editorCustomModelChoice;
+            set { _editorCustomModelChoice = AiSurfaceModels.NormalizeChoice(value); AiSurfaceModels.Set(AiSurface.EditorCustom, _editorCustomModelChoice); OnPropertyChanged(); }
         }
 
         /// <summary>v1.19.86: the sheet's sidechat answers with whoever
@@ -471,6 +500,9 @@ namespace Avalanche.Features.AI
                 _recallerModelChoice = AiSurfaceModels.Get(AiSurface.Recaller);
                 _aiTesterModelChoice = AiSurfaceModels.Get(AiSurface.AiTester);
                 _notesModelChoice = AiSurfaceModels.Get(AiSurface.Notes);
+                _defineModelChoice = AiSurfaceModels.Get(AiSurface.Define);
+                _explainModelChoice = AiSurfaceModels.Get(AiSurface.Explain);
+                _editorCustomModelChoice = AiSurfaceModels.Get(AiSurface.EditorCustom);
                 _embeddingChoice = AiSurfaceModels.GetEmbeddingChoice();
                 if (config is not null)
                 {

@@ -1154,6 +1154,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">モデル - 各画面に答える AI</sys:String>
     <sys:String x:Key="Str_AiModelSummary">要約</sys:String>
+<sys:String x:Key="Str_AiModelDefine">定義モデル</sys:String>
+<sys:String x:Key="Str_AiModelExplain">解説モデル</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">サイドチャット</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">ブラウザーサイドチャット</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1173,6 +1175,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_AiModelTester">AIテスター</sys:String>
     <sys:String x:Key="Str_AiModelNotes">ノート</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">リライトモデル</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">指示モデル</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">エディターサイドチャットモデル</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">ブラウザ要約モデル</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">AIプロンプト</sys:String>

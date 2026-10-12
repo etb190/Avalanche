@@ -3777,6 +3777,42 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
+                                <!-- v1.30.0: the popup's two voices get their own seats - which model defines a term and which explains a passage, right under the summary dial they used to inherit. -->
+                                <TextBlock Text="{DynamicResource Str_AiModelDefine}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding DefineModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
+                                </ComboBox>
+                                <!-- v1.30.0: the explanation voice - the passage card's own seat. -->
+                                <TextBlock Text="{DynamicResource Str_AiModelExplain}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding ExplainModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
+                                </ComboBox>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           SelectedValuePath="Tag"
                                           SelectedValue="{Binding SidechatModelChoice, Mode=TwoWay}">
@@ -3921,6 +3957,24 @@
                                 <!-- v1.19.86: the sheet's chat wears its own
                                      dial - the model that answers inside
                                      the text editor's sidechat. -->
+                                <!-- v1.30.0: the floating tell-AI input stops sharing the rewriter's seat - its own dial rides under the rewrite model. -->
+                                <TextBlock Text="{DynamicResource Str_AiModelEditorCustom}" Style="{StaticResource AiSettingsLabel}"/>
+                                <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
+                                          SelectedValuePath="Tag"
+                                          SelectedValue="{Binding EditorCustomModelChoice, Mode=TwoWay}">
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelNemotron}" Tag="nemotron"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGptOss}" Tag="gpt-oss"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelKimi}" Tag="kimi"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm}" Tag="glm"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGlm53}" Tag="glm-5.3"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelDeepseek}" Tag="deepseek"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemma4}" Tag="gemma-4"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini}" Tag="gemini"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini37}" Tag="gemini-3.7"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini36}" Tag="gemini-3.6"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
+                                </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiModelEditorSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           SelectedValuePath="Tag"

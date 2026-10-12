@@ -3109,10 +3109,12 @@ namespace Avalanche.Features.Summary
 
             var root = new Border
             {
-                // v1.29.0: three times as wide as the narrow card it
-                // began as - the Define and Explain answers breathe
-                // across a 720px face now.
-                Width = 720,
+                // v1.30.0: the truth about the two widths - the popup's
+                // own face keeps the compact 240px row the reader knows,
+                // and only the answer card inside breathes three times as
+                // wide while it is on screen (IsVisibleChanged moves the
+                // width; the buttons never sit in a wide boat).
+                Width = 240,
                 CornerRadius = new CornerRadius(10),
                 BorderThickness = new Thickness(1),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
@@ -3127,6 +3129,46 @@ namespace Avalanche.Features.Summary
             root.Background = (System.Windows.Media.Brush)new System.Windows.Media.BrushConverter().ConvertFromString("#F21E1E24")!;
             root.SetResourceReference(Border.BorderBrushProperty, "CardBorderBrush");
             root.Child = new StackPanel { Children = { header, hairline, actions, _actionCard } };
+
+            // v1.30.0: the card's visibility drives the popup's width - the
+            // buttons row stays 240px, a Define or Explain answer stretches
+            // the same face to three times that while it breathes, and the
+            // face returns to its compact row when the card leaves.
+            _actionCard.IsVisibleChanged += (_, e) =>
+            {
+                if (_actionRoot is { } face)
+                {
+                    face.Width = (bool)e.NewValue ? 720 : 240;
+                }
+            };
+
+            // v1.30.0: the popup owns the mouse while it is open (StaysOpen
+            // false captures it), so the wheel that should have dismissed
+            // it never reached the digest - the reader had to click away.
+            // The wheel answers here now: a roll over a long answer
+            // scrolls that answer, every other roll is the reader moving
+            // on - the popup closes and the pinned word's memory leaves
+            // with its plate (Closed unhooks the highlight).
+            root.PreviewMouseWheel += (_, e) =>
+            {
+                if (e.Handled)
+                {
+                    return;
+                }
+
+                if (_actionCard is { Visibility: Visibility.Visible }
+                    && _actionResultBox is { } box
+                    && box.IsMouseOver
+                    && box.ExtentHeight > box.ViewportHeight + 0.5)
+                {
+                    return;     // the long answer scrolls its own page
+                }
+
+                e.Handled = true;
+                ForgetPinnedWord();
+                DismissActionPopup();
+            };
+
             // Escape tunnels from the popup's own hwnd here - a dismiss, not a
             // window close.
             root.PreviewKeyDown += (_, e) =>
@@ -3280,7 +3322,14 @@ namespace Avalanche.Features.Summary
 
             SetPopupStatus(_loc(action == "define" ? "Str_SummaryPopupDefining" : "Str_SummaryPopupExplaining"));
             SetActionButtonsEnabled(false);
-            AiProviderConfig config = _configProvider();
+            // v1.30.0: the popup's voices seat themselves - Define and
+            // Explain each answer with their own dial (the model dropdowns
+            // under the summary's), resolved fresh on every run; the
+            // provider the window was opened with stays the base config.
+            AiProviderConfig baseConfig = _configProvider();
+            AiProviderConfig config = action == "define"
+                ? AiSurfaceModels.Configure(baseConfig, AiSurface.Define)
+                : AiSurfaceModels.Configure(baseConfig, AiSurface.Explain);
             string target = _actionTarget;
             try
             {

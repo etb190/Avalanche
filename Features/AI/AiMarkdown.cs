@@ -185,7 +185,10 @@ namespace Avalanche.Features.AI
         // literal), `code`, [label](url).
         private static readonly Regex InlineRx = new(
             @"\*\*\*(?<bi>[^*\s][^*]*?)\*\*\*"
-            + @"|\*\*(?<b>[^*]+?)\*\*"
+            // v1.30.0: the bold span carries a single stray asterisk
+            // inside (**a*b** used to fall through to literal asterisks
+            // on both pairs); a doubled one still closes the span.
+            + @"|\*\*(?<b>(?:[^*]|\*(?!\*))+?)\*\*"
             + @"|__(?<u>[^\s_][^_]*?)__"
             + @"|(?<![\w*])\*(?<i>[^\s*][^*]*?)\*(?![\w*])"
             + @"|(?<![\w_])_(?<em>[^\s_][^_]*?)_(?![\w_])"
@@ -305,6 +308,18 @@ namespace Avalanche.Features.AI
             IReadOnlyList<AiSource> sources = (rtb?.DataContext as ChatMessage)?.Sources ?? new List<AiSource>();
 
             var lines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+
+            // v1.30.0: the model's pen hard-wraps, and a **bold** straddling
+            // the wrap rendered both marker pairs as literal asterisks - the
+            // justified digest joined its paragraphs before parsing, but a
+            // bullet carried its opener alone and the left-aligned bubbles
+            // never joined at all. The fold reunites the split span before
+            // the parser ever sees it (InlineFold; facts in InlineFoldTests).
+            if (parseMarkdown)
+            {
+                lines = InlineFold.Fold(lines);
+            }
+
             bool inFence = false;
             var fence = new List<string>();
 

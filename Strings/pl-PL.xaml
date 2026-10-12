@@ -1142,6 +1142,8 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Modele - które AI odpowiada na każdej powierzchni</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Podsumowanie</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Model definiowania</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Model wyjaśniania</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Czat boczny</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Czat boczny przeglądarki</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1161,6 +1163,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_AiModelTester">Tester AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notatki</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Model przepisywania</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Model instrukcji</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Model czatu bocznego edytora</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Model podsumowania stron</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">Prompty AI</sys:String>

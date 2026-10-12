@@ -1158,6 +1158,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Models - which AI answers each surface</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Summary</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Define Model</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Explain Model</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Sidechat</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Browser sidechat</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1175,6 +1177,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_AiModelTester">AI tester</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notes</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Rewrite Model</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Tell-AI Model</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Editor sidechat model</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Browser summary model</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">AI prompts</sys:String>

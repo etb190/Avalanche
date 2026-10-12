@@ -1140,6 +1140,8 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Modelle - welche KI jeder Fläche antwortet</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Zusammenfassung</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Definitionsmodell</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Erklärungsmodell</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Seitenchat</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Browser-Seitenchat</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1159,6 +1161,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_AiModelTester">KI-Tester</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Notizen</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Umschreibungsmodell</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Anweisungsmodell</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Editor-Seitenchat-Modell</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Browser-Zusammenfassungsmodell</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">KI-Prompts</sys:String>

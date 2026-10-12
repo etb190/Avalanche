@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\Features\AI\InlineFold.cs" Link="Features\AI\InlineFold.cs" />
     <Compile Include="..\Models\EditingTypes.cs" Link="Models\EditingTypes.cs" />
     <Compile Include="..\Services\AppDataPaths.cs" Link="Services\AppDataPaths.cs" />
     <Compile Include="..\Services\SignatureStore.cs" Link="Services\SignatureStore.cs" />

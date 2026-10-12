@@ -1139,6 +1139,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Modely - které AI odpovídá na každé ploše</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Shrnutí</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Model definice</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Model vysvětlení</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Postranní chat</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Postranní chat prohlížeče</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1158,6 +1160,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_AiModelTester">AI testér</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Poznámky</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Model přepisování</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Model instrukcí</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Model bočního chatu editoru</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Model souhrnu z prohlížeče</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">AI prompty</sys:String>

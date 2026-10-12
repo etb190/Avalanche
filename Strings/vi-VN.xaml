@@ -1154,6 +1154,8 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Mô hình - AI nào trả lời cho từng khu vực</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Tóm tắt</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Mô hình định nghĩa</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Mô hình giải thích</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Trò chuyện bên</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Trò chuyện bên trình duyệt</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1173,6 +1175,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_AiModelTester">Trình kiểm thử AI</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Ghi chú</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Mô hình viết lại</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Mô hình chỉ dẫn</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Mô hình trò chuyện cạnh trình soạn thảo</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Mô hình tóm tắt trình duyệt</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">Prompt AI</sys:String>

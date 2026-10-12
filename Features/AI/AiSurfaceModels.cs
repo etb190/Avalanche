@@ -3,7 +3,8 @@ using System.IO;
 
 namespace Avalanche.Features.AI
 {
-    /// <summary>Which model answers each surface. Eight dials (v1.19.78 split the sheet's seat: the proofreader and the rewriter; v1.19.77
+    /// <summary>Which model answers each surface. Thirteen dials (v1.30.0 seated the popup's Define and Explain voices and the editor's tell-AI
+    /// input at the table; v1.19.78 split the sheet's seat: the proofreader and the rewriter; v1.19.77
     /// seated the text editor's sheet at the table) - the summary,
     /// the sidechat, the browser sidechat, the recaller (the recap), the
     /// AI tester and the notes (the left sidebar) - each wearing Nemotron by
@@ -23,7 +24,7 @@ namespace Avalanche.Features.AI
     /// survive); anything else gets the canonical nemotron - NVIDIA's NIM
     /// API, the app's first brain - the same way the gpt choice always
     /// summoned its own gpt-oss.
-    internal enum AiSurface { Summary, WebSummary, Sidechat, EditorSidechat, WebSidechat, Recaller, AiTester, Notes, EditorGrammar, EditorRewrite }
+    internal enum AiSurface { Summary, WebSummary, Sidechat, EditorSidechat, WebSidechat, Recaller, AiTester, Notes, EditorGrammar, EditorRewrite, Define, Explain, EditorCustom }
 
     internal static class AiSurfaceModels
     {
@@ -119,6 +120,9 @@ namespace Avalanche.Features.AI
             public string Notes { get; set; } = NemotronChoice;   // v1.19.34: the sidebar's own dial
             public string EditorGrammar { get; set; } = NemotronChoice;   // v1.19.78: the sheet's proofreader
             public string EditorRewrite { get; set; } = NemotronChoice;   // v1.19.78: the sheet's rewriter
+            public string Define { get; set; } = NemotronChoice;   // v1.30.0: the popup's definition voice
+            public string Explain { get; set; } = NemotronChoice;   // v1.30.0: the popup's explanation voice
+            public string EditorCustom { get; set; } = NemotronChoice;   // v1.30.0: the sheet's tell-AI input
             public string Embedding { get; set; } = EmbeddingDefaultChoice;   // v1.19.55: who embeds
         }
 
@@ -154,6 +158,9 @@ namespace Avalanche.Features.AI
                 _choices.Notes = Normalize(read.Notes);
                 _choices.EditorGrammar = Normalize(read.EditorGrammar);
                 _choices.EditorRewrite = Normalize(read.EditorRewrite);
+                _choices.Define = Normalize(read.Define);
+                _choices.Explain = Normalize(read.Explain);
+                _choices.EditorCustom = Normalize(read.EditorCustom);
                 _choices.Embedding = NormalizeEmbeddingChoice(read.Embedding);
             }
             catch
@@ -238,6 +245,9 @@ namespace Avalanche.Features.AI
                 AiSurface.Notes => _choices.Notes,
                 AiSurface.EditorGrammar => _choices.EditorGrammar,
                 AiSurface.EditorRewrite => _choices.EditorRewrite,
+                AiSurface.Define => _choices.Define,
+                AiSurface.Explain => _choices.Explain,
+                AiSurface.EditorCustom => _choices.EditorCustom,
                 _ => _choices.Sidechat,
             };
         }
@@ -257,6 +267,9 @@ namespace Avalanche.Features.AI
                 case AiSurface.Notes: _choices.Notes = clean; break;
                 case AiSurface.EditorGrammar: _choices.EditorGrammar = clean; break;
                 case AiSurface.EditorRewrite: _choices.EditorRewrite = clean; break;
+                case AiSurface.Define: _choices.Define = clean; break;
+                case AiSurface.Explain: _choices.Explain = clean; break;
+                case AiSurface.EditorCustom: _choices.EditorCustom = clean; break;
                 default: _choices.Sidechat = clean; break;
             }
             Save();

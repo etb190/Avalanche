@@ -1153,6 +1153,8 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Үлгілер - қай AI әр беткейге жауап береді</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Түйіндеме</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Анықтама моделі</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Түсіндіру моделі</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Бүйір чат</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Браузер бүйір чаты</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1172,6 +1174,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_AiModelTester">AI тестері</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Жазбалар</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Қайта жазу моделі</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Нұсқау моделі</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Редактордың бүйірлік чат моделі</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Браузерлік түйіндеме моделі</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">AI промпттар</sys:String>

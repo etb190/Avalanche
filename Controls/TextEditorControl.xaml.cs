@@ -1914,7 +1914,9 @@ namespace Avalanche.Controls
                 string user = text.Length > 0
                     ? "Instruction: " + instr + "\n\nTEXT:\n" + text
                     : instr;
-                var config = AiConfig(Features.AI.AiSurface.EditorRewrite);
+                // v1.30.0: the floating tell-AI input stops sharing the
+                // rewriter's seat - its own dial answers it now.
+                var config = AiConfig(Features.AI.AiSurface.EditorCustom);
                 string? streamed = await TryStreamAiSelectionAsync(seq, system, user, config, "custom");
                 if (streamed is not null) return;
                 var answer = await Features.AI.AiProviderFactory.CreateProvider(config.ProviderType)

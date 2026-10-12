@@ -1154,6 +1154,8 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Модели - какой ИИ отвечает на каждой поверхности</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Сводка</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Модель определения</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Модель объяснения</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Боковой чат</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Боковой чат браузера</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1173,6 +1175,7 @@ Avalanche не будет создавать две установленные �
     <sys:String x:Key="Str_AiModelTester">ИИ-тестер</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Заметки</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Модель перезаписи</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Модель инструкций</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Модель бокового чата редактора</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Модель браузерного резюме</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">ИИ-промпты</sys:String>

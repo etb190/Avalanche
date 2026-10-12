@@ -1154,6 +1154,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiSettingsOpen">AI settings</sys:String>
     <sys:String x:Key="Str_AiModelsSection">Modelli - quale IA risponde a ogni superficie</sys:String>
     <sys:String x:Key="Str_AiModelSummary">Riassunto</sys:String>
+<sys:String x:Key="Str_AiModelDefine">Modello di definizione</sys:String>
+<sys:String x:Key="Str_AiModelExplain">Modello di spiegazione</sys:String>
     <sys:String x:Key="Str_AiModelSidechat">Chat laterale</sys:String>
     <sys:String x:Key="Str_AiModelWebSidechat">Chat laterale del browser</sys:String>
     <sys:String x:Key="Str_AiModelNemotron">Nemotron</sys:String>
@@ -1173,6 +1175,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_AiModelTester">Tester IA</sys:String>
     <sys:String x:Key="Str_AiModelNotes">Note</sys:String>
     <sys:String x:Key="Str_AiModelEditorRewrite">Modello di riscrittura</sys:String>
+<sys:String x:Key="Str_AiModelEditorCustom">Modello di istruzioni</sys:String>
     <sys:String x:Key="Str_AiModelEditorSidechat">Modello chat laterale dell'editor</sys:String>
     <sys:String x:Key="Str_AiModelWebSummary">Modello riepilogo web</sys:String>
     <sys:String x:Key="Str_AiPromptsHeader">Prompt IA</sys:String>
