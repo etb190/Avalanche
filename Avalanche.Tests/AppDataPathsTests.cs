@@ -53,7 +53,9 @@ public sealed class AppDataPathsTests
 
             AppDataPaths.EnsureMigrated(targetRootOverride: target, legacyRootOverride: legacy);
 
-            Assert.Equal("kept", JsonName(File.ReadAllText(Path.Combine(target, "bookmarks.json"))));
+            // The profile's own bookmark survives - a newer copy is never
+            // dragged back to the legacy folder's older one.
+            Assert.Equal("newer", JsonName(File.ReadAllText(Path.Combine(target, "bookmarks.json"))));
             Assert.True(File.Exists(Path.Combine(target, "WebView2Data", "cookies")));
             Dictionary<string, string>? settings = JsonSerializer.Deserialize<Dictionary<string, string>>(
                 File.ReadAllText(Path.Combine(target, "settings.json")));
@@ -64,7 +66,7 @@ public sealed class AppDataPathsTests
             // One visit: a later change in the legacy folder stays there.
             File.WriteAllText(Path.Combine(legacy, "bookmarks.json"), "[{\"Name\":\"later\"}]");
             AppDataPaths.EnsureMigrated(targetRootOverride: target, legacyRootOverride: legacy);
-            Assert.Equal("kept", JsonName(File.ReadAllText(Path.Combine(target, "bookmarks.json"))));
+            Assert.Equal("newer", JsonName(File.ReadAllText(Path.Combine(target, "bookmarks.json"))));
         }
         finally
         {
