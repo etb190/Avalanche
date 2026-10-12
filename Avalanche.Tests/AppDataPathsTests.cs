@@ -42,6 +42,7 @@ public sealed class AppDataPathsTests
         try
         {
             Directory.CreateDirectory(Path.Combine(legacy, "WebView2Data"));
+            Directory.CreateDirectory(target);
             File.WriteAllText(Path.Combine(legacy, "bookmarks.json"), "[{\"Name\":\"kept\"}]");
             File.WriteAllText(Path.Combine(legacy, "settings.json"), "{\"Locale\":\"ja-JP\"}");
             File.WriteAllText(Path.Combine(legacy, "WebView2Data", "cookies"), "x");
