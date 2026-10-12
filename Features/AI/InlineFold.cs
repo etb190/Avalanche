@@ -114,13 +114,14 @@ namespace Avalanche.Features.AI
             return merged.ToArray();
         }
 
-        // The soft-break join: two CJK boundaries abut directly, any other
-        // pair joins with the one space the break stands for.
+        // The soft-break join: the two halves pressed together, separated
+        // by the one space the break stands for - two CJK boundaries abut
+        // directly (a space between Chinese sentences is a typo).
         private static string Join(string prev, string next)
         {
             bool prevCjk = prev.Length > 0 && IsCjk(prev[^1]);
             bool nextCjk = next.Length > 0 && IsCjk(next[0]);
-            return prevCjk && nextCjk ? string.Empty : " ";
+            return prevCjk && nextCjk ? prev + next : prev + " " + next;
         }
 
         private static bool IsCjk(char c) =>
