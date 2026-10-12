@@ -206,6 +206,10 @@ namespace Avalanche.Features.Summary
             InvalidateVisual();
         }
 
+        // v1.29.0: whether a pin currently holds the field - the rebuilt
+        // window's restore asks before it lights the remembered word.
+        internal bool HasPin => _pinnedStart is not null;
+
         // Releases the pin - the popup closed, or a passage took the anchor
         // (a passage rides the native selection, no plate).
         internal void ClearPin()

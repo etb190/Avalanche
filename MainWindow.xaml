@@ -4017,6 +4017,10 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelEditorRewrite}" Tag="rewrite"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelEditorSidechat}" Tag="editorsidechat"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelWebSummary}" Tag="web"/>
+                                    <!-- v1.29.0: the action popup's two voices join
+                                         the Used-for list - see, edit or delete. -->
+                                    <ComboBoxItem Content="{DynamicResource Str_SummaryPopupDefine}" Tag="define"/>
+                                    <ComboBoxItem Content="{DynamicResource Str_SummaryPopupExplain}" Tag="explain"/>
                                 </ComboBox>
                                 <TextBlock Text="{DynamicResource Str_AiPromptsPick}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox x:Name="AiPromptPick" Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"

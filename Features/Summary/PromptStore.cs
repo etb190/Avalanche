@@ -82,6 +82,10 @@ namespace Avalanche.Features.Summary
         public const string CatRewrite = "rewrite";
         public const string CatEditorSidechat = "editorsidechat";
 
+        // v1.29.0: the action popup's two voices join the workshop.
+        public const string CatDefine = "define";
+        public const string CatExplain = "explain";
+
         private static readonly object _gate = new();
         private static List<AiPromptDef>? _prompts;
         private static List<AiPromptDef>? _deck;   // the shipped voices, parsed once
@@ -151,6 +155,51 @@ namespace Avalanche.Features.Summary
             return changed;
         }
 
+        // v1.29.0: one visit per store file - a marker beside it says the
+        // Define and Explain rows were offered. The deck's rows join when
+        // their ids are absent; the marker lands whether anything was
+        // added or not, so the reader's later deletion is final.
+        private static bool SeedDefineExplain(List<AiPromptDef> rows)
+        {
+            string marker;
+            try
+            {
+                marker = Path.Combine(Path.GetDirectoryName(StorePath()) ?? ".", ".defineexplain-seeded");
+                if (File.Exists(marker)) return false;
+            }
+            catch { return false; }
+
+            bool added = false;
+            foreach (AiPromptDef deckRow in DeckCopy())
+            {
+                if (!string.Equals(deckRow.Category, CatDefine, StringComparison.Ordinal)
+                    && !string.Equals(deckRow.Category, CatExplain, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                bool present = false;
+                foreach (AiPromptDef row in rows)
+                {
+                    if (string.Equals(row.Id, deckRow.Id, StringComparison.Ordinal)) { present = true; break; }
+                }
+
+                if (present) continue;
+                rows.Add(new AiPromptDef
+                {
+                    Id = deckRow.Id,
+                    Title = deckRow.Title,
+                    TitleKey = deckRow.TitleKey,
+                    Category = deckRow.Category,
+                    Body = deckRow.Body
+                });
+                added = true;
+            }
+
+            try { File.WriteAllText(marker, "1"); } catch { /* the next start asks again */ }
+            return added;
+        }
+
         private static List<AiPromptDef> Load()
         {
             try
@@ -162,9 +211,14 @@ namespace Avalanche.Features.Summary
                         File.ReadAllText(path));
                     if (read != null)
                     {
+                        // v1.29.0: the Define and Explain rows seed once - a
+                        // store extracted before they existed has never carried
+                        // them, and after this first visit a deleted row stays
+                        // deleted like any other.
+                        bool seeded = SeedDefineExplain(read);
                         // Factory echoes step up to the current deck voice; the
                         // reader's own wording never moves. Deletions included.
-                        if (GraduateLegacyBodies(read)) WriteStore(read);
+                        if (seeded || GraduateLegacyBodies(read)) WriteStore(read);
                         return read;
                     }
                 }

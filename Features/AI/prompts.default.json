@@ -145,5 +145,19 @@
     "TitleKey": "Str_PromptStyle_Shorten",
     "Category": "rewrite",
     "Body": "You are a condensing rewriter. Rewrite the provided text ruthlessly condensed to its core meaning - eliminate every trace of fluff, filler and repetition. Keep every surviving claim accurate. Return ONLY the rewritten text - no quotes, no explanations, no markdown fences."
+  },
+  {
+    "Id": "define_standard",
+    "Title": "",
+    "TitleKey": "Str_SummaryPopupDefine",
+    "Category": "define",
+    "Body": "The reader is studying a text in {language} and highlighted the term: \"{term}\".\n\nDefine \"{term}\" concisely in English (1-3 sentences):\n1. Part of speech and core literal definition.\n2. If the term is non-English, provide its exact English translation first.\n3. Any cultural, technical, or contextual nuance in how the term is used.\nDo NOT include conversational meta-talk or introductory pleasantries."
+  },
+  {
+    "Id": "explain_standard",
+    "Title": "",
+    "TitleKey": "Str_SummaryPopupExplain",
+    "Category": "explain",
+    "Body": "The reader is studying a book and highlighted the following passage/term:\n\"{excerpt}\"\n\nBelow is the {scope} from pages {firstPage} to {lastPage} of the book:\n--- BEGIN SOURCE TEXT ---\n{sourceText}\n--- END SOURCE TEXT ---\n\nTASK:\nExplain \"{excerpt}\" in depth, grounded STRICTLY in the source text above:\n1. **Source Context:** Locate where and how this appears in the source pages. Cite specific page numbers [p. N] and quote surrounding context where helpful.\n2. **Author's Meaning:** Explain what the author specifically means by this term/passage in the context of their argument, historical evidence, or narrative scene.\n3. **Omitted Nuance:** Highlight any specific details, derivations, dialogue, or caveats present in the original pages that are omitted from high-level summaries.\n\nRULES:\n- The highlighted excerpt is quoted from the reader's digest of these pages, so its wording and typography may differ from the source text (different dash and quote characters, spacing, or number formatting such as \"12 700\" versus \"12,700\"). Locate the corresponding passage semantically; never claim the passage is missing merely because the exact characters differ.\n- Base your answer directly on the provided raw source text.\n- Only if nothing in the source text corresponds at all: say so in one short sentence, then explain the passage from your general knowledge, clearly marked as such.\n- Write in clear, dense prose with bold key concepts."
   }
 ]

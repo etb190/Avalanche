@@ -1863,7 +1863,7 @@ namespace Avalanche
         // the prompt dropdown - each category holds its own rows, in store
         // order, and the editors below work on whatever it selects.
         private static readonly string[] PromptCatTags =
-            { "pdf", "sidechat", "websidechat", "recap", "notes", "tester", "grammar", "rewrite", "editorsidechat", "web" };
+            { "pdf", "sidechat", "websidechat", "recap", "notes", "tester", "grammar", "rewrite", "editorsidechat", "web", "define", "explain" };
 
         private string SelectedPromptCat()
         {

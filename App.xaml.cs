@@ -77,6 +77,11 @@ namespace Avalanche
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            // v1.29.0: the data home is the profile, whatever shape the
+            // install took - the one-time migration runs before anything
+            // reads a setting, so the old launcher-side folder and the
+            // registry hand their data over first.
+            Services.AppDataPaths.EnsureMigrated();
             StartupTrace.Mark("App.OnStartup entered");
             DispatcherUnhandledException                    += OnDispatcherException;
             AppDomain.CurrentDomain.UnhandledException      += OnDomainException;
@@ -1219,47 +1224,14 @@ namespace Avalanche
             catch { }
         }
 
-        internal static string? GetSetting(string name)
-        {
-            if (Services.AppDataPaths.PortableRoot is not null)
-                return Services.AppDataPaths.GetPortableSetting(name);
-            try
-            {
-                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Avalanche\Settings");
-                return key?.GetValue(name) as string;
-            }
-            catch { return null; }
-        }
+        // v1.29.0: every build mode reads and writes the one settings file
+        // in the profile root - the registry branch retired (the first
+        // start's migration folds its values into the same file).
+        internal static string? GetSetting(string name) => Services.AppDataPaths.GetSetting(name);
 
-        internal static void SetSetting(string name, string value)
-        {
-            if (Services.AppDataPaths.PortableRoot is not null)
-            {
-                try { Services.AppDataPaths.SetPortableSetting(name, value); } catch { }
-                return;
-            }
-            try
-            {
-                using var key = Registry.CurrentUser.CreateSubKey(@"Software\Avalanche\Settings");
-                key.SetValue(name, value);
-            }
-            catch { /* best-effort */ }
-        }
+        internal static void SetSetting(string name, string value) => Services.AppDataPaths.SetSetting(name, value);
 
-        internal static void RemoveSetting(string name)
-        {
-            if (Services.AppDataPaths.PortableRoot is not null)
-            {
-                try { Services.AppDataPaths.RemovePortableSetting(name); } catch { }
-                return;
-            }
-            try
-            {
-                using var key = Registry.CurrentUser.OpenSubKey(@"Software\Avalanche\Settings", writable: true);
-                key?.DeleteValue(name, throwOnMissingValue: false);
-            }
-            catch { /* best-effort */ }
-        }
+        internal static void RemoveSetting(string name) => Services.AppDataPaths.RemoveSetting(name);
 
         /// <summary>
         /// Wipes all persisted Avalanche state: settings (registry), downloaded OCR language packs, the
@@ -1268,10 +1240,11 @@ namespace Avalanche
         /// </summary>
         internal static void ClearAllData()
         {
-            if (Services.AppDataPaths.PortableRoot is not null)
-                TryDeleteDir(Services.AppDataPaths.UserRoot);
-            else
-                try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Avalanche\Settings", throwOnMissingSubKey: false); } catch { }
+            // v1.29.0: the data home is the profile root in every build
+            // mode - the wipe clears it, and the retired registry branch's
+            // tree with it.
+            TryDeleteDir(Services.AppDataPaths.UserRoot);
+            try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Avalanche\Settings", throwOnMissingSubKey: false); } catch { }
 
             TryDeleteDir(Services.AppDataPaths.TessDataDirectory);
             TryDeleteDir(Path.Combine(Services.AppDataPaths.LocalRoot, "ocr"));

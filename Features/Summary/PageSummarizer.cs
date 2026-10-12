@@ -765,14 +765,25 @@ namespace Avalanche.Features.Summary
             AiProviderConfig config, string term, string language, CancellationToken ct)
         {
             const string system = "You are an authoritative, concise dictionary assistant.";
-            string user =
-                $"The reader is studying a text in {language} and highlighted the term: \"{term}\".\n" +
-                "\n" +
-                $"Define \"{term}\" concisely in English (1-3 sentences):\n" +
-                "1. Part of speech and core literal definition.\n" +
-                "2. If the term is non-English, provide its exact English translation first.\n" +
-                "3. Any cultural, technical, or contextual nuance in how the term is used.\n" +
-                "Do NOT include conversational meta-talk or introductory pleasantries.";
+            // v1.29.0: the workshop owns the wording - the store's Define
+            // row first, the shipped deck's voice when the row is untouched,
+            // and this factory text only when the reader deleted every row.
+            string template = Avalanche.Features.AI.AiPromptLibrary.Define();
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                template =
+                    "The reader is studying a text in {language} and highlighted the term: \"{term}\".\n" +
+                    "\n" +
+                    "Define \"{term}\" concisely in English (1-3 sentences):\n" +
+                    "1. Part of speech and core literal definition.\n" +
+                    "2. If the term is non-English, provide its exact English translation first.\n" +
+                    "3. Any cultural, technical, or contextual nuance in how the term is used.\n" +
+                    "Do NOT include conversational meta-talk or introductory pleasantries.";
+            }
+
+            string user = template
+                .Replace("{language}", language)
+                .Replace("{term}", term);
             int budget = Math.Max(config.MaxTokens, 4096);
             string text = await RunBufferedPassAsync(config, system, user, ct, budget, temperature: 0).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(text))
@@ -809,26 +820,40 @@ namespace Avalanche.Features.Summary
             string scope = trimmed
                 ? "RAW SOURCE TEXT (the pages most related to the highlighted passage)"
                 : "UNABRIDGED RAW SOURCE TEXT";
-            string user =
-                "The reader is studying a book and highlighted the following passage/term:\n" +
-                $"\"{excerpt}\"\n" +
-                "\n" +
-                $"Below is the {scope} from pages {firstPage} to {lastPage} of the book:\n" +
-                "--- BEGIN SOURCE TEXT ---\n" +
-                sourceText + "\n" +
-                "--- END SOURCE TEXT ---\n" +
-                "\n" +
-                "TASK:\n" +
-                $"Explain \"{excerpt}\" in depth, grounded STRICTLY in the source text above:\n" +
-                "1. **Source Context:** Locate where and how this appears in the source pages. Cite specific page numbers [p. N] and quote surrounding context where helpful.\n" +
-                "2. **Author's Meaning:** Explain what the author specifically means by this term/passage in the context of their argument, historical evidence, or narrative scene.\n" +
-                "3. **Omitted Nuance:** Highlight any specific details, derivations, dialogue, or caveats present in the original pages that are omitted from high-level summaries.\n" +
-                "\n" +
-                "RULES:\n" +
-                "- The highlighted excerpt is quoted from the reader's digest of these pages, so its wording and typography may differ from the source text (different dash and quote characters, spacing, or number formatting such as \"12 700\" versus \"12,700\"). Locate the corresponding passage semantically; never claim the passage is missing merely because the exact characters differ.\n" +
-                "- Base your answer directly on the provided raw source text.\n" +
-                "- Only if nothing in the source text corresponds at all: say so in one short sentence, then explain the passage from your general knowledge, clearly marked as such.\n" +
-                "- Write in clear, dense prose with bold key concepts.";
+            // v1.29.0: the workshop owns the wording - the store's Explain
+            // row first, the shipped deck's voice when the row is untouched,
+            // and this factory text only when the reader deleted every row.
+            string template = Avalanche.Features.AI.AiPromptLibrary.Explain();
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                template =
+                    "The reader is studying a book and highlighted the following passage/term:\n" +
+                    "\"{excerpt}\"\n" +
+                    "\n" +
+                    "Below is the {scope} from pages {firstPage} to {lastPage} of the book:\n" +
+                    "--- BEGIN SOURCE TEXT ---\n" +
+                    "{sourceText}\n" +
+                    "--- END SOURCE TEXT ---\n" +
+                    "\n" +
+                    "TASK:\n" +
+                    "Explain \"{excerpt}\" in depth, grounded STRICTLY in the source text above:\n" +
+                    "1. **Source Context:** Locate where and how this appears in the source pages. Cite specific page numbers [p. N] and quote surrounding context where helpful.\n" +
+                    "2. **Author's Meaning:** Explain what the author specifically means by this term/passage in the context of their argument, historical evidence, or narrative scene.\n" +
+                    "3. **Omitted Nuance:** Highlight any specific details, derivations, dialogue, or caveats present in the original pages that are omitted from high-level summaries.\n" +
+                    "\n" +
+                    "RULES:\n" +
+                    "- The highlighted excerpt is quoted from the reader's digest of these pages, so its wording and typography may differ from the source text (different dash and quote characters, spacing, or number formatting such as \"12 700\" versus \"12,700\"). Locate the corresponding passage semantically; never claim the passage is missing merely because the exact characters differ.\n" +
+                    "- Base your answer directly on the provided raw source text.\n" +
+                    "- Only if nothing in the source text corresponds at all: say so in one short sentence, then explain the passage from your general knowledge, clearly marked as such.\n" +
+                    "- Write in clear, dense prose with bold key concepts.";
+            }
+
+            string user = template
+                .Replace("{firstPage}", firstPage.ToString())
+                .Replace("{lastPage}", lastPage.ToString())
+                .Replace("{scope}", scope)
+                .Replace("{excerpt}", excerpt)
+                .Replace("{sourceText}", sourceText);
             int budget = Math.Max(config.MaxTokens, 8192);
             string text = await RunBufferedPassAsync(config, system, user, ct, budget, temperature: 0).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(text))

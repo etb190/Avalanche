@@ -46,6 +46,17 @@ namespace Avalanche.Features.AI
         public static string Tester() =>
             Features.Summary.PromptStore.FirstBody(Features.Summary.PromptStore.CatTester) ?? "";
 
+        // -- Define: the action popup's lexical pass. The body carries the
+        // {term} and {language} placeholders; the run feeds them here.
+        public static string Define() =>
+            Features.Summary.PromptStore.FirstBody(Features.Summary.PromptStore.CatDefine) ?? "";
+
+        // -- Explain: the action popup's grounded pass. The body carries the
+        // {excerpt}, {scope}, {firstPage}, {lastPage} and {sourceText}
+        // placeholders; the run feeds them here.
+        public static string Explain() =>
+            Features.Summary.PromptStore.FirstBody(Features.Summary.PromptStore.CatExplain) ?? "";
+
         // -- Grammar: the copyeditor's scan. A body may carry the {ignored}
         // placeholder; the reader's own ignored list rides in either way.
         public static string Grammar(string ignoredList)

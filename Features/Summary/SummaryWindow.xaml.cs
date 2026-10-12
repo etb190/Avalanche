@@ -2617,6 +2617,15 @@ namespace Avalanche.Features.Summary
         private Popup? _actionOpenPending;              // the open deferred off the input event
         private DigestWordHighlightAdorner? _wordHighlights;  // the green per-word digest highlights
 
+        // v1.29.0: the word the popup pinned, remembered per document (the
+        // process's lifetime). The search handoff CLOSES this window and
+        // the welcome-back builds a fresh one - the pinned TextPointers
+        // die with it, but the remembered word does not: the rebuilt
+        // window finds the word in its fresh digest and lights the same
+        // green plate again.
+        private static readonly Dictionary<string, string> PinnedWordByDoc =
+            new(StringComparer.OrdinalIgnoreCase);
+
         private void WireActionPopup()
         {
             // The word click. PreviewMouseLeftButtonUp: the editor has not yet
@@ -2630,6 +2639,20 @@ namespace Avalanche.Features.Summary
             // viewport and a scrolled-away word is no longer under the popup.
             DocBox.AddHandler(ScrollViewer.ScrollChangedEvent,
                 new ScrollChangedEventHandler((_, _) => DismissActionPopup()));
+            // v1.29.0: a mouse scroll unhooks the word - the plate was the
+            // reader's hand on one word, and rolling away releases it, the
+            // remembered word leaving with the plate. Programmatic scrolls
+            // (a restored reading position) never count.
+            DocBox.PreviewMouseWheel += (_, _) =>
+            {
+                _wordHighlights?.ClearPin();
+                ForgetPinnedWord();
+            };
+            // v1.29.0: the remembered word asks for its plate back the
+            // moment this window's digest is live again - a rebuilt
+            // window, a freshly painted document - whenever no other pin
+            // holds the field.
+            DocBox.TextChanged += (_, _) => TryRestorePinnedWord();
             // The green word highlights ride their own adorner, attached once the
             // digest's surface is live and detached when it leaves the tree.
             DocBox.Loaded += (_, _) => AttachWordHighlights();
@@ -2657,6 +2680,88 @@ namespace Avalanche.Features.Summary
         {
             _wordHighlights?.Detach();
             _wordHighlights = null;
+        }
+
+        // v1.29.0: the per-document memory the browser round trip reads.
+        private void RememberPinnedWord(string word)
+        {
+            if (string.IsNullOrEmpty(_filePath)) return;
+            PinnedWordByDoc[_filePath] = word;
+        }
+
+        private void ForgetPinnedWord()
+        {
+            if (string.IsNullOrEmpty(_filePath)) return;
+            PinnedWordByDoc.Remove(_filePath);
+        }
+
+        private void TryRestorePinnedWord()
+        {
+            if (_wordHighlights is { } alive && alive.HasPin) return;   // a live pin owns the field
+            if (_closed || _wordHighlights is null || string.IsNullOrEmpty(_filePath)) return;
+            if (!PinnedWordByDoc.TryGetValue(_filePath, out string? word) || string.IsNullOrEmpty(word)) return;
+
+            // The word must exist in THIS digest: a regenerated summary
+            // may no longer carry it, and the plate never lands on a guess.
+            if (TryFindWordPointers(word, out TextPointer? start, out TextPointer? end)
+                && start is { } s && end is { } e)
+            {
+                _wordHighlights.Pin(s, e);
+            }
+        }
+
+        // Finds the remembered word's first occurrence and returns the two
+        // pointers the click path would have isolated - the restored plate
+        // wears the exact face a live click paints. The walk concatenates
+        // the document's text runs (a word can span bold segments) and
+        // keeps one checkpoint per run, so the flat index maps back to
+        // pointers without a second pass. A cap on the walk keeps a
+        // pathological document from looping.
+        private bool TryFindWordPointers(string word, out TextPointer? start, out TextPointer? end)
+        {
+            start = null;
+            end = null;
+            if (word.Length == 0) return false;
+
+            var checkpoints = new List<(int Offset, TextPointer Pointer)>();
+            var flat = new System.Text.StringBuilder();
+            TextPointer? cursor = DocBox.Document.ContentStart;
+            int guard = 0;
+            while (cursor is not null && guard++ < 4_000_000)
+            {
+                string run = cursor.GetTextInRun(LogicalDirection.Forward);
+                if (run.Length > 0)
+                {
+                    checkpoints.Add((flat.Length, cursor));
+                    flat.Append(run);
+                    cursor = cursor.GetPositionAtOffset(run.Length);
+                }
+                else
+                {
+                    cursor = cursor.GetPositionAtOffset(1);   // step over the symbol
+                }
+            }
+
+            string text = flat.ToString();
+            int hit = text.IndexOf(word, StringComparison.OrdinalIgnoreCase);
+            if (hit < 0) return false;
+
+            TextPointer? Locate(int index)
+            {
+                TextPointer? owner = null;
+                int ownerOffset = 0;
+                foreach ((int offset, TextPointer pointer) in checkpoints)
+                {
+                    if (offset <= index) { owner = pointer; ownerOffset = offset; }
+                    else break;
+                }
+
+                return owner?.GetPositionAtOffset(index - ownerOffset);
+            }
+
+            start = Locate(hit);
+            end = Locate(hit + word.Length);
+            return start is not null && end is not null;
         }
 
         private void DocBox_KeyDownForPopup(object sender, KeyEventArgs e)
@@ -2800,6 +2905,11 @@ namespace Avalanche.Features.Summary
 
             DismissActionPopup();   // a second open re-anchors cleanly
             _actionTarget = target;
+            // v1.29.0: a word anchor is remembered for the document; a
+            // passage anchor rides the native selection instead and
+            // retires the word.
+            if (pinStart is not null && pinEnd is not null) RememberPinnedWord(target);
+            else ForgetPinnedWord();
 
             Popup popup = _actionPopup ??= BuildActionPopup();
             _actionHeaderText!.Text = target.Length > 44 ? target[..44] + "…" : target;
@@ -2999,7 +3109,10 @@ namespace Avalanche.Features.Summary
 
             var root = new Border
             {
-                Width = 240,
+                // v1.29.0: three times as wide as the narrow card it
+                // began as - the Define and Explain answers breathe
+                // across a 720px face now.
+                Width = 720,
                 CornerRadius = new CornerRadius(10),
                 BorderThickness = new Thickness(1),
                 Effect = new System.Windows.Media.Effects.DropShadowEffect
