@@ -1374,6 +1374,10 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Web_OpenInNewTab">Otwórz w nowej karcie</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nowa karta (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ten link nie dostarczył pliku PDF - pokazywana jest sama strona.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadSaveTitle">Zapisz pobierany plik jako</sys:String>
+    <sys:String x:Key="Str_Web_Downloading">Pobieranie {0}...</sys:String>
+    <sys:String x:Key="Str_Web_DownloadDone">Zapisano w {0}</sys:String>
+    <sys:String x:Key="Str_Web_DownloadFail">Pobieranie zostało przerwane.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Nie udało się pobrać tego pliku PDF - witryna zablokowała pobieranie.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Zbuduj semantyczny indeks badawczy tego dokumentu (kliknij ponownie podczas budowania, aby anulować)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Zapisz ten internetowy PDF na komputerze</sys:String>

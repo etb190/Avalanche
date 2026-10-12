@@ -1666,6 +1666,37 @@ namespace Avalanche.Controls
             return false;
         }
 
+        // v1.31.0: the suggested name a download arrives with - a path or a
+        // bare URL - reduced to a clean file name for the save prompt.
+        private static string SafeDownloadName(string pathOrUrl)
+        {
+            string name = Uri.UnescapeDataString(pathOrUrl);
+            int cut = name.IndexOfAny(new[] { '?', '#' });
+            if (cut >= 0) name = name[..cut];
+            name = Path.GetFileName(name.Replace('\\', '/'));
+            if (string.IsNullOrWhiteSpace(name)) name = "download";
+            foreach (char c in Path.GetInvalidFileNameChars()) name = name.Replace(c, '_');
+            return name;
+        }
+
+        // v1.31.0: where the save prompt opens - the folder the reader last
+        // saved into, else the user's Downloads folder, else the profile's
+        // home.
+        private static string DownloadHome()
+        {
+            try
+            {
+                string? last = AppDataPaths.GetSetting("web.download.dir");
+                if (!string.IsNullOrEmpty(last) && Directory.Exists(last)) return last;
+            }
+            catch { }
+
+            string downloads = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+            return Directory.Exists(downloads) ? downloads
+                : Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        }
+
         private static bool HasPdfHeaderFile(string path)
         {
             try
@@ -1695,6 +1726,7 @@ namespace Avalanche.Controls
             _activeDownloads++;   // every download, PDF or not: suspension must not strand it
             bool counted = true;
             string? target = null;
+            string? savePath = null;    // v1.31.0: the prompted download's chosen home
             e.DownloadOperation.StateChanged += (s, _) =>
             {
                 if (s is not CoreWebView2DownloadOperation op) return;
@@ -1702,6 +1734,17 @@ namespace Avalanche.Controls
                 Dispatcher.BeginInvoke(() =>
                 {
                     if (counted) { counted = false; _activeDownloads--; }
+                    if (savePath is { } saved)
+                    {
+                        // v1.31.0: the prompted download reports home - the
+                        // strip says where the file landed, or that it died.
+                        HideStatus();
+                        SettleAfterDownloadAttempt(dlUrl, view);
+                        ShowTransientStatus(op.State == CoreWebView2DownloadState.Completed
+                            ? string.Format(TryLoc("Str_Web_DownloadDone") ?? "Saved to {0}", saved)
+                            : TryLoc("Str_Web_DownloadFail") ?? "The download was interrupted.");
+                        return;
+                    }
                     if (target is null) return;   // ordinary download: the engine's own handling stays
                     if (op.State == CoreWebView2DownloadState.Completed && HasPdfHeaderFile(target))
                     {
@@ -1734,7 +1777,34 @@ namespace Avalanche.Controls
                 });
             };
 
-            if (!isPdf) return;   // ordinary downloads keep the engine's own handling
+            if (!isPdf)
+            {
+                // v1.31.0: an ordinary download stops dying in silence - the
+                // reader is asked where the file belongs (the Explorer save
+                // prompt), and the bytes land exactly there.
+                e.Handled = true;   // no Edge download flyout: the save prompt is the UI
+                string name = SafeDownloadName(suggested.Length > 0 ? suggested : dlUrl);
+                var dlg = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = name,
+                    InitialDirectory = DownloadHome(),
+                    Filter = "All files (*.*)|*.*",
+                    Title = TryLoc("Str_Web_DownloadSaveTitle")
+                };
+                bool? ok = dlg.ShowDialog(Window.GetWindow(view));
+                if (ok != true)
+                {
+                    if (counted) { counted = false; _activeDownloads--; }   // the reader refused: nothing to strand
+                    e.Cancel = true;
+                    return;
+                }
+
+                savePath = dlg.FileName;
+                try { AppDataPaths.SetSetting("web.download.dir", Path.GetDirectoryName(dlg.FileName) ?? string.Empty); } catch { }
+                e.ResultFilePath = savePath;
+                ShowStatus(string.Format(TryLoc("Str_Web_Downloading") ?? "Downloading {0}...", name));
+                return;
+            }
 
             e.Handled = true;   // no Edge download flyout for a file the reader is about to eat
             target = TempPdfPath(SafePdfName(suggested.Length > 0 ? suggested : "download.pdf"));

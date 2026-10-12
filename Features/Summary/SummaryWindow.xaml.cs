@@ -2616,6 +2616,7 @@ namespace Avalanche.Features.Summary
         private string _actionTarget = string.Empty;    // the cleaned text the actions run on
         private Popup? _actionOpenPending;              // the open deferred off the input event
         private DigestWordHighlightAdorner? _wordHighlights;  // the green per-word digest highlights
+        private System.Windows.Interop.HwndSource? _actionPopupSource;  // v1.31.0: the popup's own hwnd, hooked for the wheel
 
         // v1.29.0: the word the popup pinned, remembered per document (the
         // process's lifetime). The search handoff CLOSES this window and
@@ -2642,11 +2643,19 @@ namespace Avalanche.Features.Summary
             // v1.29.0: a mouse scroll unhooks the word - the plate was the
             // reader's hand on one word, and rolling away releases it, the
             // remembered word leaving with the plate. Programmatic scrolls
-            // (a restored reading position) never count.
-            DocBox.PreviewMouseWheel += (_, _) =>
+            // (a restored reading position) never count. v1.31.0: the
+            // reader's law in full - while a word is highlighted the page
+            // does NOT move: the roll's only work is releasing the word
+            // (the popup leaving with it), and only a clean field scrolls.
+            DocBox.PreviewMouseWheel += (_, e) =>
             {
-                _wordHighlights?.ClearPin();
-                ForgetPinnedWord();
+                if (_wordHighlights is { } alive && alive.HasPin)
+                {
+                    e.Handled = true;   // the highlighted word locks the page
+                    alive.ClearPin();
+                    ForgetPinnedWord();
+                    DismissActionPopup();
+                }
             };
             // v1.29.0: the remembered word asks for its plate back the
             // moment this window's digest is live again - a rebuilt
@@ -2914,6 +2923,7 @@ namespace Avalanche.Features.Summary
             Popup popup = _actionPopup ??= BuildActionPopup();
             _actionHeaderText!.Text = target.Length > 44 ? target[..44] + "…" : target;
             SetPopupStatus(string.Empty);
+            _actionCard!.Visibility = Visibility.Collapsed;   // v1.31.0: every open reopens the compact row - the last answer's wide card never survives a dismissal
             _actionError!.Visibility = Visibility.Collapsed;
             _actionError!.Text = string.Empty;
             _actionResultBox!.Visibility = Visibility.Collapsed;
@@ -2970,6 +2980,9 @@ namespace Avalanche.Features.Summary
 
                     popup.IsOpen = true;
                     PlayActionPopupOpen(_actionRoot!);
+                    // v1.31.0: the popup's hwnd lives while it is open - the
+                    // wheel hook rides it for every open, unhooks on close.
+                    Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(HookPopupWheel));
                 }
                 catch
                 {
@@ -3142,26 +3155,17 @@ namespace Avalanche.Features.Summary
                 }
             };
 
-            // v1.30.0: the popup owns the mouse while it is open (StaysOpen
-            // false captures it), so the wheel that should have dismissed
-            // it never reached the digest - the reader had to click away.
-            // The wheel answers here now: a roll over a long answer
-            // scrolls that answer, every other roll is the reader moving
-            // on - the popup closes and the pinned word's memory leaves
-            // with its plate (Closed unhooks the highlight).
+            // v1.31.0: the reader's law is unconditional - a roll while the
+            // popup lives releases the word and closes the popup, wherever
+            // the pointer rests and however long the answer is (the answer
+            // keeps its scrollbar for the hand that wants to drag it). The
+            // hwnd hook below is the net for the rolls the mouse capture
+            // swallowed before this handler could ever see them.
             root.PreviewMouseWheel += (_, e) =>
             {
                 if (e.Handled)
                 {
                     return;
-                }
-
-                if (_actionCard is { Visibility: Visibility.Visible }
-                    && _actionResultBox is { } box
-                    && box.IsMouseOver
-                    && box.ExtentHeight > box.ViewportHeight + 0.5)
-                {
-                    return;     // the long answer scrolls its own page
                 }
 
                 e.Handled = true;
@@ -3245,12 +3249,57 @@ namespace Avalanche.Features.Summary
             try { _actionCts?.Cancel(); } catch (ObjectDisposedException) { }
             _actionCts?.Dispose();
             _actionCts = null;
+            UnhookPopupWheel();             // v1.31.0: the hwnd died with the popup; the hook goes with it
             _wordHighlights?.ClearPin();    // the plate was the popup's anchor; it dies with the popup
+        }
+
+        // v1.31.0: the popup holds the mouse while it is open, so every roll
+        // the reader makes lands in the popup's own hwnd - and when the
+        // pointer rests over the digest, WPF's hit-test inside that hwnd
+        // finds nothing and the roll dies silently before the face's
+        // PreviewMouseWheel could ever see it (the reader had to hover the
+        // popup to be heard). The hook answers at the Win32 floor: any wheel
+        // the popup's hwnd receives releases the word and closes the popup,
+        // wherever the pointer rests.
+        private void HookPopupWheel()
+        {
+            try
+            {
+                if (_closed || _actionPopup is not { IsOpen: true }) return;
+                if (_actionPopup.Child is { } child
+                    && System.Windows.Interop.HwndSource.FromVisual(child) is System.Windows.Interop.HwndSource src)
+                {
+                    _actionPopupSource = src;
+                    src.AddHook(PopupWheelHook);
+                }
+            }
+            catch { /* a decoration's plumbing never takes the window down */ }
+        }
+
+        private void UnhookPopupWheel()
+        {
+            System.Windows.Interop.HwndSource? src = _actionPopupSource;
+            _actionPopupSource = null;
+            try { src?.RemoveHook(PopupWheelHook); } catch { }
+        }
+
+        private IntPtr PopupWheelHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == 0x020A || msg == 0x020E)     // WM_MOUSEWHEEL, WM_MOUSEHWHEEL
+            {
+                handled = true;     // the highlighted word locks the page
+                _wordHighlights?.ClearPin();
+                ForgetPinnedWord();
+                DismissActionPopup();
+            }
+
+            return IntPtr.Zero;
         }
 
         private void DismissActionPopup()
         {
             _actionOpenPending = null;      // a scheduled open dies with the dismissal
+            _actionCard?.Visibility = Visibility.Collapsed;   // v1.31.0: the face folds back to its compact row as the card leaves
             if (_actionPopup is { IsOpen: true })
             {
                 _actionPopup.IsOpen = false;    // Closed does the rest

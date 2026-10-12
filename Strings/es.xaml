@@ -1366,6 +1366,10 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Web_OpenInNewTab">Abrir en nueva pestaña</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nueva pestaña (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Este enlace no entregó un archivo PDF - se muestra la propia página.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadSaveTitle">Guardar descarga como</sys:String>
+    <sys:String x:Key="Str_Web_Downloading">Descargando {0}...</sys:String>
+    <sys:String x:Key="Str_Web_DownloadDone">Guardado en {0}</sys:String>
+    <sys:String x:Key="Str_Web_DownloadFail">La descarga se interrumpió.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">No se pudo obtener este PDF - el sitio bloqueó la descarga.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Crear el índice de investigación semántica de este documento (pulse de nuevo durante la creación para cancelar)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Guardar este PDF web en su equipo</sys:String>

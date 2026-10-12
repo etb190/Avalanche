@@ -3776,7 +3776,6 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
-                                <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <!-- v1.30.0: the popup's two voices get their own seats - which model defines a term and which explains a passage, right under the summary dial they used to inherit. -->
                                 <TextBlock Text="{DynamicResource Str_AiModelDefine}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3813,6 +3812,8 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
+                                <TextBlock Text="{DynamicResource Str_AiModelSidechat}" Style="{StaticResource AiSettingsLabel}"/>
+                                <!-- v1.31.0: the sidechat dial returns to its label - the popup dials sit above, under the summary's own. -->
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           SelectedValuePath="Tag"
                                           SelectedValue="{Binding SidechatModelChoice, Mode=TwoWay}">
@@ -3954,9 +3955,6 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
-                                <!-- v1.19.86: the sheet's chat wears its own
-                                     dial - the model that answers inside
-                                     the text editor's sidechat. -->
                                 <!-- v1.30.0: the floating tell-AI input stops sharing the rewriter's seat - its own dial rides under the rewrite model. -->
                                 <TextBlock Text="{DynamicResource Str_AiModelEditorCustom}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
@@ -3975,6 +3973,10 @@
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35}" Tag="gemini-3.5"/>
                                     <ComboBoxItem Content="{DynamicResource Str_AiModelGemini35Lite}" Tag="gemini-3.5-lite"/>
                                 </ComboBox>
+                                <!-- v1.31.0: the editor-sidechat comment again introduces its own dial - the tell-AI dial sits above it. -->
+                                <!-- v1.19.86: the sheet's chat wears its own
+                                     dial - the model that answers inside
+                                     the text editor's sidechat. -->
                                 <TextBlock Text="{DynamicResource Str_AiModelEditorSidechat}" Style="{StaticResource AiSettingsLabel}"/>
                                 <ComboBox Style="{DynamicResource DarkComboBox}" Height="26" FontSize="11.5"
                                           SelectedValuePath="Tag"

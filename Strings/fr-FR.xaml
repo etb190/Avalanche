@@ -1386,6 +1386,10 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Web_OpenInNewTab">Ouvrir dans un nouvel onglet</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nouvel onglet (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Ce lien n'a pas fourni de fichier PDF - la page elle-même s'affiche.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadSaveTitle">Enregistrer le téléchargement sous</sys:String>
+    <sys:String x:Key="Str_Web_Downloading">Téléchargement de {0}...</sys:String>
+    <sys:String x:Key="Str_Web_DownloadDone">Enregistré dans {0}</sys:String>
+    <sys:String x:Key="Str_Web_DownloadFail">Le téléchargement a été interrompu.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Impossible de récupérer ce PDF - le site a bloqué le téléchargement.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Construire l'index de recherche sémantique de ce document (cliquer à nouveau pendant la construction pour annuler)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Enregistrer ce PDF web sur votre ordinateur</sys:String>

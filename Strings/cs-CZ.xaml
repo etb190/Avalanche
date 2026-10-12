@@ -1371,6 +1371,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Web_OpenInNewTab">Otevřít v nové kartě</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">Nová karta (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">Tento odkaz nevedl na soubor PDF - zobrazuje se samotná stránka.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadSaveTitle">Uložit stažený soubor jako</sys:String>
+    <sys:String x:Key="Str_Web_Downloading">Stahování {0}...</sys:String>
+    <sys:String x:Key="Str_Web_DownloadDone">Uloženo do {0}</sys:String>
+    <sys:String x:Key="Str_Web_DownloadFail">Stahování bylo přerušeno.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">Toto PDF se nepodařilo získat - stránka zablokovala stažení.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Vytvořit sémantický výzkumný index tohoto dokumentu (kliknutím znovu během vytváření zrušíte)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Uložit tento webový PDF do počítače</sys:String>

@@ -1386,6 +1386,10 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Web_OpenInNewTab">Open in new tab</sys:String>
     <sys:String x:Key="Str_TT_WebNewTab">New Tab (Ctrl+T)</sys:String>
     <sys:String x:Key="Str_Web_PdfNotPdf">This link didn't deliver a PDF file - showing the page itself.</sys:String>
+    <sys:String x:Key="Str_Web_DownloadSaveTitle">Save download as</sys:String>
+    <sys:String x:Key="Str_Web_Downloading">Downloading {0}...</sys:String>
+    <sys:String x:Key="Str_Web_DownloadDone">Saved to {0}</sys:String>
+    <sys:String x:Key="Str_Web_DownloadFail">The download was interrupted.</sys:String>
     <sys:String x:Key="Str_Web_PdfBlocked">This PDF couldn't be fetched - the site blocked the download.</sys:String>
     <sys:String x:Key="Str_TT_AiSemanticResearch">Build the semantic research index for this document (click again while building to cancel)</sys:String>
     <sys:String x:Key="Str_TT_SaveWebPdf">Save this web PDF to your computer</sys:String>
