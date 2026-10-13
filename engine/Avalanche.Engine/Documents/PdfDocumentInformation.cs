@@ -46,21 +46,45 @@ public sealed record PdfDocumentInformation
                 ?? throw new InvalidOperationException("The trailer /Info value is not a dictionary.");
         }
 
+        // Real-world producers write junk into the information dictionary - an
+        // iText-served paper can carry /CreationDate (July 26, 2016) where the
+        // law expects D:YYYYMMDD. One junk entry must not take the whole record
+        // down: every descriptive field reads on its own, and an entry the
+        // engine cannot honor reads as ABSENT - the dialog shows what the file
+        // does say, the page-count-only callers keep counting. The structural
+        // facts (the header version, the page tree) stay strict: those failing
+        // is a document problem, not a producer's spelling.
         return new PdfDocumentInformation
         {
-            Title = Text(info, "Title"),
-            Author = Text(info, "Author"),
-            Subject = Text(info, "Subject"),
-            Keywords = Text(info, "Keywords"),
-            Creator = Text(info, "Creator"),
-            Producer = Text(info, "Producer"),
-            Language = CatalogText(document, "Lang"),
-            CreationDate = Date(info, "CreationDate"),
-            ModificationDate = Date(info, "ModDate"),
-            Trapped = ReadTrapped(info),
+            Title = Field(() => Text(info, "Title")),
+            Author = Field(() => Text(info, "Author")),
+            Subject = Field(() => Text(info, "Subject")),
+            Keywords = Field(() => Text(info, "Keywords")),
+            Creator = Field(() => Text(info, "Creator")),
+            Producer = Field(() => Text(info, "Producer")),
+            Language = Field(() => CatalogText(document, "Lang")),
+            CreationDate = Field(() => Date(info, "CreationDate")),
+            ModificationDate = Field(() => Date(info, "ModDate")),
+            Trapped = Field(() => ReadTrapped(info)),
             Version = document.Header.Version,
             PageCount = PdfPageTree.Read(document).Pages.Count
         };
+    }
+
+    // One field's read, fenced. The failures the readers raise for producer
+    // junk - the wrapped date verdicts, the not-a-string verdicts - read as
+    // absent; anything else (a torn document, a broken cross-reference) still
+    // surfaces to the caller.
+    private static T? Field<T>(Func<T?> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception error) when (error is InvalidOperationException or FormatException)
+        {
+            return default;
+        }
     }
 
     private static string? CatalogText(PdfDocument document, string key)

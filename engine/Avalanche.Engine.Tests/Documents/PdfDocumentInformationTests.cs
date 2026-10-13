@@ -86,4 +86,39 @@ public sealed class PdfDocumentInformationTests
         Assert.Null(info.Author);
         Assert.Equal(1, info.PageCount);
     }
+
+    [Fact]
+    public void Read_ReadsJunkDateAsAbsentAndKeepsTheRest()
+    {
+        // Real producers write human dates ("July 26, 2016") where the law
+        // expects D:YYYYMMDD - one junk entry must not take the record down.
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] >>",
+            "<< /Title (Qualified Immunity) /CreationDate (July 26, 2016) /ModDate (D:bad) >>"
+        ];
+        var pdf = new System.Text.StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(System.Text.Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = System.Text.Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R /Info 4 0 R >>\n"
+            + $"startxref\n{xref}\n%%EOF\n");
+        PdfDocument document = PdfDocument.Open(
+            System.Text.Encoding.Latin1.GetBytes(pdf.ToString()));
+
+        PdfDocumentInformation info = PdfDocumentInformation.Read(document);
+
+        Assert.Equal("Qualified Immunity", info.Title);
+        Assert.Null(info.CreationDate);
+        Assert.Null(info.ModificationDate);
+        Assert.Equal(1, info.PageCount);
+    }
 }

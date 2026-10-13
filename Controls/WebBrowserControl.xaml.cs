@@ -2625,23 +2625,33 @@ namespace Avalanche.Controls
 
         private static string BookmarksFile => Path.Combine(AppDataPaths.UserRoot, "bookmarks.json");
 
-        private void LoadBookmarks()
+        // v1.36.0: the rolling second copy, written beside every save. A torn
+        // main write, a cleaner that caught the file mid-flight, or any other
+        // one-file accident takes the bookmark list from HERE, not from the
+        // reader's memory.
+        private static string BookmarksBackupFile => Path.Combine(AppDataPaths.UserRoot, "bookmarks.backup.json");
+
+        // One reader for every bookmarks file - the main store, its rolling
+        // backup, and a pre-1.29 portable home the one-time migration may have
+        // missed. Returns the entries and folder names the file holds; null
+        // when it is missing or says nothing readable. A file from before the
+        // folder era is a bare list; one read failing into the other keeps
+        // every older install's bookmarks intact.
+        private static (List<string> Folders, List<BookmarkVm> Bookmarks)? ReadBookmarkStoreFile(string path)
         {
             try
             {
-                if (!File.Exists(BookmarksFile)) return;
-                string text = File.ReadAllText(BookmarksFile);
+                if (!File.Exists(path)) return null;
+                string text = File.ReadAllText(path);
                 List<BookmarkVm>? saved = null;
-                // v1.19.28: the file grew folders - a wrapper object now. A file
-                // from before is a bare list; one read failing into the other
-                // keeps every older install's bookmarks intact.
+                List<string> folders = [];
                 try
                 {
                     BookmarkStore? store = System.Text.Json.JsonSerializer.Deserialize<BookmarkStore>(text);
                     if (store is not null)
                     {
                         foreach (string f in store.Folders ?? new List<string>())
-                            if (f.Length > 0 && !Folders.Contains(f)) Folders.Add(f);
+                            if (f.Length > 0) folders.Add(f);
                         saved = store.Bookmarks;
                     }
                 }
@@ -2651,14 +2661,66 @@ namespace Avalanche.Controls
                     try { saved = System.Text.Json.JsonSerializer.Deserialize<List<BookmarkVm>>(text); }
                     catch (System.Text.Json.JsonException) { /* not a bookmarks file at all */ }
                 }
-                if (saved is null) return;
-                foreach (BookmarkVm b in saved)
-                {
-                    if (b.Url.Length == 0) continue;
+                if (saved is null) return null;
+                return (folders, new List<BookmarkVm>(saved.Where(b => b.Url.Length > 0)));
+            }
+            catch { return null; }
+        }
+
+        private void LoadBookmarks()
+        {
+            (List<string> folders, List<BookmarkVm> saved) =
+                ReadBookmarkStoreFile(BookmarksFile) ?? (new List<string>(), new List<BookmarkVm>());
+            foreach (string f in folders)
+                if (!Folders.Contains(f)) Folders.Add(f);
+            foreach (BookmarkVm b in saved)
+                Bookmarks.Add(b);
+
+            // v1.36.0: the safety net. The reader's bookmarks have outlived every
+            // install since the profile-root law (v1.29.0) - but a lost file was
+            // lost forever, and one more copy costs a write. Two rescues: a main
+            // store that came back empty wakes with whatever the rolling backup
+            // still holds, and a pre-1.29 portable home (beside the launcher, in
+            // Avalanche-Data) that the one-time migration never folded in has its
+            // entries merged by address - once, and the profile copy is the only
+            // copy again.
+            if (Bookmarks.Count == 0
+                && ReadBookmarkStoreFile(BookmarksBackupFile) is { } rescue
+                && rescue.Bookmarks.Count > 0)
+            {
+                foreach (string f in rescue.Folders)
+                    if (!Folders.Contains(f)) Folders.Add(f);
+                foreach (BookmarkVm b in rescue.Bookmarks)
                     Bookmarks.Add(b);
+                PersistBookmarks();
+            }
+
+            try
+            {
+                string? launcher = Environment.GetEnvironmentVariable("AVALANCHE_LAUNCHER_PATH");
+                if (!string.IsNullOrWhiteSpace(launcher) && File.Exists(launcher))
+                {
+                    string? home = Path.GetDirectoryName(Path.GetFullPath(launcher));
+                    string legacy = Path.Combine(home ?? string.Empty, "Avalanche-Data", "bookmarks.json");
+                    if (ReadBookmarkStoreFile(legacy) is { } old
+                        && (old.Bookmarks.Count > 0 || old.Folders.Count > 0))
+                    {
+                        bool merged = false;
+                        foreach (string f in old.Folders)
+                            if (!Folders.Contains(f)) { Folders.Add(f); merged = true; }
+                        foreach (BookmarkVm b in old.Bookmarks)
+                            if (!Bookmarks.Any(x => UriEquals(x.Url, b.Url)))
+                            {
+                                Bookmarks.Add(b);
+                                merged = true;
+                            }
+
+                        if (merged) PersistBookmarks();
+                    }
                 }
             }
-            catch { /* a bookmarks file that will not read is not worth a crash */ }
+            catch { /* a legacy home that will not read changes nothing */ }
+
             RefreshBookmarksSurface();
         }
 
@@ -2673,6 +2735,9 @@ namespace Avalanche.Controls
                 string temporary = BookmarksFile + ".tmp";
                 File.WriteAllText(temporary, json);
                 File.Move(temporary, BookmarksFile, overwrite: true);
+                // v1.36.0: the rolling second copy, best effort - it exists for
+                // the day the first copy does not survive.
+                try { File.WriteAllText(BookmarksBackupFile, json); } catch { }
             }
             catch { /* a bookmarks file that will not write is not worth a crash */ }
         }
