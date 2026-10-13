@@ -1537,7 +1537,7 @@ namespace Avalanche.Controls
                 // no pdf tab left behind - all while the engine is still awake,
                 // never across the suspension the pane's hide asks for.
                 SettleAfterHandoff(url, v);
-                PdfRequested?.Invoke(target);
+                PdfRequested?.Invoke(BaptizePdf(target));
                 return true;
             }
             catch
@@ -1755,7 +1755,7 @@ namespace Avalanche.Controls
                         // address - a download navigation leaves a blank view
                         // otherwise, dressed as a frozen tab on reopen.
                         SettleAfterDownloadAttempt(dlUrl, view);
-                        PdfRequested?.Invoke(target);
+                        PdfRequested?.Invoke(BaptizePdf(target));
                     }
                     else if (op.State == CoreWebView2DownloadState.Completed)
                     {
@@ -2242,7 +2242,7 @@ namespace Avalanche.Controls
                         await File.WriteAllBytesAsync(target, bytes);
                         SettleAfterHandoff(handed, v);
                         CelebrateHandoff();
-                        PdfRequested?.Invoke(target);
+                        PdfRequested?.Invoke(BaptizePdf(target));
                         return;
                     }
                     ShowTransientStatus(TryLoc("Str_Web_PdfBlocked"));
@@ -2941,6 +2941,85 @@ namespace Avalanche.Controls
             int n = 1;
             while (File.Exists(target)) target = Path.Combine(dir, $"{stem} ({++n}){ext}");
             return target;
+        }
+
+        // v1.35.0: the tab the reader receives wears the file's name - and sites
+        // like JSTOR hand their downloads bare numeric ids ("653647.pdf") that
+        // say nothing on a shelf. When the served name is one of those anonymous
+        // stems, the document's own Title - the word Document Info shows -
+        // baptizes the file instead: the tab, the recent list and any later
+        // save all carry the name the paper was born with. A name the site
+        // chose with care is left exactly as it arrived, and a baptism that
+        // stumbles hands the file over under its served name.
+        private static string BaptizePdf(string target)
+        {
+            try
+            {
+                if (!IsWebDownloadsPath(target) || !File.Exists(target)) return target;
+                string stem = Path.GetFileNameWithoutExtension(target);
+                if (!IsAnonymousDownloadStem(stem)) return target;
+                string? title = ReadPdfTitle(target);
+                if (string.IsNullOrWhiteSpace(title)) return target;
+                string name = PdfNameFromTitle(title);
+                if (name.Length == 0) return target;
+                if (string.Equals(Path.GetFileNameWithoutExtension(name), stem, StringComparison.OrdinalIgnoreCase))
+                {
+                    return target;   // the paper's own Title IS the served id: nothing to improve
+                }
+
+                string next = TempPdfPath(name);
+                File.Move(target, next);
+                return next;
+            }
+            catch { return target; }
+        }
+
+        // The stems a download carries when its source never named it: bare
+        // numeric ids, hex-shaped hashes, and the builders' own placeholders.
+        private static bool IsAnonymousDownloadStem(string? stem)
+        {
+            if (string.IsNullOrWhiteSpace(stem)) return true;
+            string s = stem.Trim();
+            if (s.Equals("download", StringComparison.OrdinalIgnoreCase)
+                || s.Equals("web", StringComparison.OrdinalIgnoreCase)
+                || s.Equals("document", StringComparison.OrdinalIgnoreCase)
+                || s.Equals("untitled", StringComparison.OrdinalIgnoreCase)
+                || s.Equals("file", StringComparison.OrdinalIgnoreCase)
+                || s.EndsWith("-download", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            string compact = s.Replace(" ", "").Replace("-", "").Replace("_", "");
+            if (compact.Length == 0) return true;
+            if (compact.All(char.IsDigit)) return true;                  // "653647"
+            return compact.Length >= 8 && compact.All(Uri.IsHexDigit);   // "1a2b3c4d5e6f"
+        }
+
+        // The /Title the Document Info dialog shows, read the same way it reads
+        // it - so the tab's name and the dialog's word can never disagree.
+        private static string? ReadPdfTitle(string path)
+        {
+            try
+            {
+                return Avalanche.Engine.Documents.PdfDocumentInformation
+                    .Read(Avalanche.Engine.Documents.PdfDocument.Open(File.ReadAllBytes(path))).Title;
+            }
+            catch { return null; }   // a malformed dictionary keeps the served name
+        }
+
+        // A file name built from a paper's Title: separators folded to spaces,
+        // whitespace collapsed, capped at 96 characters - a tab label, not a
+        // paragraph.
+        private static string PdfNameFromTitle(string title)
+        {
+            string t = title.Replace('\r', ' ').Replace('\n', ' ').Replace('\t', ' ');
+            foreach (char c in Path.GetInvalidFileNameChars()) t = t.Replace(c, ' ');
+            string joined = string.Join(" ", t.Split(' ',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            if (joined.Length > 96) joined = joined[..96].TrimEnd();
+            if (joined.Length == 0) return string.Empty;
+            return joined.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ? joined : joined + ".pdf";
         }
 
         // ── The toolbar light (v1.19.11) ────────────────────────────────────────────
