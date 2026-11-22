@@ -281,12 +281,24 @@ namespace Avalanche.Controls
         /// but a hwnd. Fire-and-forget on purpose; a refused suspend is retried next hide.</summary>
         public void OnPaneHidden()
         {
+            if (Tabs.Count > 0)
+            {
+                try { PersistTabs(); } catch { }
+            }
             _ = SuspendAsync();
         }
 
         /// <summary>The window is going away: stop the browser process cleanly.</summary>
         public void ShutdownForExit()
         {
+            if (Bookmarks.Count > 0 || Folders.Count > 0)
+            {
+                try { PersistBookmarks(); } catch { }
+            }
+            if (Tabs.Count > 0)
+            {
+                try { PersistTabs(); } catch { }
+            }
             foreach (WebView2 v in _views.ToArray())
             {
                 try { v.Dispose(); } catch { /* best effort during shutdown */ }
@@ -2404,20 +2416,14 @@ namespace Avalanche.Controls
                     await core.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, ms);
                     png = ms.ToArray();
                 }
-                ImageSource? thumb = null;
-                try
+                var (thumb, thumbData) = WebThumbCodec.ProcessCapture(png);
+                if (thumb is not null)
                 {
-                    BitmapImage img = new();
-                    img.BeginInit();
-                    img.CacheOption = BitmapCacheOption.OnLoad;
-                    img.StreamSource = new MemoryStream(png);
-                    img.EndInit();
-                    img.Freeze();
-                    thumb = img;
+                    card.Thumb = thumb;
+                    card.ThumbData = thumbData;
                 }
-                catch { /* a capture that will not decode leaves the old preview up */ }
-                if (thumb is not null) card.Thumb = thumb;
                 foreach (WebTabCardVm t in Tabs) t.IsActive = ReferenceEquals(t.View, v);
+                PersistTabs();
             }
             catch { /* a gallery that stumbles never disturbs the browsing */ }
         }
@@ -2444,26 +2450,15 @@ namespace Avalanche.Controls
                     png = ms.ToArray();
                 }
                 if (!ReferenceEquals(_activeView, v)) return;   // the tab moved on mid-capture
-                ImageSource? thumb = DecodePngThumb(png);
-                if (thumb is not null) card.Thumb = thumb;
+                var (thumb, thumbData) = WebThumbCodec.ProcessCapture(png);
+                if (thumb is not null)
+                {
+                    card.Thumb = thumb;
+                    card.ThumbData = thumbData;
+                }
             }
             catch { /* a pulse that stumbles waits for the next one */ }
             finally { _thumbPulseBusy = false; }
-        }
-
-        private static ImageSource? DecodePngThumb(byte[] png)
-        {
-            try
-            {
-                BitmapImage img = new();
-                img.BeginInit();
-                img.CacheOption = BitmapCacheOption.OnLoad;
-                img.StreamSource = new MemoryStream(png);
-                img.EndInit();
-                img.Freeze();
-                return img;
-            }
-            catch { return null; }
         }
 
         // ── The view per tab (v1.19.13) ────────────────────────────────────────────────────
@@ -2642,27 +2637,7 @@ namespace Avalanche.Controls
             try
             {
                 if (!File.Exists(path)) return null;
-                string text = File.ReadAllText(path);
-                List<BookmarkVm>? saved = null;
-                List<string> folders = [];
-                try
-                {
-                    BookmarkStore? store = System.Text.Json.JsonSerializer.Deserialize<BookmarkStore>(text);
-                    if (store is not null)
-                    {
-                        foreach (string f in store.Folders ?? new List<string>())
-                            if (f.Length > 0) folders.Add(f);
-                        saved = store.Bookmarks;
-                    }
-                }
-                catch (System.Text.Json.JsonException) { /* a bare list, then */ }
-                if (saved is null)
-                {
-                    try { saved = System.Text.Json.JsonSerializer.Deserialize<List<BookmarkVm>>(text); }
-                    catch (System.Text.Json.JsonException) { /* not a bookmarks file at all */ }
-                }
-                if (saved is null) return null;
-                return (folders, new List<BookmarkVm>(saved.Where(b => b.Url.Length > 0)));
+                return BookmarkStoreSerializer.Deserialize(File.ReadAllText(path));
             }
             catch { return null; }
         }
@@ -2684,9 +2659,9 @@ namespace Avalanche.Controls
             // Avalanche-Data) that the one-time migration never folded in has its
             // entries merged by address - once, and the profile copy is the only
             // copy again.
-            if (Bookmarks.Count == 0
+            if (Bookmarks.Count == 0 && Folders.Count == 0
                 && ReadBookmarkStoreFile(BookmarksBackupFile) is { } rescue
-                && rescue.Bookmarks.Count > 0)
+                && (rescue.Bookmarks.Count > 0 || rescue.Folders.Count > 0))
             {
                 foreach (string f in rescue.Folders)
                     if (!Folders.Contains(f)) Folders.Add(f);
@@ -2729,12 +2704,26 @@ namespace Avalanche.Controls
             try
             {
                 Directory.CreateDirectory(AppDataPaths.UserRoot);
-                string json = System.Text.Json.JsonSerializer.Serialize(
-                    new BookmarkStore { Folders = Folders.ToList(), Bookmarks = Bookmarks.ToList() },
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                string json = BookmarkStoreSerializer.Serialize(Folders.ToList(), Bookmarks.ToList());
                 string temporary = BookmarksFile + ".tmp";
-                File.WriteAllText(temporary, json);
-                File.Move(temporary, BookmarksFile, overwrite: true);
+                for (int attempt = 0; attempt < 5; attempt++)
+                {
+                    try
+                    {
+                        File.WriteAllText(temporary, json);
+                        if (File.Exists(BookmarksFile) && File.GetAttributes(BookmarksFile).HasFlag(FileAttributes.ReadOnly))
+                        {
+                            File.SetAttributes(BookmarksFile, FileAttributes.Normal);
+                        }
+                        File.Move(temporary, BookmarksFile, overwrite: true);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 4 && ex is IOException or UnauthorizedAccessException)
+                    {
+                        try { File.Delete(temporary); } catch { }
+                        System.Threading.Thread.Sleep(40 * (attempt + 1));
+                    }
+                }
                 // v1.36.0: the rolling second copy, best effort - it exists for
                 // the day the first copy does not survive.
                 try { File.WriteAllText(BookmarksBackupFile, json); } catch { }
@@ -2776,7 +2765,7 @@ namespace Avalanche.Controls
             WebBookmarkPopup.IsOpen = false;
             if (_bookmarkEditing is not null)
             {
-                if (name.Length > 0) _bookmarkEditing.Name = name;   // an empty box keeps the old name
+                _bookmarkEditing.Name = name;   // allows clearing the name to keep only the icon
                 _bookmarkEditing.Folder = folder;
                 _bookmarkEditing = null;
                 PersistBookmarks();
@@ -2787,7 +2776,7 @@ namespace Avalanche.Controls
             if (url.Length == 0 || FindBookmark(url) is not null) return;
             Bookmarks.Insert(0, new BookmarkVm
             {
-                Name = name.Length > 0 ? name : (Browser?.Source?.Host ?? url),
+                Name = name,
                 Url = url,
                 Favicon = FaviconDataForHost(Browser?.Source?.Host) ?? string.Empty,   // the session's own look at this site, if it earned one
                 Folder = folder,
@@ -2831,14 +2820,6 @@ namespace Avalanche.Controls
             WebFoldersList.Visibility = Folders.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        /// <summary>The bookmarks.json shape (v1.19.28): the folders' names and
-        /// the bookmarks together. An older file is a bare list of bookmarks;
-        /// the loader reads both.</summary>
-        private sealed class BookmarkStore
-        {
-            public List<string>? Folders { get; set; }
-            public List<BookmarkVm>? Bookmarks { get; set; }
-        }
 
         // ── The session behind the tabs (v1.19.24) ──────────────────────────────────
         // The reader's open tabs outlive the window now, the way bookmarks do:
@@ -2872,11 +2853,27 @@ namespace Avalanche.Controls
                 Directory.CreateDirectory(AppDataPaths.UserRoot);
                 List<WebTabSnapshot> snapshot = new();
                 foreach (WebTabCardVm t in Tabs)
-                    snapshot.Add(new WebTabSnapshot(t.Url, t.Title, t.Host, t.IsActive));
+                    snapshot.Add(new WebTabSnapshot(t.Url, t.Title, t.Host, t.IsActive, t.ThumbData, t.FaviconData));
                 string json = WebTabSnapshotStore.SerializeTabsSnapshot(snapshot);
                 string temporary = TabsFile + ".tmp";
-                File.WriteAllText(temporary, json);
-                File.Move(temporary, TabsFile, overwrite: true);
+                for (int attempt = 0; attempt < 5; attempt++)
+                {
+                    try
+                    {
+                        File.WriteAllText(temporary, json);
+                        if (File.Exists(TabsFile) && File.GetAttributes(TabsFile).HasFlag(FileAttributes.ReadOnly))
+                        {
+                            File.SetAttributes(TabsFile, FileAttributes.Normal);
+                        }
+                        File.Move(temporary, TabsFile, overwrite: true);
+                        break;
+                    }
+                    catch (Exception ex) when (attempt < 4 && ex is IOException or UnauthorizedAccessException)
+                    {
+                        try { File.Delete(temporary); } catch { }
+                        System.Threading.Thread.Sleep(40 * (attempt + 1));
+                    }
+                }
             }
             catch { /* a session file that will not write is not worth a crash */ }
         }
@@ -2896,7 +2893,17 @@ namespace Avalanche.Controls
             {
                 string title = s.Title.Length > 0 ? s.Title
                     : (HostOf(s.Url).Length > 0 ? HostOf(s.Url) : seed);
-                Tabs.Add(new WebTabCardVm(s.Url) { Title = title, Host = s.Host, IsActive = false });
+                WebTabCardVm card = new(s.Url)
+                {
+                    Title = title,
+                    Host = s.Host,
+                    IsActive = false,
+                    ThumbData = s.Thumb,
+                    Thumb = WebThumbCodec.Decode(s.Thumb),
+                    FaviconData = s.Favicon ?? "",
+                    Favicon = FaviconCodec.Decode(s.Favicon)
+                };
+                Tabs.Add(card);
             }
             int activeAt = saved.FindIndex(s => s.IsActive);
             if (activeAt < 0) activeAt = 0;
@@ -4853,6 +4860,10 @@ namespace Avalanche.Controls
         /// <summary>The captured preview; null keeps the previous frame.</summary>
         public ImageSource? Thumb { get => _thumb; set { _thumb = value; OnPropertyChanged(); } }
 
+        private string? _thumbData;
+        /// <summary>The raw data URI behind Thumb - what a tab tucks into webtabs.json when it is saved (v1.36.1).</summary>
+        public string? ThumbData { get => _thumbData; set { _thumbData = value; } }
+
         private ImageSource? _favicon;
         /// <summary>The page's own icon (v1.22.0), handed over in memory by the
         /// page itself; null keeps the globe glyph in the tab strip.</summary>
@@ -4877,81 +4888,5 @@ namespace Avalanche.Controls
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name!));
     }
 
-    /// <summary>One line of the browser's saved tab session (v1.19.24): the
-    /// address to revive, the title the page wore, its host, and whether this
-    /// was the tab on screen. Order in the file is order in the strip.</summary>
-    internal sealed record WebTabSnapshot(string Url, string Title, string Host, bool IsActive);
 
-    /// <summary>The tab session's pure core (v1.19.24): what is written and
-    /// what survives a read. Junk rows - empty, unparseable, non-web - are
-    /// dropped on the way in, so a corrupted or hand-edited file can never
-    /// resurrect a tab that makes no sense.</summary>
-    internal static class WebTabSnapshotStore
-    {
-        internal static string SerializeTabsSnapshot(List<WebTabSnapshot> tabs)
-            => System.Text.Json.JsonSerializer.Serialize(
-                tabs, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-
-        internal static List<WebTabSnapshot> ParseTabsSnapshot(string? json)
-        {
-            List<WebTabSnapshot> parsed = new();
-            if (string.IsNullOrWhiteSpace(json)) return parsed;
-            try
-            {
-                List<WebTabSnapshot>? saved = System.Text.Json.JsonSerializer.Deserialize<List<WebTabSnapshot>>(json);
-                if (saved is null) return parsed;
-                foreach (WebTabSnapshot s in saved)
-                {
-                    if (string.IsNullOrWhiteSpace(s.Url)) continue;
-                    if (!Uri.TryCreate(s.Url, UriKind.Absolute, out Uri? u)) continue;
-                    if (u.Scheme != Uri.UriSchemeHttp && u.Scheme != Uri.UriSchemeHttps) continue;
-                    parsed.Add(s);
-                }
-            }
-            catch { /* a session file that will not read is not worth a crash */ }
-            return parsed;
-        }
-    }
-
-    /// <summary>One saved page in the browser's bookmarks (v1.19.11): the name the
-    /// reader gave it, the address it opens, and the favicon slot the globe
-    /// stands in for. Rows live newest first and persist to bookmarks.json in
-    /// the app's data root.</summary>
-    public sealed class BookmarkVm : INotifyPropertyChanged
-    {
-        private string _name = "";
-        /// <summary>The chip's label - the page's own title until the reader renames it.</summary>
-        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
-
-        /// <summary>The address the chip opens - the bookmark's identity.</summary>
-        public string Url { get; set; } = "";
-
-        private string _favicon = "";
-        /// <summary>The site's icon as a data URI; empty keeps the globe glyph.
-        /// v1.22.0: the page itself hands the bytes over, and the setter decodes
-        /// them once so every chip of the site paints without rework.</summary>
-        public string Favicon
-        {
-            get => _favicon;
-            set
-            {
-                _favicon = value ?? "";
-                _faviconImage = Avalanche.Services.FaviconCodec.Decode(_favicon);
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(FaviconImage));
-            }
-        }
-
-        private ImageSource? _faviconImage;
-        /// <summary>The decoded icon; null while Favicon is empty (the globe's turn).</summary>
-        public ImageSource? FaviconImage => _faviconImage;
-
-        /// <summary>The folder this bookmark lives in (v1.19.28); empty means
-        /// the loose strip. Folders are names, persisted beside the bookmarks.</summary>
-        public string Folder { get; set; } = "";
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-        private void OnPropertyChanged([CallerMemberName] string? name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name!));
-    }
 }

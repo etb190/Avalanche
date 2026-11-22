@@ -1472,4 +1472,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Editor_TableDeleteRow">Usuń wiersz</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">Usuń kolumnę</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">Usuń tabelę</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

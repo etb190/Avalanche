@@ -1484,4 +1484,6 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Editor_TableDeleteRow">Xóa hàng</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">Xóa cột</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">Xóa bảng</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

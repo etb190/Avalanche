@@ -1466,4 +1466,6 @@ Avalanche 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteRow">刪除列</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">刪除欄</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">刪除表格</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

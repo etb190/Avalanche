@@ -1464,4 +1464,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteRow">Eliminar fila</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">Eliminar columna</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">Eliminar tabla</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

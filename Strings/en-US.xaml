@@ -1371,6 +1371,8 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Axo_Saved">Saved to Axo ✓</sys:String>
     <sys:String x:Key="Str_Axo_NotInDb">Document is not in the database Books or Articles folder. Axo note not saved.</sys:String>
     <sys:String x:Key="Str_Axo_Failed">Couldn't save the Axo note.</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 
     <!-- ── Web browser (v1.19.0) ─────────────────────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Lbl_WebBrowser">Browser</sys:String>

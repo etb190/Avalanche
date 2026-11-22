@@ -2024,8 +2024,24 @@
                                                                     <StackPanel>
                                                                         <Border Background="White" Height="74"
                                                                                 CornerRadius="2" ClipToBounds="True">
-                                                                            <Image Source="{Binding Thumb}" Stretch="UniformToFill"
-                                                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                            <Grid>
+                                                                                <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                                                                           Foreground="#888888"
+                                                                                           HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                                    <TextBlock.Style>
+                                                                                        <Style TargetType="TextBlock">
+                                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                            <Style.Triggers>
+                                                                                                <DataTrigger Binding="{Binding Thumb}" Value="{x:Null}">
+                                                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                                                </DataTrigger>
+                                                                                            </Style.Triggers>
+                                                                                        </Style>
+                                                                                    </TextBlock.Style>
+                                                                                </TextBlock>
+                                                                                <Image Source="{Binding Thumb}" Stretch="UniformToFill"
+                                                                                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                            </Grid>
                                                                         </Border>
                                                                         <TextBlock Text="{Binding Title}" FontSize="11"
                                                                                    Foreground="{DynamicResource TextBrush}"
@@ -2113,6 +2129,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <!-- One field, one stretch: the same [start]-[end] pair the
                                      AI tester's range mode takes (digits and the dash, e.g.
@@ -2141,6 +2158,36 @@
                                         Style="{StaticResource DarkButton}"
                                         FocusVisualStyle="{x:Null}"
                                         Click="NotesGenerate_Click"/>
+                                <Grid Grid.Row="2" Margin="0,6,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button x:Name="NotesSaveAllBtn" Grid.Column="0"
+                                            Margin="0,0,3,0" Height="26"
+                                            ToolTip="{DynamicResource Str_Axo_SaveAll}"
+                                            Background="#FF2E7D32" BorderBrush="#FF1B5E20"
+                                            Foreground="White"
+                                            FontSize="11" Padding="4,0"
+                                            Style="{StaticResource DarkButton}"
+                                            FocusVisualStyle="{x:Null}"
+                                            IsEnabled="False"
+                                            Click="NotesSaveAll_Click">
+                                        <TextBlock Text="{DynamicResource Str_Axo_SaveAll}" TextTrimming="CharacterEllipsis"/>
+                                    </Button>
+                                    <Button x:Name="NotesCopyAllBtn" Grid.Column="1"
+                                            Margin="3,0,0,0" Height="26"
+                                            ToolTip="{DynamicResource Str_Notes_CopyAll}"
+                                            Background="{DynamicResource ButtonBackgroundBrush}"
+                                            Foreground="{DynamicResource TextBrush}"
+                                            FontSize="11" Padding="4,0"
+                                            Style="{StaticResource DarkButton}"
+                                            FocusVisualStyle="{x:Null}"
+                                            IsEnabled="False"
+                                            Click="NotesCopyAll_Click">
+                                        <TextBlock Text="{DynamicResource Str_Notes_CopyAll}" TextTrimming="CharacterEllipsis"/>
+                                    </Button>
+                                </Grid>
                             </Grid>
                             <TextBlock x:Name="NotesStatusText" DockPanel.Dock="Top" Visibility="Collapsed"
                                        Margin="12,4,8,0" FontSize="11" TextWrapping="Wrap"

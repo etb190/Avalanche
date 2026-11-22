@@ -277,7 +277,7 @@
                                     PreviewMouseLeftButtonUp="BookmarkChip_DragRelease"
                                     LostMouseCapture="BookmarkChip_DragLostCapture">
                                 <StackPanel Orientation="Horizontal">
-                                    <Grid Width="14" Height="14" Margin="0,1,5,0" VerticalAlignment="Center">
+                                    <Grid Width="14" Height="14" Margin="0,1,0,0" VerticalAlignment="Center">
                                         <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                    Foreground="{DynamicResource MutedTextBrush}">
                                             <TextBlock.Style>
@@ -296,7 +296,18 @@
                                              the seat until one arrives. -->
                                         <Image Source="{Binding FaviconImage}" Width="14" Height="14"/>
                                     </Grid>
-                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="Text" Value="">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
                                 <Button.ContextMenu>
                                     <ContextMenu>
@@ -411,7 +422,7 @@
                                         LostMouseCapture="BookmarkChip_DragLostCapture"
                                         HorizontalAlignment="Stretch">
                                     <StackPanel Orientation="Horizontal">
-                                        <Grid Width="14" Height="14" Margin="0,1,5,0" VerticalAlignment="Center">
+                                        <Grid Width="14" Height="14" Margin="0,1,0,0" VerticalAlignment="Center">
                                             <TextBlock Text="&#xE774;" FontFamily="Segoe MDL2 Assets" FontSize="11"
                                                        Foreground="{DynamicResource MutedTextBrush}">
                                                 <TextBlock.Style>
@@ -428,7 +439,18 @@
                                             <!-- v1.22.0: the page's own icon, as on the strip. -->
                                             <Image Source="{Binding FaviconImage}" Width="14" Height="14"/>
                                         </Grid>
-                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" Margin="5,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="Text" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </StackPanel>
                                     <Button.ContextMenu>
                                         <ContextMenu>

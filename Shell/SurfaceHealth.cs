@@ -199,8 +199,9 @@ namespace Avalanche
                     string? exe = Environment.ProcessPath;
                     if (!string.IsNullOrEmpty(exe))
                     {
-                        System.Diagnostics.Process.Start(
-                            new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true });
+                        var psi = new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true };
+                        psi.ArgumentList.Add("--sw-render");
+                        System.Diagnostics.Process.Start(psi);
                     }
                 }
                 catch (Exception ex)

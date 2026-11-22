@@ -1469,4 +1469,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Editor_TableDeleteRow">Odstranit řádek</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">Odstranit sloupec</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">Odstranit tabulku</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

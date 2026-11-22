@@ -1464,4 +1464,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Editor_TableDeleteRow">সারি মুছুন</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">কলাম মুছুন</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">টেবিল মুছুন</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

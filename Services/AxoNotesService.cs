@@ -172,6 +172,72 @@ namespace Avalanche.Services
         }
 
         /// <summary>
+        /// Appends multiple notes in a single atomic batch write to the title's Axo JSON.
+        /// </summary>
+        public static Task<bool> AppendNotesAsync(string? pdfFilePath,
+            IEnumerable<(string markdownContent, int startPage, int endPage)> notesToAdd)
+        {
+            return Task.Run(() =>
+            {
+                if (!CanSaveToAxo(pdfFilePath, out string? jsonPath) || jsonPath is null)
+                {
+                    return false;
+                }
+
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+
+                    var notes = new List<AxoNoteItem>();
+                    if (File.Exists(jsonPath))
+                    {
+                        string existing = File.ReadAllText(jsonPath);
+                        if (!string.IsNullOrWhiteSpace(existing))
+                        {
+                            var loaded = JsonSerializer.Deserialize<List<AxoNoteItem>>(existing, ReadOptions);
+                            if (loaded is not null) notes = loaded;
+                        }
+                    }
+
+                    long baseMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                    int offset = 0;
+                    string nowIso = DateTime.UtcNow.ToString("o");
+
+                    foreach (var (markdownContent, startPage, endPage) in notesToAdd)
+                    {
+                        notes.Add(new AxoNoteItem
+                        {
+                            Id = (baseMs + offset++).ToString(CultureInfo.InvariantCulture),
+                            Content = MarkdownToHtml(markdownContent),
+                            StartPage = Math.Max(1, startPage).ToString(CultureInfo.InvariantCulture),
+                            EndPage = Math.Max(1, endPage).ToString(CultureInfo.InvariantCulture),
+                            Type = "general",
+                            Timestamp = nowIso
+                        });
+                    }
+
+                    string json = JsonSerializer.Serialize(notes, WriteOptions);
+                    string tmp = jsonPath + ".tmp";
+                    File.WriteAllText(tmp, json);
+                    if (File.Exists(jsonPath))
+                    {
+                        File.Replace(tmp, jsonPath, destinationBackupFileName: null);
+                    }
+                    else
+                    {
+                        File.Move(tmp, jsonPath);
+                    }
+
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            });
+        }
+
+        /// <summary>
         /// Markdown → the clean HTML Axo's TipTap editor renders: paragraphs,
         /// bold, italic and bullet lists. HTML-hostile characters are escaped
         /// first, then the markdown markers are folded into tags.

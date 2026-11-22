@@ -49,6 +49,8 @@
     <Compile Include="..\Services\Signing\KillerCmsSigner.cs" Link="Services\Signing\KillerCmsSigner.cs" />
     <Compile Include="..\Services\Signing\PdfSigner.cs" Link="Services\Signing\PdfSigner.cs" />
     <Compile Include="..\Models\StampModels.cs" Link="Models\StampModels.cs" />
+    <Compile Include="..\Controls\BookmarkVm.cs" Link="Controls\BookmarkVm.cs" />
+    <Compile Include="..\Controls\WebTabSnapshot.cs" Link="Controls\WebTabSnapshot.cs" />
     <Compile Include="..\Controls\FlyoutPlacement.cs" Link="Controls\FlyoutPlacement.cs" />
     <Compile Include="..\Controls\SidebarPageBinding.cs" Link="Controls\SidebarPageBinding.cs" />
     <!-- Data only, by design: OcrLanguages.cs itself reaches App and OcrNativeBootstrap, which a
@@ -65,6 +67,7 @@
     <Compile Include="..\Services\PrintOrientationPolicy.cs" Link="Services\PrintOrientationPolicy.cs" />
     <Compile Include="..\Services\PageQualityConverter.cs" Link="Services\PageQualityConverter.cs" />
     <Compile Include="..\Services\FaviconCodec.cs" Link="Services\FaviconCodec.cs" />
+    <Compile Include="..\Services\WebThumbCodec.cs" Link="Services\WebThumbCodec.cs" />
     <Compile Include="..\Services\StoreLink.cs" Link="Services\StoreLink.cs" />
     <Compile Include="..\Services\ExtensionOptionsPath.cs" Link="Services\ExtensionOptionsPath.cs" />
     <Compile Include="..\Services\ExtensionTrigger.cs" Link="Services\ExtensionTrigger.cs" />

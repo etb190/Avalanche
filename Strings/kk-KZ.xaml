@@ -1483,4 +1483,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Editor_TableDeleteRow">Жолды жою</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">Бағанды жою</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">Кестені жою</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

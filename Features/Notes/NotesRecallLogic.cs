@@ -29,13 +29,15 @@ namespace Avalanche.Features.Notes
     internal static class NotesRecallLogic
     {
         public const int DefaultChunkSize = 50;
+        public const int DefaultMinTail = 15;
 
-        /// <summary>Slices [firstPage..lastPage] into consecutive blocks of at
-        /// most <paramref name="chunkSize"/> pages: 80-200 (chunk 50) yields
-        /// (80,129), (130,179), (180,200) - the last block takes the remainder
-        /// with a proportional word budget.</summary>
+        /// <summary>Slices [firstPage..lastPage] into consecutive blocks of roughly
+        /// <paramref name="chunkSize"/> pages. Small trailing remainders under
+        /// <paramref name="minTail"/> pages are absorbed into the preceding block so round
+        /// spans (e.g. 250-300 or 100-200) never isolate a solitary page like "Pages 300 - 300":
+        /// 80-200 (chunk 50) yields (80,129), (130,179), (180,200).</summary>
         public static List<(int First, int Last)> ChunkBoundaries(
-            int firstPage, int lastPage, int chunkSize = DefaultChunkSize)
+            int firstPage, int lastPage, int chunkSize = DefaultChunkSize, int minTail = DefaultMinTail)
         {
             if (chunkSize < 1)
             {
@@ -49,7 +51,11 @@ namespace Avalanche.Features.Notes
             int end = Math.Max(start, Math.Max(firstPage, lastPage));
             while (start <= end)
             {
-                int stop = Math.Min(end, start + chunkSize - 1);
+                int normalStop = start + chunkSize - 1;
+                int stop = (normalStop >= end || (end - normalStop) < minTail)
+                    ? end
+                    : normalStop;
+
                 list.Add((start, stop));
                 start = stop + 1;
             }

@@ -489,8 +489,10 @@ namespace Avalanche
                     contentRevealed = true;
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
                     {
+                        RootClipGrid.Opacity = 1;
                         var reveal = new System.Windows.Media.Animation.DoubleAnimation(0, 1,
-                            new Duration(TimeSpan.FromMilliseconds(140)));
+                            new Duration(TimeSpan.FromMilliseconds(140)))
+                        { FillBehavior = System.Windows.Media.Animation.FillBehavior.Stop };
                         RootClipGrid.BeginAnimation(OpacityProperty, reveal);
                         Services.StartupTrace.Mark("MainWindow ready");
                     }));
@@ -2724,6 +2726,7 @@ namespace Avalanche
                 Features.Summary.RecapController.Dismiss();
             }
             WebPaneHost.Visibility = Visibility.Visible;
+            FileNameLabel.Visibility = Visibility.Collapsed;
             WebSumBtn.Visibility = Visibility.Visible;   // the browser summary chip rides the pane (v1.19.89)
             WebPane.OnPaneShown();
             // v1.19.92: the browser leads again - the digest window the last
@@ -2761,6 +2764,7 @@ namespace Avalanche
         {
             if (WebPaneHost.Visibility != Visibility.Visible) return;
             WebPaneHost.Visibility = Visibility.Collapsed;
+            FileNameLabel.Visibility = Visibility.Visible;
             WebSumBtn.Visibility = Visibility.Collapsed;   // back to the book - the globe leaves with the pane
             WebPane.OnPaneHidden();
             // v1.19.92: the browser's own window steps out with the pane - the
@@ -2917,6 +2921,7 @@ namespace Avalanche
                 Features.Summary.RecapController.Dismiss();
             }
             EditorPaneHost.Visibility = Visibility.Visible;
+            FileNameLabel.Visibility = Visibility.Collapsed;
             DocInvertBtn.Tag = TextPane.DocInverted ? "on" : null;   // the moon wears the sheet's face (v1.19.81)
             TextPane.OnPaneShown();
             EnterEditorSidebarMode();
@@ -2929,6 +2934,7 @@ namespace Avalanche
         {
             if (EditorPaneHost.Visibility != Visibility.Visible) return;
             EditorPaneHost.Visibility = Visibility.Collapsed;
+            FileNameLabel.Visibility = Visibility.Visible;
             DocInvertBtn.Tag = ActiveViewer.DocInvert ? "on" : null;   // back to the book's own night (v1.19.81)
             TextPane.OnPaneHidden();
             ExitEditorSidebarMode();

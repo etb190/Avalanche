@@ -220,8 +220,17 @@ namespace Avalanche
                 // Same law as every other surface: only who answers moves.
                 var config = Features.AI.AiSurfaceModels.Configure(
                     _aiSettingsViewModel.ToGenConfig(), Features.AI.AiSurface.Notes);
+                string modelTag = config.Model.Contains('/') ? config.Model[(config.Model.LastIndexOf('/') + 1)..] : config.Model;
+                var progress = new Progress<string>(stage =>
+                {
+                    if (run != _notesRun) return;
+                    if (stage == "generate")
+                    {
+                        ShowNotesStatus($"{string.Format(Loc("Str_Notes_Generating"), from, to)} ({modelTag})");
+                    }
+                });
                 var cards = await NotesGenerator.GenerateAsync(
-                    config, _currentFile, from, to, progress: null, _notesCts.Token);
+                    config, _currentFile, from, to, progress, _notesCts.Token);
                 if (run != _notesRun)
                 {
                     return;   // a document switch or close superseded this run
@@ -370,6 +379,8 @@ namespace Avalanche
         {
             NotesGenerateBtn.IsEnabled = !busy;
             NotesRangeBox.IsEnabled = !busy;
+            NotesSaveAllBtn.IsEnabled = !busy && _noteCards.Count > 0;
+            NotesCopyAllBtn.IsEnabled = !busy && _noteCards.Count > 0;
         }
 
         private void ShowNotesStatus(string text)
@@ -385,6 +396,8 @@ namespace Avalanche
 
         private void ShowNotesEmpty()
         {
+            NotesSaveAllBtn.IsEnabled = false;
+            NotesCopyAllBtn.IsEnabled = false;
             NotesCardsHost.Children.Clear();
             NotesCardsHost.Children.Add(NotesEmptyText);
             NotesEmptyText.Visibility = Visibility.Visible;
@@ -400,7 +413,10 @@ namespace Avalanche
             _noteCards.Clear();
             _noteCards.AddRange(cards);
             NotesCardsHost.Children.Clear();
-            if (_noteCards.Count == 0)
+            bool hasCards = _noteCards.Count > 0;
+            NotesSaveAllBtn.IsEnabled = hasCards;
+            NotesCopyAllBtn.IsEnabled = hasCards;
+            if (!hasCards)
             {
                 ShowNotesEmpty();
                 return;
@@ -467,6 +483,7 @@ namespace Avalanche
                 Style = (Style)FindResource("DarkButton"),
                 ToolTip = Loc("Str_Axo_SaveCard"),
                 Tag = card,
+                Uid = "axo",
                 FocusVisualStyle = null
             };
             axoBtn.Click += AxoSaveNoteCard_Click;
@@ -536,6 +553,74 @@ namespace Avalanche
 
             CopyNotesToClipboard([card]);
             FlashCopyButton(btn);
+        }
+
+        private void NotesCopyAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_noteCards.Count == 0) return;
+            CopyNotesToClipboard(_noteCards);
+            if (sender is Button btn)
+            {
+                FlashCopyButton(btn);
+            }
+        }
+
+        private async void NotesSaveAll_Click(object sender, RoutedEventArgs e)
+        {
+            if (_noteCards.Count == 0) return;
+
+            string? pdfPath = _originalFile ?? _notesDocumentPath;
+            bool allowed = Services.AxoNotesService.CanSaveToAxo(pdfPath, out _);
+            if (!allowed)
+            {
+                ShowNotesStatus(Loc("Str_Axo_NotInDb"));
+                return;
+            }
+
+            var items = _noteCards.Select(card => (
+                markdownContent: "**" + NoteTitle(card) + "**\n\n" + card.Content,
+                startPage: card.FirstPage,
+                endPage: card.LastPage
+            )).ToList();
+
+            bool saved = await Services.AxoNotesService.AppendNotesAsync(pdfPath, items);
+            if (saved)
+            {
+                foreach (NoteCard card in _noteCards)
+                {
+                    card.AxoState = true;
+                }
+
+                UpdateAllCardAxoFaces(true);
+                if (sender is Button btn)
+                {
+                    FlashCopyButton(btn);
+                }
+
+                ShowNotesStatus(Loc("Str_Axo_SavedAll") ?? Loc("Str_Axo_Saved"));
+            }
+            else
+            {
+                ShowNotesStatus(Loc("Str_Axo_Failed"));
+            }
+        }
+
+        private void UpdateAllCardAxoFaces(bool? state)
+        {
+            foreach (var border in NotesCardsHost.Children.OfType<Border>())
+            {
+                if (border.Child is StackPanel stack && stack.Children.Count > 0 &&
+                    stack.Children[0] is DockPanel header)
+                {
+                    foreach (var btn in header.Children.OfType<Button>())
+                    {
+                        if (btn.Uid == "axo")
+                        {
+                            ApplyAxoFace(btn, state);
+                        }
+                    }
+                }
+            }
         }
 
         // Sends one note card to the title's Axo notes JSON. The card rides

@@ -32,7 +32,8 @@ namespace Avalanche.Features.Notes
 
     internal static class NotesGenerator
     {
-        private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(8) };
+        private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
+        private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(90);
 
         // Cloud free-tier guard, shared with the summarizer: the hosted
         // endpoint answers an 8192-token request and kills a bigger one,
@@ -89,9 +90,32 @@ namespace Avalanche.Features.Notes
             // ample room, and caps only cost when they are used.
             int maxTokens = Math.Max(config.MaxTokens, 2000 + 1200 * blocks.Count);
             using var request = BuildNotesRequest(config, user.ToString(), maxTokens);
-            using var response = await Http.SendAsync(request, ct).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(RequestTimeout);
+
+            HttpResponseMessage response;
+            try
+            {
+                response = await Http.SendAsync(request, timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                throw new TimeoutException(
+                    $"The model endpoint ({config.Model}) timed out after {RequestTimeout.TotalSeconds:0}s. If using a cloud model, select Gemini in AI Settings.");
+            }
+
+            using (response)
+            {
+                string json = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                {
+                    string? err = AiProbeLogic.ExtractErrorBody(json);
+                    string msg = !string.IsNullOrWhiteSpace(err)
+                        ? err
+                        : $"Provider returned HTTP {(int)response.StatusCode} ({response.ReasonPhrase})";
+                    throw new InvalidOperationException(msg);
+                }
             SurfaceHealthLog.Log(string.Format(
                 CultureInfo.InvariantCulture,
                 "notes: POST model={0} pages={1}-{2} blocks={3} chars={4} -> {5} ms",
@@ -124,6 +148,7 @@ namespace Avalanche.Features.Notes
                 cards.Count,
                 clock.ElapsedMilliseconds));
             return cards;
+            }
         }
 
         // Same wire shape as the summary's BuildRequest (OpenAI-compatible chat

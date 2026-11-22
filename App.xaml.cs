@@ -447,6 +447,24 @@ namespace Avalanche
             // the crash log while there is still time.
             DiagnosticsBundle.Dump("fatal exception: " + ex.GetType().FullName);
 
+            // A render-thread failure can surface on a worker thread too. The window can no longer
+            // draw a crash dialog, so take the same recovery restart the UI-thread handler takes.
+            if ((ex is System.Runtime.InteropServices.COMException rcex &&
+                 ((uint)rcex.HResult == 0x88980406u || rcex.Message.Contains("UCEERR_RENDERTHREADFAILURE")))
+                && Dispatcher != null && !Dispatcher.HasShutdownStarted)
+            {
+                try
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (Application.Current?.MainWindow is MainWindow mw)
+                            mw.NotifyRenderThreadFailure(rcex);
+                    });
+                    return;
+                }
+                catch { /* fall back to the crash dialog below */ }
+            }
+
             try
             {
                 if (Dispatcher != null && !Dispatcher.HasShutdownStarted)

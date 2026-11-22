@@ -1471,4 +1471,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Editor_TableDeleteRow">Sor törlése</sys:String>
     <sys:String x:Key="Str_Editor_TableDeleteCol">Oszlop törlése</sys:String>
     <sys:String x:Key="Str_Editor_TableDelete">Táblázat törlése</sys:String>
+    <sys:String x:Key="Str_Axo_SaveAll">Save All to Axo</sys:String>
+    <sys:String x:Key="Str_Axo_SavedAll">Saved all to Axo ✓</sys:String>
 </ResourceDictionary>

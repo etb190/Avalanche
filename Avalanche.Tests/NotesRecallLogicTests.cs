@@ -31,6 +31,27 @@ public sealed class NotesRecallLogicTests
     }
 
     [Fact]
+    public void ChunkBoundaries_Absorbs_Small_Tail_Never_Strands_Single_Page()
+    {
+        // 250 to 300 (51 pages): should be ONE block (250, 300), not (250, 299) and (300, 300)
+        var blocks51 = NotesRecallLogic.ChunkBoundaries(250, 300);
+        Assert.Single(blocks51);
+        Assert.Equal((250, 300), blocks51[0]);
+
+        // 200 to 300 (101 pages): should be (200, 249) and (250, 300), no solitary 300-300
+        var blocks101 = NotesRecallLogic.ChunkBoundaries(200, 300);
+        Assert.Equal(2, blocks101.Count);
+        Assert.Equal((200, 249), blocks101[0]);
+        Assert.Equal((250, 300), blocks101[1]);
+
+        // 100 to 200 (101 pages): should be (100, 149) and (150, 200)
+        var blocks100to200 = NotesRecallLogic.ChunkBoundaries(100, 200);
+        Assert.Equal(2, blocks100to200.Count);
+        Assert.Equal((100, 149), blocks100to200[0]);
+        Assert.Equal((150, 200), blocks100to200[1]);
+    }
+
+    [Fact]
     public void ParseCards_Splits_On_Heading_Lines()
     {
         const string reply = """
