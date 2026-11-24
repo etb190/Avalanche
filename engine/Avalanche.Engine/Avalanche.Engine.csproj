@@ -7,7 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>Avalanche.Engine</RootNamespace>
     <AssemblyName>Avalanche.Engine</AssemblyName>
-    <Version>1.36.0</Version>
+    <Version>1.37.0</Version>
     <PackageId>Avalanche.Engine</PackageId>
     <Title>The Avalanche.Engine</Title>
     <Authors>Avalanche Team</Authors>
@@ -36,7 +36,7 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.10" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
   </ItemGroup>
 
   <ItemGroup>

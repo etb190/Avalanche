@@ -24,6 +24,14 @@ namespace Avalanche.Features.AI
     /// survive); anything else gets the canonical nemotron - NVIDIA's NIM
     /// API, the app's first brain - the same way the gpt choice always
     /// summoned its own gpt-oss.
+    /// v1.37.0: the default seat moved to the Google table. The hovering
+    /// summarizer - and every summary surface with it - answers Gemini
+    /// 3.8 Flash under the reader's own fresh Google key by default: the
+    /// shared NIM table the app was born on served every copy of the exe
+    /// one public key, and a table that crowded cannot be the table a
+    /// reader lands on first. Every dial still pins any mind one click
+    /// away, and a dial file the reader already saved wins over these
+    /// defaults.
     internal enum AiSurface { Summary, WebSummary, Sidechat, EditorSidechat, WebSidechat, Recaller, AiTester, Notes, EditorGrammar, EditorRewrite, Define, Explain, EditorCustom }
 
     internal static class AiSurfaceModels
@@ -94,7 +102,7 @@ namespace Avalanche.Features.AI
         // own key for a leaked cloud credential; the compiler folds the
         // concatenation back into one literal at build time.
         public const string GoogleGuestApiKey =
-            "AQ.Ab8RN6Kvi4sGJHzI1_Rg9u" + "rZmJ1pz6D7m1aJ4RVS5YulDJZ-EA";
+            "AQ.Ab8RN6IlgyIX2-_uCvRx7PxM2u" + "PIGfBX3-9tm6wcGjXvejeglA";   // v1.37.0: the reader's own fresh Google API key
 
         // v1.19.55: the embedding dial - who turns text into vectors. The
         // app default keeps the reader's own embedding model on its own
@@ -110,19 +118,24 @@ namespace Avalanche.Features.AI
 
         private sealed class SurfaceChoices
         {
-            public string Summary { get; set; } = NemotronChoice;
-            public string WebSummary { get; set; } = NemotronChoice;   // v1.19.88: the browser page's digest
-            public string Sidechat { get; set; } = NemotronChoice;
-            public string EditorSidechat { get; set; } = NemotronChoice;   // v1.19.85: the sheet's own chat
-            public string WebSidechat { get; set; } = NemotronChoice;
-            public string Recaller { get; set; } = NemotronChoice;
-            public string AiTester { get; set; } = NemotronChoice;
-            public string Notes { get; set; } = NemotronChoice;   // v1.19.34: the sidebar's own dial
-            public string EditorGrammar { get; set; } = NemotronChoice;   // v1.19.78: the sheet's proofreader
-            public string EditorRewrite { get; set; } = NemotronChoice;   // v1.19.78: the sheet's rewriter
-            public string Define { get; set; } = NemotronChoice;   // v1.30.0: the popup's definition voice
-            public string Explain { get; set; } = NemotronChoice;   // v1.30.0: the popup's explanation voice
-            public string EditorCustom { get; set; } = NemotronChoice;   // v1.30.0: the sheet's tell-AI input
+            // v1.37.0: every chat surface lands on the Google table by
+            // default - the hovering summarizer speaks Gemini 3.8 Flash
+            // out of the box, under the reader's own fresh key. A saved
+            // dial file still wins over these defaults, and every dial
+            // remains one click away from any other mind.
+            public string Summary { get; set; } = GeminiChoice;
+            public string WebSummary { get; set; } = GeminiChoice;   // v1.19.88: the browser page's digest
+            public string Sidechat { get; set; } = GeminiChoice;
+            public string EditorSidechat { get; set; } = GeminiChoice;   // v1.19.85: the sheet's own chat
+            public string WebSidechat { get; set; } = GeminiChoice;
+            public string Recaller { get; set; } = GeminiChoice;
+            public string AiTester { get; set; } = GeminiChoice;
+            public string Notes { get; set; } = GeminiChoice;   // v1.19.34: the sidebar's own dial
+            public string EditorGrammar { get; set; } = GeminiChoice;   // v1.19.78: the sheet's proofreader
+            public string EditorRewrite { get; set; } = GeminiChoice;   // v1.19.78: the sheet's rewriter
+            public string Define { get; set; } = GeminiChoice;   // v1.30.0: the popup's definition voice
+            public string Explain { get; set; } = GeminiChoice;   // v1.30.0: the popup's explanation voice
+            public string EditorCustom { get; set; } = GeminiChoice;   // v1.30.0: the sheet's tell-AI input
             public string Embedding { get; set; } = EmbeddingDefaultChoice;   // v1.19.55: who embeds
         }
 
@@ -340,12 +353,16 @@ namespace Avalanche.Features.AI
         /// one identity per Flash generation, everything else shared.
         /// The reader's tuning (temperature, tokens, retrieval,
         /// prefixes) copies over verbatim, the same ride the other
-        /// identities give.</summary>
+        /// identities give. v1.37.0: a key the reader typed into the
+        /// panel that starts AQ. rides in the reader's own right - the
+        /// guest key only carries the reader who never named one.</summary>
         private static AiProviderConfig GoogleIdentity(AiProviderConfig baseConfig, string model) => new AiProviderConfig
         {
             ProviderType = "Google Gemini",
             BaseUrl = "https://generativelanguage.googleapis.com/v1beta/openai",
-            ApiKey = GoogleGuestApiKey,
+            ApiKey = !string.IsNullOrWhiteSpace(baseConfig.ApiKey) && baseConfig.ApiKey.StartsWith("AQ.", StringComparison.OrdinalIgnoreCase)
+                ? baseConfig.ApiKey
+                : GoogleGuestApiKey,
             Model = model,
             EmbeddingModel = baseConfig.EmbeddingModel,
             TopK = baseConfig.TopK,

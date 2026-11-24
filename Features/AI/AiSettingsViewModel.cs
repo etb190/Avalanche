@@ -26,23 +26,23 @@ namespace Avalanche.Features.AI
         private string _embeddingDocumentPrefix = "title: none | text: ";
         private string _embeddingQueryPrefix = "task: search results | query: ";
 
-        // v1.19.31: the four model dials - Nemotron by default, gpt-oss one
-        // dropdown away. The dial itself lives in AiSurfaceModels (shared with
+        // v1.19.31: the model dials. v1.37.0: they wear Gemini by default,
+        // every other mind one dropdown away. The dial itself lives in AiSurfaceModels (shared with
         // every surface); these properties only mirror it for the combos and
         // write through on every change.
-        private string _summaryModelChoice = AiSurfaceModels.NemotronChoice;
-        private string _webSummaryModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.88: the web digest's dial
-        private string _sidechatModelChoice = AiSurfaceModels.NemotronChoice;
-        private string _webSidechatModelChoice = AiSurfaceModels.NemotronChoice;
-        private string _recallerModelChoice = AiSurfaceModels.NemotronChoice;
-        private string _aiTesterModelChoice = AiSurfaceModels.NemotronChoice;
-        private string _notesModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.34: the sidebar's notes
-        private string _editorGrammarModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's proofreader
-        private string _editorRewriteModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.78: the sheet's rewriter
-        private string _editorSidechatModelChoice = AiSurfaceModels.NemotronChoice;   // v1.19.86: the sheet's chat
-        private string _defineModelChoice = AiSurfaceModels.NemotronChoice;   // v1.30.0: the popup's definition voice
-        private string _explainModelChoice = AiSurfaceModels.NemotronChoice;   // v1.30.0: the popup's explanation voice
-        private string _editorCustomModelChoice = AiSurfaceModels.NemotronChoice;   // v1.30.0: the sheet's tell-AI input
+        private string _summaryModelChoice = AiSurfaceModels.GeminiChoice;
+        private string _webSummaryModelChoice = AiSurfaceModels.GeminiChoice;   // v1.19.88: the web digest's dial
+        private string _sidechatModelChoice = AiSurfaceModels.GeminiChoice;
+        private string _webSidechatModelChoice = AiSurfaceModels.GeminiChoice;
+        private string _recallerModelChoice = AiSurfaceModels.GeminiChoice;
+        private string _aiTesterModelChoice = AiSurfaceModels.GeminiChoice;
+        private string _notesModelChoice = AiSurfaceModels.GeminiChoice;   // v1.19.34: the sidebar's notes
+        private string _editorGrammarModelChoice = AiSurfaceModels.GeminiChoice;   // v1.19.78: the sheet's proofreader
+        private string _editorRewriteModelChoice = AiSurfaceModels.GeminiChoice;   // v1.19.78: the sheet's rewriter
+        private string _editorSidechatModelChoice = AiSurfaceModels.GeminiChoice;   // v1.19.86: the sheet's chat
+        private string _defineModelChoice = AiSurfaceModels.GeminiChoice;   // v1.30.0: the popup's definition voice
+        private string _explainModelChoice = AiSurfaceModels.GeminiChoice;   // v1.30.0: the popup's explanation voice
+        private string _editorCustomModelChoice = AiSurfaceModels.GeminiChoice;   // v1.30.0: the sheet's tell-AI input
         private string _embeddingChoice = AiSurfaceModels.EmbeddingDefaultChoice;   // v1.19.55: who embeds
 
         private bool _isEnabled = false;
