@@ -123,7 +123,7 @@ Microsoft.Win32.Primitives.dll
 Microsoft.Win32.Registry.AccessControl.dll
 Microsoft.Win32.Registry.dll
 Microsoft.Win32.SystemEvents.dll
-mscordaccore_amd64_amd64_10.0.1226.42308.dll
+mscordaccore_amd64_amd64_10.0.1526.53008.dll
 mscordaccore.dll
 mscordbi.dll
 mscorlib.dll
