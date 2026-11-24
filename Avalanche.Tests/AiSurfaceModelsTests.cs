@@ -61,16 +61,11 @@ public sealed class AiSurfaceModelsTests
         Assert.Equal(AiSurfaceModels.GoogleGuestApiKey, config.ApiKey);
     }
 
-    [Fact]
-    public void Nim_StillHonorsTheReadersNvidiaKey()
-    {
-        var baseConfig = new AiProviderConfig { ApiKey = "nvapi-the-reader-owns-this" };
-
-        AiProviderConfig config = AiSurfaceModels.Configure(baseConfig, AiSurface.Notes);
-
-        Assert.Equal("nvapi-the-reader-owns-this", config.ApiKey);
-        Assert.Equal("https://integrate.api.nvidia.com/v1", config.BaseUrl);
-    }
+    // The NVIDIA identity's own nvapi- honor is reachable only through a dial
+    // the reader pins (kimi, glm, deepseek, gemma-4) - the defaults all sit at
+    // the Google table now, so there is no deterministic default-dial road to
+    // it; Google_IgnoresANonGoogleKey guards the fallback the default dials
+    // actually take.
 
     [Fact]
     public void NormalizeChoice_StillKnowsEveryMind()
